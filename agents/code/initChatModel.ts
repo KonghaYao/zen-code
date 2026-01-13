@@ -10,11 +10,22 @@ export const initChatModel = async (mainModel: string, {}) => {
             model: mainModel,
             streamUsage: true,
             streaming: true,
+            maxRetries: 1,
+            thinking: {
+                budget_tokens: 1024,
+                type: 'enabled',
+            },
         });
     } else {
         model = new ChatOpenAI({
             model: mainModel,
             streamUsage: true,
+            maxRetries: 1,
+            modelKwargs: {
+                thinking: {
+                    type: 'enabled',
+                },
+            },
         });
     }
 

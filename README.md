@@ -14,12 +14,13 @@
 -   [x] Anthropic and OpenAI Model Support
 -   [x] Magic Input
     -   [x] 缓冲区（like cursor）
--   [ ] 支持 template
+-   [x] 支持 template
+-   [x] 支持 thinking
 -   [ ] 文件变更检测机制
 -   [x] SubAgent
 -   [x] Agent Skills
 -   [x] MCP
--   [x] AGENTS.md
+-   [x] AGENTS.md/CLAUDE.md
 -   [ ] Sandbox
 -   [ ] Memory System
 

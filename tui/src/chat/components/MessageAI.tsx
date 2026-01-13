@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { RenderMessage } from '@langgraph-js/sdk';
-import { getMessageContent } from '@langgraph-js/sdk';
+import { getThinkingContent, getTextContent } from '@langgraph-js/sdk';
 import { useSettings } from '../context/SettingsContext';
 import Markdown from './Markdown';
 import { getColor } from '../../utils/colors';
@@ -14,15 +14,12 @@ interface MessageAIProps {
 const MessageAI: React.FC<MessageAIProps> = ({ message, messageNumber }) => {
     const { extraParams } = useSettings();
     const modelName = extraParams.main_model || 'AI';
-    if (
-        Array.isArray(message.content) &&
-        message.content.every(
-            (i) =>
-                /** @ts-ignore anthropic 的神奇妙招 */
-                i.type === 'tool_use',
-        )
-    )
-        return <></>;
+
+    // MODIFIED: 提取 thinking 内容
+    const thinkingContent = getThinkingContent(message);
+    /** @ts-ignore */
+    const rawTextContents = getTextContent(message);
+    if (!rawTextContents) return <></>;
     return (
         <Box flexDirection="column">
             <Box paddingBottom={0} marginBottom={1}>
@@ -30,8 +27,25 @@ const MessageAI: React.FC<MessageAIProps> = ({ message, messageNumber }) => {
                     {messageNumber} {modelName}
                 </Text>
             </Box>
-            {/* <Text>{getMessageContent(message.content).trim()}</Text> */}
-            <Markdown>{getMessageContent(message.content).trim()}</Markdown>
+            {/* 渲染 thinking 内容 */}
+            {thinkingContent && <Reasoning thinking={thinkingContent}></Reasoning>}
+            {/* <Text>{JSON.stringify(message.content)}</Text> */}
+            <Markdown>{rawTextContents}</Markdown>
+        </Box>
+    );
+};
+
+const Reasoning = ({ thinking }: { thinking: string }) => {
+    return (
+        <Box flexDirection="column" marginBottom={1}>
+            <Box paddingBottom={0}>
+                <Text color="gray" bold>
+                    Thinking:
+                </Text>
+            </Box>
+            <Box paddingLeft={2}>
+                <Text dimColor>{thinking}</Text>
+            </Box>
         </Box>
     );
 };
