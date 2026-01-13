@@ -473,13 +473,13 @@ export const mcpCommand: CommandDefinition = {
 };
 
 /**
- * /summarize 命令 - 触发远程总结功能
+ * /summarize 命令 - 智能总结和记忆提取
  */
 export const summarizeCommand: CommandDefinition = {
     name: 'summarize',
-    description: '总结当前聊天记录',
+    description: '智能总结对话并提取有价值信息保存为记忆',
     aliases: ['sum', 'summary'],
-    usage: '/summarize',
+    usage: '/sum',
     execute: async (args: string[], context) => {
         // 检查是否有聊天记录
         if (!context.renderMessages || context.renderMessages.length === 0) {
@@ -490,32 +490,21 @@ export const summarizeCommand: CommandDefinition = {
             };
         }
 
-        // 检查消息数量，至少需要一些消息才能总结
         const messageCount = context.renderMessages.length;
-        if (messageCount < 2) {
-            return {
-                success: false,
-                message: '消息数量太少，无法进行有意义的总结（至少需要2条消息）',
-                shouldClearInput: true,
-            };
-        }
 
         try {
-            // 使用 sendMessage 触发远程总结
-            // 通过 extraParams 传递 switch_command
-            const summarizeMessage: any[] = [];
-
             // 构建包含 switch_command 的 extraParams
             const summarizeExtraParams = {
                 ...context.extraParams,
-                switch_command: 'summarization',
+                switch_command: 'smart_memory',
             };
 
-            await context.sendMessage(summarizeMessage, { extraParams: summarizeExtraParams });
+            // 发送空消息触发 smart_memory 分支
+            await context.sendMessage([], { extraParams: summarizeExtraParams });
 
             return {
                 success: true,
-                message: `正在总结 ${messageCount} 条消息...`,
+                message: `正在智能分析 ${messageCount} 条消息并提取记忆...`,
                 shouldClearInput: true,
             };
         } catch (error) {

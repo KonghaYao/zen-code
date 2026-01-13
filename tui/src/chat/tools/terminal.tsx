@@ -63,6 +63,7 @@ export const terminal = createUITool({
                                 } else {
                                     setEditValue('');
                                 }
+                                focusManager.focus('global-input');
                             }}
                             autoFocus
                         />

@@ -11,6 +11,7 @@ export const initChatModel = async (mainModel: string, {}) => {
             streamUsage: true,
             streaming: true,
             maxRetries: 1,
+            maxTokens: 65536,
             thinking: {
                 budget_tokens: 1024,
                 type: 'enabled',
