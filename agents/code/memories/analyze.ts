@@ -251,6 +251,11 @@ function generateMemoryName(content: string, index: number): string {
  * 保存记忆片段到文件
  */
 async function saveMemories(memory: MemoryCandidate): Promise<string> {
+    // 检测是否为无重要信息的情况
+    if (memory.name.startsWith('no-memory-')) {
+        return `${memory.summary_of_chat}\n\n---\n\nname: "${memory.name}"\ndescription: "${memory.description}"\n\n⚠️ 无重要信息，未保存记忆`;
+    }
+
     const memoriesDir = path.join(process.cwd(), '.claude/memories');
 
     await fs.mkdir(memoriesDir, { recursive: true });

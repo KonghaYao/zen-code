@@ -1,108 +1,69 @@
-# Code Graph
+# Zen Code
 
-一个视图无关的 LangGraph Coding Agent, Like Claude Code or Gemini Cli.
+> 你的终端 AI 编程助手
 
-## 我想做的
+## 🎯 项目定位
 
--   [x] 完整的 TS LangGraph Agent Stack
-    -   [x] Agent Runtime (Open LangGraph Server)
-    -   [x] Agent Frontend SDK (@langgraph-js/sdk)
--   [x] Human In the Loop
-    -   [ ] Yolo Mode（用于自动控制授权）
-    -   [ ] Automatically Security
--   [x] 现在改为手动进行 /sum
--   [x] Anthropic and OpenAI Model Support
--   [x] Magic Input
-    -   [x] 缓冲区（like cursor）
--   [x] 支持 template
--   [x] 支持 thinking
--   [ ] 文件变更检测机制
--   [x] SubAgent
--   [x] Agent Skills
--   [x] MCP
--   [x] AGENTS.md/CLAUDE.md
--   [ ] Sandbox
--   [ ] Memory System
+Zen Code 是一个基于 LangGraph 的 AI 编程助手，提供完整的 TUI（终端用户界面）交互体验。支持 Claude Code 和 Gemini CLI 的核心交互模式，帮助开发者通过自然语言完成编码任务。
 
-## 项目结构
+### 核心价值
 
-```
-code-graph/
-├── agents/                      # Agent 核心代码
-│   └── code/                   # 主要 Agent 实现
-│       ├── ask_agents.ts       # SubAgent 通信模块
-│       ├── export.ts           # 导出配置
-│       ├── graph.ts            # LangGraph 定义
-│       ├── middlewares/        # 中间件
-│       ├── prompts/            # 提示词模板
-│       ├── server.ts           # LangGraph 服务器
-│       ├── skills/             # Agent 技能模块
-│       ├── state.ts            # 状态管理
-│       ├── subagents/          # SubAgent 定义
-│       ├── tools/              # 工具函数
-│       └── utils/              # 工具类
-│
-├── tui/                        # TUI 前端界面
-│   ├── src/                    # 源代码
-│   │   ├── app.tsx            # 应用入口
-│   │   ├── chat/              # 聊天界面组件
-│   │   ├── hooks/             # React Hooks
-│   │   ├── utils/             # 工具函数
-│   │   └── index.ts           # 入口文件
-│   └── dist/                   # 构建产物
-│
-├── .langgraph_api/            # LangGraph 运行时
-│   ├── langgraph.db           # SQLite 数据库
-│   └── memory.md              # 记忆系统
-│
-├── .deepagents/               # DeepAgents 配置
-│   └── skills/                # 项目技能
-│       └── frontend-design/   # 前端设计技能
-│
-├── .env                       # 环境变量
-├── .env.example               # 环境变量示例
-├── package.json               # 项目依赖
-├── pnpm-workspace.yaml        # PNPM 工作区配置
-├── tsconfig.json              # TypeScript 配置
-├── .prettierrc                # 代码格式化配置
-├── init.sh                    # 初始化脚本
-└── README.md                  # 项目文档
+- **终端原生**：在命令行中直接对话，无需离开开发环境
+- **智能交互**：Magic Input 缓冲区，类 Cursor 的流畅体验
+- **本地优先**：基于 SQLite 的持久化存储，记忆和配置完全本地控制
+- **可扩展能力**：Skills 和 SubAgent 系统，按需增强助手能力
+
+## ✨ 核心特性
+
+### AI 能力
+
+| 特性 | 说明 |
+|------|------|
+| **双模型支持** | OpenAI / Anthropic 无缝切换 |
+| **Thinking 模式** | Claude Thinking 支持，可配置开关 |
+| **Human in the Loop** | 敏感操作自动确认，安全可控 |
+| **MCP 协议** | Model Context Protocol 工具集成 |
+| **SubAgent 系统** | 任务委托专用子 Agent（finder 搜索等） |
+| **Skills 系统** | 项目级/用户级技能，渐进式加载 |
+| **记忆系统** | 向量存储 + 语义搜索 |
+
+### TUI 界面
+
+- **交互式聊天**：自然语言对话，流畅的响应体验
+- **命令系统**：`/init`、`/model`、`/help`、`/mp` 等
+- **面板切换**：Chat / History / Knowledge / Model Panel
+- **键盘导航**：↑↓ 选择、Enter 确认、q 关闭
+- **Markdown 渲染**：语法高亮、代码块着色
+
+## 🚀 快速开始
+
+### 安装
+
+```bash
+pnpx zen-code
 ```
 
-### 核心组件说明
+### 初始化
 
--   **Agent Runtime**: 基于 LangGraph 的 Agent 运行时，支持 Human-in-the-loop
--   **TUI Frontend**: 基于 React 的终端用户界面
--   **SubAgent System**: 支持任务委托的子 Agent 系统
--   **Skills System**: 可扩展的技能系统，支持项目特定技能
--   **Memory System**: 基于 SQLite 的状态和记忆管理
-
-### 运行与开发
-
--   使用 `pnpm dev` 启动开发环境
--   使用 `pnpm build` 构建项目
-
-```sh
-# openai model base settings
-OPENAI_API_KEY=
-OPENAI_BASE_URL=
-
-# Demo of Using PG
-# DATABASE_URL=postgresql://postgres:postgres@localhost:5434/langgraph_test_10?sslmode=require
-# DATABASE_NAME=langgraph_test_10
-
-SQLITE_DATABASE_URL=./.langgraph_api/langgraph.db
+```bash
+zen-code init
 ```
 
-## 贡献及反馈
+运行后按提示配置：
+- 选择模型提供商（OpenAI / Anthropic）
+- 输入 API Key
+- 配置完成即可开始使用
 
-欢迎在 https://github.com/KonghaYao/coding-graph/issues 反馈问题与建议。
+## 🤝 贡献
 
-## 参考
+欢迎提交 Issue 和 Pull Request！
 
-本项目参考了
+## 📄 许可证
 
--   [ShareAI-lab](https://github.com/shareAI-lab)
--   [Claude Code](https://docs.anthropic.com/)
--   [Cursor](https://cursor.com/)
--   [DeepAgents](https://github.com/langchain-ai/deepagents)
+Apache-2.0
+
+## 🔗 参考
+
+- [Claude Code](https://docs.anthropic.com/)
+- [Cursor](https://cursor.com/)
+- [DeepAgents](https://github.com/langchain-ai/deepagents)
