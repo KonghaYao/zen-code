@@ -121,7 +121,7 @@ export class CommandRegistry {
 
         // 如果只输入了 /，显示前5个常用命令
         if (query === '') {
-            const popularCommands = ['history', 'knowledge', 'help', 'init', 'close'];
+            const popularCommands = ['model', 'history', 'knowledge', 'summarize', 'new', 'help'];
             for (const commandName of popularCommands) {
                 const command = this.commands.get(commandName);
                 if (command) {

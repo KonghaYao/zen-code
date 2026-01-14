@@ -91,7 +91,7 @@ const KnowledgePanel: React.FC<KnowledgePanelProps> = ({ onClose }) => {
                             {cleanPath(memory.path)}
                         </Text>
                     </Box>
-                    {memory.tags.length > 0 && (
+                    {/* {memory.tags.length > 0 && (
                         <Box paddingLeft={2} gap={1}>
                             {memory.tags.map((tag, index) => (
                                 <Text key={index} color="green">
@@ -99,7 +99,7 @@ const KnowledgePanel: React.FC<KnowledgePanelProps> = ({ onClose }) => {
                                 </Text>
                             ))}
                         </Box>
-                    )}
+                    )} */}
                 </Box>
             );
         });

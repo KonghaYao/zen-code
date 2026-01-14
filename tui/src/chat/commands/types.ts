@@ -42,6 +42,8 @@ export interface CommandContext {
     switchToHistory?: () => void;
     /** 切换到知识库面板 */
     switchToKnowledge?: () => void;
+    /** 切换到模型面板 */
+    switchToModel?: () => void;
     /** 关闭面板返回聊天 */
     closePanel?: () => void;
 }

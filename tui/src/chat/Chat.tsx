@@ -16,6 +16,7 @@ import Shimmer from './components/Shimmer';
 import { ChatInputBuffer } from './components/input/ChatInputBuffer';
 import { notify } from '../utils/notify';
 import KnowledgePanel from './components/KnowledgePanel';
+import ModelPanel from './components/ModelPanel';
 
 const ChatMessages = () => {
     const { renderMessages, loading, inChatError, isFELocking } = useChat();
@@ -45,10 +46,11 @@ interface ChatInputProps {
     // MODIFIED: 添加面板切换回调 props
     switchToHistory?: () => void;
     switchToKnowledge?: () => void;
+    switchToModel?: () => void;
     closePanel?: () => void;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ switchToHistory, switchToKnowledge, closePanel }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ switchToHistory, switchToKnowledge, switchToModel, closePanel }) => {
     const { userInput, setUserInput, sendMessage, loading, renderMessages } = useChat();
     const { extraParams } = useSettings();
 
@@ -57,6 +59,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ switchToHistory, switchToKnowledg
         extraParams,
         switchToHistory,
         switchToKnowledge,
+        switchToModel,
         closePanel,
     });
 
@@ -179,7 +182,7 @@ const Chat: React.FC = () => {
     }, [loading]);
 
     const focusManager = useFocusManager();
-    const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge'>('chat');
+    const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge' | 'model'>('chat');
 
     // Global Ctrl+C exit handler
     useInput((input, key) => {
@@ -201,14 +204,14 @@ const Chat: React.FC = () => {
         setActiveView('knowledge');
     }, []);
 
+    const switchToModel = useCallback(() => {
+        setActiveView('model');
+    }, []);
+
     const closePanel = useCallback(() => {
         setActiveView('chat');
         focusManager.focus('global-input');
     }, [focusManager]);
-
-    // Props for ChatInput
-    const chatInputMode = 'agent'; // Always agent mode
-    const setChatInputMode = (newMode: 'agent') => {}; // No-op since mode is removed
 
     return (
         <Box flexDirection="column" width="100%">
@@ -219,12 +222,14 @@ const Chat: React.FC = () => {
                         <ChatInput
                             switchToHistory={switchToHistory}
                             switchToKnowledge={switchToKnowledge}
+                            switchToModel={switchToModel}
                             closePanel={closePanel}
                         />
                     </Box>
                 )}
                 {activeView === 'history' && <HistoryList onClose={closePanel} />}
                 {activeView === 'knowledge' && <KnowledgePanel onClose={closePanel} />}
+                {activeView === 'model' && <ModelPanel onClose={closePanel} />}
             </Box>
             <Box paddingX={1} paddingY={0} justifyContent="space-between">
                 <Box>
@@ -238,7 +243,6 @@ const Chat: React.FC = () => {
                 </Box>
                 <Box>
                     <Text>{currentChatId?.slice(0, 6) + ' '}</Text>
-                    <Text color="gray">使用 /h, /k, /n 等命令操作面板</Text>
                 </Box>
             </Box>
         </Box>

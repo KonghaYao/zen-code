@@ -603,6 +603,30 @@ export const closePanelCommand: CommandDefinition = {
     },
 };
 
+/**
+ * /model-panel 命令 - 打开模型选择面板
+ */
+export const modelPanelCommand: CommandDefinition = {
+    name: 'model-panel',
+    description: '打开模型选择面板',
+    aliases: ['mp'],
+    execute: async (args: string[], context) => {
+        if (context.switchToModel) {
+            context.switchToModel();
+            return {
+                success: true,
+                message: '已打开模型选择面板',
+                shouldClearInput: true,
+            };
+        }
+        return {
+            success: false,
+            message: '模型面板切换功能不可用',
+            shouldClearInput: true,
+        };
+    },
+};
+
 // 导出扩展命令列表
 export const extendedCommands: CommandDefinition[] = [
     statusCommand,
@@ -614,4 +638,5 @@ export const extendedCommands: CommandDefinition[] = [
     historyCommand, // NEW: 添加历史面板命令
     knowledgeCommand, // NEW: 添加知识库面板命令
     closePanelCommand, // NEW: 添加关闭面板命令
+    modelPanelCommand, // NEW: 添加模型面板命令
 ];
