@@ -39,22 +39,25 @@ export const APIAndBaseURLStep: React.FC<APIAndBaseURLStepProps> = ({
 
     const defaultUrl = DEFAULT_BASE_URLS[provider];
 
-    useEffect(() => {
-        setLocalApiKey(apiKey);
-        setLocalBaseUrl(baseUrl);
-    }, [apiKey, baseUrl]);
+    const handleApiKeyChange = (value: string) => {
+        setLocalApiKey(value);
+        onApiKeyChange(value);
+    };
+
+    const handleBaseUrlChange = (value: string) => {
+        setLocalBaseUrl(value);
+        onBaseUrlChange(value);
+    };
 
     const handleApiKeySubmit = (value: string) => {
         value = value.trim();
-        setLocalApiKey(value);
-        onApiKeyChange(value);
+        handleApiKeyChange(value);
         onNext();
     };
 
     const handleBaseUrlSubmit = (value: string) => {
         value = value.trim();
-        setLocalBaseUrl(value);
-        onBaseUrlChange(value);
+        handleBaseUrlChange(value);
         onNext();
     };
 
@@ -98,7 +101,7 @@ export const APIAndBaseURLStep: React.FC<APIAndBaseURLStepProps> = ({
                     <Box marginBottom={1}>
                         <EnhancedTextInput
                             value={localBaseUrl}
-                            onChange={setLocalBaseUrl}
+                            onChange={handleBaseUrlChange}
                             onSubmit={handleBaseUrlSubmit}
                             placeholder={defaultUrl}
                         />
@@ -114,7 +117,7 @@ export const APIAndBaseURLStep: React.FC<APIAndBaseURLStepProps> = ({
                     <Box marginBottom={activeField === 'apiKey' && error ? 0 : 1}>
                         <EnhancedTextInput
                             value={localApiKey}
-                            onChange={setLocalApiKey}
+                            onChange={handleApiKeyChange}
                             onSubmit={handleApiKeySubmit}
                             placeholder="sk-..."
                             autoFocus={false}
