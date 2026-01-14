@@ -529,6 +529,80 @@ export const summarizeCommand: CommandDefinition = {
     },
 };
 
+/**
+ * /history 命令 - 切换历史面板
+ */
+export const historyCommand: CommandDefinition = {
+    name: 'history',
+    description: '打开历史面板',
+    aliases: ['h'],
+    execute: async (args: string[], context) => {
+        // MODIFIED: 通过 context 回调切换面板
+        if (context.switchToHistory) {
+            context.switchToHistory();
+            return {
+                success: true,
+                message: '已打开历史面板',
+                shouldClearInput: true,
+            };
+        }
+        return {
+            success: false,
+            message: '面板切换功能不可用',
+            shouldClearInput: true,
+        };
+    },
+};
+
+/**
+ * /knowledge 命令 - 切换知识库面板
+ */
+export const knowledgeCommand: CommandDefinition = {
+    name: 'knowledge',
+    description: '打开知识库面板',
+    aliases: ['k'],
+    execute: async (args: string[], context) => {
+        // MODIFIED: 通过 context 回调切换面板
+        if (context.switchToKnowledge) {
+            context.switchToKnowledge();
+            return {
+                success: true,
+                message: '已打开知识库面板',
+                shouldClearInput: true,
+            };
+        }
+        return {
+            success: false,
+            message: '面板切换功能不可用',
+            shouldClearInput: true,
+        };
+    },
+};
+
+/**
+ * /close 命令 - 关闭面板返回聊天
+ */
+export const closePanelCommand: CommandDefinition = {
+    name: 'close',
+    description: '关闭当前面板返回聊天',
+    aliases: ['c', 'q'],
+    execute: async (args: string[], context) => {
+        if (context.closePanel) {
+            context.closePanel();
+            return {
+                success: true,
+                message: '已关闭面板',
+                shouldClearInput: true,
+            };
+        }
+        return {
+            success: false,
+            message: '面板关闭功能不可用',
+            shouldClearInput: true,
+        };
+    },
+};
+
 // 导出扩展命令列表
 export const extendedCommands: CommandDefinition[] = [
     statusCommand,
@@ -537,4 +611,7 @@ export const extendedCommands: CommandDefinition[] = [
     configCommand,
     mcpCommand,
     summarizeCommand, // NEW: 添加总结命令
+    historyCommand, // NEW: 添加历史面板命令
+    knowledgeCommand, // NEW: 添加知识库面板命令
+    closePanelCommand, // NEW: 添加关闭面板命令
 ];

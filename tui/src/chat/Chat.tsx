@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Box, Text, useInput, useFocusManager } from 'ink';
 import Spinner from 'ink-spinner';
 import { MessagesBox } from './components/MessageBox';
@@ -42,17 +42,22 @@ const ChatMessages = () => {
 };
 
 interface ChatInputProps {
-    mode: 'agent';
-    setMode: (mode: 'agent') => void;
+    // MODIFIED: 添加面板切换回调 props
+    switchToHistory?: () => void;
+    switchToKnowledge?: () => void;
+    closePanel?: () => void;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ mode }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ switchToHistory, switchToKnowledge, closePanel }) => {
     const { userInput, setUserInput, sendMessage, loading, renderMessages } = useChat();
     const { extraParams } = useSettings();
 
-    // 使用命令处理组件
+    // 使用命令处理组件，传递面板切换回调
     const commandHandler = useCommandHandler({
         extraParams,
+        switchToHistory,
+        switchToKnowledge,
+        closePanel,
     });
 
     const lastMessageToken = useMemo(() => {
@@ -175,7 +180,7 @@ const Chat: React.FC = () => {
 
     const focusManager = useFocusManager();
     const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge'>('chat');
-    const [mode, setMode] = useState<'command' | 'agent'>('agent');
+
     // Global Ctrl+C exit handler
     useInput((input, key) => {
         if (key.ctrl && input === 'c') {
@@ -187,47 +192,23 @@ const Chat: React.FC = () => {
         }
     });
 
-    // Command mode specific input handler (i, a, h, k)
-    useInput(
-        (input, key) => {
-            if (activeView !== 'chat') {
-                return;
-            }
-            if (input === 'a') setMode('agent');
-            else if (input === 'h') {
-                toggleHistoryVisible();
-                setActiveView('history');
-            } else if (input === 'k') {
-                setActiveView('knowledge');
-            } else if (input === 'n') {
-                // 'n' for new chat
-                console.clear();
-                createNewChat(); // 调用 client 上的 newChat 方法
-                setUserInput(''); // 清空输入框
-                setMode('agent'); // 进入 agent 模式
-                focusManager.focus('global-input');
-            }
-        },
-        { isActive: mode === 'command' }, // Only active when in command mode
-    );
+    // 面板切换回调函数
+    const switchToHistory = useCallback(() => {
+        setActiveView('history');
+    }, []);
 
-    // Input/Agent mode specific input handler (esc, Shift+Tab)
-    useInput(
-        (input, key) => {
-            if (activeView !== 'chat') {
-                return;
-            }
+    const switchToKnowledge = useCallback(() => {
+        setActiveView('knowledge');
+    }, []);
 
-            if (key.escape) {
-                setMode('command');
-            }
-        },
-        { isActive: mode === 'agent' }, // Active when in input or agent mode
-    );
+    const closePanel = useCallback(() => {
+        setActiveView('chat');
+        focusManager.focus('global-input');
+    }, [focusManager]);
 
     // Props for ChatInput
     const chatInputMode = 'agent'; // Always agent mode
-    const setChatInputMode = (newMode: 'agent') => setMode(newMode); // Keep setMode to agent
+    const setChatInputMode = (newMode: 'agent') => {}; // No-op since mode is removed
 
     return (
         <Box flexDirection="column" width="100%">
@@ -235,79 +216,29 @@ const Chat: React.FC = () => {
                 {activeView === 'chat' && (
                     <Box flexDirection="column" flexGrow={1}>
                         <ChatMessages key={currentChatId} />
-                        <ChatInput mode={chatInputMode} setMode={setChatInputMode} />
+                        <ChatInput
+                            switchToHistory={switchToHistory}
+                            switchToKnowledge={switchToKnowledge}
+                            closePanel={closePanel}
+                        />
                     </Box>
                 )}
-                {activeView === 'history' && (
-                    <HistoryList
-                        onClose={() => {
-                            setActiveView('chat');
-                            setMode('agent');
-                            focusManager.focus('global-input');
-                        }}
-                    />
-                )}
-                {activeView === 'knowledge' && (
-                    <KnowledgePanel
-                        onClose={() => {
-                            setActiveView('chat');
-                            setMode('agent');
-                            focusManager.focus('global-input');
-                        }}
-                    />
-                )}
+                {activeView === 'history' && <HistoryList onClose={closePanel} />}
+                {activeView === 'knowledge' && <KnowledgePanel onClose={closePanel} />}
             </Box>
             <Box paddingX={1} paddingY={0} justifyContent="space-between">
                 <Box>
                     <Text color="magenta" bold>
                         ⚡ Zen Code
                     </Text>
-                    {mode === 'command' && (
-                        <Text color="yellow" bold>
-                            {' '}
-                            [CMD]
-                        </Text>
-                    )}
-                    {mode === 'agent' && (
-                        <Text color="cyan" bold>
-                            {' '}
-                            {extraParams.main_model}
-                        </Text>
-                    )}
+                    <Text color="cyan" bold>
+                        {' '}
+                        {extraParams.main_model}
+                    </Text>
                 </Box>
                 <Box>
-                    {mode === 'command' ? (
-                        <Text>
-                            <Text color="cyan" bold>
-                                a
-                            </Text>
-                            <Text color="gray">:Agent </Text>
-                            <Text color="cyan" bold>
-                                h
-                            </Text>
-                            <Text color="gray">:历史 </Text>
-                            <Text color="cyan" bold>
-                                k
-                            </Text>
-                            <Text color="gray">:知识 </Text>
-                            <Text color="cyan" bold>
-                                n
-                            </Text>
-                            <Text color="gray">:新建 </Text>
-                            <Text color="red" bold>
-                                ^C
-                            </Text>
-                            <Text color="gray">:退出</Text>
-                        </Text>
-                    ) : (
-                        <Text>
-                            <Text>{currentChatId?.slice(0, 6) + ' '}</Text>
-                            <Text color="cyan" bold>
-                                ESC
-                            </Text>
-                            <Text color="gray">:命令</Text>
-                        </Text>
-                    )}
+                    <Text>{currentChatId?.slice(0, 6) + ' '}</Text>
+                    <Text color="gray">使用 /h, /k, /n 等命令操作面板</Text>
                 </Box>
             </Box>
         </Box>

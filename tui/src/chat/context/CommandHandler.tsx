@@ -15,6 +15,12 @@ interface CommandHandlerProps {
     extraParams?: any;
     /** 命令执行完成回调 */
     onCommandExecuted?: () => void;
+    /** 切换到历史面板 */
+    switchToHistory?: () => void;
+    /** 切换到知识库面板 */
+    switchToKnowledge?: () => void;
+    /** 关闭面板返回聊天 */
+    closePanel?: () => void;
 }
 
 interface CommandHandlerReturn {
@@ -37,7 +43,7 @@ interface CommandHandlerReturn {
 }
 
 export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerReturn => {
-    const { onCommandExecuted } = props;
+    const { onCommandExecuted, switchToHistory, switchToKnowledge, closePanel } = props;
 
     // 从 useChat 获取所有需要的状态和函数
     const { userInput, setUserInput, sendMessage, currentAgent, client, createNewChat, renderMessages } = useChat();
@@ -69,6 +75,9 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
                 updateConfig,
                 AVAILABLE_MODELS,
                 renderMessages,
+                switchToHistory,
+                switchToKnowledge,
+                closePanel,
             };
 
             const result = await commandRegistry.executeCommand(userInput, commandContext);

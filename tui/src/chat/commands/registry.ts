@@ -121,7 +121,7 @@ export class CommandRegistry {
 
         // 如果只输入了 /，显示前5个常用命令
         if (query === '') {
-            const popularCommands = ['init', 'help', 'clear', 'agent', 'status'];
+            const popularCommands = ['history', 'knowledge', 'help', 'init', 'close'];
             for (const commandName of popularCommands) {
                 const command = this.commands.get(commandName);
                 if (command) {
@@ -135,10 +135,27 @@ export class CommandRegistry {
             return suggestions.slice(0, 5);
         }
 
+        // 定义常用命令优先级
+        const priorityCommands = new Set(['history', 'knowledge', 'close', 'help', 'init', 'model', 'config']);
+
         // 匹配命令名称和别名
+        const prefixMatches: CommandSuggestion[] = [];
+        const includeMatches: CommandSuggestion[] = [];
+
         for (const [name, command] of this.commands) {
-            if (name.toLowerCase().includes(query)) {
-                suggestions.push({
+            const lowerName = name.toLowerCase();
+
+            // 前缀匹配
+            if (lowerName.startsWith(query)) {
+                prefixMatches.push({
+                    command: name,
+                    displayText: `/${name}`,
+                    description: command.description,
+                });
+            }
+            // 包含匹配（非前缀）
+            else if (lowerName.includes(query)) {
+                includeMatches.push({
                     command: name,
                     displayText: `/${name}`,
                     description: command.description,
@@ -148,8 +165,16 @@ export class CommandRegistry {
             // 检查别名
             if (command.aliases) {
                 for (const alias of command.aliases) {
-                    if (alias.toLowerCase().includes(query)) {
-                        suggestions.push({
+                    const lowerAlias = alias.toLowerCase();
+
+                    if (lowerAlias.startsWith(query)) {
+                        prefixMatches.push({
+                            command: name,
+                            displayText: `/${alias}`,
+                            description: `${command.description} (别名)`,
+                        });
+                    } else if (lowerAlias.includes(query)) {
+                        includeMatches.push({
                             command: name,
                             displayText: `/${alias}`,
                             description: `${command.description} (别名)`,
@@ -158,6 +183,19 @@ export class CommandRegistry {
                 }
             }
         }
+
+        // 排序：优先级命令优先，然后按长度排序
+        const sortFn = (a: CommandSuggestion, b: CommandSuggestion) => {
+            const aPriority = priorityCommands.has(a.command) ? 1 : 0;
+            const bPriority = priorityCommands.has(b.command) ? 1 : 0;
+            if (aPriority !== bPriority) return bPriority - aPriority;
+            return a.displayText.length - b.displayText.length;
+        };
+
+        prefixMatches.sort(sortFn);
+        includeMatches.sort(sortFn);
+
+        suggestions.push(...prefixMatches, ...includeMatches);
 
         return suggestions.slice(0, 10); // 限制建议数量
     }
