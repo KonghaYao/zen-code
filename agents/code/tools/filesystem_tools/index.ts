@@ -1,4 +1,3 @@
-export * from './edit_tool.js';
 export * from './glob_tool.js';
 export * from './grep_tool.js';
 export * from './read_tool.js';

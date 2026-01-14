@@ -1,6 +1,13 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
+export const editToolSchema = z.object({
+    description: z.string().optional().describe('what you want to do'),
+    file_path: z.string().describe('The absolute path to the file to modify'),
+    old_string: z.string().describe('The text to replace'),
+    new_string: z.string().describe('The text to replace it with (must be different from old_string)'),
+    replace_all: z.boolean().optional().default(false).describe('Replace all occurences of old_string (default false)'),
+});
 
 export const replace_tool = tool(
     async ({ file_path, old_string, new_string, replace_all = false }) => {
@@ -49,16 +56,6 @@ Usage:
 - Only use emojis if the user explicitly requests it. Avoid adding emojis to files unless asked.
 - The edit will FAIL if \`old_string\` is not unique in the file. Either provide a larger string with more surrounding context to make it unique or use \`replace_all\` to change every instance of \`old_string\`. 
 - Use \`replace_all\` for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance.`,
-        schema: z.object({
-            description: z.string().optional().describe('what you want to do'),
-            file_path: z.string().describe('The absolute path to the file to modify'),
-            old_string: z.string().describe('The text to replace'),
-            new_string: z.string().describe('The text to replace it with (must be different from old_string)'),
-            replace_all: z
-                .boolean()
-                .optional()
-                .default(false)
-                .describe('Replace all occurences of old_string (default false)'),
-        }),
+        schema: editToolSchema,
     },
 );

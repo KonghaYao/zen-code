@@ -1,5 +1,5 @@
 import { createUITool, ToolManager } from '@langgraph-js/sdk';
-import { Box, Text, useFocusManager } from 'ink';
+import { Box, Text, useFocusManager, useInput } from 'ink';
 import SelectInput from 'ink-select-input';
 import TextInput from 'ink-text-input';
 import { useState } from 'react';
@@ -72,6 +72,14 @@ export const terminal = createUITool({
             );
         };
         const focusManager = useFocusManager();
+
+        // MODIFIED: Add Esc key handler for canceling edit mode
+        useInput((input, key) => {
+            if (isEditing && key.escape) {
+                handleEditCancel();
+            }
+        });
+
         const handleEditSubmit = () => {
             if (editValue.trim()) {
                 if (selectState === 'edit') {
@@ -96,6 +104,12 @@ export const terminal = createUITool({
             focusManager.focus('global-input');
         };
 
+        const handleEditCancel = () => {
+            setEditing(false);
+            setEditValue('');
+            focusManager.focus('global-input');
+        };
+
         const renderEditUI = () => {
             const actionColor = getActionColor(selectState);
             const isEditMode = selectState === 'edit';
@@ -106,7 +120,7 @@ export const terminal = createUITool({
                         <Text color={actionColor} bold>
                             {selectState.toUpperCase()} MODE
                         </Text>
-                        <Text color="gray"> - Press Enter to submit, Ctrl+C to cancel</Text>
+                        <Text color="gray"> - Press Enter to submit, Esc to cancel</Text>
                     </Box>
 
                     {isEditMode ? (
@@ -147,7 +161,7 @@ export const terminal = createUITool({
                             Submit |
                             <Text color="red" bold>
                                 {' '}
-                                Ctrl+C
+                                Esc
                             </Text>{' '}
                             Cancel
                         </Text>

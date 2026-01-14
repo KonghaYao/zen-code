@@ -25,6 +25,7 @@ const switchBranch = {
         const model = await initChatModel(state.main_model, {
             modelProvider: process.env.MODEL_PROVIDER || 'openai',
             streamUsage: true,
+            enableThinking: state.enable_thinking ?? true,
         });
         const message = await model.invoke([
             new SystemMessage(summary_prompt),
@@ -40,6 +41,7 @@ const switchBranch = {
         const model = await initChatModel(state.main_model, {
             modelProvider: process.env.MODEL_PROVIDER || 'openai',
             streamUsage: true,
+            enableThinking: state.enable_thinking ?? true,
         });
 
         // 1. 分析对话并提取记忆
@@ -64,6 +66,7 @@ export const graph = new StateGraph(CodeState)
         const model = await initChatModel(state.main_model, {
             modelProvider: process.env.MODEL_PROVIDER || 'openai',
             streamUsage: true,
+            enableThinking: state.enable_thinking ?? true,
         });
         // const model = new ChatOpenAI({
         //     model: state.main_model,

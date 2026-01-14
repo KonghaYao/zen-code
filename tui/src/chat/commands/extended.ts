@@ -190,6 +190,7 @@ export const configCommand: CommandDefinition = {
                 dbPath,
                 `  main_model: ${config.main_model || 'N/A'}`,
                 `  model_provider: ${config.model_provider || 'openai'}`,
+                `  enable_thinking: ${config.enable_thinking ?? true}`,
                 `  openai_api_key: ${hasOpenAIKey ? '***已设置***' : '未设置'}`,
                 `  openai_base_url: ${config.openai_base_url || '未设置'}`,
                 `  anthropic_api_key: ${hasAnthropicKey ? '***已设置***' : '未设置'}`,
@@ -200,12 +201,13 @@ export const configCommand: CommandDefinition = {
                 '  /config <key>          - 查看配置项',
                 '',
                 '可用配置项:',
-                '  main_model          - 主模型名称',
-                '  model_provider      - 模型提供商 (openai, anthropic)',
-                '  openai_api_key      - OpenAI API 密钥',
-                '  openai_base_url     - OpenAI API 基础 URL',
-                '  anthropic_api_key   - Anthropic API 密钥',
-                '  anthropic_base_url  - Anthropic API 基础 URL',
+                '  main_model             - 主模型名称',
+                '  model_provider         - 模型提供商 (openai, anthropic)',
+                '  enable_thinking        - 启用思考模式 (true, false)',
+                '  openai_api_key         - OpenAI API 密钥',
+                '  openai_base_url        - OpenAI API 基础 URL',
+                '  anthropic_api_key      - Anthropic API 密钥',
+                '  anthropic_base_url     - Anthropic API 基础 URL',
                 '  stream_refresh_interval - 流刷新间隔',
             ];
 
@@ -217,6 +219,7 @@ export const configCommand: CommandDefinition = {
         }
         const key = args[0];
         const validKeys = [
+            'enable_thinking',
             'stream_refresh_interval',
             'openai_api_key',
             'openai_base_url',
@@ -252,7 +255,16 @@ export const configCommand: CommandDefinition = {
         }
 
         // 两个或多个参数：设置配置项
-        const value = args.slice(1).join(' ');
+        let value: any = args.slice(1).join(' ');
+
+        // 特殊处理布尔值
+        if (key === 'enable_thinking') {
+            if (value === 'true' || value === '1' || value === 'yes') {
+                value = true;
+            } else if (value === 'false' || value === '0' || value === 'no') {
+                value = false;
+            }
+        }
 
         try {
             if (!context.updateConfig) {

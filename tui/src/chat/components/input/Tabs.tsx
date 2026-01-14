@@ -87,11 +87,10 @@ export const Tabs: React.FC<TabsProps> = ({
                         <Box flexDirection="column">
                             <Box>
                                 <Text color={color}>{left}</Text>
-                                <Text
-                                    color={color}
-                                    bold={isSelected && isTabFocused}
-                                >
-                                    {padding}{item.label}{padding}
+                                <Text color={color} bold={isSelected && isTabFocused}>
+                                    {padding}
+                                    {item.label}
+                                    {padding}
                                 </Text>
                                 <Text color={color}>{right}</Text>
                             </Box>
@@ -144,19 +143,9 @@ export const Tabs: React.FC<TabsProps> = ({
 
     return (
         <Box flexDirection="column" flexGrow={1}>
-            <Box>
-                {renderTabs()}
-            </Box>
+            <Box>{renderTabs()}</Box>
 
             {items.some((item) => item.content) && renderContent()}
-
-            {isFocused && !disabled && (
-                <Box marginTop={1}>
-                    <Text dim color="gray">
-                        ← → Switch tabs
-                    </Text>
-                </Box>
-            )}
         </Box>
     );
 };

@@ -15,6 +15,7 @@ import DefaultTools from './tools/index';
 import Shimmer from './components/Shimmer';
 import { ChatInputBuffer } from './components/input/ChatInputBuffer';
 import { notify } from '../utils/notify';
+import KnowledgePanel from './components/KnowledgePanel';
 
 const ChatMessages = () => {
     const { renderMessages, loading, inChatError, isFELocking } = useChat();
@@ -173,7 +174,7 @@ const Chat: React.FC = () => {
     }, [loading]);
 
     const focusManager = useFocusManager();
-    const [activeView, setActiveView] = useState<'chat' | 'history'>('chat');
+    const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge'>('chat');
     const [mode, setMode] = useState<'command' | 'agent'>('agent');
     // Global Ctrl+C exit handler
     useInput((input, key) => {
@@ -186,7 +187,7 @@ const Chat: React.FC = () => {
         }
     });
 
-    // Command mode specific input handler (i, a, h)
+    // Command mode specific input handler (i, a, h, k)
     useInput(
         (input, key) => {
             if (activeView !== 'chat') {
@@ -196,6 +197,8 @@ const Chat: React.FC = () => {
             else if (input === 'h') {
                 toggleHistoryVisible();
                 setActiveView('history');
+            } else if (input === 'k') {
+                setActiveView('knowledge');
             } else if (input === 'n') {
                 // 'n' for new chat
                 console.clear();
@@ -244,6 +247,15 @@ const Chat: React.FC = () => {
                         }}
                     />
                 )}
+                {activeView === 'knowledge' && (
+                    <KnowledgePanel
+                        onClose={() => {
+                            setActiveView('chat');
+                            setMode('agent');
+                            focusManager.focus('global-input');
+                        }}
+                    />
+                )}
             </Box>
             <Box paddingX={1} paddingY={0} justifyContent="space-between">
                 <Box>
@@ -274,7 +286,10 @@ const Chat: React.FC = () => {
                                 h
                             </Text>
                             <Text color="gray">:历史 </Text>
-
+                            <Text color="cyan" bold>
+                                k
+                            </Text>
+                            <Text color="gray">:知识 </Text>
                             <Text color="cyan" bold>
                                 n
                             </Text>

@@ -4,6 +4,7 @@ import { generateOptimizedDiff } from './diffUtils';
 import { editToolSchema } from '../../../../agents/code/tools/filesystem_tools';
 import { cleanPath } from '../../utils/cleanPath';
 
+// MODIFIED: Updated interface to match new schema
 interface ReplaceInFileInput {
     file_path: string;
     old_string: string;

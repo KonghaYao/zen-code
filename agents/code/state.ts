@@ -9,6 +9,7 @@ export const CodeState = AgentState.extend(SubAgentStateSchema.shape).extend({
     agent_name: z.string().default('Code Agent'),
     mcp_config: z.unknown().optional(),
     switch_command: z.string().optional(),
+    enable_thinking: z.boolean().default(true),
 });
 
 export const CodeAnnotation = createState(MessagesAnnotation, SubAgentAnnotation).build({
@@ -17,6 +18,7 @@ export const CodeAnnotation = createState(MessagesAnnotation, SubAgentAnnotation
     agent_name: createDefaultAnnotation(() => 'Code Agent'),
     mcp_config: createDefaultAnnotation(() => null),
     switch_command: createDefaultAnnotation(() => null),
+    enable_thinking: createDefaultAnnotation(() => true),
 });
 
 export type CodeStateType = typeof CodeAnnotation.State;

@@ -24,6 +24,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
             main_model: config?.main_model || AVAILABLE_MODELS[0]?.id,
             cwd: process.cwd(),
             mcp_config: config?.mcp_config,
+            enable_thinking: config?.enable_thinking ?? true,
         };
     }, [config, AVAILABLE_MODELS]);
 

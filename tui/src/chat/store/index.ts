@@ -12,6 +12,7 @@ export interface AppConfig {
     anthropic_api_key?: string;
     anthropic_base_url?: string;
     stream_refresh_interval?: number;
+    enable_thinking?: boolean;
 }
 
 export interface MCPConfig {}

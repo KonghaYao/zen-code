@@ -3,6 +3,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { cleanPath } from '../../../tui/src/utils/cleanPath';
 
 /**
  * 记忆候选者 Schema（包含完整的 frontmatter 信息）
@@ -275,7 +276,10 @@ ${memory.content}
 
     return `${memory.summary_of_chat}
     
+---
+
 name: "${memory.name}"
 description: "${memory.description}"
-✓ 保存记忆: ${memoryFilePath}`;
+
+✓ 保存记忆: ${cleanPath(memoryFilePath)}`;
 }
