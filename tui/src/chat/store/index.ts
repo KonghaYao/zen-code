@@ -13,6 +13,7 @@ export interface AppConfig {
     anthropic_base_url?: string;
     stream_refresh_interval?: number;
     enable_thinking?: boolean;
+    switch_command?: string;
 }
 
 export interface MCPConfig {}

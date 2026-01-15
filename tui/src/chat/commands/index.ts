@@ -5,9 +5,11 @@
 import { commandRegistry } from './registry';
 import { builtinCommands } from './implementations';
 import { extendedCommands } from './extended';
+// NEW: Import agent switching commands
+import { agentCommands } from './agentCommands';
 
 // 注册内置命令
-[...builtinCommands, ...extendedCommands].forEach((command) => {
+[...builtinCommands, ...extendedCommands, ...agentCommands].forEach((command) => {
     commandRegistry.register(command);
 });
 

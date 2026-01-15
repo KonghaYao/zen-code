@@ -17,6 +17,7 @@ import { ChatInputBuffer } from './components/input/ChatInputBuffer';
 import { notify } from '../utils/notify';
 import KnowledgePanel from './components/KnowledgePanel';
 import ModelPanel from './components/ModelPanel';
+import AgentPanel from './components/AgentPanel';
 
 const ChatMessages = () => {
     const { renderMessages, loading, inChatError, isFELocking } = useChat();
@@ -47,10 +48,11 @@ interface ChatInputProps {
     switchToHistory?: () => void;
     switchToKnowledge?: () => void;
     switchToModel?: () => void;
+    switchToAgent?: () => void;
     closePanel?: () => void;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ switchToHistory, switchToKnowledge, switchToModel, closePanel }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ switchToHistory, switchToKnowledge, switchToModel, switchToAgent, closePanel }) => {
     const { userInput, setUserInput, sendMessage, loading, renderMessages } = useChat();
     const { extraParams } = useSettings();
 
@@ -60,6 +62,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ switchToHistory, switchToKnowledg
         switchToHistory,
         switchToKnowledge,
         switchToModel,
+        switchToAgent,
         closePanel,
     });
 
@@ -182,7 +185,7 @@ const Chat: React.FC = () => {
     }, [loading]);
 
     const focusManager = useFocusManager();
-    const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge' | 'model'>('chat');
+    const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge' | 'model' | 'agent'>('chat');
 
     // Global Ctrl+C exit handler
     useInput((input, key) => {
@@ -208,6 +211,10 @@ const Chat: React.FC = () => {
         setActiveView('model');
     }, []);
 
+    const switchToAgent = useCallback(() => {
+        setActiveView('agent');
+    }, []);
+
     const closePanel = useCallback(() => {
         setActiveView('chat');
         focusManager.focus('global-input');
@@ -223,6 +230,7 @@ const Chat: React.FC = () => {
                             switchToHistory={switchToHistory}
                             switchToKnowledge={switchToKnowledge}
                             switchToModel={switchToModel}
+                            switchToAgent={switchToAgent}
                             closePanel={closePanel}
                         />
                     </Box>
@@ -230,6 +238,7 @@ const Chat: React.FC = () => {
                 {activeView === 'history' && <HistoryList onClose={closePanel} />}
                 {activeView === 'knowledge' && <KnowledgePanel onClose={closePanel} />}
                 {activeView === 'model' && <ModelPanel onClose={closePanel} />}
+                {activeView === 'agent' && <AgentPanel onClose={closePanel} />}
             </Box>
             <Box paddingX={1} paddingY={0} justifyContent="space-between">
                 <Box>
