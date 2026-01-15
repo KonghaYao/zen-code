@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { cleanPath } from '../../../tui/src/utils/cleanPath';
+import { createAgent, providerStrategy, toolStrategy } from 'langchain';
 
 /**
  * 记忆候选者 Schema（包含完整的 frontmatter 信息）
@@ -215,16 +216,18 @@ middleware.forEach(m => m.wrapModelCall(req, handler))
 export async function analyzeAndSaveMemories(model: BaseChatModel, messages: string): Promise<string> {
     // 构建消息序列
     const promptMessages: BaseMessage[] = [
-        new SystemMessage(smart_memory_prompt),
         new HumanMessage(messages),
         new HumanMessage('请分析这段对话，提取值得保存的信息。'),
     ];
+    const response = createAgent({
+        model,
+        tools: [],
+        systemPrompt: smart_memory_prompt,
+        responseFormat: toolStrategy(MemoryCandidateSchema),
+    });
+    const result = await response.invoke({ messages: promptMessages });
 
-    // 调用模型，withStructuredOutput 确保返回符合 MemoryCandidateSchema 的对象
-    const response = model.withStructuredOutput(MemoryCandidateSchema);
-    const memory: MemoryCandidate = await response.invoke(promptMessages);
-
-    return await saveMemories(memory);
+    return await saveMemories(result.structuredResponse);
 }
 
 /**

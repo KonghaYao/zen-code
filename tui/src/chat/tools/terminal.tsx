@@ -5,6 +5,7 @@ import TextInput from 'ink-text-input';
 import { useState } from 'react';
 import { InputPreviewer } from '../components/MessageTool';
 import { MultiSelectPro } from '../components/input/MultiSelect';
+import { EnhancedTextInput } from '../components/input/EnhancedTextInput';
 
 // Color scheme for terminal actions
 const ACTION_COLORS: { [key: string]: string } = {
@@ -60,10 +61,11 @@ export const terminal = createUITool({
                                 setEditing(true);
                                 if (item === 'edit') {
                                     setEditValue(JSON.stringify(tool.getInputRepaired(), null, 2));
+                                    // 编辑状态不用聚焦，edit 面板有一个输入框
                                 } else {
                                     setEditValue('');
+                                    focusManager.focus('global-input');
                                 }
-                                focusManager.focus('global-input');
                             }}
                             autoFocus
                         />
@@ -129,11 +131,12 @@ export const terminal = createUITool({
                                 Editing action arguments (JSON format):
                             </Text>
                             <Box paddingX={1}>
-                                <TextInput
+                                <EnhancedTextInput
                                     value={editValue}
                                     onChange={setEditValue}
                                     onSubmit={handleEditSubmit}
                                     placeholder="Enter JSON..."
+                                    autoFocus
                                 />
                             </Box>
                         </Box>
@@ -143,11 +146,12 @@ export const terminal = createUITool({
                                 Enter additional message for this action:
                             </Text>
                             <Box paddingX={1}>
-                                <TextInput
+                                <EnhancedTextInput
                                     value={editValue}
                                     onChange={setEditValue}
                                     onSubmit={handleEditSubmit}
                                     placeholder="Enter message..."
+                                    autoFocus={false}
                                 />
                             </Box>
                         </Box>

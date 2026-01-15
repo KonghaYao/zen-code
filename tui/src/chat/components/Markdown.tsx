@@ -7,10 +7,6 @@ import { useChat } from '@langgraph-js/sdk/react';
 // Singleton renderer instance to avoid repeated instantiation
 const renderer = new MarkedTerminal({}, {});
 
-// Reserve space for UI elements (header, input area, status bar)
-const RESERVED_ROWS = 10;
-const DEFAULT_MAX_ROWS = 50;
-
 /**
  * Truncates long text to fit within terminal bounds.
  * @param text - The full text to potentially truncate
@@ -22,10 +18,7 @@ export const safeLongText = (text: string, showFull = false): string => {
         return text;
     }
 
-    const maxRows = Math.max(
-        1,
-        Math.floor((Math.min(process.stdout.rows || DEFAULT_MAX_ROWS, DEFAULT_MAX_ROWS) - RESERVED_ROWS) / 2),
-    );
+    const maxRows = 5;
     const lines = text.split('\n');
 
     if (lines.length <= maxRows) {
