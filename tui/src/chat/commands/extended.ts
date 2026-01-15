@@ -7,30 +7,6 @@ import { ModelConfig } from '../../../../agents/code/utils/get_allowed_models';
 import { dbPath, getConfig } from '../store';
 import { type CommandDefinition } from './types';
 
-/**
- * /status 命令 - 显示系统状态
- */
-export const statusCommand: CommandDefinition = {
-    name: 'status',
-    description: '显示当前聊天状态信息',
-    aliases: ['stat', 'info'],
-    execute: async (args: string[], context) => {
-        const agentInfo = context.client?.availableAssistants.find((a: any) => a.graph_id === context.currentAgent);
-
-        const statusInfo = [
-            `当前代理: ${agentInfo?.name || '未选择'} (${context.currentAgent || 'N/A'})`,
-            `聊天ID: ${context.client?.currentChatId?.slice(-8) || 'N/A'}`,
-            `可用代理数: ${context.client?.availableAssistants?.length || 0}`,
-            `模型: ${context.extraParams?.main_model || 'N/A'}`,
-        ].join('\n');
-
-        return {
-            success: true,
-            message: statusInfo,
-            shouldClearInput: true,
-        };
-    },
-};
 import { listTemplates, clearTemplateCache } from '../../../../agents/code/templates/load.js';
 /**
  * /template 命令 - 插入预定义模板
@@ -49,6 +25,7 @@ export const templateCommand: CommandDefinition = {
         // 如果传入 --refresh 参数，清除缓存
         if (args.includes('--refresh')) {
             clearTemplateCache();
+            context.showNotification('success', '模板缓存已清除');
             return {
                 success: true,
                 message: '模板缓存已清除',
@@ -83,6 +60,7 @@ export const templateCommand: CommandDefinition = {
 
         if (!template) {
             const availableTemplates = templates.map((t) => t.name).join(', ');
+            context.showNotification('error', `未找到模板 "${templateName}"`);
             return {
                 success: false,
                 message: `未找到模板 "${templateName}"。可用模板: ${availableTemplates || '(无)'}`,
@@ -93,6 +71,8 @@ export const templateCommand: CommandDefinition = {
             // 将模板内容设置到输入框
             context.setUserInput(template.content);
         }, 300);
+
+        context.showNotification('success', `已插入模板: ${template.name}`);
 
         return {
             success: true,
@@ -140,25 +120,22 @@ export const modelCommand: CommandDefinition = {
 
         // 执行模型切换
         try {
-            if (context.updateConfig) {
-                if (targetModel?.provider) {
-                    await context.updateConfig({ main_model: targetModelID, model_provider: targetModel?.provider });
-                } else {
-                    await context.updateConfig({ main_model: targetModelID });
-                }
-                return {
-                    success: true,
-                    message: `模型已切换到: ${targetModelID}\n\n提示: 如果当前会话未生效，请使用 /init 创建新会话`,
-                    shouldClearInput: true,
-                };
+            if (targetModel?.provider) {
+                await context.updateConfig({ main_model: targetModelID, model_provider: targetModel?.provider });
             } else {
-                return {
-                    success: false,
-                    message: '无法访问配置更新功能',
-                    shouldClearInput: true,
-                };
+                await context.updateConfig({ main_model: targetModelID });
             }
+            context.showNotification('success', `模型已切换到: ${targetModelID}`);
+            return {
+                success: true,
+                message: `模型已切换到: ${targetModelID}\n\n提示: 如果当前会话未生效，请使用 /init 创建新会话`,
+                shouldClearInput: true,
+            };
         } catch (error) {
+            context.showNotification(
+                'error',
+                `模型切换失败: ${error instanceof Error ? error.message : String(error)}`,
+            );
             return {
                 success: false,
                 message: `模型切换失败: ${error instanceof Error ? error.message : String(error)}`,
@@ -267,14 +244,6 @@ export const configCommand: CommandDefinition = {
         }
 
         try {
-            if (!context.updateConfig) {
-                return {
-                    success: false,
-                    message: '无法访问配置更新功能',
-                    shouldClearInput: true,
-                };
-            }
-
             await context.updateConfig({ [key]: value });
 
             // 显示设置成功的消息
@@ -284,6 +253,9 @@ export const configCommand: CommandDefinition = {
             }
 
             let message = `配置已更新: ${key} = ${displayValue} 重启程序生效`;
+
+            // 使用 showNotification 显示成功通知
+            context.showNotification('success', `配置已更新: ${key}`);
 
             // 如果更新的是 main_model，提示用户可能需要新建会话
             if (key === 'main_model') {
@@ -296,6 +268,10 @@ export const configCommand: CommandDefinition = {
                 shouldClearInput: true,
             };
         } catch (error) {
+            context.showNotification(
+                'error',
+                `配置更新失败: ${error instanceof Error ? error.message : String(error)}`,
+            );
             return {
                 success: false,
                 message: `配置更新失败: ${error instanceof Error ? error.message : String(error)}`,
@@ -339,7 +315,7 @@ export const mcpCommand: CommandDefinition = {
         try {
             // 获取当前配置
             const currentConfig = context.extraParams || {};
-            const mcpConfig = currentConfig.mcp_config || {};
+            const mcpConfig: Record<string, any> = currentConfig.mcp_config || {};
 
             switch (action) {
                 case 'list': {
@@ -380,15 +356,8 @@ export const mcpCommand: CommandDefinition = {
                         [name]: JSON.parse(json_string),
                     };
 
-                    if (!context.updateConfig) {
-                        return {
-                            success: false,
-                            message: '无法访问配置更新功能',
-                            shouldClearInput: true,
-                        };
-                    }
-
                     await context.updateConfig({ mcp_config: newMcpConfig });
+                    context.showNotification('success', `MCP 服务器 "${name}" 已添加`);
 
                     return {
                         success: true,
@@ -409,6 +378,7 @@ export const mcpCommand: CommandDefinition = {
                     const name = args[1];
 
                     if (!mcpConfig[name]) {
+                        context.showNotification('error', `MCP 服务器 "${name}" 不存在`);
                         return {
                             success: false,
                             message: `MCP 服务器 "${name}" 不存在`,
@@ -419,15 +389,8 @@ export const mcpCommand: CommandDefinition = {
                     const newMcpConfig = { ...mcpConfig };
                     delete newMcpConfig[name];
 
-                    if (!context.updateConfig) {
-                        return {
-                            success: false,
-                            message: '无法访问配置更新功能',
-                            shouldClearInput: true,
-                        };
-                    }
-
                     await context.updateConfig({ mcp_config: newMcpConfig });
+                    context.showNotification('success', `MCP 服务器 "${name}" 已移除`);
 
                     return {
                         success: true,
@@ -495,6 +458,7 @@ export const summarizeCommand: CommandDefinition = {
     execute: async (args: string[], context) => {
         // 检查是否有聊天记录
         if (!context.renderMessages || context.renderMessages.length === 0) {
+            context.showNotification('error', '当前会话没有消息可以总结');
             return {
                 success: false,
                 message: '当前会话没有消息可以总结',
@@ -511,8 +475,8 @@ export const summarizeCommand: CommandDefinition = {
                 switch_command: 'smart_memory',
             };
 
-            // 发送空消息触发 smart_memory 分支
-            await context.sendMessage([], { extraParams: summarizeExtraParams });
+            // 发送空消息数组触发 smart_memory 分支
+            await context.sendMessage([], summarizeExtraParams);
 
             return {
                 success: true,
@@ -520,6 +484,7 @@ export const summarizeCommand: CommandDefinition = {
                 shouldClearInput: true,
             };
         } catch (error) {
+            context.showNotification('error', `总结失败: ${error instanceof Error ? error.message : String(error)}`);
             return {
                 success: false,
                 message: `总结失败: ${error instanceof Error ? error.message : String(error)}`,
@@ -536,19 +501,12 @@ export const historyCommand: CommandDefinition = {
     name: 'history',
     description: '打开历史面板',
     aliases: ['h'],
-    execute: async (args: string[], context) => {
-        // MODIFIED: 通过 context 回调切换面板
-        if (context.switchToHistory) {
-            context.switchToHistory();
-            return {
-                success: true,
-                message: '已打开历史面板',
-                shouldClearInput: true,
-            };
-        }
+    execute: async (_args: string[], context) => {
+        // 使用新的 switchPanel 回调
+        context.switchPanel('history');
         return {
-            success: false,
-            message: '面板切换功能不可用',
+            success: true,
+            message: '已打开历史面板',
             shouldClearInput: true,
         };
     },
@@ -561,19 +519,12 @@ export const knowledgeCommand: CommandDefinition = {
     name: 'knowledge',
     description: '打开知识库面板',
     aliases: ['k'],
-    execute: async (args: string[], context) => {
-        // MODIFIED: 通过 context 回调切换面板
-        if (context.switchToKnowledge) {
-            context.switchToKnowledge();
-            return {
-                success: true,
-                message: '已打开知识库面板',
-                shouldClearInput: true,
-            };
-        }
+    execute: async (_args: string[], context) => {
+        // 使用新的 switchPanel 回调
+        context.switchPanel('knowledge');
         return {
-            success: false,
-            message: '面板切换功能不可用',
+            success: true,
+            message: '已打开知识库面板',
             shouldClearInput: true,
         };
     },
@@ -586,18 +537,12 @@ export const closePanelCommand: CommandDefinition = {
     name: 'close',
     description: '关闭当前面板返回聊天',
     aliases: ['c', 'q'],
-    execute: async (args: string[], context) => {
-        if (context.closePanel) {
-            context.closePanel();
-            return {
-                success: true,
-                message: '已关闭面板',
-                shouldClearInput: true,
-            };
-        }
+    execute: async (_args: string[], context) => {
+        // 使用新的 switchPanel 回调
+        context.switchPanel('chat');
         return {
-            success: false,
-            message: '面板关闭功能不可用',
+            success: true,
+            message: '已关闭面板',
             shouldClearInput: true,
         };
     },
@@ -610,18 +555,12 @@ export const modelPanelCommand: CommandDefinition = {
     name: 'model-panel',
     description: '打开模型选择面板',
     aliases: ['mp'],
-    execute: async (args: string[], context) => {
-        if (context.switchToModel) {
-            context.switchToModel();
-            return {
-                success: true,
-                message: '已打开模型选择面板',
-                shouldClearInput: true,
-            };
-        }
+    execute: async (_args: string[], context) => {
+        // 使用新的 switchPanel 回调
+        context.switchPanel('model');
         return {
-            success: false,
-            message: '模型面板切换功能不可用',
+            success: true,
+            message: '已打开模型选择面板',
             shouldClearInput: true,
         };
     },
@@ -629,7 +568,6 @@ export const modelPanelCommand: CommandDefinition = {
 
 // 导出扩展命令列表
 export const extendedCommands: CommandDefinition[] = [
-    statusCommand,
     templateCommand,
     modelCommand,
     configCommand,

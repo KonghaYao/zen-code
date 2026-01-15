@@ -1,8 +1,8 @@
 /**
- * 命令系统类型定义
+ * 命令系统类型定义 - 重构后的简化版本
  */
 
-import { ModelConfig } from '../../../../agents/code/utils/get_allowed_models';
+import type { ModelConfig } from '../../../../agents/code/utils/get_allowed_models';
 
 export interface CommandResult {
     /** 是否成功执行 */
@@ -17,35 +17,49 @@ export interface CommandResult {
     shouldClearInput?: boolean;
 }
 
+/**
+ * CommandContext 接口 - 轻量级回调模式
+ * 命令通过这些回调函数与 UI 和 SDK 交互，而不直接依赖 React Hooks
+ */
 export interface CommandContext {
+    // ========== UI 操作 ==========
+    /** 切换面板 */
+    switchPanel: (panel: 'chat' | 'history' | 'knowledge' | 'model') => void;
+
+    /** 显示通知（自动消失） */
+    showNotification: (type: 'error' | 'success', message: string, duration?: number) => void;
+
+    // ========== SDK 操作 ==========
+    /** 发送消息到当前对话 */
+    sendMessage: (content: string | unknown[], extraParams?: Record<string, unknown>) => Promise<void>;
+
+    /** 创建新对话 */
+    createChat: () => void;
+
+    /** 更新配置 */
+    updateConfig: (config: Record<string, unknown>) => Promise<void>;
+
+    /** 清空输入框 */
+    clearInput: () => void;
+
+    /** 设置输入框内容 */
+    setUserInput: (input: string) => void;
+
+    // ========== 只读状态（用于命令逻辑判断） ==========
     /** 当前用户输入 */
     userInput: string;
-    /** 设置用户输入 */
-    setUserInput: (input: string) => void;
-    /** 发送消息函数 */
-    sendMessage: (content: any[], options?: any) => void;
+
     /** 当前代理 */
     currentAgent?: string;
-    /** 聊天客户端 */
-    client?: any;
-    /** 额外参数 */
-    extraParams?: any;
-    /** 创建新聊天 */
-    createNewChat: () => void;
-    /** 更新配置函数 */
-    updateConfig?: (config: any) => Promise<void>;
+
     /** 可用模型列表 */
     AVAILABLE_MODELS?: ModelConfig[];
+
+    /** 额外参数 */
+    extraParams?: Record<string, unknown>;
+
     /** 渲染消息列表（用于总结等需要访问聊天记录的场景） */
-    renderMessages?: any[];
-    /** 切换到历史面板 */
-    switchToHistory?: () => void;
-    /** 切换到知识库面板 */
-    switchToKnowledge?: () => void;
-    /** 切换到模型面板 */
-    switchToModel?: () => void;
-    /** 关闭面板返回聊天 */
-    closePanel?: () => void;
+    renderMessages?: unknown[];
 }
 
 export interface CommandDefinition {

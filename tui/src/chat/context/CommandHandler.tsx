@@ -1,11 +1,12 @@
 /**
  * 命令处理组件 - 负责命令的检测、建议和执行
+ * 重构版本：使用 CommandContext 而非 props 传递回调
  */
 
 import React, { useState, useCallback } from 'react';
 import { Box, Text } from 'ink';
 import { commandRegistry } from '../commands';
-import { CommandContext } from '../commands/types';
+import { useCommandContext } from './CommandContext';
 import { useChat } from '@langgraph-js/sdk/react';
 import { useSettings } from './SettingsContext';
 import { Message } from '@langgraph-js/sdk';
@@ -15,14 +16,6 @@ interface CommandHandlerProps {
     extraParams?: any;
     /** 命令执行完成回调 */
     onCommandExecuted?: () => void;
-    /** 切换到历史面板 */
-    switchToHistory?: () => void;
-    /** 切换到知识库面板 */
-    switchToKnowledge?: () => void;
-    /** 切换到模型面板 */
-    switchToModel?: () => void;
-    /** 关闭面板返回聊天 */
-    closePanel?: () => void;
 }
 
 interface CommandHandlerReturn {
@@ -45,12 +38,12 @@ interface CommandHandlerReturn {
 }
 
 export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerReturn => {
-    const { onCommandExecuted, switchToHistory, switchToKnowledge, switchToModel, closePanel } = props;
+    const { onCommandExecuted } = props;
 
-    // 从 useChat 获取所有需要的状态和函数
-    const { userInput, setUserInput, sendMessage, currentAgent, client, createNewChat, renderMessages } = useChat();
-    // 从 useSettings 获取配置更新函数
-    const { extraParams, updateConfig, AVAILABLE_MODELS } = useSettings();
+    // 从 useChat 获取需要的状态
+    const { userInput } = useChat();
+    // 从 CommandContext 获取命令执行所需的回调
+    const commandContext = useCommandContext();
 
     const [commandError, setCommandError] = useState<string | null>(null);
     const [commandSuccessMessage, setCommandSuccessMessage] = useState<string | null>(null);
@@ -66,23 +59,6 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
         }
 
         try {
-            const commandContext: CommandContext = {
-                userInput,
-                setUserInput,
-                sendMessage,
-                currentAgent,
-                client,
-                extraParams,
-                createNewChat,
-                updateConfig,
-                AVAILABLE_MODELS,
-                renderMessages,
-                switchToHistory,
-                switchToKnowledge,
-                switchToModel,
-                closePanel,
-            };
-
             const result = await commandRegistry.executeCommand(userInput, commandContext);
 
             if (!result.success) {
@@ -91,23 +67,17 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
             } else {
                 if (result.message) {
                     setCommandSuccessMessage(result.message);
-                    setTimeout(() => setCommandSuccessMessage(null), 5000); // 3秒后清除成功消息
+                    setTimeout(() => setCommandSuccessMessage(null), 5000); // 5秒后清除成功消息
                 }
             }
 
             if (result.shouldClearInput) {
-                setUserInput('');
+                commandContext.clearInput();
             }
 
             // 如果命令要求发送消息，则发送
             if (result.shouldSendMessage && result.messageContent) {
-                const content: Message[] = [
-                    {
-                        type: 'human',
-                        content: result.messageContent,
-                    },
-                ];
-                sendMessage(content, { extraParams });
+                await commandContext.sendMessage(result.messageContent);
             }
 
             onCommandExecuted?.();
@@ -117,17 +87,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
             setTimeout(() => setCommandError(null), 3000);
             return true; // 即使出错也认为命令已处理
         }
-    }, [
-        userInput,
-        setUserInput,
-        sendMessage,
-        currentAgent,
-        client,
-        extraParams,
-        createNewChat,
-        onCommandExecuted,
-        AVAILABLE_MODELS,
-    ]);
+    }, [userInput, commandContext, onCommandExecuted]);
 
     // 命令提示UI组件
     const CommandHintUI: React.FC = () => {

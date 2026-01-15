@@ -17,22 +17,13 @@ export const initCommand: CommandDefinition = {
         const topic = args.join(' ');
 
         // 创建新聊天
-        context.createNewChat();
+        context.createChat();
 
         // 如果提供了主题，发送初始化消息
         if (topic) {
             const initMessage = `我想开始一个关于 "${topic}" 的新对话。`;
-
             setTimeout(() => {
-                context.sendMessage(
-                    [
-                        {
-                            type: 'human',
-                            content: initMessage,
-                        },
-                    ],
-                    context.extraParams,
-                );
+                context.sendMessage(initMessage);
             }, 100); // 小延迟确保新聊天创建完成
 
             return {

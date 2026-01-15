@@ -8,6 +8,7 @@ import { Message } from '@langgraph-js/sdk';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { ChatInputBufferProvider, useChatInputBuffer } from './context/ChatInputBufferContext';
 import { useCommandHandler } from './context/CommandHandler';
+import { CommandContextProvider } from './context/CommandContext';
 import { LangGraphFetch } from '../../../agents/code/export';
 import WelcomeHeader from './components/WelcomeHeader';
 import TokenProgressBar from './components/TokenProgressBar';
@@ -43,24 +44,16 @@ const ChatMessages = () => {
 };
 
 interface ChatInputProps {
-    // MODIFIED: 添加面板切换回调 props
-    switchToHistory?: () => void;
-    switchToKnowledge?: () => void;
-    switchToModel?: () => void;
-    closePanel?: () => void;
+    // 移除面板切换回调 props，现在通过 CommandContext 提供
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ switchToHistory, switchToKnowledge, switchToModel, closePanel }) => {
+const ChatInput: React.FC<ChatInputProps> = () => {
     const { userInput, setUserInput, sendMessage, loading, renderMessages } = useChat();
     const { extraParams } = useSettings();
 
-    // 使用命令处理组件，传递面板切换回调
+    // 使用命令处理组件（不再需要传递面板切换回调）
     const commandHandler = useCommandHandler({
         extraParams,
-        switchToHistory,
-        switchToKnowledge,
-        switchToModel,
-        closePanel,
     });
 
     const lastMessageToken = useMemo(() => {
@@ -138,12 +131,109 @@ const ChatInput: React.FC<ChatInputProps> = ({ switchToHistory, switchToKnowledg
     );
 };
 
-const Chat: React.FC = () => {
+interface ChatProps {
+    activeView: 'chat' | 'history' | 'knowledge' | 'model';
+    setActiveView: (view: 'chat' | 'history' | 'knowledge' | 'model') => void;
+}
+
+const Chat: React.FC<ChatProps> = ({ activeView, setActiveView }) => {
     const { extraParams } = useSettings();
     const {
         toggleHistoryVisible,
         setUserInput,
         createNewChat,
+        setTools,
+        loading,
+        stopGeneration,
+        currentChatId,
+        sendMessage,
+    } = useChat();
+    const { bufferedMessage, clearBuffer } = useChatInputBuffer();
+
+    // 初始化工具
+    useEffect(() => {
+        console.clear();
+        setTools(DefaultTools);
+    }, []);
+
+    // loading 结束时自动发送缓冲区消息
+    useEffect(() => {
+        if (!loading && bufferedMessage.trim()) {
+            const content: Message[] = [
+                {
+                    type: 'human',
+                    content: bufferedMessage,
+                },
+            ];
+            sendMessage(content, {
+                extraParams,
+            }).then(() => {
+                notify('Zen Code 完成任务');
+            });
+            clearBuffer(); // 发送后清空缓冲区
+        }
+    }, [loading, bufferedMessage, sendMessage, extraParams, clearBuffer]);
+
+    // 自动聚焦输入框
+    useEffect(() => {
+        !loading && focusManager.focus('global-input');
+    }, [loading]);
+
+    const focusManager = useFocusManager();
+
+    // Global Ctrl+C exit handler
+    useInput((input, key) => {
+        if (key.ctrl && input === 'c') {
+            if (loading) {
+                stopGeneration();
+            } else {
+                process.exit();
+            }
+        }
+    });
+
+    // 面板关闭回调（聚焦到输入框）
+    const closePanel = useCallback(() => {
+        setActiveView('chat');
+        focusManager.focus('global-input');
+    }, [setActiveView, focusManager]);
+
+    return (
+        <Box flexDirection="column" width="100%">
+            <Box flexGrow={1} flexDirection="row">
+                {activeView === 'chat' && (
+                    <Box flexDirection="column" flexGrow={1}>
+                        <ChatMessages key={currentChatId} />
+                        <ChatInput />
+                    </Box>
+                )}
+                {activeView === 'history' && <HistoryList onClose={closePanel} />}
+                {activeView === 'knowledge' && <KnowledgePanel onClose={closePanel} />}
+                {activeView === 'model' && <ModelPanel onClose={closePanel} />}
+            </Box>
+            <Box paddingX={1} paddingY={0} justifyContent="space-between">
+                <Box>
+                    <Text color="magenta" bold>
+                        ⚡ Zen Code
+                    </Text>
+                    <Text color="cyan" bold>
+                        {' '}
+                        {extraParams.main_model}
+                    </Text>
+                </Box>
+                <Box>
+                    <Text>{currentChatId?.slice(0, 6) + ' '}</Text>
+                </Box>
+            </Box>
+        </Box>
+    );
+};
+
+// 内部 Chat 组件（接收 CommandContext）
+const ChatInner: React.FC = () => {
+    const { extraParams } = useSettings();
+    const {
+        setUserInput,
         setTools,
         loading,
         stopGeneration,
@@ -195,41 +285,18 @@ const Chat: React.FC = () => {
         }
     });
 
-    // 面板切换回调函数
-    const switchToHistory = useCallback(() => {
-        setActiveView('history');
-    }, []);
-
-    const switchToKnowledge = useCallback(() => {
-        setActiveView('knowledge');
-    }, []);
-
-    const switchToModel = useCallback(() => {
-        setActiveView('model');
-    }, []);
-
-    const closePanel = useCallback(() => {
-        setActiveView('chat');
-        focusManager.focus('global-input');
-    }, [focusManager]);
-
     return (
         <Box flexDirection="column" width="100%">
             <Box flexGrow={1} flexDirection="row">
                 {activeView === 'chat' && (
                     <Box flexDirection="column" flexGrow={1}>
                         <ChatMessages key={currentChatId} />
-                        <ChatInput
-                            switchToHistory={switchToHistory}
-                            switchToKnowledge={switchToKnowledge}
-                            switchToModel={switchToModel}
-                            closePanel={closePanel}
-                        />
+                        <ChatInput />
                     </Box>
                 )}
-                {activeView === 'history' && <HistoryList onClose={closePanel} />}
-                {activeView === 'knowledge' && <KnowledgePanel onClose={closePanel} />}
-                {activeView === 'model' && <ModelPanel onClose={closePanel} />}
+                {activeView === 'history' && <HistoryList onClose={() => setActiveView('chat')} />}
+                {activeView === 'knowledge' && <KnowledgePanel onClose={() => setActiveView('chat')} />}
+                {activeView === 'model' && <ModelPanel onClose={() => setActiveView('chat')} />}
             </Box>
             <Box paddingX={1} paddingY={0} justifyContent="space-between">
                 <Box>
@@ -246,6 +313,17 @@ const Chat: React.FC = () => {
                 </Box>
             </Box>
         </Box>
+    );
+};
+
+// CommandContext Provider 包装器
+const ChatWrapperWithCommandContext: React.FC = () => {
+    const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge' | 'model'>('chat');
+
+    return (
+        <CommandContextProvider onSwitchPanel={setActiveView}>
+            <Chat activeView={activeView} setActiveView={setActiveView} />
+        </CommandContextProvider>
     );
 };
 
@@ -266,7 +344,7 @@ const ChatWrapper: React.FC = () => {
         >
             <ChatInputBufferProvider>
                 <SettingsProvider>
-                    <Chat />
+                    <ChatWrapperWithCommandContext />
                 </SettingsProvider>
             </ChatInputBufferProvider>
         </ChatProvider>
