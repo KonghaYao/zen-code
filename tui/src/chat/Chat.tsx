@@ -140,26 +140,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 placeholder="输入消息..."
                 commandHandler={commandHandler}
             />
-
-            <Box paddingX={1} justifyContent="flex-end">
-                <TokenProgressBar currentTokens={lastMessageToken || 0} />
-            </Box>
         </Box>
     );
 };
 
 const Chat: React.FC = () => {
     const { extraParams } = useSettings();
-    const {
-        toggleHistoryVisible,
-        setUserInput,
-        createNewChat,
-        setTools,
-        loading,
-        stopGeneration,
-        currentChatId,
-        sendMessage,
-    } = useChat();
+    const { setTools, loading, stopGeneration, currentChatId, sendMessage } = useChat();
     const { bufferedMessage, clearBuffer } = useChatInputBuffer();
 
     // 初始化工具

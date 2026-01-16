@@ -121,7 +121,7 @@ export class CommandRegistry {
 
         // 如果只输入了 /，显示前5个常用命令
         if (query === '') {
-            const popularCommands = ['model', 'history', 'knowledge', 'summarize', 'new', 'help'];
+            const popularCommands = ['model', 'agent', 'history', 'knowledge', 'summarize', 'new', 'help'];
             for (const commandName of popularCommands) {
                 const command = this.commands.get(commandName);
                 if (command) {
@@ -136,7 +136,7 @@ export class CommandRegistry {
         }
 
         // 定义常用命令优先级
-        const priorityCommands = new Set(['history', 'knowledge', 'close', 'help', 'init', 'model', 'config']);
+        const priorityCommands = new Set(['history', 'knowledge', 'help', 'init', 'model', 'config']);
 
         // 匹配命令名称和别名
         const prefixMatches: CommandSuggestion[] = [];

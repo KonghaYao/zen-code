@@ -35,12 +35,6 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
     // 计算是否为命令输入（基于 internalValue）
     const isCommandInput = useMemo(() => internalValue.startsWith('/'), [internalValue]);
 
-    // 获取命令建议
-    const commandSuggestions = useMemo(() => {
-        if (!isCommandInput) return [];
-        return commandRegistry.getSuggestions(internalValue);
-    }, [isCommandInput, internalValue]);
-
     // 处理输入变化，同步到外部和命令检测
     const handleChange = (newValue: string) => {
         setInternalValue(newValue);
