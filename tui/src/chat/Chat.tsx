@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text, useInput, useFocusManager } from 'ink';
 import Spinner from 'ink-spinner';
 import { MessagesBox } from './components/MessageBox';
@@ -10,7 +10,6 @@ import { ChatInputBufferProvider, useChatInputBuffer } from './context/ChatInput
 import { useCommandHandler } from './context/CommandHandler';
 import { LangGraphFetch } from '../../../agents/code/export';
 import WelcomeHeader from './components/WelcomeHeader';
-import TokenProgressBar from './components/TokenProgressBar';
 import DefaultTools from './tools/index';
 import Shimmer from './components/Shimmer';
 import { ChatInputBuffer } from './components/input/ChatInputBuffer';
@@ -60,7 +59,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     switchToAgent,
     closePanel,
 }) => {
-    const { userInput, setUserInput, sendMessage, loading, renderMessages } = useChat();
+    const { userInput, setUserInput, sendMessage, loading } = useChat();
     const { extraParams } = useSettings();
 
     // 使用命令处理组件，传递面板切换回调
@@ -72,12 +71,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
         switchToAgent,
         closePanel,
     });
-
-    const lastMessageToken = useMemo(() => {
-        const index = renderMessages.findLastIndex((i) => i.usage_metadata?.input_tokens);
-        if (index === -1) return 0;
-        return renderMessages[index].usage_metadata?.input_tokens;
-    }, [renderMessages]);
 
     const sendTextMessage = async (inputValue: string) => {
         if (!inputValue) return;
@@ -110,7 +103,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
         }).then(() => {
             notify('Zen Code 完成任务');
         });
-        setUserInput('');
     };
 
     return (

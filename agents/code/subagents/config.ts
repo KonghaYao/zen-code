@@ -32,6 +32,7 @@ export interface AgentConfig {
  */
 export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
     const { getSystemPrompt } = await import('../prompts/coding.js');
+    const { getFinderPrompt, getPlannerPrompt, getReviewerPrompt } = await import('../prompts/subagents/index.js');
 
     return {
         default: {
@@ -53,7 +54,7 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
             id: 'finder',
             name: 'Finder Agent',
             description: '文件搜索专家，只读工具',
-            systemPrompt: '你是文件搜索专家，专注于文件查找和只读分析。',
+            systemPrompt: getFinderPrompt,
             tools: ['glob_files', 'search-files-rg', 'read_file'],
             middleware: {
                 agents_md: true,
@@ -68,7 +69,7 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
             id: 'planner',
             name: 'Planner Agent',
             description: '任务规划专家',
-            systemPrompt: '你是任务规划专家，专注于理解目标、拆解步骤、创建待办清单。不执行代码修改。',
+            systemPrompt: getPlannerPrompt,
             tools: ['TodoWrite', 'ask_user_with_options'],
             middleware: {
                 agents_md: true,
@@ -83,7 +84,7 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
             id: 'reviewer',
             name: 'Reviewer Agent',
             description: '代码审查专家，只读分析',
-            systemPrompt: '你是代码审查专家，关注代码质量、规范、潜在 bug、性能优化建议。不直接修改代码。',
+            systemPrompt: getReviewerPrompt,
             tools: ['glob_files', 'search-files-rg', 'read_file'],
             middleware: {
                 agents_md: true,
