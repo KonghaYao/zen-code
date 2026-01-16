@@ -18,6 +18,7 @@ import { notify } from '../utils/notify';
 import KnowledgePanel from './components/KnowledgePanel';
 import ModelPanel from './components/ModelPanel';
 import AgentPanel from './components/AgentPanel';
+import StatusBar from './components/StatusBar';
 
 const ChatMessages = () => {
     const { renderMessages, loading, inChatError, isFELocking } = useChat();
@@ -52,7 +53,13 @@ interface ChatInputProps {
     closePanel?: () => void;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ switchToHistory, switchToKnowledge, switchToModel, switchToAgent, closePanel }) => {
+const ChatInput: React.FC<ChatInputProps> = ({
+    switchToHistory,
+    switchToKnowledge,
+    switchToModel,
+    switchToAgent,
+    closePanel,
+}) => {
     const { userInput, setUserInput, sendMessage, loading, renderMessages } = useChat();
     const { extraParams } = useSettings();
 
@@ -240,20 +247,7 @@ const Chat: React.FC = () => {
                 {activeView === 'model' && <ModelPanel onClose={closePanel} />}
                 {activeView === 'agent' && <AgentPanel onClose={closePanel} />}
             </Box>
-            <Box paddingX={1} paddingY={0} justifyContent="space-between">
-                <Box>
-                    <Text color="magenta" bold>
-                        ⚡ Zen Code
-                    </Text>
-                    <Text color="cyan" bold>
-                        {' '}
-                        {extraParams.main_model}
-                    </Text>
-                </Box>
-                <Box>
-                    <Text>{currentChatId?.slice(0, 6) + ' '}</Text>
-                </Box>
-            </Box>
+            <StatusBar />
         </Box>
     );
 };
