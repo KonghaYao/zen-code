@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Text, useFocus, useInput } from 'ink';
 import chalk from 'chalk';
 import { Key } from 'ink';
+import { MultiLineTextInput, MultiLineProps } from './MultiLineTextInput.js';
 
 export type Props = {
     readonly id?: string;
@@ -83,7 +84,8 @@ function TextInput({
 
             const newValue = originalValue || '';
 
-            if (previousState.cursorOffset > newValue.length - 1) {
+            // Clamp cursorOffset to valid range [0, newValue.length]
+            if (previousState.cursorOffset > newValue.length) {
                 return {
                     cursorOffset: newValue.length,
                     cursorWidth: 0,
@@ -107,17 +109,40 @@ function TextInput({
                 ? chalk.inverse(placeholder[0]) + chalk.grey(placeholder.slice(1))
                 : chalk.inverse(' ');
 
-        renderedValue = value.length > 0 ? '' : chalk.inverse(' ');
-
+        // Initialize with empty string for text content
+        renderedValue = '';
         let i = 0;
 
+        // Find actual cursor position when dealing with newlines
+        // If cursor is on a newline character (\n, \r, or \r\n), show it on the next character instead
+        let actualCursorOffset = cursorOffset;
+        if (cursorActualWidth === 0 && cursorOffset < value.length) {
+            const char = value[cursorOffset];
+            // Check for \n or standalone \r (not part of \r\n)
+            if (char === '\n' || (char === '\r' && (cursorOffset + 1 >= value.length || value[cursorOffset + 1] !== '\n'))) {
+                actualCursorOffset = cursorOffset + 1;
+            }
+            // If cursor is on \r in \r\n sequence, skip both characters
+            if (char === '\r' && cursorOffset + 1 < value.length && value[cursorOffset + 1] === '\n') {
+                actualCursorOffset = cursorOffset + 2;
+            }
+        }
+
         for (const char of value) {
-            renderedValue += i >= cursorOffset - cursorActualWidth && i <= cursorOffset ? chalk.inverse(char) : char;
+            // Check if current position should be highlighted (cursor)
+            // When cursorActualWidth > 0 (pasting), highlight the pasted range [cursorCursor - cursorActualWidth, cursorOffset)
+            // Otherwise (normal mode), highlight only the character at actualCursorOffset position
+            const isCursorActive = cursorActualWidth > 0
+                ? (i >= cursorOffset - cursorActualWidth && i < cursorOffset && char !== '\n' && char !== '\r')
+                : (i === actualCursorOffset);
+
+            renderedValue += isCursorActive ? chalk.inverse(char) : char;
 
             i++;
         }
 
-        if (value.length > 0 && cursorOffset === value.length) {
+        // Show cursor at end if cursor is at the end of text
+        if (actualCursorOffset === value.length) {
             renderedValue += chalk.inverse(' ');
         }
     }
@@ -186,24 +211,28 @@ function TextInput({
                     nextCursorOffset--;
                 }
             } else {
+                // Insert new input at cursor position
                 nextValue =
                     originalValue.slice(0, cursorOffset) +
                     input +
                     originalValue.slice(cursorOffset, originalValue.length);
 
-                nextCursorOffset += input.length;
+                // Move cursor to end of inserted text
+                nextCursorOffset = cursorOffset + input.length;
 
+                // Set cursor width for multi-character input (pasting, IME)
                 if (input.length > 1) {
                     nextCursorWidth = input.length;
                 }
             }
 
-            if (cursorOffset < 0) {
+            // Clamp cursorOffset to valid range
+            if (nextCursorOffset < 0) {
                 nextCursorOffset = 0;
             }
 
-            if (cursorOffset > originalValue.length) {
-                nextCursorOffset = originalValue.length;
+            if (nextCursorOffset > nextValue.length) {
+                nextCursorOffset = nextValue.length;
             }
 
             setState({
@@ -226,6 +255,10 @@ function TextInput({
 }
 export { TextInput as EnhancedTextInput };
 export default TextInput;
+
+// Export new MultiLineTextInput as EnhancedTextInputV2
+export { MultiLineTextInput as EnhancedTextInputV2 };
+export type { MultiLineProps };
 
 type UncontrolledProps = {
     /**

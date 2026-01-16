@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Text } from 'ink';
-import { EnhancedTextInput } from './EnhancedTextInput';
+import EnhancedTextInput, { EnhancedTextInputV2 } from './EnhancedTextInput';
 import { useChatInputBuffer } from '../../context/ChatInputBufferContext';
 import { commandRegistry } from '../../commands';
 
@@ -75,7 +75,7 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
         <Box flexDirection="column">
             {/* 缓冲区提示条 */}
             {bufferedMessage && (
-                <Box paddingX={1}>
+                <Box padding={1}>
                     <Text color="yellow">
                         📝 缓冲区: {bufferedMessage.slice(0, 50)}
                         {bufferedMessage.length > 50 ? '...' : ''}
@@ -87,14 +87,8 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
             <commandHandler.CommandHintUI />
 
             {/* 输入框 */}
-            <Box alignItems="center">
-                <Box marginX={1}>
-                    <Text color={isCommandInput ? 'yellow' : 'green'} bold>
-                        {isCommandInput ? '⚡ ' : '💬 '}
-                    </Text>
-                </Box>
-
-                <EnhancedTextInput
+            <Box paddingY={1}>
+                <EnhancedTextInputV2
                     id="global-input"
                     value={internalValue}
                     onChange={handleChange}

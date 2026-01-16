@@ -102,9 +102,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
             return (
                 <Box key={agent.id} paddingX={1} paddingY={0}>
                     <Box width={14}>
-                        <Text color={isSelected ? 'cyan' : 'gray'}>
-                            {icon}
-                        </Text>
+                        <Text color={isSelected ? 'cyan' : 'gray'}>{icon}</Text>
                         <Text bold={isSelected} color={color}>
                             {agent.id}
                         </Text>
@@ -114,12 +112,11 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
                             {agent.name}
                         </Text>
                         <Text color="gray" dimColor>
-                            {' - '}{agent.description}
+                            {' - '}
+                            {agent.description}
                         </Text>
                     </Box>
-                    {isCurrent && (
-                        <Text color="green"> 当前</Text>
-                    )}
+                    {isCurrent && <Text color="green"> 当前</Text>}
                 </Box>
             );
         });

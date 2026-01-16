@@ -36,6 +36,7 @@
         "node-sqlite3-wasm": "^0.8.52",
         "openai": "^6.15.0",
         "path-exists": "^5.0.0",
+        "string-width": "^8.1.0",
         "tempy": "^3.1.0",
         "xdg-basedir": "^5.1.0",
         "yaml": "^2.8.2",
