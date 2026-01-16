@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text, useInput, useFocus } from 'ink';
+import { Box, Text, useFocus } from 'ink';
 import { useSettings } from '../context/SettingsContext';
 import { loadAgentsList } from '../../../../agents/code/subagents/config.js';
-
+import { useInput } from '../../utils/use-input';
 interface AgentConfig {
     id: string;
     name: string;

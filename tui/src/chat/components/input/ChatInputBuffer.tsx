@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Text } from 'ink';
-import EnhancedTextInput, { EnhancedTextInputV2 } from './EnhancedTextInput';
+import EnhancedTextInput from './EnhancedTextInput';
 import { useChatInputBuffer } from '../../context/ChatInputBufferContext';
-import { commandRegistry } from '../../commands';
 
 export interface ChatInputBufferProps {
     value: string;
@@ -88,7 +87,7 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
 
             {/* 输入框 */}
             <Box paddingY={1}>
-                <EnhancedTextInputV2
+                <EnhancedTextInput
                     id="global-input"
                     value={internalValue}
                     onChange={handleChange}

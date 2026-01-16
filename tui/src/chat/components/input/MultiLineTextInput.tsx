@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { Box, Text, useFocus, useInput } from 'ink';
+import { Box, Text, useFocus } from 'ink';
 import chalk from 'chalk';
 import { Key } from 'ink';
-import stringWidth from 'string-width';
+import useInput from '../../../utils/use-input';
 import {
     splitTextIntoLines,
     joinLinesIntoText,
@@ -10,6 +10,57 @@ import {
     ensureCursorVisible,
     clampCursor,
 } from './textInputUtils.js';
+
+/**
+ * Find word boundary for cursor movement
+ * @param line - Current line text
+ * @param cursorColumn - Current cursor position
+ * @param direction - -1 for left, 1 for right
+ * @returns New cursor column position
+ */
+function findWordBoundary(line: string, cursorColumn: number, direction: -1 | 1): number {
+    const length = line.length;
+
+    if (direction === -1) {
+        // Moving left - find start of previous word
+        if (cursorColumn === 0) return 0;
+
+        let pos = cursorColumn - 1;
+
+        // Skip trailing whitespace
+        while (pos > 0 && /\s/.test(line[pos])) {
+            pos--;
+        }
+
+        // Skip word characters
+        while (pos > 0 && !/\s/.test(line[pos])) {
+            pos--;
+        }
+
+        // Move to first character of the word
+        if (pos > 0 || (pos === 0 && !/\s/.test(line[0]))) {
+            return pos;
+        }
+        return 0;
+    } else {
+        // Moving right - find start of next word
+        if (cursorColumn >= length) return length;
+
+        let pos = cursorColumn;
+
+        // Skip word characters
+        while (pos < length && !/\s/.test(line[pos])) {
+            pos++;
+        }
+
+        // Skip whitespace
+        while (pos < length && /\s/.test(line[pos])) {
+            pos++;
+        }
+
+        return pos;
+    }
+}
 
 /**
  * Props for MultiLineTextInput component
@@ -194,7 +245,6 @@ export function MultiLineTextInput({
                 return;
             }
         }
-
         // Block certain keys that are handled elsewhere
         if ((key.ctrl && input === 'c') || key.tab || (key.shift && key.tab)) {
             return;
@@ -237,7 +287,12 @@ export function MultiLineTextInput({
         if (key.leftArrow) {
             if (!showCursor) return;
 
-            if (state.cursorColumn > 0) {
+            if (key.ctrl || key.meta) {
+                // Ctrl (Windows) or Option/Alt (macOS): jump word left
+                const currentLine = state.lines[state.cursorLine];
+                const newColumn = findWordBoundary(currentLine, state.cursorColumn, -1);
+                moveCursor(state.cursorLine, newColumn);
+            } else if (state.cursorColumn > 0) {
                 // Move left within line
                 moveCursor(state.cursorLine, state.cursorColumn - 1);
             } else if (state.cursorLine > 0) {
@@ -251,7 +306,12 @@ export function MultiLineTextInput({
         if (key.rightArrow) {
             if (!showCursor) return;
 
-            if (state.cursorColumn < state.lines[state.cursorLine].length) {
+            if (key.ctrl || key.meta) {
+                // Ctrl (Windows) or Option/Alt (macOS): jump word right
+                const currentLine = state.lines[state.cursorLine];
+                const newColumn = findWordBoundary(currentLine, state.cursorColumn, 1);
+                moveCursor(state.cursorLine, newColumn);
+            } else if (state.cursorColumn < state.lines[state.cursorLine].length) {
                 // Move right within line
                 moveCursor(state.cursorLine, state.cursorColumn + 1);
             } else if (state.cursorLine < state.lines.length - 1) {
@@ -300,44 +360,163 @@ export function MultiLineTextInput({
             moveCursor(state.cursorLine, state.lines[state.cursorLine].length);
             return;
         }
-
-        // Handle Backspace
-        if (key.backspace || key.delete) {
-            if (state.cursorColumn > 0) {
-                // Delete within line
+        // Handle Backspace (delete backward)
+        if (key.backspace) {
+            if (key.ctrl || key.meta) {
+                // Ctrl+Backspace or Cmd+Backspace: delete word backward
                 const currentLine = state.lines[state.cursorLine];
-                const newLine = currentLine.slice(0, state.cursorColumn - 1) + currentLine.slice(state.cursorColumn);
 
-                const newLines = [...state.lines];
-                newLines[state.cursorLine] = newLine;
+                if (state.cursorColumn > 0) {
+                    // Find the word boundary to the left
+                    const wordStart = findWordBoundary(currentLine, state.cursorColumn, -1);
 
-                setState({
-                    ...state,
-                    lines: newLines,
-                    cursorColumn: state.cursorColumn - 1,
-                });
+                    if (wordStart < state.cursorColumn) {
+                        // Delete from word start to cursor
+                        const newLine = currentLine.slice(0, wordStart) + currentLine.slice(state.cursorColumn);
+                        const newLines = [...state.lines];
+                        newLines[state.cursorLine] = newLine;
 
-                handleChange(newLines);
-            } else if (state.cursorLine > 0) {
-                // Merge with previous line
-                const prevLineLength = state.lines[state.cursorLine - 1].length;
-                const newLines = [...state.lines];
-                newLines[state.cursorLine - 1] += newLines[state.cursorLine];
-                newLines.splice(state.cursorLine, 1);
+                        setState({
+                            ...state,
+                            lines: newLines,
+                            cursorColumn: wordStart,
+                        });
 
-                setState({
-                    lines: newLines,
-                    cursorLine: state.cursorLine - 1,
-                    cursorColumn: prevLineLength,
-                    firstVisibleLine: ensureCursorVisible(
-                        state.cursorLine - 1,
-                        state.firstVisibleLine,
-                        maxVisibleLines,
-                        newLines.length,
-                    ),
-                });
+                        handleChange(newLines);
+                    }
+                } else if (state.cursorLine > 0) {
+                    // At line start - delete newline (merge with previous line)
+                    const prevLine = state.lines[state.cursorLine - 1];
+                    const newLines = [...state.lines];
+                    newLines[state.cursorLine - 1] = prevLine + currentLine;
+                    newLines.splice(state.cursorLine, 1);
 
-                handleChange(newLines);
+                    setState({
+                        lines: newLines,
+                        cursorLine: state.cursorLine - 1,
+                        cursorColumn: prevLine.length,
+                        firstVisibleLine: ensureCursorVisible(
+                            state.cursorLine - 1,
+                            state.firstVisibleLine,
+                            maxVisibleLines,
+                            newLines.length,
+                        ),
+                    });
+
+                    handleChange(newLines);
+                }
+            } else {
+                // Regular Backspace: delete single character
+                if (state.cursorColumn > 0) {
+                    const currentLine = state.lines[state.cursorLine];
+                    const newLine =
+                        currentLine.slice(0, state.cursorColumn - 1) + currentLine.slice(state.cursorColumn);
+
+                    const newLines = [...state.lines];
+                    newLines[state.cursorLine] = newLine;
+
+                    setState({
+                        ...state,
+                        lines: newLines,
+                        cursorColumn: state.cursorColumn - 1,
+                    });
+
+                    handleChange(newLines);
+                } else if (state.cursorLine > 0) {
+                    // At line start - delete newline character (merge lines)
+                    const prevLine = state.lines[state.cursorLine - 1];
+                    const currentLine = state.lines[state.cursorLine];
+                    const newLines = [...state.lines];
+
+                    newLines[state.cursorLine - 1] = prevLine + currentLine;
+                    newLines.splice(state.cursorLine, 1);
+
+                    setState({
+                        lines: newLines,
+                        cursorLine: state.cursorLine - 1,
+                        cursorColumn: prevLine.length,
+                        firstVisibleLine: ensureCursorVisible(
+                            state.cursorLine - 1,
+                            state.firstVisibleLine,
+                            maxVisibleLines,
+                            newLines.length,
+                        ),
+                    });
+
+                    handleChange(newLines);
+                }
+            }
+            return;
+        }
+
+        // Handle Delete (delete forward)
+        if (key.delete) {
+            const currentLine = state.lines[state.cursorLine];
+
+            if (key.ctrl || key.meta) {
+                // Ctrl+Delete or Cmd+Delete: delete word forward
+                if (state.cursorColumn < currentLine.length) {
+                    // Find the word boundary to the right
+                    const wordEnd = findWordBoundary(currentLine, state.cursorColumn, 1);
+
+                    if (wordEnd > state.cursorColumn) {
+                        // Delete from cursor to word end
+                        const newLine = currentLine.slice(0, state.cursorColumn) + currentLine.slice(wordEnd);
+                        const newLines = [...state.lines];
+                        newLines[state.cursorLine] = newLine;
+
+                        setState({
+                            ...state,
+                            lines: newLines,
+                        });
+
+                        handleChange(newLines);
+                    }
+                } else if (state.cursorLine < state.lines.length - 1) {
+                    // At line end - merge with next line
+                    const nextLine = state.lines[state.cursorLine + 1];
+                    const newLines = [...state.lines];
+
+                    newLines[state.cursorLine] = currentLine + nextLine;
+                    newLines.splice(state.cursorLine + 1, 1);
+
+                    setState({
+                        ...state,
+                        lines: newLines,
+                    });
+
+                    handleChange(newLines);
+                }
+            } else {
+                // Regular Delete: delete single character
+                if (state.cursorColumn < currentLine.length) {
+                    const newLine =
+                        currentLine.slice(0, state.cursorColumn) + currentLine.slice(state.cursorColumn + 1);
+
+                    const newLines = [...state.lines];
+                    newLines[state.cursorLine] = newLine;
+
+                    setState({
+                        ...state,
+                        lines: newLines,
+                    });
+
+                    handleChange(newLines);
+                } else if (state.cursorLine < state.lines.length - 1) {
+                    // At line end - merge with next line
+                    const nextLine = state.lines[state.cursorLine + 1];
+                    const newLines = [...state.lines];
+
+                    newLines[state.cursorLine] = currentLine + nextLine;
+                    newLines.splice(state.cursorLine + 1, 1);
+
+                    setState({
+                        ...state,
+                        lines: newLines,
+                    });
+
+                    handleChange(newLines);
+                }
             }
             return;
         }
@@ -426,8 +605,10 @@ export function MultiLineTextInput({
         return state.lines.slice(visibleStart, visibleEnd);
     }, [state.lines, visibleStart, visibleEnd]);
 
-    // Handle empty state
-    if (state.lines.length === 0 || (state.lines.length === 1 && state.lines[0] === '')) {
+    // Handle empty state - check if all lines are completely empty (length === 0)
+    const isEmpty = state.lines.length === 0 || state.lines.every((line) => line.length === 0);
+
+    if (isEmpty) {
         if (!isFocused || !showCursor) {
             return <Text>{chalk.grey(placeholder)}</Text>;
         }

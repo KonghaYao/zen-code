@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Text, useInput, useFocusManager } from 'ink';
+import { Box, Text, useFocusManager } from 'ink';
 import Spinner from 'ink-spinner';
 import { MessagesBox } from './components/MessageBox';
 import HistoryList from './components/HistoryList';
@@ -18,7 +18,7 @@ import KnowledgePanel from './components/KnowledgePanel';
 import ModelPanel from './components/ModelPanel';
 import AgentPanel from './components/AgentPanel';
 import StatusBar from './components/StatusBar';
-
+import { useInput } from '../utils/use-input';
 const ChatMessages = () => {
     const { renderMessages, loading, inChatError, isFELocking } = useChat();
     const visibleMessages = renderMessages;
