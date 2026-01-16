@@ -13,7 +13,7 @@ import { SkillsMiddleware } from '../middlewares/skills.js';
 import { MemoriesMiddleware } from '../middlewares/memories.js';
 import { MCPMiddleware } from '../middlewares/mcp.js';
 import { SubAgentsMiddleware } from '../middlewares/subagents.js';
-import { ask_user_with_options, humanInTheLoopMiddleware } from '@langgraph-js/auk';
+import { ask_user_with_options, ask_user_with_options_config, humanInTheLoopMiddleware } from '@langgraph-js/auk';
 import { anthropicPromptCachingMiddleware } from '../middlewares/anthropicCache.js';
 import { bash_tools } from '../tools/bash_tools/index.js';
 import { glob_tool, grep_tool, read_tool, write_tool, replace_tool } from '../tools/filesystem_tools/index.js';
@@ -96,6 +96,7 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
     middleware.push(
         humanInTheLoopMiddleware({
             interruptOn: {
+                ...ask_user_with_options_config.interruptOn,
                 terminal: { allowedDecisions: ['approve', 'reject', 'edit'] },
             },
         }),
@@ -106,9 +107,8 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
     }
 
     // Resolve system prompt
-    const systemPrompt = typeof config.systemPrompt === 'function'
-        ? await config.systemPrompt(state)
-        : config.systemPrompt;
+    const systemPrompt =
+        typeof config.systemPrompt === 'function' ? await config.systemPrompt(state) : config.systemPrompt;
 
     return createAgent({
         name: config.name,

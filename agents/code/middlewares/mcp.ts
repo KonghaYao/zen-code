@@ -2,7 +2,7 @@ import { createMiddleware } from 'langchain';
 import { ClientConfig, MultiServerMCPClient } from '@langchain/mcp-adapters';
 
 export async function MCPMiddleware(options?: ClientConfig['mcpServers']) {
-    if (!options) {
+    if (!options || Object.keys(options).length === 0) {
         return createMiddleware({
             name: 'MCPSMiddleware',
         });
