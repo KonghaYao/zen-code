@@ -8,6 +8,7 @@ interface SettingsContextType {
     extraParams: {
         main_model: string;
         mcp_config?: MCPConfig;
+        switch_command?: string;
     };
     AVAILABLE_MODELS: ModelConfig[];
 }
@@ -25,6 +26,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
             cwd: process.cwd(),
             mcp_config: config?.mcp_config,
             enable_thinking: config?.enable_thinking ?? true,
+            switch_command: config?.switch_command || '',
         };
     }, [config, AVAILABLE_MODELS]);
 

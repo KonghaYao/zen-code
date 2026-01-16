@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text, useInput, useFocusManager } from 'ink';
 import Spinner from 'ink-spinner';
 import { MessagesBox } from './components/MessageBox';
@@ -10,13 +10,14 @@ import { ChatInputBufferProvider, useChatInputBuffer } from './context/ChatInput
 import { useCommandHandler } from './context/CommandHandler';
 import { LangGraphFetch } from '../../../agents/code/export';
 import WelcomeHeader from './components/WelcomeHeader';
-import TokenProgressBar from './components/TokenProgressBar';
 import DefaultTools from './tools/index';
 import Shimmer from './components/Shimmer';
 import { ChatInputBuffer } from './components/input/ChatInputBuffer';
 import { notify } from '../utils/notify';
 import KnowledgePanel from './components/KnowledgePanel';
 import ModelPanel from './components/ModelPanel';
+import AgentPanel from './components/AgentPanel';
+import StatusBar from './components/StatusBar';
 
 const ChatMessages = () => {
     const { renderMessages, loading, inChatError, isFELocking } = useChat();
@@ -47,11 +48,18 @@ interface ChatInputProps {
     switchToHistory?: () => void;
     switchToKnowledge?: () => void;
     switchToModel?: () => void;
+    switchToAgent?: () => void;
     closePanel?: () => void;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ switchToHistory, switchToKnowledge, switchToModel, closePanel }) => {
-    const { userInput, setUserInput, sendMessage, loading, renderMessages } = useChat();
+const ChatInput: React.FC<ChatInputProps> = ({
+    switchToHistory,
+    switchToKnowledge,
+    switchToModel,
+    switchToAgent,
+    closePanel,
+}) => {
+    const { userInput, setUserInput, sendMessage, loading } = useChat();
     const { extraParams } = useSettings();
 
     // 使用命令处理组件，传递面板切换回调
@@ -60,14 +68,9 @@ const ChatInput: React.FC<ChatInputProps> = ({ switchToHistory, switchToKnowledg
         switchToHistory,
         switchToKnowledge,
         switchToModel,
+        switchToAgent,
         closePanel,
     });
-
-    const lastMessageToken = useMemo(() => {
-        const index = renderMessages.findLastIndex((i) => i.usage_metadata?.input_tokens);
-        if (index === -1) return 0;
-        return renderMessages[index].usage_metadata?.input_tokens;
-    }, [renderMessages]);
 
     const sendTextMessage = async (inputValue: string) => {
         if (!inputValue) return;
@@ -100,7 +103,6 @@ const ChatInput: React.FC<ChatInputProps> = ({ switchToHistory, switchToKnowledg
         }).then(() => {
             notify('Zen Code 完成任务');
         });
-        setUserInput('');
     };
 
     return (
@@ -130,26 +132,13 @@ const ChatInput: React.FC<ChatInputProps> = ({ switchToHistory, switchToKnowledg
                 placeholder="输入消息..."
                 commandHandler={commandHandler}
             />
-
-            <Box paddingX={1} justifyContent="flex-end">
-                <TokenProgressBar currentTokens={lastMessageToken || 0} />
-            </Box>
         </Box>
     );
 };
 
 const Chat: React.FC = () => {
     const { extraParams } = useSettings();
-    const {
-        toggleHistoryVisible,
-        setUserInput,
-        createNewChat,
-        setTools,
-        loading,
-        stopGeneration,
-        currentChatId,
-        sendMessage,
-    } = useChat();
+    const { setTools, loading, stopGeneration, currentChatId, sendMessage } = useChat();
     const { bufferedMessage, clearBuffer } = useChatInputBuffer();
 
     // 初始化工具
@@ -182,7 +171,7 @@ const Chat: React.FC = () => {
     }, [loading]);
 
     const focusManager = useFocusManager();
-    const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge' | 'model'>('chat');
+    const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge' | 'model' | 'agent'>('chat');
 
     // Global Ctrl+C exit handler
     useInput((input, key) => {
@@ -208,6 +197,10 @@ const Chat: React.FC = () => {
         setActiveView('model');
     }, []);
 
+    const switchToAgent = useCallback(() => {
+        setActiveView('agent');
+    }, []);
+
     const closePanel = useCallback(() => {
         setActiveView('chat');
         focusManager.focus('global-input');
@@ -223,6 +216,7 @@ const Chat: React.FC = () => {
                             switchToHistory={switchToHistory}
                             switchToKnowledge={switchToKnowledge}
                             switchToModel={switchToModel}
+                            switchToAgent={switchToAgent}
                             closePanel={closePanel}
                         />
                     </Box>
@@ -230,21 +224,9 @@ const Chat: React.FC = () => {
                 {activeView === 'history' && <HistoryList onClose={closePanel} />}
                 {activeView === 'knowledge' && <KnowledgePanel onClose={closePanel} />}
                 {activeView === 'model' && <ModelPanel onClose={closePanel} />}
+                {activeView === 'agent' && <AgentPanel onClose={closePanel} />}
             </Box>
-            <Box paddingX={1} paddingY={0} justifyContent="space-between">
-                <Box>
-                    <Text color="magenta" bold>
-                        ⚡ Zen Code
-                    </Text>
-                    <Text color="cyan" bold>
-                        {' '}
-                        {extraParams.main_model}
-                    </Text>
-                </Box>
-                <Box>
-                    <Text>{currentChatId?.slice(0, 6) + ' '}</Text>
-                </Box>
-            </Box>
+            <StatusBar />
         </Box>
     );
 };
