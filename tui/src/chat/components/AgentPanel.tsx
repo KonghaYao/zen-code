@@ -58,7 +58,9 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
             const isCurrent = agent.id === currentAgentId;
             return (
                 <SelectItem key={agent.id} isSelected={isSelected} isCurrent={isCurrent}>
-                    <Text bold>{agent.id}</Text>
+                    <Text bold>
+                        {index + 1}. {agent.id}
+                    </Text>
                     <Spacer></Spacer>
                     <Text dimColor>{agent.description}</Text>
                 </SelectItem>

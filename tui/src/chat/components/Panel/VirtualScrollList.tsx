@@ -13,7 +13,7 @@ export function VirtualScrollList<T>({
     items,
     selectedIndex,
     itemHeight,
-    visibleCount = 20,
+    visibleCount = 8,
     renderItem,
 }: VirtualScrollListProps<T>) {
     if (items.length === 0) {

@@ -2,14 +2,14 @@
  * 统一面板系统 - 统一面板组件
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Box, Text } from 'ink';
 import { PanelContainer } from './PanelContainer';
 import { SearchBar } from './SearchBar';
 import { VirtualScrollList } from './VirtualScrollList';
 import { usePanelSearch } from './usePanelSearch';
 import { usePanelNavigation } from './usePanelNavigation';
-import type { UniversalPanelProps, PanelContext } from './types';
+import type { UniversalPanelProps } from './types';
 
 /**
  * 统一面板组件

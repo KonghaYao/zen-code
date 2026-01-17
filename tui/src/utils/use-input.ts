@@ -92,7 +92,7 @@ export type Key = {
     meta: boolean;
 };
 
-type Handler = (input: string, key: Key) => void;
+type Handler = (input: string, key: Key, keypress: any) => void;
 
 type Options = {
     /**

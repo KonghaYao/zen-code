@@ -103,72 +103,6 @@ export const templateCommand: CommandDefinition = {
 };
 
 /**
- * /model 命令 - 切换模型
- */
-export const modelCommand: CommandDefinition = {
-    name: 'model',
-    description: '显示或切换当前模型',
-    aliases: ['m'],
-    usage: '/model [模型名]',
-    execute: async (args: string[], context) => {
-        if (args.length === 0) {
-            // 显示当前模型和可用模型列表
-            const currentModel = context.extraParams?.main_model || 'N/A';
-            const modelList = context.AVAILABLE_MODELS?.map(
-                (model, index) => `  ${index + 1}. ${model.id}${model.id === currentModel ? ' (当前)' : ''}`,
-            ).join('\n');
-
-            return {
-                success: true,
-                message: `当前模型: ${currentModel}\n\n可用模型:\n${modelList}\n\n使用 /model <模型名> 或 /model <序号> 切换模型`,
-                shouldClearInput: true,
-            };
-        }
-
-        const modelInput = args[0];
-        let targetModel: ModelConfig | undefined;
-
-        // 检查是否为数字序号
-        const modelIndex = parseInt(modelInput, 10);
-        if (!isNaN(modelIndex) && modelIndex >= 1 && modelIndex <= (context.AVAILABLE_MODELS?.length || 0)) {
-            targetModel = context.AVAILABLE_MODELS?.[modelIndex - 1];
-        } else {
-            // 检查是否为完整模型名或部分匹配
-            targetModel = context.AVAILABLE_MODELS?.find((model) => model?.id === modelInput);
-        }
-        const targetModelID = targetModel?.id || modelInput;
-
-        // 执行模型切换
-        try {
-            if (context.updateConfig) {
-                if (targetModel?.provider) {
-                    await context.updateConfig({ main_model: targetModelID, model_provider: targetModel?.provider });
-                } else {
-                    await context.updateConfig({ main_model: targetModelID });
-                }
-                return {
-                    success: true,
-                    message: `模型已切换到: ${targetModelID}\n\n提示: 如果当前会话未生效，请使用 /init 创建新会话`,
-                    shouldClearInput: true,
-                };
-            } else {
-                return {
-                    success: false,
-                    message: '无法访问配置更新功能',
-                    shouldClearInput: true,
-                };
-            }
-        } catch (error) {
-            return {
-                success: false,
-                message: `模型切换失败: ${error instanceof Error ? error.message : String(error)}`,
-                shouldClearInput: true,
-            };
-        }
-    },
-};
-
-/**
  * /config 命令 - 配置管理
  */
 export const configCommand: CommandDefinition = {
@@ -607,9 +541,9 @@ export const closePanelCommand: CommandDefinition = {
  * /model-panel 命令 - 打开模型选择面板
  */
 export const modelPanelCommand: CommandDefinition = {
-    name: 'model-panel',
+    name: 'model',
     description: '打开模型选择面板',
-    aliases: ['mp'],
+    aliases: ['mp', 'm'],
     execute: async (args: string[], context) => {
         if (context.switchToModel) {
             context.switchToModel();
@@ -631,7 +565,7 @@ export const modelPanelCommand: CommandDefinition = {
 export const extendedCommands: CommandDefinition[] = [
     statusCommand,
     templateCommand,
-    modelCommand,
+
     configCommand,
     mcpCommand,
     summarizeCommand, // NEW: 添加总结命令

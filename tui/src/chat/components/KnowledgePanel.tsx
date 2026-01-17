@@ -91,28 +91,26 @@ const KnowledgePanel: React.FC<KnowledgePanelProps> = ({ onClose }) => {
         defaultFilter: activeTab === 'memories' ? 'memory' : 'skill',
 
         // 渲染配置
-        itemHeight: 4, // 每个 knowledge item 占 4 行
-        visibleCount: 15,
+        itemHeight: 8, // 每个 knowledge item 占 4 行
+        visibleCount: 3,
 
         renderItem: (item: any, index, isSelected) => {
-            const sourceIcon = item.source === 'project' ? '📁' : '👤';
             const description = item.description.length > 80 ? item.description.slice(0, 80) + '...' : item.description;
 
             return (
                 <Box key={item.path} flexDirection="column" paddingY={1}>
                     <Box>
                         <Text bold color={isSelected ? 'cyan' : 'gray'}>
-                            {sourceIcon} {item.name}
+                            {index + 1}. {item.name}
                         </Text>
-                        {item.category && <Text color="gray"> · </Text>}
-                        {item.category && <Text color="yellow">{item.category}</Text>}
                     </Box>
-                    <Box paddingLeft={2} paddingY={1}>
+                    <Box paddingY={1}>
                         <Text color={isSelected ? 'white' : 'gray'}>{description}</Text>
                     </Box>
-                    <Box paddingLeft={2}>
-                        <Text color="cyan" dimColor>
-                            📄 {cleanPath(item.path)}
+                    <Box>
+                        <Text color="cyan" dimColor={!isSelected}>
+                            {cleanPath(item.path)}
+                            {item.category && <Text color="yellow"> {item.category}</Text>}
                         </Text>
                     </Box>
                 </Box>

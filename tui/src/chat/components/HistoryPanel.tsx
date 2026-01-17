@@ -72,8 +72,8 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
         defaultFilter: 'all',
 
         // 渲染配置
-        itemHeight: 2,
-        visibleCount: 20,
+        itemHeight: 1,
+        visibleCount: 10,
 
         renderItem: (thread: any, index, isSelected) => {
             const statusInfo = getStatusInfo(thread.status);
@@ -81,14 +81,10 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
             const updatedTime = formatTime(new Date(thread.updated_at));
 
             return (
-                <SelectItem
-                    key={thread.thread_id}
-                    isSelected={isSelected}
-                    isCurrent={isCurrent}
-                    prefix={statusInfo.emoji}
-                    prefixColor={statusInfo.color}
-                >
-                    <Text bold>{thread.thread_id.substring(0, 8)}...</Text>
+                <SelectItem key={thread.thread_id} isSelected={isSelected} isCurrent={isCurrent}>
+                    <Text bold color={statusInfo.color}>
+                        {index}. {thread.thread_id.substring(0, 8)}...
+                    </Text>
                     <Spacer></Spacer>
                     <Text dimColor>{updatedTime}</Text>
                 </SelectItem>

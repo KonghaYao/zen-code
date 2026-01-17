@@ -51,14 +51,16 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
         defaultFilter: 'all',
 
         // 渲染配置
-        itemHeight: 2, // 每个模型占 2 行
-        visibleCount: 20,
+        itemHeight: 1, // 每个模型占 2 行
+        visibleCount: 10,
 
         renderItem: (model: any, index, isSelected) => {
             const isCurrent = model.id === extraParams.main_model;
             return (
                 <SelectItem key={model.id} isSelected={isSelected} isCurrent={isCurrent}>
-                    <Text bold>{model.id}</Text>
+                    <Text bold>
+                        {index + 1}. {model.id}
+                    </Text>
                     <Spacer></Spacer>
                     <Text dimColor>{model.provider}</Text>
                 </SelectItem>
