@@ -62,6 +62,7 @@ export default defineConfig({
             entry: {
                 'zen-code': './src/app.tsx',
                 'zen-init': './src/zen-init.tsx',
+                'zen-keyboard': './src/zen-keyboard.tsx',
             },
             formats: ['es'],
         },
