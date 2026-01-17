@@ -167,8 +167,22 @@ const parseKeypress = (s: Buffer | string = ''): ParsedKey => {
         key.meta = s.length === 2;
     } else if (s.length === 1 && s <= '\x1a') {
         // ctrl+letter
-        key.name = String.fromCharCode(s.charCodeAt(0) + 'a'.charCodeAt(0) - 1);
-        key.ctrl = true;
+        const code = s.charCodeAt(0);
+        const letter = String.fromCharCode(code + 'a'.charCodeAt(0) - 1);
+
+        // Special case: \x17 (0x17) is ambiguous
+        // - Could be Ctrl+W (rare in TUI apps, usually intercepted by shell)
+        // - On macOS: Option+Backspace for word deletion (more common)
+        // Since Ctrl+W is typically handled by shell/terminal for unix-word-rubout,
+        // applications receiving \x17 should treat it as Option+Backspace
+        if (code === 0x17) {
+            key.name = 'backspace';
+            key.option = true;
+            key.meta = true;
+        } else {
+            key.name = letter;
+            key.ctrl = true;
+        }
     } else if (s.length === 1 && s >= '0' && s <= '9') {
         // number
         key.name = 'number';
@@ -183,6 +197,20 @@ const parseKeypress = (s: Buffer | string = ''): ParsedKey => {
         // meta+character key
         key.meta = true;
         key.shift = /^[A-Z]$/.test(parts[1]!);
+
+        /** vscode macOS */
+        key.name =
+            key.name ||
+            {
+                '\x1Bf': 'right',
+                '\x1Bb': 'left',
+                '\x1Bd': 'delete', // Option+Delete on macOS (delete word forward)
+            }[key.raw!]!;
+
+        // Set option flag for Option+Delete
+        if (key.raw === '\x1Bd' && key.name === 'delete') {
+            key.option = true;
+        }
     } else if ((parts = fnKeyRe.exec(s))) {
         const segs = [...s];
 

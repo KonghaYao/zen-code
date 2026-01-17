@@ -177,6 +177,13 @@ export function MultiLineTextInput({
     useEffect(() => {
         setState((previousState) => {
             const lines = splitTextIntoLines(originalValue);
+            const newValue = joinLinesIntoText(lines);
+            const oldValue = joinLinesIntoText(previousState.lines);
+
+            // Only update if value actually changed (avoid cursor reset on every input)
+            if (newValue === oldValue) {
+                return previousState;
+            }
 
             // Clamp cursor to valid range
             const clamped = clampCursor(lines, previousState.cursorLine, previousState.cursorColumn);
@@ -235,7 +242,7 @@ export function MultiLineTextInput({
     );
 
     useInput((input, key) => {
-        if (disabled) {
+        if (disabled || !isFocused) {
             return;
         }
 
