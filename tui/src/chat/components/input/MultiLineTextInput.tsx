@@ -260,7 +260,7 @@ export function MultiLineTextInput({
         // Handle Enter key
         if (key.return) {
             // MODIFIED: Regular Enter submits (swapped from original)
-            if (!key.ctrl && !key.meta) {
+            if (!key.ctrl && !key.alt) {
                 onSubmit?.(joinLinesIntoText(state.lines));
                 return;
             }
@@ -294,7 +294,7 @@ export function MultiLineTextInput({
         if (key.leftArrow) {
             if (!showCursor) return;
 
-            if (key.ctrl || key.meta) {
+            if (key.ctrl || key.alt) {
                 // Ctrl (Windows) or Option/Alt (macOS): jump word left
                 const currentLine = state.lines[state.cursorLine];
                 const newColumn = findWordBoundary(currentLine, state.cursorColumn, -1);
@@ -313,7 +313,7 @@ export function MultiLineTextInput({
         if (key.rightArrow) {
             if (!showCursor) return;
 
-            if (key.ctrl || key.meta) {
+            if (key.ctrl || key.alt) {
                 // Ctrl (Windows) or Option/Alt (macOS): jump word right
                 const currentLine = state.lines[state.cursorLine];
                 const newColumn = findWordBoundary(currentLine, state.cursorColumn, 1);
@@ -331,7 +331,7 @@ export function MultiLineTextInput({
         if (key.upArrow) {
             if (!showCursor) return;
 
-            if (key.meta || key.ctrl) {
+            if (key.alt || key.ctrl) {
                 // Cmd/Ctrl + Up: jump to line start
                 moveCursor(state.cursorLine, 0);
             } else {
@@ -344,7 +344,7 @@ export function MultiLineTextInput({
         if (key.downArrow) {
             if (!showCursor) return;
 
-            if (key.meta || key.ctrl) {
+            if (key.alt || key.ctrl) {
                 // Cmd/Ctrl + Down: jump to line end
                 moveCursor(state.cursorLine, state.lines[state.cursorLine].length);
             } else {
@@ -355,21 +355,21 @@ export function MultiLineTextInput({
         }
 
         // Handle Home key (Ctrl+A or Cmd+Left)
-        if ((key.ctrl && input === 'a') || (key.meta && key.leftArrow)) {
+        if ((key.ctrl && input === 'a') || (key.alt && key.leftArrow)) {
             if (!showCursor) return;
             moveCursor(state.cursorLine, 0);
             return;
         }
 
         // Handle End key (Ctrl+E or Cmd+Right)
-        if ((key.ctrl && input === 'e') || (key.meta && key.rightArrow)) {
+        if ((key.ctrl && input === 'e') || (key.alt && key.rightArrow)) {
             if (!showCursor) return;
             moveCursor(state.cursorLine, state.lines[state.cursorLine].length);
             return;
         }
         // Handle Backspace (delete backward)
         if (key.backspace) {
-            if (key.ctrl || key.meta) {
+            if (key.ctrl || key.alt) {
                 // Ctrl+Backspace or Cmd+Backspace: delete word backward
                 const currentLine = state.lines[state.cursorLine];
 
@@ -460,7 +460,7 @@ export function MultiLineTextInput({
         if (key.delete) {
             const currentLine = state.lines[state.cursorLine];
 
-            if (key.ctrl || key.meta) {
+            if (key.ctrl || key.alt) {
                 // Ctrl+Delete or Cmd+Delete: delete word forward
                 if (state.cursorColumn < currentLine.length) {
                     // Find the word boundary to the right

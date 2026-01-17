@@ -8,6 +8,7 @@
         "dev:server": "bun run agents/code/server.ts",
         "dev": "bun run tui/src/app.tsx",
         "dev:init": "bun run tui/src/zen-init.tsx",
+        "dev:key": "bun run tui/src/zen-keyboard.tsx",
         "preview:bun": "bun run tui/cli.js",
         "preview": "node --env-file=.env tui/cli.js"
     },

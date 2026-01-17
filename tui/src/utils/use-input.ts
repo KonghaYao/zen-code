@@ -66,6 +66,10 @@ export type Key = {
 	Shift key was pressed.
 	*/
     shift: boolean;
+    /**
+	Shift key was pressed.
+	*/
+    alt: boolean;
 
     /**
 	Tab key was pressed.
@@ -158,13 +162,10 @@ const useInput = (inputHandler: Handler, options: Options = {}) => {
                 ctrl: keypress.ctrl,
                 shift: keypress.shift,
                 tab: keypress.name === 'tab',
+                alt: keypress.option,
                 backspace: keypress.name === 'backspace',
                 delete: keypress.name === 'delete',
-                // `parseKeypress` parses \u001B\u001B[A (meta + up arrow) as meta = false
-                // but with option = true, so we need to take this into account here
-                // to avoid breaking changes in Ink.
-                // TODO(vadimdemedes): consider removing this in the next major version.
-                meta: keypress.meta || keypress.name === 'escape' || keypress.option,
+                meta: keypress.meta,
             };
 
             let input = keypress.ctrl ? keypress.name : keypress.sequence;
@@ -184,7 +185,8 @@ const useInput = (inputHandler: Handler, options: Options = {}) => {
             }
             // If app is not supposed to exit on Ctrl+C, then let input listener handle it
             if (!(input === 'c' && key.ctrl) || !internal_exitOnCtrlC) {
-                inputHandler(input, key);
+                /**@ts-ignore 调试添加一个对象 */
+                inputHandler(input, key, keypress);
             }
         };
 

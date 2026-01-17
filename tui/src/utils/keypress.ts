@@ -1,7 +1,7 @@
 // Copied from https://github.com/enquirer/enquirer/blob/36785f3399a41cd61e9d28d1eb9c2fcd73d69b4c/lib/keypress.js
 import { Buffer } from 'node:buffer';
 
-const metaKeyCodeRe = /^(?:\x1b)([a-zA-Z0-9])$/;
+const optionKeyCodeRe = /^(?:\x1b)([a-zA-Z0-9])$/;
 
 const fnKeyRe = /^(?:\x1b+)(O|N|\[|\[\[)(?:(\d+)(?:;(\d+))?([~^$])|(?:1;)?(\d+)?([a-zA-Z]))/;
 
@@ -139,52 +139,96 @@ const parseKeypress = (s: Buffer | string = ''): ParsedKey => {
 
     key.sequence = key.sequence || s || key.name;
 
-    if (s === '\r') {
-        // carriage return
-        key.raw = undefined;
-        key.name = 'return';
-    } else if (s === '\n') {
-        // enter, should have been called linefeed
-        key.name = 'enter';
-    } else if (s === '\t') {
-        // tab
-        key.name = 'tab';
-    } else if (s === '\b' || s === '\x1b\b' || s === '\x7f') {
-        // backspace or ctrl+h
-        key.name = 'backspace';
-        key.meta = s.charAt(0) === '\x1b';
-    } else if (s === '\x1b\x7f') {
-        // TODO(vadimdemedes): `enquirer` detects delete key as backspace, but I had to split them up to avoid breaking changes in Ink. Merge them back together in the next major version.
-        // delete
-        key.name = 'delete';
-        key.meta = s.charAt(0) === '\x1b';
-    } else if (s === '\x1b' || s === '\x1b\x1b') {
-        // escape key
-        key.name = 'escape';
-        key.meta = s.length === 2;
-    } else if (s === ' ' || s === '\x1b ') {
-        key.name = 'space';
-        key.meta = s.length === 2;
-    } else if (s.length === 1 && s <= '\x1a') {
+    const mapper = {
+        '\r': {
+            raw: undefined,
+            name: 'return',
+        },
+        '\u001b\r': {
+            raw: undefined,
+            name: 'return',
+            option: true,
+        },
+        '\n': {
+            name: 'enter',
+        },
+        '\t': {
+            name: 'tab',
+        },
+        '\x7f': {
+            name: 'backspace',
+        },
+        '\x1b\x7f': {
+            name: 'backspace',
+            option: true,
+        },
+        '\b': {
+            name: 'backspace',
+        },
+        '\x1b\b': {
+            name: 'backspace',
+            option: true,
+        },
+        '\x1b': {
+            raw: '',
+            name: 'escape',
+        },
+        '\x1b\x1b': {
+            raw: '',
+            name: 'escape',
+            option: true,
+        },
+        ' ': {
+            name: 'space',
+        },
+        '\x1b ': {
+            // macOS 无法触发
+            name: 'space',
+            meta: true, // ?
+        },
+        '\u0017': {
+            name: 'backspace',
+            option: true,
+        },
+        '\x1Bf': {
+            // macOS
+            name: 'right',
+            option: true,
+        },
+        '\x1Bb': {
+            name: 'left',
+            option: true,
+        },
+        '\x1Bd': {
+            name: 'delete',
+            option: true,
+        },
+        '\u001b[1;3B': {
+            name: 'down',
+            option: true,
+        },
+        '\u001b[1;3A': {
+            name: 'up',
+            option: true,
+        },
+    };
+    /** @ts-ignore */
+    const mapObject = mapper[s];
+    if (mapObject) {
+        return Object.assign(key, mapObject);
+    }
+
+    if (s.length === 1 && s <= '\x1a') {
         // ctrl+letter
         const code = s.charCodeAt(0);
         const letter = String.fromCharCode(code + 'a'.charCodeAt(0) - 1);
 
-        // Special case: \x17 (0x17) is ambiguous
-        // - Could be Ctrl+W (rare in TUI apps, usually intercepted by shell)
-        // - On macOS: Option+Backspace for word deletion (more common)
-        // Since Ctrl+W is typically handled by shell/terminal for unix-word-rubout,
-        // applications receiving \x17 should treat it as Option+Backspace
-        if (code === 0x17) {
-            key.name = 'backspace';
-            key.option = true;
-            key.meta = true;
-        } else {
-            key.name = letter;
-            key.ctrl = true;
-        }
+        key.name = letter;
+        key.ctrl = true;
     } else if (s.length === 1 && s >= '0' && s <= '9') {
         // number
+        // macOS check
+        // option x
         key.name = 'number';
     } else if (s.length === 1 && s >= 'a' && s <= 'z') {
         // lowercase letter
@@ -193,47 +237,28 @@ const parseKeypress = (s: Buffer | string = ''): ParsedKey => {
         // shift+letter
         key.name = s.toLowerCase();
         key.shift = true;
-    } else if ((parts = metaKeyCodeRe.exec(s))) {
-        // meta+character key
-        key.meta = true;
+    } else if ((parts = optionKeyCodeRe.exec(s))) {
+        // option + character key
+        key.option = true;
         key.shift = /^[A-Z]$/.test(parts[1]!);
-
-        /** vscode macOS */
-        key.name =
-            key.name ||
-            {
-                '\x1Bf': 'right',
-                '\x1Bb': 'left',
-                '\x1Bd': 'delete', // Option+Delete on macOS (delete word forward)
-            }[key.raw!]!;
-
-        // Set option flag for Option+Delete
-        if (key.raw === '\x1Bd' && key.name === 'delete') {
-            key.option = true;
-        }
     } else if ((parts = fnKeyRe.exec(s))) {
-        const segs = [...s];
-
-        if (segs[0] === '\u001b' && segs[1] === '\u001b') {
-            key.option = true;
-        }
-
         // ansi escape sequence
         // reassemble the key code leaving out leading \x1b's,
         // the modifier key bitflag and any meaningless "1;" sequence
         const code = [parts[1], parts[2], parts[4], parts[6]].filter(Boolean).join('');
 
+        if (code[0] === '\u001b') {
+            key.option = true;
+        }
+
         const modifier = ((parts[3] || parts[5] || 1) as number) - 1;
 
         // Parse the key modifier
-        key.ctrl = !!(modifier & 4);
         key.meta = !!(modifier & 10);
-        key.shift = !!(modifier & 1);
         key.code = code;
-
         key.name = keyName[code]!;
-        key.shift = isShiftKey(code) || key.shift;
-        key.ctrl = isCtrlKey(code) || key.ctrl;
+        key.shift = isShiftKey(code) || !!(modifier & 1);
+        key.ctrl = isCtrlKey(code) || !!(modifier & 4);
     }
 
     return key;
