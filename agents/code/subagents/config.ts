@@ -17,7 +17,6 @@ export interface AgentConfig {
         memories?: boolean;
         mcp?: boolean;
         subagents?: boolean;
-        cache?: boolean;
     };
 }
 
@@ -32,12 +31,22 @@ export interface AgentConfig {
  */
 export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
     const { getSystemPrompt } = await import('../prompts/coding.js');
-    const { getFinderPrompt, getPlannerPrompt, getReviewerPrompt } = await import('../prompts/subagents/index.js');
+    const {
+        getFinderPrompt,
+        getPlannerPrompt,
+        getReviewerPrompt,
+        getDebuggerPrompt,
+        getRefactorPrompt,
+        getTesterPrompt,
+        getSecurityPrompt,
+        getPerformancePrompt,
+        getOrganizerPrompt,
+    } = await import('../prompts/subagents/index.js');
 
     return {
         default: {
             id: 'default',
-            name: 'Code Agent',
+            name: 'Jarvis', // Iron Man's AI assistant
             description: '全功能代码助手',
             systemPrompt: getSystemPrompt,
             tools: ['all'],
@@ -47,12 +56,11 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
                 memories: true,
                 mcp: true,
                 subagents: true,
-                cache: process.env.MODEL_PROVIDER === 'anthropic',
             },
         },
         finder: {
             id: 'finder',
-            name: 'Finder Agent',
+            name: 'Sherlock', // Sherlock Holmes
             description: '文件搜索专家，只读工具',
             systemPrompt: getFinderPrompt,
             tools: ['glob_files', 'search-files-rg', 'read_file'],
@@ -62,7 +70,6 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
                 memories: true,
                 mcp: false,
                 subagents: false,
-                cache: false,
             },
         },
         planner: {
@@ -70,14 +77,13 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
             name: 'Planner Agent',
             description: '任务规划专家',
             systemPrompt: getPlannerPrompt,
-            tools: ['TodoWrite', 'ask_user_with_options'],
+            tools: ['TodoWrite', 'ask_user_with_options', 'glob_files', 'search-files-rg', 'read_file'],
             middleware: {
                 agents_md: true,
-                skills: false,
-                memories: false,
+                skills: true,
+                memories: true,
                 mcp: false,
                 subagents: false,
-                cache: false,
             },
         },
         reviewer: {
@@ -92,7 +98,90 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
                 memories: true,
                 mcp: false,
                 subagents: false,
-                cache: false,
+            },
+        },
+        debugger: {
+            id: 'debugger',
+            name: 'Debugger Agent',
+            description: '调试专家，错误分析和日志追踪',
+            systemPrompt: getDebuggerPrompt,
+            tools: ['glob_files', 'search-files-rg', 'read_file', 'bash'],
+            middleware: {
+                agents_md: true,
+                skills: true,
+                memories: true,
+                mcp: false,
+                subagents: false,
+            },
+        },
+        refactor: {
+            id: 'refactor',
+            name: 'Refactor Agent',
+            description: '重构专家',
+            systemPrompt: getRefactorPrompt,
+            tools: ['all'],
+            middleware: {
+                agents_md: true,
+                skills: true,
+                memories: true,
+                mcp: false,
+                subagents: false,
+            },
+        },
+        tester: {
+            id: 'tester',
+            name: 'Tester Agent',
+            description: '测试专家，测试用例生成和覆盖率分析',
+            systemPrompt: getTesterPrompt,
+            tools: ['all'],
+            middleware: {
+                agents_md: true,
+                skills: true,
+                memories: true,
+                mcp: false,
+                subagents: false,
+            },
+        },
+        security: {
+            id: 'security',
+            name: 'Security Agent',
+            description: '安全专家，漏洞扫描和安全审计',
+            systemPrompt: getSecurityPrompt,
+            tools: ['glob_files', 'search-files-rg', 'read_file'],
+            middleware: {
+                agents_md: true,
+                skills: true,
+                memories: true,
+                mcp: false,
+                subagents: false,
+            },
+        },
+        performance: {
+            id: 'performance',
+            name: 'Performance Agent',
+            description: '性能专家',
+            systemPrompt: getPerformancePrompt,
+            tools: ['glob_files', 'search-files-rg', 'read_file'],
+            middleware: {
+                agents_md: true,
+                skills: true,
+                memories: true,
+                mcp: false,
+                subagents: false,
+            },
+        },
+        organizer: {
+            id: 'organizer',
+            name: 'Organizer Agent',
+            description: '知识整理专家',
+            systemPrompt: getOrganizerPrompt,
+            tools: ['all'],
+            middleware: {
+                agents_md: true,
+                skills: true,
+                memories: true,
+                mcp: false,
+                subagents: false,
             },
         },
     };

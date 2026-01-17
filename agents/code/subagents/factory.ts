@@ -102,7 +102,7 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
         }),
     );
 
-    if (config.middleware.cache && process.env.MODEL_PROVIDER === 'anthropic') {
+    if (process.env.MODEL_PROVIDER === 'anthropic') {
         middleware.push(anthropicPromptCachingMiddleware());
     }
 

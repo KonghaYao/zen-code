@@ -10,7 +10,11 @@ import { createAgent, providerStrategy, toolStrategy } from 'langchain';
  * 记忆候选者 Schema（包含完整的 frontmatter 信息）
  */
 export const MemoryCandidateSchema = z.object({
-    summary_of_chat: z.string().describe('原始对话的主要内容，200 字总结'),
+    summary_of_chat: z
+        .string()
+        .describe(
+            '对话总结（300-500字）：1) 完整复现对话的核心过程（任务背景→关键决策→解决方案→最终结果）；2) 明确说明接下来要做什么（后续行动、待完成任务、需要用户确认的事项）；3) 突出关键成果和交付物',
+        ),
     // Frontmatter 字段
     name: z.string().describe('记忆名称（kebab-case 格式）'),
     description: z.string().describe('对于这个记忆的中等长度描述（索引综述，200-500字符，包含背景、关键点、适用场景）'),
@@ -33,7 +37,40 @@ export const smart_memory_prompt = `你是一个负责分析对话并提取关�
 
 ## 任务
 
-分析一段对话，判断其中是否有值得保存为长期记忆的信息。
+1. **对话总结 (summary_of_chat)**：完整复现对话并明确后续行动
+2. **记忆提取**：判断是否有值得保存为长期记忆的信息
+
+## 对话总结要求 (summary_of_chat)
+
+**必须包含以下三个部分**：
+
+### 1. 完整复现对话核心过程
+- **任务背景**：用户想做什么？遇到什么问题？
+- **关键决策**：做出了什么选择？为什么？
+- **解决方案**：具体怎么实现的？用了什么技术/方法？
+- **最终结果**：完成了什么？输出了什么？
+
+### 2. 明确后续行动
+- **待完成任务**：还有哪些未完成的工作？
+- **需要确认**：哪些事项需要用户决策？
+- **下一步建议**：建议接下来做什么？
+
+### 3. 突出关键成果
+- **交付物**：生成了什么文件/代码/文档？
+- **价值点**：解决了什么核心问题？
+- **可复用性**：什么内容可以复用？
+
+**格式要求**：
+- 300-500 字
+- 使用清晰的结构（可用 → 表示流程）
+- 突出关键信息（文件路径、函数名、配置项）
+
+**示例**：
+\`\`\`
+用户需要为 TUI 应用添加模型选择面板。通过创建 ModelPanel 组件实现交互式界面（↑↓选择、Enter切换、q关闭），在 Chat.tsx 中扩展 activeView 状态添加 'model' 类型，定义 switchToModel 回调并传递到命令系统，注册 /model-panel 和 /mp 命令。修复了 CommandHandler 未解构 switchToModel 的 bug。✓ 完成：可用的模型选择面板；⏳ 待定：是否需要添加模型描述信息展示；→ 建议：测试面板在不同终端下的渲染效果
+\`\`\`
+
+## 记忆评分机制（总分 10 分，≥ 6 分才保存）
 
 ## 记忆评分机制（总分 10 分，≥ 6 分才保存）
 
@@ -168,15 +205,15 @@ middleware.forEach(m => m.wrapModelCall(req, handler))
 ### 示例 1：有价值的记忆
 \`\`\`json
 {
-  "summary_of_chat": "xxxxxx",
-  "name": "langchain-structured-output-single-object-pattern",
-  "description": "使用 LangChain 的 withStructuredOutput 获取结构化输出时，模型可能返回数组而非单个对象导致类型不匹配；解决方案是在提示词中明确要求输出单个 JSON 对象、使用单数形式变量名、并与 Zod Schema 保持一致；适用于所有使用 withStructuredOutput 的场景",
-  "content": "## 问题\\n\\n使用 LangChain 的 \`withStructuredOutput\` 时，如果提示词不明确，模型可能返回数组而非单个对象，导致类型不匹配。\\n\\n## 解决方案\\n\\n提示词必须明确说明：\\n1. 输出单个 JSON 对象（不是数组）\\n2. 符合指定的 Schema\\n3. 使用单数形式的变量名\\n\\n## 实现示例\\n\\n完整实现参见 \`agents/code/memories/analyze.ts:80-120\`：使用 Zod Schema 定义结构并调用 withStructuredOutput\\n\\n关键调用模式（3 行）：\\\`\\\`\\\`typescript\\nconst response = model.withStructuredOutput(MemoryCandidateSchema);\\nconst memory = await response.invoke(promptMessages);\\\`\\\`\\\`\\n\\n## 适用场景\\n\\n- 使用 LangChain 结构化输出时\\n- 定义 Zod Schema 并期望模型返回符合 Schema 的数据",
-  "tags": ["langchain", "structured-output", "prompt-engineering", "zod", "typescript"],
-  "category": "workflow",
-  "priority": "high",
-  "created": "2025-01-13",
-  "last_updated": "2025-01-13",
+  "summary_of_chat": "用户反馈记忆系统的 summary_of_chat 字段过于简单，需要增强对话复现和后续行动说明。修改了 agents/code/memories/analyze.ts：1) 更新 MemoryCandidateSchema 中 summary_of_chat 的描述，要求 300-500 字包含完整对话过程、后续行动、关键成果；2) 在 smart_memory_prompt 中添加专门的"对话总结要求"章节，明确三部分内容（完整复现、后续行动、关键成果）；3) 提供格式示例和清晰的模板。✓ 完成：增强版记忆提示词；⏳ 待定：是否需要添加示例输出展示新的 summary_of_chat 格式；→ 建议：测试新提示词在实际对话中的表现",
+  "name": "memory-prompt-summary-enhancement",
+  "description": "增强记忆系统的 summary_of_chat 字段要求，要求完整复现对话过程并明确后续行动；包括任务背景→关键决策→解决方案→最终结果的完整流程，以及待完成任务、需要确认事项、下一步建议；适用于所有需要高质量对话总结的场景",
+  "content": "## 背景\\n\\n用户反馈记忆系统生成的 summary_of_chat 过于简单，缺少后续行动说明，无法有效回顾对话和继续工作。\\n\\n## 解决方案\\n\\n修改 \`agents/code/memories/analyze.ts\` 的三处：\\n\\n1. **Schema 增强**（第 18 行）：\\n\\\`\\\`\\\`typescript\\nsummary_of_chat: z.string().describe('对话总结（300-500字）：1) 完整复现对话的核心过程（任务背景→关键决策→解决方案→最终结果）；2) 明确说明接下来要做什么（后续行动、待完成任务、需要用户确认的事项）；3) 突出关键成果和交付物')\\n\\\`\\\`\\\`\\n\\n2. **提示词添加专门章节**：在 smart_memory_prompt 中添加"对话总结要求"部分，明确三个组成部分：完整复现、后续行动、关键成果\\n\\n3. **提供格式示例**：使用 → 表示流程，✓ 表示完成，⏳ 表示待定，→ 表示建议\\n\\n## 适用场景\\n\\n- 需要高质量对话总结的 AI 系统\\n- 需要明确后续行动的任务管理场景",
+  "tags": ["prompt-engineering", "memory-system", "conversation-summary", "langchain"],
+  "category": "optimization",
+  "priority": "medium",
+  "created": "2025-01-17",
+  "last_updated": "2025-01-17",
   "context_scope": "project"
 }
 \`\`\`
@@ -184,7 +221,7 @@ middleware.forEach(m => m.wrapModelCall(req, handler))
 ### 示例 2：无重要信息
 \`\`\`json
 {
-  "summary_of_chat": "xxxxxx",
+  "summary_of_chat": "用户询问如何查看 TUI 应用中的模型列表。已告知可通过 /model-panel 或 /mp 命令打开模型选择面板，使用 ↑↓ 键选择、Enter 键切换模型、q 键关闭面板。当前无其他问题。✓ 完成：问题已解答；⏳ 待定：无；→ 建议：如需更多帮助可使用 /help 命令",
   "name": "no-memory-1736736000000",
   "description": "本次对话无重要信息需要保存",
   "content": "无重要信息",
