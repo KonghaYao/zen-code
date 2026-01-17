@@ -1,7 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Text, useInput, useFocus } from 'ink';
+/**
+ * Knowledge 面板 - 使用统一面板系统重构
+ */
+
+import React, { useState } from 'react';
+import { Box, Text } from 'ink';
 import { join } from 'path';
-import { Tabs, TabItem } from './input/Tabs';
+import { UniversalPanel } from './Panel/UniversalPanel';
+import { PanelConfig, PanelContext } from './Panel/types';
 import { listMemories, type MemoryMetadata } from '../../../../agents/code/memories/load';
 import { listSkills, type SkillMetadata } from '../../../../agents/code/skills/load';
 import { cleanPath } from '../../utils/cleanPath';
@@ -10,176 +15,130 @@ interface KnowledgePanelProps {
     onClose: () => void;
 }
 
+type KnowledgeItem = (MemoryMetadata | SkillMetadata) & { type: 'memory' | 'skill' };
+
 const KnowledgePanel: React.FC<KnowledgePanelProps> = ({ onClose }) => {
-    const { isFocused } = useFocus({ autoFocus: true });
-    const [memories, setMemories] = useState<MemoryMetadata[]>([]);
-    const [skills, setSkills] = useState<SkillMetadata[]>([]);
     const [activeTab, setActiveTab] = useState<'memories' | 'skills'>('memories');
 
-    // Load memories on mount
-    useEffect(() => {
-        loadMemories();
-    }, []);
-
-    // Load skills on mount
-    useEffect(() => {
-        loadSkills();
-    }, []);
-
-    useInput((input, key) => {
-        if (key.escape || input === 'q' || input === 'h') {
-            onClose();
-        }
-    });
-
-    const loadMemories = () => {
+    const loadKnowledge = async (): Promise<KnowledgeItem[]> => {
         const projectMemoriesDir = join(process.cwd(), '.claude/memories');
         const userMemoriesDir = join(process.env.HOME || '', '.deepagents/code/memories');
-
-        try {
-            const loadedMemories = listMemories(userMemoriesDir, projectMemoriesDir);
-            // Sort by category
-            loadedMemories.sort((a, b) => a.category.localeCompare(b.category));
-            setMemories(loadedMemories);
-        } catch (error) {
-            console.warn('Failed to load memories:', error);
-            setMemories([]);
-        }
-    };
-
-    const loadSkills = () => {
         const projectSkillsDir = join(process.cwd(), '.claude/skills');
         const userSkillsDir = join(process.env.HOME || '', '.deepagents/code/skills');
 
         try {
-            const loadedSkills = listSkills(userSkillsDir, projectSkillsDir);
-            setSkills(loadedSkills);
+            const memories = listMemories(userMemoriesDir, projectMemoriesDir);
+            const skills = listSkills(userSkillsDir, projectSkillsDir);
+
+            // 根据当前选中的标签过滤
+            const filteredByTab =
+                activeTab === 'memories'
+                    ? memories.map((m) => ({ ...m, type: 'memory' as const }))
+                    : skills.map((s) => ({ ...s, type: 'skill' as const }));
+
+            return filteredByTab;
         } catch (error) {
-            console.warn('Failed to load skills:', error);
-            setSkills([]);
+            console.warn('Failed to load knowledge:', error);
+            return [];
         }
     };
 
-    const renderMemoryList = () => {
-        if (memories.length === 0) {
-            return (
-                <Box paddingX={1} paddingY={1}>
-                    <Text color="gray">暂无记忆文件</Text>
-                </Box>
-            );
+    // 获取记忆的类别过滤器
+    const getMemoryFilters = async () => {
+        const projectMemoriesDir = join(process.cwd(), '.claude/memories');
+        const userMemoriesDir = join(process.env.HOME || '', '.deepagents/code/memories');
+
+        try {
+            const memories = listMemories(userMemoriesDir, projectMemoriesDir);
+            const categories = Array.from(new Set(memories.map((m) => m.category))).sort();
+
+            return categories.map((cat) => ({
+                id: cat,
+                label: cat,
+                predicate: (item: any) => item.category === cat,
+            }));
+        } catch (error) {
+            return [];
         }
+    };
 
-        return memories.map((memory) => {
-            const sourceIcon = memory.source === 'project' ? '📁' : '👤';
-            const description =
-                memory.description.length > 80 ? memory.description.slice(0, 80) + '...' : memory.description;
+    const panelConfig: PanelConfig<KnowledgeItem> = {
+        id: 'knowledge',
+        title: '知识库',
+        icon: '📚',
+
+        dataSource: loadKnowledge,
+
+        // 搜索配置
+        searchable: true,
+        searchFields: ['name', 'description'],
+        searchPlaceholder: '搜索知识库 (名称/描述/分类)...',
+
+        // 过滤配置
+        filterable: true,
+        filters: [
+            {
+                id: 'memory',
+                label: '记忆',
+                predicate: (item) => item.type === 'memory',
+            },
+            {
+                id: 'skill',
+                label: '技能',
+                predicate: (item) => item.type === 'skill',
+            },
+        ],
+        defaultFilter: activeTab === 'memories' ? 'memory' : 'skill',
+
+        // 渲染配置
+        itemHeight: 4, // 每个 knowledge item 占 4 行
+        visibleCount: 15,
+
+        renderItem: (item: any, index, isSelected) => {
+            const sourceIcon = item.source === 'project' ? '📁' : '👤';
+            const description = item.description.length > 80 ? item.description.slice(0, 80) + '...' : item.description;
 
             return (
-                <Box key={memory.path} flexDirection="column" paddingTop={1}>
+                <Box key={item.path} flexDirection="column" paddingY={1}>
                     <Box>
-                        <Text bold color="gray">
-                            {sourceIcon} {memory.name}
+                        <Text bold color={isSelected ? 'cyan' : 'gray'}>
+                            {sourceIcon} {item.name}
                         </Text>
-                        <Text color="gray"> · </Text>
-                        <Text color="yellow">{memory.category}</Text>
+                        {item.category && <Text color="gray"> · </Text>}
+                        {item.category && <Text color="yellow">{item.category}</Text>}
                     </Box>
                     <Box paddingLeft={2} paddingY={1}>
-                        <Text>{description}</Text>
+                        <Text color={isSelected ? 'white' : 'gray'}>{description}</Text>
                     </Box>
                     <Box paddingLeft={2}>
                         <Text color="cyan" dimColor>
-                            {cleanPath(memory.path)}
+                            📄 {cleanPath(item.path)}
                         </Text>
                     </Box>
-                    {/* {memory.tags.length > 0 && (
-                        <Box paddingLeft={2} gap={1}>
-                            {memory.tags.map((tag, index) => (
-                                <Text key={index} color="green">
-                                    #{tag}
-                                </Text>
-                            ))}
-                        </Box>
-                    )} */}
                 </Box>
             );
-        });
+        },
+
+        showCount: true,
+
+        onSelect: (item) => {
+            // 只读，不执行操作
+            console.log('Selected knowledge item:', item.name);
+        },
+
+        keyMap: {
+            h: (context: PanelContext<KnowledgeItem>) => {
+                setActiveTab('memories');
+                context.setActiveFilter('memory');
+            },
+            s: (context: PanelContext<KnowledgeItem>) => {
+                setActiveTab('skills');
+                context.setActiveFilter('skill');
+            },
+        },
     };
 
-    const renderSkillList = () => {
-        if (skills.length === 0) {
-            return (
-                <Box paddingX={1} paddingY={1}>
-                    <Text color="gray">暂无技能文件</Text>
-                </Box>
-            );
-        }
-
-        return skills.map((skill) => {
-            const sourceIcon = skill.source === 'project' ? '📁' : '👤';
-            const description =
-                skill.description.length > 80 ? skill.description.slice(0, 80) + '...' : skill.description;
-
-            return (
-                <Box key={skill.path} flexDirection="column" paddingY={1}>
-                    <Box>
-                        <Text bold color="white">
-                            {sourceIcon} {skill.name}
-                        </Text>
-                    </Box>
-                    <Box paddingLeft={2}>
-                        <Text color="gray" dimColor>
-                            {description}
-                        </Text>
-                    </Box>
-                    <Box paddingLeft={2}>
-                        <Text color="cyan" dimColor>
-                            📄 {cleanPath(skill.path)}
-                        </Text>
-                    </Box>
-                </Box>
-            );
-        });
-    };
-
-    const tabItems: TabItem[] = [
-        {
-            id: 'memories',
-            label: `记忆 (${memories.length})`,
-            content: <Box flexDirection="column">{renderMemoryList()}</Box>,
-        },
-        {
-            id: 'skills',
-            label: `技能 (${skills.length})`,
-            content: <Box flexDirection="column">{renderSkillList()}</Box>,
-        },
-    ];
-
-    return (
-        <Box flexDirection="column" paddingX={1} paddingY={0} flexGrow={1}>
-            <Box paddingBottom={0} justifyContent="space-between">
-                <Text color="yellow" bold>
-                    📚 知识库
-                </Text>
-                <Text color="gray">
-                    <Text color="cyan" bold>
-                        ←→
-                    </Text>
-                    :切换标签{' '}
-                    <Text color="red" bold>
-                        q
-                    </Text>
-                    :关闭
-                </Text>
-            </Box>
-
-            <Tabs
-                items={tabItems}
-                defaultIndex={0}
-                onChange={(index) => setActiveTab(index === 0 ? 'memories' : 'skills')}
-                variant="line"
-            />
-        </Box>
-    );
+    return <UniversalPanel config={panelConfig} onClose={onClose} />;
 };
 
 export default KnowledgePanel;

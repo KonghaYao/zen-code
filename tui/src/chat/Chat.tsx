@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text, useFocusManager } from 'ink';
 import Spinner from 'ink-spinner';
 import { MessagesBox } from './components/MessageBox';
-import HistoryList from './components/HistoryList';
+import HistoryPanel from './components/HistoryPanel';
 import { ChatProvider, useChat } from '@langgraph-js/sdk/react';
 import { Message } from '@langgraph-js/sdk';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
@@ -174,15 +174,19 @@ const Chat: React.FC = () => {
     const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge' | 'model' | 'agent'>('chat');
 
     // Global Ctrl+C exit handler
-    useInput((input, key) => {
-        if (key.ctrl && input === 'c') {
-            if (loading) {
-                stopGeneration();
-            } else {
-                process.exit();
+    // Disable when panel is open to avoid duplicate input handling
+    useInput(
+        (input, key) => {
+            if (key.ctrl && input === 'c') {
+                if (loading) {
+                    stopGeneration();
+                } else {
+                    process.exit();
+                }
             }
-        }
-    });
+        },
+        { isActive: activeView === 'chat' },
+    );
 
     // 面板切换回调函数
     const switchToHistory = useCallback(() => {
@@ -221,7 +225,7 @@ const Chat: React.FC = () => {
                         />
                     </Box>
                 )}
-                {activeView === 'history' && <HistoryList onClose={closePanel} />}
+                {activeView === 'history' && <HistoryPanel onClose={closePanel} />}
                 {activeView === 'knowledge' && <KnowledgePanel onClose={closePanel} />}
                 {activeView === 'model' && <ModelPanel onClose={closePanel} />}
                 {activeView === 'agent' && <AgentPanel onClose={closePanel} />}

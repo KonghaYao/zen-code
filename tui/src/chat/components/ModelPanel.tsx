@@ -1,5 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Text, useInput, useFocus } from 'ink';
+/**
+ * Model 面板 - 使用统一面板系统重构
+ */
+
+import React from 'react';
+import { Spacer, Text } from 'ink';
+import { UniversalPanel } from './Panel/UniversalPanel';
+import { SelectItem } from './Panel/SelectItem';
+import { PanelConfig } from './Panel/types';
 import { useSettings } from '../context/SettingsContext';
 import type { ModelConfig } from '../../../../agents/code/utils/get_allowed_models';
 
@@ -8,148 +15,83 @@ interface ModelPanelProps {
 }
 
 const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
-    const { isFocused } = useFocus({ autoFocus: true });
     const { AVAILABLE_MODELS, extraParams, updateConfig } = useSettings();
-    const [selectedIndex, setSelectedIndex] = useState(0);
-    const [switchingModel, setSwitchingModel] = useState<string | null>(null);
 
-    // 找到当前模型的索引
-    const currentModelIndex = AVAILABLE_MODELS.findIndex((m) => m.id === extraParams.main_model);
+    const panelConfig: PanelConfig<ModelConfig> = {
+        id: 'model',
+        title: '模型选择',
+        icon: '🤖',
 
-    useEffect(() => {
-        // 初始化时选中当前模型
-        if (currentModelIndex !== -1) {
-            setSelectedIndex(currentModelIndex);
-        }
-    }, [currentModelIndex]);
+        dataSource: () => AVAILABLE_MODELS,
 
-    useInput((input, key) => {
-        if (key.escape || input === 'q' || input === 'c') {
-            onClose();
-            return;
-        }
+        // 搜索配置
+        searchable: true,
+        searchFields: ['id', 'provider'],
+        searchPlaceholder: '搜索模型...',
 
-        if (key.return) {
-            // 切换到选中的模型
-            const selectedModel = AVAILABLE_MODELS[selectedIndex];
-            if (selectedModel && selectedModel.id !== extraParams.main_model) {
-                handleModelSwitch(selectedModel);
-            }
-            return;
-        }
+        // 过滤配置
+        filterable: true,
+        filters: [
+            {
+                id: 'openai',
+                label: 'OpenAI',
+                predicate: (model: any) => model.provider === 'openai',
+            },
+            {
+                id: 'anthropic',
+                label: 'Anthropic',
+                predicate: (model: any) => model.provider === 'anthropic',
+            },
+            {
+                id: 'other',
+                label: '其他',
+                predicate: (model: any) => !model.provider,
+            },
+        ],
+        defaultFilter: 'all',
 
-        // 上下键选择
-        if (key.upArrow) {
-            setSelectedIndex((prev) => (prev > 0 ? prev - 1 : AVAILABLE_MODELS.length - 1));
-        } else if (key.downArrow) {
-            setSelectedIndex((prev) => (prev < AVAILABLE_MODELS.length - 1 ? prev + 1 : 0));
-        }
-    });
+        // 渲染配置
+        itemHeight: 2, // 每个模型占 2 行
+        visibleCount: 20,
 
-    const handleModelSwitch = async (model: ModelConfig) => {
-        setSwitchingModel(model.id);
-        try {
+        renderItem: (model: any, index, isSelected) => {
+            const isCurrent = model.id === extraParams.main_model;
+            return (
+                <SelectItem key={model.id} isSelected={isSelected} isCurrent={isCurrent}>
+                    <Text bold>{model.id}</Text>
+                    <Spacer></Spacer>
+                    <Text dimColor>{model.provider}</Text>
+                </SelectItem>
+            );
+        },
+
+        isSelected: (model: any) => model.id === extraParams.main_model,
+
+        onSelect: async (model: any) => {
             if (model.provider) {
-                await updateConfig({ main_model: model.id, model_provider: model.provider });
+                await updateConfig({
+                    main_model: model.id,
+                    model_provider: model.provider,
+                });
             } else {
                 await updateConfig({ main_model: model.id });
             }
-            // 切换成功后自动关闭面板
-            setTimeout(() => {
-                onClose();
-            }, 500);
-        } catch (error) {
-            console.error('模型切换失败:', error);
-            setSwitchingModel(null);
-        }
-    };
+            onClose();
+        },
 
-    if (AVAILABLE_MODELS.length === 0) {
-        return (
-            <Box paddingX={1} paddingY={1}>
-                <Text color="red">没有可用的模型</Text>
-            </Box>
-        );
-    }
+        showCount: true,
 
-    const renderModelList = () => {
-        return AVAILABLE_MODELS.map((model, index) => {
-            const isSelected = index === selectedIndex;
-            const isCurrent = model.id === extraParams.main_model;
-            const isSwitching = switchingModel === model.id;
-
-            // 图标
-            let icon = '  ';
-            if (isCurrent && !isSwitching) icon = '✓ ';
-            if (isSwitching) icon = '⟳ ';
-            if (isSelected) icon = '▶ ';
-
-            // 颜色
-            let color = 'gray';
-            if (isSelected) color = 'cyan';
-            if (isCurrent && !isSwitching) color = 'green';
-            if (isSwitching) color = 'yellow';
-
-            // 背景高亮
-            const bgColor = isSelected ? 'bgBlack' : '';
-
-            return (
-                <Box key={model.id} paddingX={1} paddingY={0}>
-                    <Text color={isSelected ? 'cyan' : 'gray'}>
-                        {icon}
-                    </Text>
-                    <Text bold={isSelected} color={color}>
-                        {model.id}
-                    </Text>
-                    {model.provider && (
-                        <Text color="gray" dimColor>
-                            {' '}({model.provider})
-                        </Text>
-                    )}
-                    {isCurrent && !isSwitching && (
-                        <Text color="green"> 当前</Text>
-                    )}
-                    {isSwitching && (
-                        <Text color="yellow"> 切换中...</Text>
-                    )}
-                </Box>
-            );
-        });
-    };
-
-    return (
-        <Box flexDirection="column" paddingX={1} paddingY={0} flexGrow={1}>
-            <Box paddingBottom={1} justifyContent="space-between">
-                <Text color="yellow" bold>
-                    🤖 模型选择
-                </Text>
-                <Text color="gray">
-                    <Text color="cyan" bold>
-                        ↑↓
-                    </Text>
-                    :选择{' '}
-                    <Text color="green" bold>
-                        Enter
-                    </Text>
-                    :切换{' '}
-                    <Text color="red" bold>
-                        q
-                    </Text>
-                    :关闭
-                </Text>
-            </Box>
-
-            <Box flexDirection="column" borderStyle="single" borderColor="gray" paddingX={1}>
-                {renderModelList()}
-            </Box>
-
-            <Box marginTop={1} paddingX={1}>
+        statusInfo: (items) => {
+            const current = items.find((m: any) => m.id === extraParams.main_model);
+            return current ? (
                 <Text color="gray" dimColor>
-                    当前模型: <Text color="green">{extraParams.main_model}</Text>
+                    当前模型: <Text color="green">{current.id}</Text>
                 </Text>
-            </Box>
-        </Box>
-    );
+            ) : null;
+        },
+    };
+
+    return <UniversalPanel config={panelConfig} onClose={onClose} />;
 };
 
 export default ModelPanel;

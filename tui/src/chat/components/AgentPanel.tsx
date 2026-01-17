@@ -1,160 +1,91 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Text, useFocus } from 'ink';
+/**
+ * Agent 面板 - 使用统一面板系统重构
+ */
+
+import React from 'react';
+import { Spacer, Text } from 'ink';
+import { UniversalPanel } from './Panel/UniversalPanel';
+import { SelectItem } from './Panel/SelectItem';
+import { PanelConfig } from './Panel/types';
 import { useSettings } from '../context/SettingsContext';
-import { loadAgentsList } from '../../../../agents/code/subagents/config.js';
-import { useInput } from '../../utils/use-input';
-interface AgentConfig {
-    id: string;
-    name: string;
-    description: string;
-}
+import { AgentConfig, loadAgentsList } from '../../../../agents/code/subagents/config.js';
 
 interface AgentPanelProps {
     onClose: () => void;
 }
 
 const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
-    const { isFocused } = useFocus({ autoFocus: true });
     const { config, updateConfig } = useSettings();
-    const [agents, setAgents] = useState<AgentConfig[]>([]);
-    const [selectedIndex, setSelectedIndex] = useState(0);
-
-    // 当前 agent ID（直接从 config 读取）
     const currentAgentId = config?.switch_command || 'default';
 
-    // 加载 agents
-    useEffect(() => {
-        loadAgentsList().then((configs) => {
-            const agentList = Object.values(configs);
-            setAgents(agentList);
+    const panelConfig: PanelConfig = {
+        id: 'agent',
+        title: 'Agent 选择',
+        icon: '🤖',
 
-            // 初始化时选中当前 agent
-            const currentIndex = agentList.findIndex((a) => a.id === currentAgentId);
-            if (currentIndex !== -1) {
-                setSelectedIndex(currentIndex);
-            }
-        });
-    }, [currentAgentId]); // 当 config.switch_command 变化时重新定位
+        // 数据源
+        dataSource: async () => {
+            const configs = await loadAgentsList();
+            return Object.values(configs);
+        },
 
-    useInput((input, key) => {
-        if (key.escape || input === 'q' || input === 'c') {
-            onClose();
-            return;
-        }
+        // 搜索配置
+        searchable: true,
+        searchFields: ['id', 'name', 'description'],
+        searchPlaceholder: '搜索 agent (名称/描述)...',
 
-        if (key.return) {
-            // 切换到选中的 agent
-            const selectedAgent = agents[selectedIndex];
-            if (selectedAgent && selectedAgent.id !== currentAgentId) {
-                handleAgentSwitch(selectedAgent.id);
-            }
-            return;
-        }
+        // 过滤配置
+        filterable: true,
+        filters: [
+            {
+                id: 'default',
+                label: '默认',
+                predicate: (agent: AgentConfig) => agent.id === 'default',
+            },
+            {
+                id: 'custom',
+                label: '自定义',
+                predicate: (agent: AgentConfig) => agent.id !== 'default',
+            },
+        ],
+        defaultFilter: 'all',
 
-        // 上下键选择
-        if (key.upArrow) {
-            setSelectedIndex((prev) => (prev > 0 ? prev - 1 : agents.length - 1));
-        } else if (key.downArrow) {
-            setSelectedIndex((prev) => (prev < agents.length - 1 ? prev + 1 : 0));
-        }
-    });
+        // 渲染配置
+        itemHeight: 3, // 每个 agent 占 3 行
+        visibleCount: 15, // 显示 15 个 agent
 
-    const handleAgentSwitch = async (agentId: string) => {
-        try {
-            // 空字符串表示重置为默认
-            const switchCommand = agentId === 'default' ? '' : agentId;
-            await updateConfig({ switch_command: switchCommand });
-
-            // 切换成功后自动关闭面板（config 更新后 currentAgentId 会自动变化）
-            setTimeout(() => {
-                onClose();
-            }, 500);
-        } catch (error) {
-            console.error('Agent 切换失败:', error);
-        }
-    };
-
-    if (agents.length === 0) {
-        return (
-            <Box paddingX={1} paddingY={1}>
-                <Text color="red">加载中...</Text>
-            </Box>
-        );
-    }
-
-    const currentAgent = agents.find((a) => a.id === currentAgentId);
-
-    const renderAgentList = () => {
-        return agents.map((agent, index) => {
-            const isSelected = index === selectedIndex;
+        renderItem: (agent: AgentConfig, index, isSelected) => {
             const isCurrent = agent.id === currentAgentId;
-
-            // 图标
-            let icon = '  ';
-            if (isCurrent) icon = '✓ ';
-            if (isSelected) icon = '▶ ';
-
-            // 颜色
-            let color = 'gray';
-            if (isSelected) color = 'cyan';
-            if (isCurrent) color = 'green';
-
             return (
-                <Box key={agent.id} paddingX={1} paddingY={0}>
-                    <Box width={14}>
-                        <Text color={isSelected ? 'cyan' : 'gray'}>{icon}</Text>
-                        <Text bold={isSelected} color={color}>
-                            {agent.id}
-                        </Text>
-                    </Box>
-                    <Box flexGrow={1}>
-                        <Text color={isSelected ? 'white' : 'gray'} bold={isSelected}>
-                            {agent.name}
-                        </Text>
-                        <Text color="gray" dimColor>
-                            {' - '}
-                            {agent.description}
-                        </Text>
-                    </Box>
-                    {isCurrent && <Text color="green"> 当前</Text>}
-                </Box>
+                <SelectItem key={agent.id} isSelected={isSelected} isCurrent={isCurrent}>
+                    <Text bold>{agent.id}</Text>
+                    <Spacer></Spacer>
+                    <Text dimColor>{agent.description}</Text>
+                </SelectItem>
             );
-        });
+        },
+
+        isSelected: (agent: AgentConfig) => agent.id === currentAgentId,
+
+        onSelect: async (agent: AgentConfig) => {
+            const switchCommand = agent.id === 'default' ? '' : agent.id;
+            updateConfig({ switch_command: switchCommand });
+            onClose();
+        },
+
+        showCount: true,
+
+        statusInfo: (items) => {
+            const current = items.find((a: any) => a.id === currentAgentId);
+            return current ? (
+                <Text color="gray" dimColor>
+                    当前 Agent: <Text color="green">{current.name}</Text>
+                </Text>
+            ) : null;
+        },
     };
 
-    return (
-        <Box flexDirection="column" paddingX={1} paddingY={0} flexGrow={1}>
-            <Box paddingBottom={1} justifyContent="space-between">
-                <Text color="yellow" bold>
-                    🤖 Agent 选择
-                </Text>
-                <Text color="gray">
-                    <Text color="cyan" bold>
-                        ↑↓
-                    </Text>
-                    :选择{' '}
-                    <Text color="green" bold>
-                        Enter
-                    </Text>
-                    :切换{' '}
-                    <Text color="red" bold>
-                        q
-                    </Text>
-                    :关闭
-                </Text>
-            </Box>
-
-            <Box flexDirection="column" borderStyle="single" borderColor="gray" paddingX={1}>
-                {renderAgentList()}
-            </Box>
-
-            <Box marginTop={1} paddingX={1}>
-                <Text color="gray" dimColor>
-                    当前 Agent: <Text color="green">{currentAgent?.name || 'default'}</Text>
-                </Text>
-            </Box>
-        </Box>
-    );
+    return <UniversalPanel config={panelConfig} onClose={onClose} />;
 };
 
 export default AgentPanel;
