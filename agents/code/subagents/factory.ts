@@ -19,7 +19,7 @@ import { CommandSystemMiddleware } from '../middlewares/commandSystem.js';
 import { bash_tools } from '../tools/bash_tools/index.js';
 import { glob_tool, grep_tool, read_tool, write_tool, replace_tool } from '../tools/filesystem_tools/index.js';
 import { create_finder } from './finder.js';
-import { getEnvInfo } from '../prompts/coding.js';
+import { getEnvInfo, getSystemPrompt } from '../prompts/coding.js';
 import type { AgentConfig } from './config.js';
 import { todo_write_tool } from '../tools/task_tools/todo_tool.js';
 
@@ -62,7 +62,7 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
 
     // Build middleware chain based on config
     const commandSystem = new CommandSystemMiddleware();
-    commandSystem.registerTools([]);
+    commandSystem.registerTools([read_tool, glob_tool]);
 
     const middleware: AgentMiddleware[] = [commandSystem];
 
@@ -114,7 +114,9 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
 
     // Resolve system prompt
     const systemPrompt =
-        typeof config.systemPrompt === 'function' ? await config.systemPrompt(state) : config.systemPrompt;
+        typeof config.systemPrompt === 'function'
+            ? await config.systemPrompt(state)
+            : config.systemPrompt || getSystemPrompt(state);
 
     return createAgent({
         name: config.name,

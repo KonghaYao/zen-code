@@ -1,6 +1,5 @@
 import { createUITool, ToolManager } from '@langgraph-js/sdk';
 import { Box, Text } from 'ink';
-import { cleanPath } from '../../utils/cleanPath';
 import { readFileSchema } from '../../../../agents/code/tools/filesystem_tools';
 import Link from '../components/Link';
 
@@ -23,7 +22,8 @@ export const read_file = createUITool({
                 <Box>
                     <Link path={input.file_path} color="blue" />
                     <Text color="gray" dimColor>
-                        {' '}({totalLines} lines)
+                        {' '}
+                        ({totalLines} lines)
                     </Text>
                 </Box>
             </Box>

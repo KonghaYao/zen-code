@@ -27,6 +27,7 @@
 import { AgentMiddleware } from 'langchain';
 import { listSkills, SkillMetadata } from '../skills/load.js';
 import { AIMessage, SystemMessage } from '@langchain/core/messages';
+
 // Skills System Documentation
 const SKILLS_SYSTEM_PROMPT = `
 
@@ -113,7 +114,7 @@ export class SkillsMiddleware implements AgentMiddleware {
     constructor(options: { skillsDir?: string; assistantId?: string; projectSkillsDir?: string } = {}) {
         this.skillsDir = options.skillsDir;
         this.assistantId = options.assistantId;
-        this.projectSkillsDir = options.projectSkillsDir || './.deepagents/skills';
+        this.projectSkillsDir = options.projectSkillsDir || './.claude/skills';
 
         if (this.skillsDir && !this.assistantId) {
             console.warn('user skills directory is provided, but assistant id is not provided');

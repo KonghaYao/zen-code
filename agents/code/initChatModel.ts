@@ -9,7 +9,7 @@ interface InitChatModelOptions {
 
 export const initChatModel = async (mainModel: string, options: InitChatModelOptions = {}) => {
     // 自定义初始化聊天模型的逻辑
-    const { modelProvider, streamUsage = true, enableThinking = true } = options;
+    const { modelProvider, enableThinking = true } = options;
     let model;
 
     if (modelProvider === 'anthropic') {
@@ -19,21 +19,25 @@ export const initChatModel = async (mainModel: string, options: InitChatModelOpt
             streaming: true,
             maxRetries: 1,
             maxTokens: 65536,
-            thinking: enableThinking ? {
-                budget_tokens: 1024,
-                type: 'enabled',
-            } : undefined,
+            thinking: enableThinking
+                ? {
+                      budget_tokens: 1024,
+                      type: 'enabled',
+                  }
+                : undefined,
         });
     } else {
         model = new ChatOpenAI({
             model: mainModel,
             streamUsage: true,
             maxRetries: 1,
-            modelKwargs: enableThinking ? {
-                thinking: {
-                    type: 'enabled',
-                },
-            } : undefined,
+            modelKwargs: enableThinking
+                ? {
+                      thinking: {
+                          type: 'enabled',
+                      },
+                  }
+                : undefined,
         });
     }
 

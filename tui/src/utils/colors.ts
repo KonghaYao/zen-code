@@ -236,5 +236,8 @@ export const Palette = {
 };
 
 export const getColor = (name: keyof typeof Palette) => {
+    if (!(name in Palette)) {
+        name = 'sky';
+    }
     return isModernTerminal() ? Palette[name].hex : Palette[name].fallback;
 };
