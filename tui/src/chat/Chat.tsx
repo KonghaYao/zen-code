@@ -123,7 +123,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
             {/* 命令成功消息显示 */}
             <commandHandler.CommandSuccessUI />
-
+            {/* <Text>{JSON.stringify(userInput)}</Text> */}
             {/* 使用 ChatInputBuffer 组件 */}
             <ChatInputBuffer
                 value={userInput}

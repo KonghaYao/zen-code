@@ -1,5 +1,5 @@
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
-import { getConfig } from 'tui/src/chat/store';
+import { getConfig } from '../../../tui/src/chat/store';
 
 export interface MCPConfig {
     cache?: {

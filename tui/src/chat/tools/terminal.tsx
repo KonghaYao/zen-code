@@ -1,7 +1,5 @@
 import { createUITool, ToolManager } from '@langgraph-js/sdk';
 import { Box, Text, useFocusManager, useInput } from 'ink';
-import SelectInput from 'ink-select-input';
-import TextInput from 'ink-text-input';
 import { useState } from 'react';
 import { InputPreviewer } from '../components/MessageTool';
 import { MultiSelectPro } from '../components/input/MultiSelect';

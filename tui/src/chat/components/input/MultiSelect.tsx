@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Box, Text, useInput, useApp } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import { useFocus } from 'ink';
 
 export interface MultiSelectOption {
@@ -143,10 +143,10 @@ export const MultiSelectPro: React.FC<MultiSelectProps> = ({
 
     const filteredOptions = highlightText
         ? options.filter(
-              (option) =>
-                  option.label.toLowerCase().includes(highlightText.toLowerCase()) ||
-                  option.value.toLowerCase().includes(highlightText.toLowerCase()),
-          )
+            (option) =>
+                option.label.toLowerCase().includes(highlightText.toLowerCase()) ||
+                option.value.toLowerCase().includes(highlightText.toLowerCase()),
+        )
         : options;
 
     return (
