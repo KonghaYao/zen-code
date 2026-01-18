@@ -18,8 +18,7 @@ import { anthropicPromptCachingMiddleware } from '../middlewares/anthropicCache.
 import { CommandSystemMiddleware } from '../middlewares/commandSystem.js';
 import { bash_tools } from '../tools/bash_tools/index.js';
 import { glob_tool, grep_tool, read_tool, write_tool, replace_tool } from '../tools/filesystem_tools/index.js';
-import { create_finder } from './finder.js';
-import { getEnvInfo, getSystemPrompt } from '../prompts/coding.js';
+import { CORE_SYSTEM_PROMPT, getEnvInfo } from '../prompts/coding.js';
 import type { AgentConfig } from './config.js';
 import { todo_write_tool } from '../tools/task_tools/todo_tool.js';
 
@@ -61,29 +60,15 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
               .filter((t): t is (typeof ALL_TOOLS)[number] => t !== undefined);
 
     // Build middleware chain based on config
-    const commandSystem = new CommandSystemMiddleware();
-    commandSystem.registerTools([read_tool, glob_tool]);
 
-    const middleware: AgentMiddleware[] = [commandSystem];
+    const middleware: AgentMiddleware[] = [];
 
     // 注册工具到 CommandSystem
 
     if (config.middleware.subagents) {
         const subagents = new SubAgentsMiddleware();
-        subagents.addSubAgents('finder', create_finder);
+        // subagents.addSubAgents('sub_agent', );
         middleware.push(subagents);
-    }
-
-    if (config.middleware.agents_md) {
-        middleware.push(new AgentsMdMiddleware());
-    }
-
-    if (config.middleware.skills) {
-        middleware.push(
-            new SkillsMiddleware({
-                projectSkillsDir: './.claude/skills',
-            }),
-        );
     }
 
     if (config.middleware.memories) {
@@ -93,10 +78,25 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
             }),
         );
     }
+    if (config.middleware.skills) {
+        middleware.push(
+            new SkillsMiddleware({
+                projectSkillsDir: './.claude/skills',
+            }),
+        );
+    }
 
     if (config.middleware.mcp) {
         middleware.push(await MCPMiddleware(state.mcp_config as any));
     }
+
+    if (config.middleware.agents_md) {
+        middleware.push(new AgentsMdMiddleware());
+    }
+
+    const commandSystem = new CommandSystemMiddleware();
+    commandSystem.registerTools([read_tool, glob_tool]);
+    middleware.push(commandSystem);
 
     // HITL is always enabled for safety
     middleware.push(
@@ -116,12 +116,12 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
     const systemPrompt =
         typeof config.systemPrompt === 'function'
             ? await config.systemPrompt(state)
-            : config.systemPrompt || getSystemPrompt(state);
+            : config.systemPrompt || CORE_SYSTEM_PROMPT;
 
     return createAgent({
         name: config.name,
         model,
-        systemPrompt: systemPrompt + `\n\n${getEnvInfo(state)}`,
+        systemPrompt: systemPrompt + `\n\n${await getEnvInfo(state)}`,
         tools,
         stateSchema: CodeState,
         middleware,

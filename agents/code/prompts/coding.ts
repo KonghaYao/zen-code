@@ -1,7 +1,7 @@
 import { CodeStateType } from '../state.js';
 
 // 当需要输出长文本时，建议写入文件
-const CORE_SYSTEM_PROMPT = `# Zen Code
+export const CORE_SYSTEM_PROMPT = `# Zen Code
 
 你是一个高效的命令行编程助手，名为 Zen Code。输出直接显示在终端，目标是用最少的交互完成任务。
 
@@ -169,13 +169,9 @@ const CORE_SYSTEM_PROMPT = `# Zen Code
 **反馈**：https://github.com/KonghaYao/coding-graph/issues
 `;
 
-export async function getSystemPrompt(state: CodeStateType): Promise<string> {
-    return [CORE_SYSTEM_PROMPT, `\n${await getEnvInfo(state)}`].join('\n\n');
-}
-
 export async function getEnvInfo(state: CodeStateType): Promise<string> {
     return `
-# 环境信息
+## 环境信息
 工作目录: ${process.cwd()}
 平台: ${process.platform}
 日期: ${new Date().toLocaleDateString()}

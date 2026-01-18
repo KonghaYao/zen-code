@@ -27,9 +27,7 @@ import { listMemories, MemoryMetadata } from '../memories/load.js';
 import { AIMessage, SystemMessage } from '@langchain/core/messages';
 
 // Memory System Documentation
-const MEMORIES_SYSTEM_PROMPT = `
-
-## Memory System
+const MEMORIES_SYSTEM_PROMPT = `## Memory System
 
 你可以访问一个包含之前任务和经验知识的记忆库。
 
@@ -39,40 +37,19 @@ const MEMORIES_SYSTEM_PROMPT = `
 
 {memories_list}
 
-**如何使用记忆（渐进式披露）:**
+**如何使用记忆:**
 
 记忆采用 **渐进式披露** 模式 - 你知道它们存在（上面有元数据），但只在需要时才读取完整内容：
 
 1. **识别适用的记忆**: 检查当前任务是否匹配任何记忆的描述或标签
 2. **读取完整记忆内容**: 使用 read_file 工具，路径见上面的列表
 3. **应用知识**: 使用记忆中的信息来指导当前任务
-4. **更新或创建记忆**: 完成任务后，考虑创建或更新记忆
 
 **何时使用记忆：**
 - 遇到与之前任务类似的问题时
 - 需要回忆项目特定的约定或模式时
 - 需要参考之前的解决方案或决策时
 - 需要记住配置或设置细节时
-
-**何时创建记忆：**
-- 解决了一个可能再次遇到的非平凡问题后
-- 做出重要的架构决策后
-- 发现有用的模式或工作流程后
-- 学习了项目特定的约定后
-
-**记忆创建工作流程：**
-1. 识别值得记住的关键信息
-2. 确定合适的类别和标签
-3. 创建带有正确 frontmatter 的 MEMORY.md
-4. 编写清晰、可操作的内容和代码示例
-5. 使用 write_file 工具保存记忆
-
-**分类：**
-- **architecture**: 架构决策、设计模式、系统结构
-- **bug-fix**: Bug 修复和问题解决方案
-- **workflow**: 工作流程和最佳实践
-- **configuration**: 配置和环境设置
-- **optimization**: 性能优化和改进
 
 记住：记忆是帮助你变得更强大和一致的工具。有疑问时，检查是否有相关的记忆存在！
 `;
