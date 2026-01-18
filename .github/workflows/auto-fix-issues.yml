@@ -177,25 +177,40 @@ jobs:
           PR_URL="${{ steps.create_pr.outputs.pull_request_url }}"
           ZEN_OUTPUT="${{ steps.zen_code.outputs.output }}"
 
-          gh issue comment $ISSUE_NUMBER --body-file - <<EOF
-          ## ✅ 自动修复完成
+          # Use Python to safely generate JSON body with proper escaping
+          BODY=$(python3 << 'PYTHON_SCRIPT'
+          import json
+          import os
 
-          我已创建 PR 来解决此问题：${PR_URL}
+          pr_url = os.environ.get("PR_URL", "")
+          zen_output = os.environ.get("ZEN_OUTPUT", "")
+
+          body = f"""## ✅ 自动修复完成
+
+          我已创建 PR 来解决此问题：{pr_url}
 
           ### 执行输出
           <details>
           <summary>查看 Zen Code 执行日志</summary>
 
-          \`\`\`
-          ${ZEN_OUTPUT}
-          \`\`\`
+          ```
+          {zen_output}
+          ```
+
           </details>
 
           ---
-          🤖 由 Zen Code 自动生成
-          EOF
+          🤖 由 Zen Code 自动生成"""
+
+          print(json.dumps({"body": body}))
+          PYTHON_SCRIPT
+          )
+
+          gh api repos/:owner/:repo/issues/${ISSUE_NUMBER}/comments --method POST --input - <<< "$BODY"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ steps.create_pr.outputs.pull_request_url }}
+          ZEN_OUTPUT: ${{ steps.zen_code.outputs.output }}
 
       - name: Comment on issue (no changes)
         if: steps.check_changes.outputs.has_changes == 'false'
@@ -203,15 +218,26 @@ jobs:
           ISSUE_NUMBER="${{ steps.issue_context.outputs.number }}"
           ZEN_OUTPUT="${{ steps.zen_code.outputs.output }}"
 
-          gh issue comment $ISSUE_NUMBER --body-file - <<EOF
+          # Use Python to safely generate JSON body with proper escaping
+          BODY=$(python3 << 'PYTHON_SCRIPT'
+          import json
+          import os
 
-          ${ZEN_OUTPUT}
+          zen_output = os.environ.get("ZEN_OUTPUT", "")
+
+          body = f"""{zen_output}
 
           ---
-          🤖 由 Zen Code 自动生成
-          EOF
+          🤖 由 Zen Code 自动生成"""
+
+          print(json.dumps({"body": body}))
+          PYTHON_SCRIPT
+          )
+
+          gh api repos/:owner/:repo/issues/${ISSUE_NUMBER}/comments --method POST --input - <<< "$BODY"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ZEN_OUTPUT: ${{ steps.zen_code.outputs.output }}
 
       - name: Remove auto-fix label
         if: always()
