@@ -61,9 +61,16 @@ jobs:
           echo "number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
 
           # Get issue details using GitHub CLI
-          ISSUE_BODY=$(gh issue view $ISSUE_NUMBER --json body,title -q '.body, .title')
+          ISSUE_TITLE=$(gh issue view $ISSUE_NUMBER --json title -q '.title')
+          ISSUE_BODY=$(gh issue view $ISSUE_NUMBER --json body -q '.body')
+
+          # Combine title and body
+          ISSUE_CONTENT="Title: ${ISSUE_TITLE}
+
+          ${ISSUE_BODY}"
+
           echo "body<<EOF" >> $GITHUB_OUTPUT
-          echo "$ISSUE_BODY" >> $GITHUB_OUTPUT
+          echo "$ISSUE_CONTENT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -83,14 +90,13 @@ jobs:
           Analyze the problem, make code changes, and create a pull request if needed."
 
           # Run zen-code in non-interactive mode
-          echo "$PROMPT" | bunx --bun zen-code -p --yolo > zen_output.log 2>&1 || true
+          # Use -p flag to pass prompt directly (not via pipe)
+          bunx --bun zen-code -p --yolo "$PROMPT" > zen_output.log 2>&1 || true
 
           # Show output
           cat zen_output.log
         env:
           ZEN_CODE_MODEL: ${{ env.ZEN_CODE_MODEL }}
-          OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
-          OPENAI_BASE_URL: ${{ env.OPENAI_BASE_URL }}
           ANTHROPIC_API_KEY: ${{ env.ANTHROPIC_API_KEY }}
           ANTHROPIC_BASE_URL: ${{ env.ANTHROPIC_BASE_URL }}
           YOLO_MODE: "true"
@@ -108,6 +114,7 @@ jobs:
           fi
 
       - name: Create Pull Request
+        id: create_pr
         if: steps.check_changes.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
