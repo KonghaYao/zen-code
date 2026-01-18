@@ -48,18 +48,21 @@ jobs:
 
       - name: Setup zen-code config
         run: |
-          # Create code-graph.json config file for Anthropic
-          cat > ~/.code-graph.json << 'EOF'
+          # Create zen-code config directory and file
+          mkdir -p ~/.zen-code
+          
+          # Create settings.json config file for Anthropic
+          cat > ~/.zen-code/settings.json << 'EOF'
           {
-            "main_model": "${{ secrets.ZEN_CODE_MODEL || 'glm-4.7' }}",
+            "main_model": "${{ secrets.ZEN_CODE_MODEL || 'claude-sonnet-4-20250514' }}",
             "model_provider": "anthropic",
             "anthropic_api_key": "${{ secrets.ANTHROPIC_API_KEY }}",
             "enable_thinking": true
           }
           EOF
 
-          echo "Config file created at ~/.code-graph.json:"
-          cat ~/.code-graph.json
+          echo "Config file created at ~/.zen-code/settings.json:"
+          cat ~/.zen-code/settings.json
 
       - name: Get issue context
         id: issue_context

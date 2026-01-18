@@ -30,7 +30,8 @@ const defaultData: Data = {
 
 // 将配置文件存储到用户目录
 const userHome = os.homedir();
-export const dbPath = path.join(userHome, '.code-graph.json');
+const zenConfigDir = path.join(userHome, '.zen-code');
+export const dbPath = path.join(zenConfigDir, 'settings.json');
 const adapter = new JSONFile<Data>(dbPath);
 const db = new Low(adapter, defaultData);
 
