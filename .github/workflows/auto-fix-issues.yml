@@ -89,12 +89,17 @@ jobs:
 
           Analyze the problem, make code changes, and create a pull request if needed."
 
-          # Run zen-code in non-interactive mode
+          # Run zen-code in non-interactive mode and capture output
           # Use -p flag to pass prompt directly (not via pipe)
-          bunx --bun zen-code -p --yolo "$PROMPT" > zen_output.log 2>&1 || true
+          ZEN_OUTPUT=$(bunx --bun zen-code -p --yolo "$PROMPT" 2>&1 || true)
 
-          # Show output
-          cat zen_output.log
+          # Save output to step output (multiline)
+          echo "output<<EOF" >> $GITHUB_OUTPUT
+          echo "$ZEN_OUTPUT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          # Show output in logs
+          echo "$ZEN_OUTPUT"
         env:
           ZEN_CODE_MODEL: ${{ env.ZEN_CODE_MODEL }}
           ANTHROPIC_API_KEY: ${{ env.ANTHROPIC_API_KEY }}
@@ -134,7 +139,7 @@ jobs:
             <summary>查看 Zen Code 执行日志</summary>
 
             ```
-            ${{ steps.zen_code.outputs }}
+            ${{ steps.zen_code.outputs.output }}
             ```
             </details>
 
@@ -150,13 +155,25 @@ jobs:
         run: |
           ISSUE_NUMBER="${{ steps.issue_context.outputs.number }}"
           PR_URL="${{ steps.create_pr.outputs.pull_request_url }}"
+          ZEN_OUTPUT="${{ steps.zen_code.outputs.output }}"
 
-          gh issue comment $ISSUE_NUMBER --body "## ✅ 自动修复完成
+          gh issue comment $ISSUE_NUMBER --body-file - <<EOF
+          ## ✅ 自动修复完成
 
           我已创建 PR 来解决此问题：${PR_URL}
 
+          ### 执行输出
+          <details>
+          <summary>查看 Zen Code 执行日志</summary>
+
+          \`\`\`
+          ${ZEN_OUTPUT}
+          \`\`\`
+          </details>
+
           ---
-          🤖 由 Zen Code 自动生成"
+          🤖 由 Zen Code 自动生成
+          EOF
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -164,18 +181,15 @@ jobs:
         if: steps.check_changes.outputs.has_changes == 'false'
         run: |
           ISSUE_NUMBER="${{ steps.issue_context.outputs.number }}"
+          ZEN_OUTPUT="${{ steps.zen_code.outputs.output }}"
 
-          gh issue comment $ISSUE_NUMBER --body "## ⚠️ 分析完成，无需代码更改
+          gh issue comment $ISSUE_NUMBER --body-file - <<EOF
 
-          Zen Code 已分析此问题，认为不需要修改代码。可能原因：
-          - 问题已存在解决方案
-          - 需要更多上下文信息
-          - 问题描述不够清晰
-
-          建议提供更多细节或手动处理。
+          ${ZEN_OUTPUT}
 
           ---
-          🤖 由 Zen Code 自动生成"
+          🤖 由 Zen Code 自动生成
+          EOF
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
