@@ -12,30 +12,30 @@
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.71.2",
-        "@langchain/anthropic": "^1.3.7",
-        "@langchain/openai": "^1.2.0",
-        "@langchain/core": "^1.1.12",
-        "@langchain/langgraph": "^1.0.7",
+        "@langchain/anthropic": "^1.3.10",
+        "@langchain/core": "^1.1.15",
+        "@langchain/langgraph": "^1.1.0",
         "@langchain/mcp-adapters": "^1.1.1",
+        "@langchain/openai": "^1.2.2",
         "@langgraph-js/auk": "^1.0.0",
         "@langgraph-js/pro": "^2.2.0",
-        "@langgraph-js/pure-graph": "^2.8.1",
-        "@langgraph-js/sdk": "^4.3.7",
+        "@langgraph-js/pure-graph": "^2.10.0",
+        "@langgraph-js/sdk": "^4.4.0",
         "eventemitter3": "^5.0.1",
-        "execa": "^9.6.0",
-        "glob": "^11.0.3",
-        "hono": "^4.9.9",
+        "execa": "^9.6.1",
+        "glob": "^11.1.0",
+        "hono": "^4.11.4",
         "langchain": "1.1.1",
-        "openai": "^6.15.0",
+        "openai": "^6.16.0",
         "uuid": "^13.0.0",
         "yaml": "^2.8.2",
-        "zod": "^4"
+        "zod": "^4.3.5"
     },
     "devDependencies": {
-        "@types/node": "^20.19.14",
+        "@types/node": "^20.19.30",
         "rollup-plugin-node-externals": "^8.1.2",
-        "tsx": "^4.20.5",
-        "typescript": "^5.9.2"
+        "tsx": "^4.21.0",
+        "typescript": "^5.9.3"
     },
     "pnpm": {
         "onlyBuiltDependencies": [

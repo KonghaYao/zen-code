@@ -1,0 +1,186 @@
+name: Auto Fix Issues
+
+on:
+  issues:
+    types: [labeled, edited]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number to process"
+        required: true
+        type: number
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+env:
+  MODEL_PROVIDER: anthropic
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  ZEN_CODE_MODEL: ${{ secrets.ZEN_CODE_MODEL || 'glm-4.7' }}
+
+jobs:
+  auto-fix:
+    if: |
+      (github.event.label.name == 'auto-fix' || contains(github.event.issue.labels.*.name, 'auto-fix')) &&
+      !github.event.issue.pull_request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          bun install --frozen-lockfile
+          cd tui && bun install --frozen-lockfile
+
+      - name: Build TUI
+        run: |
+          cd tui && bun run build
+
+      - name: Setup zen-code config
+        run: |
+          # Create code-graph.json config file for Anthropic
+          cat > ~/.code-graph.json << 'EOF'
+          {
+            "main_model": "${{ secrets.ZEN_CODE_MODEL || 'glm-4.7' }}",
+            "model_provider": "anthropic",
+            "anthropic_api_key": "${{ secrets.ANTHROPIC_API_KEY }}",
+            "enable_thinking": true
+          }
+          EOF
+
+          echo "Config file created at ~/.code-graph.json:"
+          cat ~/.code-graph.json
+
+      - name: Get issue context
+        id: issue_context
+        run: |
+          ISSUE_NUMBER="${{ github.event.issue.number || github.event.inputs.issue_number }}"
+          echo "number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+
+          # Get issue details using GitHub CLI
+          ISSUE_BODY=$(gh issue view $ISSUE_NUMBER --json body,title -q '.body, .title')
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "$ISSUE_BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run zen-code to fix issue
+        id: zen_code
+        run: |
+          ISSUE_NUMBER="${{ steps.issue_context.outputs.number }}"
+          ISSUE_BODY="${{ steps.issue_context.outputs.body }}"
+
+          # Create prompt from issue
+          PROMPT="Fix the issue described below. Make necessary code changes:
+
+          Issue #${ISSUE_NUMBER}:
+          ${ISSUE_BODY}
+
+          Analyze the problem, make code changes, and create a pull request if needed."
+
+          # Run zen-code in non-interactive mode
+          echo "$PROMPT" | bun run tui/cli.js -p > zen_output.log 2>&1 || true
+
+          # Show output
+          cat zen_output.log
+        env:
+          ZEN_CODE_MODEL: ${{ env.ZEN_CODE_MODEL }}
+          OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ env.OPENAI_BASE_URL }}
+          YOLO_MODE: "true"
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "Detected changes:"
+            git status --short
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No changes detected"
+          fi
+
+      - name: Create Pull Request
+        if: steps.check_changes.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: auto-fix/issue-${{ steps.issue_context.outputs.number }}
+          title: "Auto-fix: Issue #${{ steps.issue_context.outputs.number }}"
+          body: |
+            ## 自动修复 PR
+
+            此 PR 由 Zen Code 自动生成，用于修复 Issue #${{ steps.issue_context.outputs.number }}
+
+            ### Issue 内容
+            ${{ steps.issue_context.outputs.body }}
+
+            ### 执行输出
+            <details>
+            <summary>查看 Zen Code 执行日志</summary>
+
+            ```
+            ${{ steps.zen_code.outputs }}
+            ```
+            </details>
+
+            ---
+
+            🤖 由 [Auto Fix Issues](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) 工作流自动生成
+          labels: auto-generated, automated fix
+          commit-message: "fix: auto-fix issue #${{ steps.issue_context.outputs.number }}"
+          draft: false
+
+      - name: Comment on issue
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          ISSUE_NUMBER="${{ steps.issue_context.outputs.number }}"
+          PR_URL="${{ steps.create_pr.outputs.pull_request_url }}"
+
+          gh issue comment $ISSUE_NUMBER --body "## ✅ 自动修复完成
+
+          我已创建 PR 来解决此问题：${PR_URL}
+
+          ---
+          🤖 由 Zen Code 自动生成"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on issue (no changes)
+        if: steps.check_changes.outputs.has_changes == 'false'
+        run: |
+          ISSUE_NUMBER="${{ steps.issue_context.outputs.number }}"
+
+          gh issue comment $ISSUE_NUMBER --body "## ⚠️ 分析完成，无需代码更改
+
+          Zen Code 已分析此问题，认为不需要修改代码。可能原因：
+          - 问题已存在解决方案
+          - 需要更多上下文信息
+          - 问题描述不够清晰
+
+          建议提供更多细节或手动处理。
+
+          ---
+          🤖 由 Zen Code 自动生成"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove auto-fix label
+        if: always()
+        run: |
+          ISSUE_NUMBER="${{ steps.issue_context.outputs.number }}"
+          gh issue edit $ISSUE_NUMBER --remove-label "auto-fix" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
