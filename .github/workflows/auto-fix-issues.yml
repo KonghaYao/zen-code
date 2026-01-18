@@ -43,11 +43,13 @@ jobs:
           # Create code-graph.json config file for Anthropic
           cat > ~/.code-graph.json << 'EOF'
           {
-            "main_model": "${{ secrets.ZEN_CODE_MODEL || 'glm-4.7' }}",
-            "model_provider": "anthropic",
-            "anthropic_api_key": "${{ secrets.ANTHROPIC_API_KEY }}",
-            "anthropic_base_url": "${{ secrets.ANTHROPIC_BASE_URL }}",
-            "enable_thinking": true
+            "config": {
+              "main_model": "${{ secrets.ZEN_CODE_MODEL || 'glm-4.7' }}",
+              "model_provider": "anthropic",
+              "anthropic_api_key": "${{ secrets.ANTHROPIC_API_KEY }}",
+              "anthropic_base_url": "${{ secrets.ANTHROPIC_BASE_URL }}",
+              "enable_thinking": true
+            }
           }
           EOF
 
