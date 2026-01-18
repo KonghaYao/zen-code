@@ -104,6 +104,7 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
     middleware.push(commandSystem);
 
     // HITL is always enabled for safety
+
     middleware.push(
         humanInTheLoopMiddleware({
             interruptOn: {
