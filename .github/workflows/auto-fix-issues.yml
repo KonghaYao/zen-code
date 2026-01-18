@@ -173,10 +173,6 @@ jobs:
       - name: Comment on issue
         if: steps.check_changes.outputs.has_changes == 'true'
         run: |
-          ISSUE_NUMBER="${{ steps.issue_context.outputs.number }}"
-          PR_URL="${{ steps.create_pr.outputs.pull_request_url }}"
-          ZEN_OUTPUT="${{ steps.zen_code.outputs.output }}"
-
           # Use Python to safely generate JSON body with proper escaping
           BODY=$(python3 << 'PYTHON_SCRIPT'
           import json
@@ -206,7 +202,7 @@ jobs:
           PYTHON_SCRIPT
           )
 
-          gh api repos/:owner/:repo/issues/${ISSUE_NUMBER}/comments --method POST --input - <<< "$BODY"
+          gh api repos/:owner/:repo/issues/${{ steps.issue_context.outputs.number }}/comments --method POST --input - <<< "$BODY"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ steps.create_pr.outputs.pull_request_url }}
@@ -215,9 +211,6 @@ jobs:
       - name: Comment on issue (no changes)
         if: steps.check_changes.outputs.has_changes == 'false'
         run: |
-          ISSUE_NUMBER="${{ steps.issue_context.outputs.number }}"
-          ZEN_OUTPUT="${{ steps.zen_code.outputs.output }}"
-
           # Use Python to safely generate JSON body with proper escaping
           BODY=$(python3 << 'PYTHON_SCRIPT'
           import json
@@ -234,7 +227,7 @@ jobs:
           PYTHON_SCRIPT
           )
 
-          gh api repos/:owner/:repo/issues/${ISSUE_NUMBER}/comments --method POST --input - <<< "$BODY"
+          gh api repos/:owner/:repo/issues/${{ steps.issue_context.outputs.number }}/comments --method POST --input - <<< "$BODY"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ZEN_OUTPUT: ${{ steps.zen_code.outputs.output }}
