@@ -1,6 +1,7 @@
 import { createUITool, ToolManager } from '@langgraph-js/sdk';
 import { globToolSchema } from '../../../../agents/code/tools/filesystem_tools/glob_tool';
 import { Box, Text } from 'ink';
+import Link from '../components/Link';
 
 export const glob_files = createUITool({
     name: 'glob_files',
@@ -19,9 +20,9 @@ export const glob_files = createUITool({
         return (
             <Box flexDirection="column" paddingX={1}>
                 <Text>
-                    <Text color="blue">{input.pattern}</Text>
+                    <Link path={input.pattern} color="blue" />
                     <Text color="gray" dimColor>
-                        ({count} files)
+                        {' '}({count} files)
                     </Text>
                 </Text>
             </Box>

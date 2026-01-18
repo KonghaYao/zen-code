@@ -2,6 +2,7 @@ import { createUITool, ToolManager } from '@langgraph-js/sdk';
 import { Box, Text } from 'ink';
 import { cleanPath } from '../../utils/cleanPath';
 import { z } from 'zod';
+import Link from '../components/Link';
 
 const writeToolSchema = z.object({
     description: z.string().optional(),
@@ -23,7 +24,7 @@ export const write_file = createUITool({
         return (
             <Box flexDirection="column" paddingX={1}>
                 <Box flexDirection="column">
-                    <Text color="white">{cleanPath(input.file_path)}</Text>
+                    <Link path={input.file_path} color="white" />
                     <Text color="gray"> ({lineCount} lines)</Text>
                 </Box>
 

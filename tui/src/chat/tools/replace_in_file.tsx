@@ -3,6 +3,7 @@ import { Box, Text } from 'ink';
 import { generateOptimizedDiff } from './diffUtils';
 import { editToolSchema } from '../../../../agents/code/tools/filesystem_tools';
 import { cleanPath } from '../../utils/cleanPath';
+import Link from '../components/Link';
 
 // MODIFIED: Updated interface to match new schema
 interface ReplaceInFileInput {
@@ -36,18 +37,16 @@ export const replace_in_file = createUITool({
         return (
             <Box flexDirection="column" paddingX={1}>
                 <Box>
-                    <Text color="white">
-                        {cleanPath(input.file_path)}
-                        {hasDiff && (
-                            <>
-                                <Text color="gray"> (</Text>
-                                <Text color="red">-{removedCount}</Text>
-                                <Text color="gray">/</Text>
-                                <Text color="green">+{addedCount}</Text>
-                                <Text color="gray">)</Text>
-                            </>
-                        )}
-                    </Text>
+                    <Link path={input.file_path} color="white" />
+                    {hasDiff && (
+                        <>
+                            <Text color="gray"> (</Text>
+                            <Text color="red">-{removedCount}</Text>
+                            <Text color="gray">/</Text>
+                            <Text color="green">+{addedCount}</Text>
+                            <Text color="gray">)</Text>
+                        </>
+                    )}
                 </Box>
 
                 {output && output.startsWith('Error:') && (
