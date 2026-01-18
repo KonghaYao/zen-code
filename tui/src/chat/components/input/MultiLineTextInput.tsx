@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { Box, Text, useFocus } from 'ink';
 import chalk from 'chalk';
 import { Key } from 'ink';
@@ -162,6 +162,11 @@ export function MultiLineTextInput({
 }: MultiLineProps) {
     const { isFocused } = useFocus({ autoFocus, id });
 
+    // MODIFIED: Track if we're doing internal updates to skip useEffect sync
+    const isInternalUpdateRef = useRef(false);
+    // MODIFIED: Store previous value to detect real external changes
+    const previousValueRef = useRef(originalValue);
+
     // Initialize state from value
     const [state, setState] = useState<TextInputState>(() => {
         const lines = splitTextIntoLines(originalValue);
@@ -175,6 +180,18 @@ export function MultiLineTextInput({
 
     // Sync state with external value changes
     useEffect(() => {
+        // MODIFIED: Skip sync if this is an internal update
+        if (isInternalUpdateRef.current) {
+            isInternalUpdateRef.current = false; // Reset flag immediately
+            previousValueRef.current = originalValue; // Update previous value
+            return;
+        }
+
+        // MODIFIED: Only sync if value actually changed from previous external value
+        if (originalValue === previousValueRef.current) {
+            return;
+        }
+
         setState((previousState) => {
             const lines = splitTextIntoLines(originalValue);
             const newValue = joinLinesIntoText(lines);
@@ -194,6 +211,8 @@ export function MultiLineTextInput({
                 ...clamped,
             };
         });
+
+        previousValueRef.current = originalValue;
     }, [originalValue]);
 
     // Calculate max visible lines (terminal height - some padding)
@@ -236,6 +255,8 @@ export function MultiLineTextInput({
     const handleChange = useCallback(
         (newLines: string[]) => {
             const newValue = joinLinesIntoText(newLines);
+            // MODIFIED: Mark as internal update before calling onChange
+            isInternalUpdateRef.current = true;
             onChange?.(newValue);
         },
         [onChange],
@@ -369,88 +390,117 @@ export function MultiLineTextInput({
         }
         // Handle Backspace (delete backward)
         if (key.backspace) {
+            // MODIFIED: Clamp cursor to valid range before processing
+            // This fixes the issue where cursorColumn > line.length
+            const clamped = clampCursor(state.lines, state.cursorLine, state.cursorColumn);
+            const needsClamp = clamped.column !== state.cursorColumn || clamped.line !== state.cursorLine;
+
+            // Use clamped cursor position for processing
+            const cursorLine = clamped.line;
+            const cursorColumn = clamped.column;
+
             if (key.ctrl || key.alt) {
                 // Ctrl+Backspace or Cmd+Backspace: delete word backward
-                const currentLine = state.lines[state.cursorLine];
+                const currentLine = state.lines[cursorLine];
 
-                if (state.cursorColumn > 0) {
+                if (cursorColumn > 0) {
                     // Find the word boundary to the left
-                    const wordStart = findWordBoundary(currentLine, state.cursorColumn, -1);
+                    const wordStart = findWordBoundary(currentLine, cursorColumn, -1);
 
-                    if (wordStart < state.cursorColumn) {
+                    if (wordStart < cursorColumn) {
                         // Delete from word start to cursor
-                        const newLine = currentLine.slice(0, wordStart) + currentLine.slice(state.cursorColumn);
+                        const newLine = currentLine.slice(0, wordStart) + currentLine.slice(cursorColumn);
                         const newLines = [...state.lines];
-                        newLines[state.cursorLine] = newLine;
+                        newLines[cursorLine] = newLine;
+
+                        const newValue = joinLinesIntoText(newLines);
 
                         setState({
                             ...state,
                             lines: newLines,
+                            cursorLine: needsClamp ? cursorLine : state.cursorLine,
                             cursorColumn: wordStart,
                         });
 
-                        handleChange(newLines);
+                        // MODIFIED: Mark as internal update before calling onChange
+                        isInternalUpdateRef.current = true;
+                        onChange?.(newValue);
                     }
-                } else if (state.cursorLine > 0) {
+                } else if (cursorLine > 0) {
                     // At line start - delete newline (merge with previous line)
-                    const prevLine = state.lines[state.cursorLine - 1];
+                    const prevLine = state.lines[cursorLine - 1];
                     const newLines = [...state.lines];
-                    newLines[state.cursorLine - 1] = prevLine + currentLine;
-                    newLines.splice(state.cursorLine, 1);
+                    newLines[cursorLine - 1] = prevLine + currentLine;
+                    newLines.splice(cursorLine, 1);
+
+                    const newValue = joinLinesIntoText(newLines);
 
                     setState({
                         lines: newLines,
-                        cursorLine: state.cursorLine - 1,
+                        cursorLine: cursorLine - 1,
                         cursorColumn: prevLine.length,
                         firstVisibleLine: ensureCursorVisible(
-                            state.cursorLine - 1,
+                            cursorLine - 1,
                             state.firstVisibleLine,
                             maxVisibleLines,
                             newLines.length,
                         ),
                     });
 
-                    handleChange(newLines);
+                    // MODIFIED: Mark as internal update before calling onChange
+                    isInternalUpdateRef.current = true;
+                    onChange?.(newValue);
                 }
             } else {
                 // Regular Backspace: delete single character
-                if (state.cursorColumn > 0) {
-                    const currentLine = state.lines[state.cursorLine];
+                if (cursorColumn > 0) {
+                    const currentLine = state.lines[cursorLine];
                     const newLine =
-                        currentLine.slice(0, state.cursorColumn - 1) + currentLine.slice(state.cursorColumn);
+                        currentLine.slice(0, cursorColumn - 1) + currentLine.slice(cursorColumn);
 
                     const newLines = [...state.lines];
-                    newLines[state.cursorLine] = newLine;
+                    newLines[cursorLine] = newLine;
+
+                    const newValue = joinLinesIntoText(newLines);
 
                     setState({
                         ...state,
                         lines: newLines,
-                        cursorColumn: state.cursorColumn - 1,
+                        cursorLine: needsClamp ? cursorLine : state.cursorLine,
+                        cursorColumn: cursorColumn - 1,
                     });
 
-                    handleChange(newLines);
-                } else if (state.cursorLine > 0) {
+                    // MODIFIED: Mark as internal update before calling onChange
+                    isInternalUpdateRef.current = true;
+                    onChange?.(newValue);
+                } else if (cursorLine > 0) {
                     // At line start - delete newline character (merge lines)
-                    const prevLine = state.lines[state.cursorLine - 1];
-                    const currentLine = state.lines[state.cursorLine];
+                    const prevLine = state.lines[cursorLine - 1];
+                    const currentLine = state.lines[cursorLine];
                     const newLines = [...state.lines];
 
-                    newLines[state.cursorLine - 1] = prevLine + currentLine;
-                    newLines.splice(state.cursorLine, 1);
+                    newLines[cursorLine - 1] = prevLine + currentLine;
+                    newLines.splice(cursorLine, 1);
+
+                    const newFirstVisibleLine = ensureCursorVisible(
+                        cursorLine - 1,
+                        state.firstVisibleLine,
+                        maxVisibleLines,
+                        newLines.length,
+                    );
+
+                    const newValue = joinLinesIntoText(newLines);
 
                     setState({
                         lines: newLines,
-                        cursorLine: state.cursorLine - 1,
+                        cursorLine: cursorLine - 1,
                         cursorColumn: prevLine.length,
-                        firstVisibleLine: ensureCursorVisible(
-                            state.cursorLine - 1,
-                            state.firstVisibleLine,
-                            maxVisibleLines,
-                            newLines.length,
-                        ),
+                        firstVisibleLine: newFirstVisibleLine,
                     });
 
-                    handleChange(newLines);
+                    // MODIFIED: Mark as internal update before calling onChange
+                    isInternalUpdateRef.current = true;
+                    onChange?.(newValue);
                 }
             }
             return;

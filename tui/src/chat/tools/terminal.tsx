@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { InputPreviewer } from '../components/MessageTool';
 import { MultiSelectPro } from '../components/input/MultiSelect';
 import { EnhancedTextInput } from '../components/input/EnhancedTextInput';
+import { LimitedOutput } from '../components/LimitedOutput';
 
 // Color scheme for terminal actions
 const ACTION_COLORS: { [key: string]: string } = {
@@ -177,23 +178,7 @@ export const terminal = createUITool({
         const renderOutput = () => {
             if (!tool.output) return null;
 
-            // Show only the last 10 lines of output
-            const lines = tool.output.split('\n');
-            const omittedCount = Math.max(0, lines.length - 10);
-            const last10Lines = lines.slice(-10).join('\n');
-
-            return (
-                <Box flexDirection="column">
-                    <Box borderStyle="single" borderColor="cyan" flexDirection="column" paddingX={1} marginTop={1}>
-                        {omittedCount > 0 && (
-                            <Text color="gray" dimColor>
-                                ... {omittedCount} lines omitted ...
-                            </Text>
-                        )}
-                        <Text>{last10Lines}</Text>
-                    </Box>
-                </Box>
-            );
+            return <LimitedOutput content={tool.output} maxLines={10} borderColor="cyan" />;
         };
 
         return (

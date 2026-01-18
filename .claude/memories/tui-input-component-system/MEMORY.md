@@ -48,6 +48,32 @@ const visibleLines = lines.slice(
 return (
   <Box flexDirection="column">
     {visibleLines.map((line, idx) => renderLine(line, idx))}
+```
+
+### 关键修复：Backspace 需要按两次问题
+
+**问题现象**：用户输入后重新 focus，第一次按 Backspace 无效，需要按两次。
+
+**根本原因**：`cursorColumn` 超出 `currentLine.length`（如 `cursorColumn: 7`，但 `'hello'` 只有 5 个字符）。当光标越界时，`currentLine.slice(cursorColumn)` 不会删除任何字符。
+
+**解决方案**：在 Backspace 处理前先 clamp 光标位置到有效范围：
+
+```typescript
+// Backspace 处理开始时
+const clamped = clampCursor(state.lines, state.cursorLine, state.cursorColumn);
+const needsClamp = clamped.column !== state.cursorColumn || clamped.line !== state.cursorLine;
+
+// 使用修正后的光标位置执行删除
+const cursorLine = clamped.line;
+const cursorColumn = clamped.column;
+
+// ... 使用 cursorLine/cursorColumn 执行删除逻辑
+```
+
+**关键点**：
+1. **先修正后执行**：不是只修正光标（然后 `return`），而是修正后立即执行删除
+2. **状态同步**：如果 `needsClamp` 为真，`setState` 时更新光标位置
+3. **防御性编程**：确保所有按键处理都处理越界光标的情况
   </Box>
 );
 ```
