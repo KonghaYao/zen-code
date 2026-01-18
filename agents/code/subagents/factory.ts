@@ -104,16 +104,17 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
     middleware.push(commandSystem);
 
     // HITL is always enabled for safety
+    if (process.env.YOLO_MODE !== 'true') {
+        middleware.push(
+            humanInTheLoopMiddleware({
+                interruptOn: {
+                    ...ask_user_with_options_config.interruptOn,
+                    terminal: { allowedDecisions: ['approve', 'reject', 'edit'] },
+                },
+            }),
+        );
 
-    middleware.push(
-        humanInTheLoopMiddleware({
-            interruptOn: {
-                ...ask_user_with_options_config.interruptOn,
-                terminal: { allowedDecisions: ['approve', 'reject', 'edit'] },
-            },
-        }),
-    );
-
+    }
     if (process.env.MODEL_PROVIDER === 'anthropic') {
         middleware.push(anthropicPromptCachingMiddleware());
     }

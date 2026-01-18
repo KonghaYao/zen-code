@@ -2,26 +2,33 @@
 const args = process.argv.slice(2);
 
 async function main() {
+    // 处理 --yolo 参数：设置环境变量但不保存到配置
+    const yoloIndex = args.indexOf('--yolo');
+    if (yoloIndex !== -1) {
+        process.env.YOLO_MODE = 'true';
+        args.splice(yoloIndex, 1); // 移除 --yolo 参数
+    }
+
     if (args[0] === 'init') {
-        import('./dist/zen-init.mjs');
+        import('./zen-init');
     } else if (args[0] === 'keyboard') {
-        import('./dist/zen-keyboard.mjs');
+        import('./zen-keyboard');
     } else if (args[0] === '-p' || args[0] === '--prompt') {
         // 非交互模式：直接执行任务
         const prompt = args.slice(1).join(' ');
-        const { runNonInteractive } = await import('./dist/nonInteractive.mjs');
+        const { runNonInteractive } = await import('./nonInteractive');
         await runNonInteractive(prompt, false);
     } else {
         // 检测是否是管道输入
         const hasStdin = await detectStdin();
-        
+
         if (hasStdin) {
             // 管道模式：从 stdin 读取
-            const { runNonInteractive } = await import('./dist/nonInteractive.mjs');
+            const { runNonInteractive } = await import('./nonInteractive');
             await runNonInteractive(undefined, true);
         } else {
             // 默认：启动 TUI
-            import('./dist/zen-code.mjs');
+            await import('./app');
         }
     }
 }
@@ -32,12 +39,12 @@ async function main() {
 async function detectStdin() {
     return new Promise((resolve) => {
         const isTTY = process.stdin.isTTY;
-        
+
         if (isTTY) {
             resolve(false);
             return;
         }
-        
+
         // 尝试读取第一个字符检测是否有数据
         const chunk = process.stdin.read();
         if (chunk) {

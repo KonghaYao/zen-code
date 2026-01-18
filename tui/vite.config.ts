@@ -60,6 +60,7 @@ export default defineConfig({
         emptyOutDir: true,
         lib: {
             entry: {
+                'cli': './src/cli.ts',
                 'zen-code': './src/app.tsx',
                 'zen-init': './src/zen-init.tsx',
                 'zen-keyboard': './src/zen-keyboard.tsx',

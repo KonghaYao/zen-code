@@ -21,19 +21,24 @@ export const MCPStatusPanel: React.FC = () => {
 		lastRefresh: null,
 		servers: [],
 	});
-	const { loading } = useChat()
+	const { loading } = useChat();
 
 	useEffect(() => {
-		setStatus(MCPManager.getInstance().getStatus())
-	}, [loading])
-
-
-
+		setStatus(MCPManager.getInstance().getStatus());
+	}, [loading]);
 
 	return (
-		<Box paddingX={1}>
-			<Text color="green" bold>MCP</Text>
-			<Text color="cyan"> {status.toolCount}</Text>
-		</Box>
+		<>
+			{status.toolCount ? (
+				<Box paddingX={1}>
+					<Text color="green" bold>
+						MCP
+					</Text>
+					<Text color="cyan"> {status.toolCount}</Text>
+				</Box>
+			) : (
+				<></>
+			)}
+		</>
 	);
 };

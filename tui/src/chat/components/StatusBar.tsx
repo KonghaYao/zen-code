@@ -10,11 +10,12 @@ interface StatusBarProps {
 
 /**
  * 状态栏组件 - 显示应用状态信息
- * 包括：应用名称、当前模型、当前 Agent、Chat ID、MCP 状态
+ * 包括：应用名称、当前模型、当前 Agent、Chat ID、MCP 状态、YOLO 模式
  */
 const StatusBar: React.FC<StatusBarProps> = ({ }) => {
     const { extraParams } = useSettings();
     const { currentChatId } = useChat();
+    const isYoloMode = process.env.YOLO_MODE === 'true';
 
     return (
         <Box flexDirection="column" width="100%">
@@ -31,8 +32,13 @@ const StatusBar: React.FC<StatusBarProps> = ({ }) => {
                         {' '}
                         @{extraParams.switch_command || 'default'}
                     </Text>
+                    {isYoloMode && (
+                        <Text color="red" bold>
+                            {' '}
+                            YOLO
+                        </Text>
+                    )}
                     <MCPStatusPanel />
-
                 </Box>
                 <Box>
                     <Text dimColor>{currentChatId?.slice(0, 6) || 'N/A'}</Text>
