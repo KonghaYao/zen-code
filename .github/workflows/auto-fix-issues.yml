@@ -18,6 +18,7 @@ permissions:
 env:
   MODEL_PROVIDER: anthropic
   ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
   ZEN_CODE_MODEL: ${{ secrets.ZEN_CODE_MODEL || 'glm-4.7' }}
 
 jobs:
@@ -54,6 +55,7 @@ jobs:
             "main_model": "${{ secrets.ZEN_CODE_MODEL || 'glm-4.7' }}",
             "model_provider": "anthropic",
             "anthropic_api_key": "${{ secrets.ANTHROPIC_API_KEY }}",
+            "anthropic_base_url": "${{ secrets.ANTHROPIC_BASE_URL }}",
             "enable_thinking": true
           }
           EOF
@@ -98,6 +100,8 @@ jobs:
           ZEN_CODE_MODEL: ${{ env.ZEN_CODE_MODEL }}
           OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
           OPENAI_BASE_URL: ${{ env.OPENAI_BASE_URL }}
+          ANTHROPIC_API_KEY: ${{ env.ANTHROPIC_API_KEY }}
+          ANTHROPIC_BASE_URL: ${{ env.ANTHROPIC_BASE_URL }}
           YOLO_MODE: "true"
 
       - name: Check for changes
