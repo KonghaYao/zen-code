@@ -2,6 +2,7 @@ import { Low } from 'lowdb';
 import { JSONFile } from 'lowdb/node';
 import os from 'os';
 import path from 'path';
+import fs from 'fs';
 
 export interface AppConfig {
     main_model: string;
@@ -16,7 +17,7 @@ export interface AppConfig {
     switch_command?: string;
 }
 
-export interface MCPConfig {}
+export interface MCPConfig { }
 interface Data {
     config: AppConfig;
 }
@@ -36,6 +37,8 @@ const adapter = new JSONFile<Data>(dbPath);
 const db = new Low(adapter, defaultData);
 
 export const initDb = async () => {
+    // 确保配置目录存在
+    await fs.promises.mkdir(zenConfigDir, { recursive: true });
     await db.read();
     if (!db.data || !db.data.config) {
         db.data = defaultData;
@@ -70,6 +73,9 @@ export const syncEnvFromConfig = () => {
 };
 
 export const updateConfig = async (newConfig: Partial<AppConfig>) => {
+    // 确保配置目录存在
+    await fs.promises.mkdir(zenConfigDir, { recursive: true });
+
     Object.assign(db.data.config, newConfig);
     await db.write();
 
