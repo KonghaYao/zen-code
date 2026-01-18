@@ -7,7 +7,7 @@
  * - 拦截所有工具调用，转换为 {name, args} 格式
  * - 支持批量调用，通过 batch_command 工具
  * - 静态工具描述，支持 Anthropic Prompt Caching
- * - 运行时工具查询，通过 list_available_tools
+ * - 运行时工具查询，通过 list_available_commands
  */
 
 import { AgentMiddleware } from 'langchain';
@@ -50,7 +50,7 @@ export class CommandSystemMiddleware implements AgentMiddleware {
 
     private registry: ToolRegistry = {};
     private batchCommandTool: StructuredTool;
-    private listToolsTool: StructuredTool;
+    private listCommandsTool: StructuredTool;
 
     constructor() {
         // 创建 batch_command 工具
@@ -112,18 +112,19 @@ export class CommandSystemMiddleware implements AgentMiddleware {
             },
         );
 
-        // 创建 list_available_tools 工具
-        this.listToolsTool = tool(
+        // 创建 list_available_commands 工具
+        this.listCommandsTool = tool(
             async () => {
                 const toolInfo = Object.values(this.registry).map((t) => ({
                     name: t.name,
                     description: t.description,
+                    inputSchema: t.schema
                 }));
 
                 return JSON.stringify(toolInfo, null, 2);
             },
             {
-                name: 'list_available_tools',
+                name: 'list_available_commands',
                 description: `查询当前所有可用工具的列表和详细信息。
 
 返回：
@@ -145,7 +146,7 @@ export class CommandSystemMiddleware implements AgentMiddleware {
      * 获取 middleware 提供的工具
      */
     get tools(): StructuredTool[] {
-        return [this.batchCommandTool, this.listToolsTool];
+        return [this.batchCommandTool, this.listCommandsTool];
     }
 
     /**
@@ -160,7 +161,7 @@ export class CommandSystemMiddleware implements AgentMiddleware {
 
 **核心工具**：
 - \`batch_command\` - 批量执行多个命令，格式：{commands: [{name, args}, ...]}
-- \`list_available_tools\` - 查询所有可用工具的列表和参数定义
+- \`list_available_commands\` - 查询所有可用工具的列表和参数定义
 
 **使用示例**：
 - 读取文件：{commands: [{name: "read_file", args: {file_path: "/path/to/file"}}]}
@@ -169,7 +170,7 @@ export class CommandSystemMiddleware implements AgentMiddleware {
 
 **重要**：
 - 系统提示词和工具描述保持静态以支持 Prompt Caching
-- 工具列表动态查询，使用 list_available_tools 获取最新信息
+- 工具列表动态查询，使用 list_available_commands 获取最新信息
 - 所有工具调用必须使用 batch_command，即使单个操作也包装为数组
 `;
 

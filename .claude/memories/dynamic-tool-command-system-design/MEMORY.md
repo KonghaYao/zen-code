@@ -1,6 +1,6 @@
 ---
 name: "dynamic-tool-command-system-design"
-description: "设计将 LangChain 工具调用转换为统一 command 格式的系统，支持动态工具和批量调用；核心是 createCommandTool 元工具，所有工具通过 {name, args} JSON 格式调用；关键决策：系统提示词和工具 description 必须完全静态以支持 Anthropic Prompt Caching，工具列表通过 list_available_tools 运行时查询获取；适用于需要动态工具管理和性能优化的 LangChain Agent 系统"
+description: "设计将 LangChain 工具调用转换为统一 command 格式的系统，支持动态工具和批量调用；核心是 createCommandTool 元工具，所有工具通过 {name, args} JSON 格式调用；关键决策：系统提示词和工具 description 必须完全静态以支持 Anthropic Prompt Caching，工具列表通过 list_available_commands 运行时查询获取；适用于需要动态工具管理和性能优化的 LangChain Agent 系统"
 tags: ["langchain", "tool-system", "dynamic-tools", "prompt-caching", "architecture"]
 category: "architecture"
 created: "2025-01-17"
@@ -34,13 +34,13 @@ interface BatchToolCommand {
 **静态描述以支持缓存**（最重要）：
 - 系统提示词必须完全静态，只引用工具名称
 - 工具 description 必须完全静态，不包含动态工具列表
-- 动态工具列表通过 `list_available_tools` 运行时查询获取
+- 动态工具列表通过 `list_available_commands` 运行时查询获取
 - 这样设计可以完全利用 Anthropic Prompt Caching（节省 81% 成本）
 
 **职责划分**：
 - 系统提示词：引用工具名称 + 工作流程
 - 工具 description：使用方法 + 查询指引 + 示例格式（静态）
-- list_available_tools：运行时返回实时工具列表
+- list_available_commands：运行时返回实时工具列表
 
 ### 3. 核心组件
 
@@ -50,7 +50,7 @@ interface BatchToolCommand {
 - 工具列表存储在内部 registry 中
 - description 保持静态，不包含动态工具列表
 
-**list_available_tools**：`agents/code/tools/command/listTools.ts`
+**list_available_commands**：`agents/code/tools/command/listTools.ts`
 - 允许 AI 运行时查询可用工具
 - 支持按 category 或 search 过滤
 - 返回工具名称、描述和 schema

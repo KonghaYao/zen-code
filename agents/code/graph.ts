@@ -11,23 +11,6 @@ import { createStandardAgent } from './subagents/factory.js';
 let agentConfigs: Record<string, AgentConfig> | null = null;
 
 const switchBranch = {
-    summarization: async (state: CodeStateType) => {
-        const model = await initChatModel(state.main_model, {
-            modelProvider: process.env.MODEL_PROVIDER || 'openai',
-            streamUsage: true,
-            enableThinking: state.enable_thinking ?? true,
-        });
-        const summaryPrompt = (await import('./middlewares/memory.js')).summary_prompt;
-        const message = await model.invoke([
-            new SystemMessage(summaryPrompt),
-            new HumanMessage(getBufferMessage(state.messages)),
-            new HumanMessage('请总结上面的历史记录'),
-        ]);
-        return {
-            switch_command: '',
-            messages: [new RemoveMessage({ id: REMOVE_ALL_MESSAGES }), message],
-        };
-    },
     smart_memory: async (state: CodeStateType) => {
         const model = await initChatModel(state.main_model, {
             modelProvider: process.env.MODEL_PROVIDER || 'openai',
@@ -57,7 +40,6 @@ export const graph = new StateGraph(CodeState)
     .addNode('graph', async (state: CodeStateType, runtime: Runtime) => {
         const { switch_command: cmd } = state;
 
-        if (cmd === 'summarization') return switchBranch.summarization(state);
         if (cmd === 'smart_memory') return switchBranch.smart_memory(state);
 
         const configs = agentConfigs || (await loadAgentsList());

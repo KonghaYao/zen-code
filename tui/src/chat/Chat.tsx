@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Text, useFocusManager } from 'ink';
 import Spinner from 'ink-spinner';
 import { MessagesBox } from './components/MessageBox';
@@ -19,6 +19,7 @@ import ModelPanel from './components/ModelPanel';
 import AgentPanel from './components/AgentPanel';
 import StatusBar from './components/StatusBar';
 import { useInput } from '../utils/use-input';
+
 const ChatMessages = () => {
     const { renderMessages, loading, inChatError, isFELocking } = useChat();
     const visibleMessages = renderMessages;
@@ -140,7 +141,6 @@ const Chat: React.FC = () => {
     const { extraParams } = useSettings();
     const { setTools, loading, stopGeneration, currentChatId, sendMessage } = useChat();
     const { bufferedMessage, clearBuffer } = useChatInputBuffer();
-
     // 初始化工具
     useEffect(() => {
         console.clear();

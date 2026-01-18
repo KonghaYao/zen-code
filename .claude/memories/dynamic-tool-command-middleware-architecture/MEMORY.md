@@ -1,6 +1,6 @@
 ---
 name: "dynamic-tool-command-middleware-architecture"
-description: "实现将 LangChain 工具调用转换为统一 batch_command 格式的 middleware 架构；核心是 CommandSystemMiddleware 类，通过配置可选启用（默认关闭保持向后兼容），提供 batch_command（批量执行）和 list_available_tools（运行时查询）工具；关键决策：系统提示词和工具 description 完全静态以支持 Anthropic Prompt Caching，工具列表通过 list_available_tools 运行时查询获取；适用于需要动态工具管理和批量调用的 LangChain Agent 系统"
+description: "实现将 LangChain 工具调用转换为统一 batch_command 格式的 middleware 架构；核心是 CommandSystemMiddleware 类，通过配置可选启用（默认关闭保持向后兼容），提供 batch_command（批量执行）和 list_available_commands（运行时查询）工具；关键决策：系统提示词和工具 description 完全静态以支持 Anthropic Prompt Caching，工具列表通过 list_available_commands 运行时查询获取；适用于需要动态工具管理和批量调用的 LangChain Agent 系统"
 tags: ["langchain", "middleware", "batch-command", "prompt-caching", "tool-registry"]
 category: "architecture"
 created: "2025-01-18"
@@ -35,7 +35,7 @@ export class CommandSystemMiddleware implements AgentMiddleware {
     private batchCommandTool: StructuredTool;
     private listToolsTool: StructuredTool;
 
-    // 提供 batch_command 和 list_available_tools 工具
+    // 提供 batch_command 和 list_available_commands 工具
     get tools(): StructuredTool[] {
         return [this.batchCommandTool, this.listToolsTool];
     }
@@ -71,7 +71,7 @@ export class CommandSystemMiddleware implements AgentMiddleware {
 
 **4. 静态描述（支持 Prompt Caching）**
 - **原因**：动态工具列表会破坏 Anthropic Prompt Caching
-- **实现**：工具 description 完全静态，工具列表通过 `list_available_tools` 运行时查询
+- **实现**：工具 description 完全静态，工具列表通过 `list_available_commands` 运行时查询
 
 **5. 特殊工具处理**
 - **原因**：`ask_user_with_options` 不应该被包装
@@ -154,7 +154,7 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
 }
 ```
 
-**list_available_tools**（运行时查询）：
+**list_available_commands**（运行时查询）：
 ```json
 {}
 ```
@@ -185,7 +185,7 @@ const systemPromptAddon = `
 
 **核心工具**：
 - batch_command - 批量执行多个命令，格式：{commands: [{name, args}, ...]}
-- list_available_tools - 查询所有可用工具的列表和参数定义
+- list_available_commands - 查询所有可用工具的列表和参数定义
 
 **使用示例**：
 - 读取文件：{commands: [{name: "read_file", args: {file_path: "/path/to/file"}}]}
@@ -194,7 +194,7 @@ const systemPromptAddon = `
 
 **重要**：
 - 系统提示词和工具描述保持静态以支持 Prompt Caching
-- 工具列表动态查询，使用 list_available_tools 获取最新信息
+- 工具列表动态查询，使用 list_available_commands 获取最新信息
 - 所有工具调用必须使用 batch_command，即使单个操作也包装为数组
 `;
 ```

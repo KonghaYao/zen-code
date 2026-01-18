@@ -58,7 +58,7 @@ export class CommandSystemMiddleware implements AgentMiddleware {
     private batchCommandTool: StructuredTool;
     private listToolsTool: StructuredTool;
 
-    // 提供 batch_command 和 list_available_tools 工具
+    // 提供 batch_command 和 list_available_commands 工具
     get tools(): StructuredTool[] {
         return [this.batchCommandTool, this.listToolsTool];
     }
@@ -131,7 +131,7 @@ Tool Registry (注册表)
 搜索结果...
 ```
 
-### 3.2 list_available_tools
+### 3.2 list_available_commands
 
 **用途**：查询当前可用工具列表
 
@@ -224,7 +224,7 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
 **核心原则**：
 - ✅ 系统提示词和工具 description 完全静态
 - ✅ 支持 Anthropic Prompt Caching
-- ✅ 工具列表通过 `list_available_tools` 运行时查询
+- ✅ 工具列表通过 `list_available_commands` 运行时查询
 - ❌ 不在 description 中包含动态工具列表
 
 ### 5.2 Middleware 注入的提示词
@@ -238,7 +238,7 @@ const systemPromptAddon = `
 
 **核心工具**：
 - \`batch_command\` - 批量执行多个命令，格式：{commands: [{name, args}, ...]}
-- \`list_available_tools\` - 查询所有可用工具的列表和参数定义
+- \`list_available_commands\` - 查询所有可用工具的列表和参数定义
 
 **使用示例**：
 - 读取文件：{commands: [{name: "read_file", args: {file_path: "/path/to/file"}}]}
@@ -247,7 +247,7 @@ const systemPromptAddon = `
 
 **重要**：
 - 系统提示词和工具描述保持静态以支持 Prompt Caching
-- 工具列表动态查询，使用 list_available_tools 获取最新信息
+- 工具列表动态查询，使用 list_available_commands 获取最新信息
 - 所有工具调用必须使用 batch_command，即使单个操作也包装为数组
 `;
 ```
@@ -258,7 +258,7 @@ const systemPromptAddon = `
 |------|-------------|-------------|
 | **缓存稳定性** | 工具变化会打乱缓存 | description 始终固定 |
 | **Prompt Caching** | 无法利用 Anthropic 缓存 | 完全支持缓存优化 |
-| **工具查询** | 需要重新生成描述 | 通过 `list_available_tools` 查询 |
+| **工具查询** | 需要重新生成描述 | 通过 `list_available_commands` 查询 |
 | **可维护性** | 逻辑复杂，需要动态生成 | 简单静态文本 |
 
 ---
@@ -356,7 +356,7 @@ batch_command({
 ✅ **核心功能**
 - CommandSystemMiddleware 实现
 - batch_command 批量工具调用
-- list_available_tools 工具查询
+- list_available_commands 工具查询
 - 工具注册表管理
 - 静态描述（支持 Prompt Caching）
 
@@ -483,7 +483,7 @@ bun run dev:server
 - [ ] Agent 使用 batch_command 调用工具
 - [ ] 批量调用正确执行
 - [ ] 错误处理正常工作
-- [ ] list_available_tools 返回正确结果
+- [ ] list_available_commands 返回正确结果
 - [ ] Prompt Caching 正常工作
 
 ---
@@ -645,7 +645,7 @@ finder: {
 
 ```json
 {
-  "name": "list_available_tools",
+  "name": "list_available_commands",
   "args": {}
 }
 ```
