@@ -41,21 +41,27 @@ jobs:
       - name: Setup zen-code config
         run: |
           # Create code-graph.json config file for Anthropic
-          # Use environment variables to avoid heredoc expansion issues
-          cat > ~/.code-graph.json << EOF
-          {
-            "config": {
-              "main_model": "${ZEN_CODE_MODEL}",
-              "model_provider": "anthropic",
-              "anthropic_api_key": "${ANTHROPIC_API_KEY}",
-              "anthropic_base_url": "${ANTHROPIC_BASE_URL}",
-              "enable_thinking": true
-            }
+          # Use Python to safely generate JSON with proper escaping
+          python3 << 'PYTHON_SCRIPT'
+          import json
+          import os
+
+          config = {
+              "config": {
+                  "main_model": os.environ.get("ZEN_CODE_MODEL", "glm-4.7"),
+                  "model_provider": "anthropic",
+                  "anthropic_api_key": os.environ.get("ANTHROPIC_API_KEY", ""),
+                  "anthropic_base_url": os.environ.get("ANTHROPIC_BASE_URL", ""),
+                  "enable_thinking": True
+              }
           }
-          EOF
+
+          with open(os.path.expanduser("~/.code-graph.json"), "w") as f:
+              json.dump(config, f, indent=2)
+          PYTHON_SCRIPT
 
           echo "Config file created at ~/.code-graph.json:"
-          # Don't print sensitive info, just verify file exists
+          # Verify file exists
           if [ -f ~/.code-graph.json ]; then
             echo "✓ Config file created successfully"
           else
