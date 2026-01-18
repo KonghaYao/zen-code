@@ -41,20 +41,31 @@ jobs:
       - name: Setup zen-code config
         run: |
           # Create code-graph.json config file for Anthropic
-          cat > ~/.code-graph.json << 'EOF'
+          # Use environment variables to avoid heredoc expansion issues
+          cat > ~/.code-graph.json << EOF
           {
             "config": {
-              "main_model": "${{ secrets.ZEN_CODE_MODEL || 'glm-4.7' }}",
+              "main_model": "${ZEN_CODE_MODEL}",
               "model_provider": "anthropic",
-              "anthropic_api_key": "${{ secrets.ANTHROPIC_API_KEY }}",
-              "anthropic_base_url": "${{ secrets.ANTHROPIC_BASE_URL }}",
+              "anthropic_api_key": "${ANTHROPIC_API_KEY}",
+              "anthropic_base_url": "${ANTHROPIC_BASE_URL}",
               "enable_thinking": true
             }
           }
           EOF
 
           echo "Config file created at ~/.code-graph.json:"
-          cat ~/.code-graph.json
+          # Don't print sensitive info, just verify file exists
+          if [ -f ~/.code-graph.json ]; then
+            echo "✓ Config file created successfully"
+          else
+            echo "✗ Failed to create config file"
+            exit 1
+          fi
+        env:
+          ZEN_CODE_MODEL: ${{ secrets.ZEN_CODE_MODEL || 'glm-4.7' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
 
       - name: Get issue context
         id: issue_context
