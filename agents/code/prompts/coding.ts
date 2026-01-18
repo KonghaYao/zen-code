@@ -176,7 +176,7 @@ export async function getSystemPrompt(state: CodeStateType): Promise<string> {
 export async function getEnvInfo(state: CodeStateType): Promise<string> {
     return `
 # 环境信息
-工作目录: ${state.cwd}
+工作目录: ${process.cwd()}
 平台: ${process.platform}
 日期: ${new Date().toLocaleDateString()}
 `;

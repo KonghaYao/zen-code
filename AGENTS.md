@@ -6,6 +6,7 @@ Monorepo: LangGraph backend (`agents/code/`) + TUI frontend (`tui/`)
 
 ```
 code-graph/
+├── specs/                 # feature docs
 ├── agents/code/           # Backend (LangGraph)
 │   ├── middlewares/       # skills, subagents, memory, MCP, cache
 │   ├── prompts/           # System prompts
@@ -41,6 +42,7 @@ cd tui && pnpm install      # TUI
 ## Configuration
 
 **Config**: `~/.code-graph.json`
+
 ```json
 {
   "main_model": "qwen-plus",
@@ -52,6 +54,7 @@ cd tui && pnpm install      # TUI
 ```
 
 **Environment**:
+
 ```bash
 MODEL_PROVIDER=openai|anthropic
 OPENAI_API_KEY=...
@@ -61,6 +64,7 @@ ANTHROPIC_API_KEY=...
 ## Architecture
 
 ### Middleware Chain (execution order)
+
 1. SubAgentsMiddleware - Delegation
 2. AgentsMdMiddleware - AGENTS.md loader
 3. SkillsMiddleware - Progressive disclosure
@@ -69,57 +73,63 @@ ANTHROPIC_API_KEY=...
 6. AnthropicCacheMiddleware - Prompt caching (Anthropic)
 
 ### Skills System
-**Locations**: `~/.deepagents/code/skills/`, `./.deepagents/skills/`
-**Format**:
+
+**Locations**: `~/.deepagents/code/skills/`, `./.deepagents/skills/` **Format**:
+
 ```yaml
 ---
-name: "web-research"
-description: "Research latest developments"
+name: 'web-research'
+description: 'Research latest developments'
 ---
 # Web Research
 Instructions...
 ```
 
 ### SubAgents
+
 **finder**: File search (read, glob, grep, bash)
 
 ### Memory System
-- Trigger: Summarize after 10 messages
-- Storage: `.langgraph_api/memory.md`
-- Tools: `add_memory_tool`, `query_memory_tool`
+
+-   Trigger: Summarize after 10 messages
+-   Storage: `.langgraph_api/memory.md`
+-   Tools: `add_memory_tool`, `query_memory_tool`
 
 ## Coding Standards
 
-- **TypeScript**: Strict mode, `.js` extensions, explicit return types
-- **Imports**: `./module` preferred, avoid `../module`
-- **Functions**: Pure, async/await, Zod schemas
-- **Naming**: PascalCase classes, kebab-case files, `is/has/should` booleans
-- **Architecture**: Single responsibility, dependency injection, composition
+-   **TypeScript**: Strict mode, `.js` extensions, explicit return types
+-   **Imports**: `./module` preferred, avoid `../module`
+-   **Functions**: Pure, async/await, Zod schemas
+-   **Naming**: PascalCase classes, kebab-case files, `is/has/should` booleans
+-   **Architecture**: Single responsibility, dependency injection, composition
 
 ## Adding Features
 
 ### Tool
+
 ```typescript
 // agents/code/tools/my_tool.ts
 export const my_tool = tool(async (input) => ({ result: 'ok' }), {
-  name: 'my_tool',
-  description: '...',
-  schema: z.object({ param: z.string() }),
+    name: 'my_tool',
+    description: '...',
+    schema: z.object({ param: z.string() }),
 });
 // → Register in graph.ts
 ```
 
 ### Middleware
+
 ```typescript
 export class MyMiddleware implements AgentMiddleware {
-  async wrapModelCall(req, handler) {
-    return await handler({ ...req, /* modify */ });
-  }
+    async wrapModelCall(req, handler) {
+        return await handler({ ...req /* modify */ });
+    }
 }
 // → Add to middleware array in graph.ts
 ```
 
 ### SubAgent
+
 ```typescript
 export const create_my_subagent: SubAgentCreator = async (taskId, args, state) => {
   return createAgent({ name: `subagent_${taskId}`, model, ... });
@@ -128,13 +138,16 @@ export const create_my_subagent: SubAgentCreator = async (taskId, args, state) =
 ```
 
 ## Runtime Data
-- **Memory**: `.langgraph_api/memory.md`
-- **Database**: `.langgraph_api/langgraph.db`
-- **Logs**: Terminal output
+
+-   **Memory**: `.langgraph_api/memory.md`
+-   **Database**: `.langgraph_api/langgraph.db`
+-   **Logs**: Terminal output
 
 ## Security
+
 User approval required for:
-- package.json changes
-- lint/test/type-check commands
-- documentation/test changes
-- service execution
+
+-   package.json changes
+-   lint/test/type-check commands
+-   documentation/test changes
+-   service execution

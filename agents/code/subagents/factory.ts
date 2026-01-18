@@ -6,7 +6,7 @@
  */
 
 import { initChatModel } from '../initChatModel.js';
-import { createAgent, Runtime } from 'langchain';
+import { AgentMiddleware, createAgent, Runtime } from 'langchain';
 import { CodeState, CodeStateType } from '../state.js';
 import { AgentsMdMiddleware } from '../middlewares/agentsMD.js';
 import { SkillsMiddleware } from '../middlewares/skills.js';
@@ -15,10 +15,11 @@ import { MCPMiddleware } from '../middlewares/mcp.js';
 import { SubAgentsMiddleware } from '../middlewares/subagents.js';
 import { ask_user_with_options, ask_user_with_options_config, humanInTheLoopMiddleware } from '@langgraph-js/auk';
 import { anthropicPromptCachingMiddleware } from '../middlewares/anthropicCache.js';
+import { CommandSystemMiddleware } from '../middlewares/commandSystem.js';
 import { bash_tools } from '../tools/bash_tools/index.js';
 import { glob_tool, grep_tool, read_tool, write_tool, replace_tool } from '../tools/filesystem_tools/index.js';
 import { create_finder } from './finder.js';
-import { getSystemPrompt } from '../prompts/coding.js';
+import { getEnvInfo } from '../prompts/coding.js';
 import type { AgentConfig } from './config.js';
 import { todo_write_tool } from '../tools/task_tools/todo_tool.js';
 
@@ -60,7 +61,12 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
               .filter((t): t is (typeof ALL_TOOLS)[number] => t !== undefined);
 
     // Build middleware chain based on config
-    const middleware: any[] = [];
+    const commandSystem = new CommandSystemMiddleware();
+    commandSystem.registerTools([]);
+
+    const middleware: AgentMiddleware[] = [commandSystem];
+
+    // 注册工具到 CommandSystem
 
     if (config.middleware.subagents) {
         const subagents = new SubAgentsMiddleware();
@@ -113,7 +119,7 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
     return createAgent({
         name: config.name,
         model,
-        systemPrompt,
+        systemPrompt: systemPrompt + `\n\n${getEnvInfo(state)}`,
         tools,
         stateSchema: CodeState,
         middleware,
