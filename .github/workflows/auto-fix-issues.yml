@@ -101,12 +101,13 @@ jobs:
           ISSUE_BODY="${{ steps.issue_context.outputs.body }}"
 
           # Create prompt from issue
-          PROMPT="Fix the issue described below. Make necessary code changes:
+          PROMPT="Fix or Answer the issue described below:
 
           Issue #${ISSUE_NUMBER}:
           ${ISSUE_BODY}
 
-          Analyze the problem, make code changes, and create a pull request if needed."
+          Don't make code changes or output md file if you can answer in readonly mode.
+          Analyze the problem, response answer to me"
 
           # Run zen-code in non-interactive mode and capture output
           # Use -p flag to pass prompt directly (not via pipe)
