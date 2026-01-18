@@ -38,15 +38,6 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install dependencies
-        run: |
-          bun install --frozen-lockfile
-          cd tui && bun install --frozen-lockfile
-
-      - name: Build TUI
-        run: |
-          cd tui && bun run build
-
       - name: Setup zen-code config
         run: |
           # Create code-graph.json config file for Anthropic
@@ -92,7 +83,7 @@ jobs:
           Analyze the problem, make code changes, and create a pull request if needed."
 
           # Run zen-code in non-interactive mode
-          echo "$PROMPT" | bun run tui/cli.js -p > zen_output.log 2>&1 || true
+          echo "$PROMPT" | bunx --bun zen-code -p --yolo > zen_output.log 2>&1 || true
 
           # Show output
           cat zen_output.log
