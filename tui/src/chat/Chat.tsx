@@ -143,7 +143,7 @@ const Chat: React.FC = () => {
     const { bufferedMessage, clearBuffer } = useChatInputBuffer();
     // 初始化工具
     useEffect(() => {
-        console.clear();
+        console.clear()
         setTools(DefaultTools);
     }, []);
 
@@ -206,6 +206,7 @@ const Chat: React.FC = () => {
     }, []);
 
     const closePanel = useCallback(() => {
+        console.clear()
         setActiveView('chat');
         focusManager.focus('global-input');
     }, [focusManager]);

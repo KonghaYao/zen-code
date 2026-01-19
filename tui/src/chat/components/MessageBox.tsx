@@ -5,6 +5,7 @@ import MessageAI from './MessageAI';
 import MessageTool from './MessageTool';
 import { RenderMessage } from '@langgraph-js/sdk';
 import { getColor } from '../../utils/colors';
+import { useChat } from '@langgraph-js/sdk/react';
 
 export const MessagesBox = ({
     renderMessages,
@@ -13,6 +14,7 @@ export const MessagesBox = ({
     renderMessages: RenderMessage[];
     startIndex: number;
 }) => {
+    const { currentChatId } = useChat()
     // 修复 Static 首次渲染问题：强制重新渲染
     const [ready, setReady] = useState(false);
 
@@ -52,7 +54,7 @@ export const MessagesBox = ({
     );
 
     let index = renderMessages.findIndex((cur) => {
-        if (cur.type === 'tool' && !cur.done) {
+        if (cur.type === 'tool' && (!cur.done && (!['success', 'error'].includes(cur.status!)))) {
             return true;
         }
         return false;
@@ -77,8 +79,11 @@ export const MessagesBox = ({
 
     return (
         <Box flexDirection="column" paddingY={1}>
-            {/* 历史消息：用 Static 固定 */}
-            <Static items={histories}>
+            {/* 历史消息：用 Static 固定，使用 key 强制重新挂载 */}
+            <Static
+                items={histories}
+                key={currentChatId} // MODIFIED: 切换聊天时强制重新挂载，清除旧内容
+            >
                 {(message, i) => renderMessage(message, i, false)}
             </Static>
 
