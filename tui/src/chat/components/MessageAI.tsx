@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Box, Text } from 'ink';
 import { RenderMessage } from '@langgraph-js/sdk';
 import { getThinkingContent, getTextContent } from '@langgraph-js/sdk';
@@ -28,23 +28,42 @@ const MessageAI: React.FC<MessageAIProps> = ({ message, messageNumber }) => {
                 </Text>
             </Box>
             {/* 渲染 thinking 内容 */}
-            {thinkingContent && <Reasoning thinking={thinkingContent}></Reasoning>}
+            {thinkingContent && (
+                <Reasoning
+                    thinking={thinkingContent}
+                    hasContent={rawTextContents.trim().length > 0}
+                ></Reasoning>
+            )}
             {/* <Text>{JSON.stringify(message.content)}</Text> */}
             <Markdown>{rawTextContents}</Markdown>
         </Box>
     );
 };
 
-const Reasoning = ({ thinking }: { thinking: string }) => {
+interface ReasoningProps {
+    thinking: string;
+    hasContent: boolean;
+}
+
+const Reasoning: React.FC<ReasoningProps> = ({ thinking, hasContent }) => {
+
+    const lines = thinking.split('\n');
+    // 无正文：显示最后 3 行
+    const displayLines = lines.slice(-1);
+
     return (
         <Box flexDirection="column" marginBottom={1}>
             <Box paddingBottom={0}>
                 <Text color="gray" bold>
-                    Thinking:
+                    Think {lines.length} rows
                 </Text>
             </Box>
-            <Box paddingLeft={2}>
-                <Text dimColor>{thinking}</Text>
+            <Box paddingLeft={2} flexDirection="column">
+                {displayLines.map((line, i) => (
+                    <Text key={i} dimColor>
+                        {line}
+                    </Text>
+                ))}
             </Box>
         </Box>
     );

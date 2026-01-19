@@ -1,65 +1,45 @@
 import { Box, Static } from 'ink';
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import MessageHuman from './MessageHuman';
 import MessageAI from './MessageAI';
 import MessageTool from './MessageTool';
 import { RenderMessage } from '@langgraph-js/sdk';
-import { useChat } from '@langgraph-js/sdk/react';
-import { getConfig } from '../store/index';
 import { getColor } from '../../utils/colors';
 
 export const MessagesBox = ({
     renderMessages,
     startIndex,
-    flashMessageCount = 3,
 }: {
     renderMessages: RenderMessage[];
     startIndex: number;
-    flashMessageCount?: number;
 }) => {
-    const { loading } = useChat();
-    const [syncedMessages, setSyncedMessages] = useState<RenderMessage[]>(renderMessages);
-    const messagesRef = useRef<RenderMessage[]>(renderMessages);
+    // 修复 Static 首次渲染问题：强制重新渲染
+    const [ready, setReady] = useState(false);
 
-    // 保持 ref 始终是最新的 renderMessages
     useEffect(() => {
-        messagesRef.current = renderMessages;
-    }, [renderMessages]);
-
-    // 当不 loading 时，直接更新 renderMessages
-    useEffect(() => {
-        if (!loading) setSyncedMessages(messagesRef.current);
-    }, [loading, renderMessages]);
-
-    // 每秒从 ref 中同步最新的 renderMessages
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setSyncedMessages(messagesRef.current);
-        }, getConfig().stream_refresh_interval || 100);
-
-        return () => clearInterval(timer);
+        // 延迟一帧确保 Static 已挂载
+        const timer = setTimeout(() => setReady(true), 0);
+        return () => clearTimeout(timer);
     }, []);
 
-    // 使用 ref 来稳定历史消息的渲染
-    const historyCount = useMemo(
-        () => Math.max(0, syncedMessages.length - flashMessageCount),
-        [syncedMessages.length, flashMessageCount],
-    );
-
-    const renderMessage = (message: RenderMessage, index: number) => (
+    const renderMessage = (message: RenderMessage, index: number, isCurrent: boolean) => (
         <Box
-            key={message.unique_id || message.id || crypto.randomUUID()}
+            key={message.id || index}
             flexDirection="column"
-            borderStyle="single"
+            borderStyle={isCurrent ? 'double' : "single"}
             borderLeft
             paddingLeft={1}
+            paddingBottom={1}
             borderBottom={false}
             borderTop={false}
             borderRight={false}
             borderLeftColor={
-                message.type === 'ai' ? getColor('teal') : message.type === 'human' ? getColor('amber') : 'yellow'
+                message.type === 'ai'
+                    ? getColor('teal')
+                    : message.type === 'human'
+                        ? getColor('amber')
+                        : 'yellow'
             }
-            paddingBottom={1}
         >
             {message.type === 'human' ? (
                 <MessageHuman content={message.content} messageNumber={index + 1 + startIndex} />
@@ -71,18 +51,39 @@ export const MessagesBox = ({
         </Box>
     );
 
+    let index = renderMessages.findIndex((cur) => {
+        if (cur.type === 'tool' && !cur.done) {
+            return true;
+        }
+        return false;
+    });
+
+    // 没有未完成的 tool，最后一个消息作为 current
+    if (index === -1) {
+        index = renderMessages.length - 1;
+    }
+
+    const histories = renderMessages.slice(0, index);
+    const current = renderMessages.slice(index);
+
+    // 首次渲染时直接显示，后续使用 Static
+    if (!ready) {
+        return (
+            <Box flexDirection="column" paddingY={1}>
+                {renderMessages.map((message, i) => renderMessage(message, i, i === index))}
+            </Box>
+        );
+    }
+
     return (
         <Box flexDirection="column" paddingY={1}>
-            <Box flexDirection="column">
-                <Static items={syncedMessages.slice(0, -flashMessageCount)}>
-                    {(message, index) => renderMessage(message, index)}
-                </Static>
-            </Box>
-            <Box flexDirection="column">
-                {syncedMessages
-                    .slice(-flashMessageCount)
-                    .map((message, index) => renderMessage(message, historyCount + index))}
-            </Box>
+            {/* 历史消息：用 Static 固定 */}
+            <Static items={histories}>
+                {(message, i) => renderMessage(message, i, false)}
+            </Static>
+
+            {/* 当前消息 */}
+            {current.map((message, i) => renderMessage(message, histories.length + i, true))}
         </Box>
     );
 };

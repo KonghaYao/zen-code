@@ -1,5 +1,5 @@
 import React, { JSX } from 'react';
-import { Box, Text } from 'ink';
+import { Box, Spacer, Text } from 'ink';
 import { getMessageContent, RenderMessage, ToolMessage } from '@langgraph-js/sdk';
 import { UsageMetadata } from './UsageMetadata';
 import { useChat } from '@langgraph-js/sdk/react';
@@ -19,6 +19,21 @@ const getToolColor = (tool_name: string): string => {
     }
     const index = Math.abs(hash % TOOL_COLOR_NAMES.length);
     return TOOL_COLOR_NAMES[index];
+};
+
+const getStatusEmoji = (status?: string): string => {
+    const statusMap: Record<string, string> = {
+        success: '✓',
+        completed: '✓',
+        ok: '✓',
+        error: '✗',
+        failed: '✗',
+        pending: '⏳',
+        in_progress: '⏳',
+        running: '⏳',
+        cancelled: '⏹',
+    };
+    return statusMap[status as any] || '⏳';
 };
 
 const truncateContentForDisplay = (content: string, maxLines: number = 4, maxLineLength: number = 100): string => {
@@ -110,7 +125,7 @@ export const InputPreviewer = ({ content }: { content: any }) => {
         // Object rendering
         const keys = Object.keys(data);
         if (keys.length === 0) {
-            return <Text color="gray">{}</Text>;
+            return <Text color="gray">{ }</Text>;
         }
 
         const maxLength = 5;
@@ -153,8 +168,8 @@ const MessageTool: React.FC<MessageToolProps> = ({ message, messageNumber }) => 
     const label = inputRepaired?.title
         ? `: ${inputRepaired.title}`
         : inputRepaired?.description
-        ? `: ${inputRepaired.description}`
-        : '';
+            ? `: ${inputRepaired.description}`
+            : '';
     const render = message.name ? getToolUIRender(message.name!) : null;
     let borderColor = getToolColor(message.name || '');
     borderColor = message.status === 'error' ? 'red' : 'yellow';
@@ -165,6 +180,8 @@ const MessageTool: React.FC<MessageToolProps> = ({ message, messageNumber }) => 
                     {messageNumber} {message.name}
                     <Text color="gray">{label}</Text>
                 </Text>
+                <Spacer />
+                <Text>{getStatusEmoji(message?.status)}</Text>
             </Box>
             {message.sub_messages?.length ? (
                 <Box>

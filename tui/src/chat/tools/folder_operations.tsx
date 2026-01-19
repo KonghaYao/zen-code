@@ -19,16 +19,66 @@ export const folder_operations = createUITool({
 
         if (!output) return <></>;
 
+        // Color mapping for different operations
+        const operationColors: Record<string, string> = {
+            create: 'green',
+            list: 'blue',
+            exists: 'yellow',
+            delete: 'red',
+        };
+
+        // Determine operation color (default to cyan)
+        const operationColor = operationColors[input?.operation as any] || 'cyan';
+
+        // Parse output for better formatting
+        const lines = output.split('\n');
+        const formattedOutput = lines.map((line, idx) => {
+            // Highlight file sizes and dates in list output
+            if (line.match(/\d+ \w+|[\d-]+ [\d:]+/)) {
+                return (
+                    <Text key={idx} dimColor>
+                        {line}
+                    </Text>
+                );
+            }
+            // Highlight success/error messages
+            if (line.includes('✓') || line.includes('successfully') || line.includes('created') || line.includes('deleted')) {
+                return (
+                    <Text key={idx} color="green">
+                        {line}
+                    </Text>
+                );
+            }
+            if (line.includes('✗') || line.includes('Error') || line.includes('not found') || line.includes('failed')) {
+                return (
+                    <Text key={idx} color="red">
+                        {line}
+                    </Text>
+                );
+            }
+            // Highlight paths
+            if (line.startsWith('/') || line.includes('/:')) {
+                return (
+                    <Text key={idx} color="cyan">
+                        {line}
+                    </Text>
+                );
+            }
+            return <Text key={idx}>{line}</Text>;
+        });
+
         return (
             <Box flexDirection="column" paddingX={1}>
                 <Box>
-                    <Text bold dimColor>
+                    <Text bold color={operationColor}>
                         folder_operations
                     </Text>
-                    <Text dimColor> ({input.operation})</Text>
+                    <Text color="gray"> ({input.operation})</Text>
                 </Box>
                 <Box flexDirection="column">
-                    <Text>{output}</Text>
+                    {formattedOutput.map((line, idx) => (
+                        <Box key={idx}>{line}</Box>
+                    ))}
                 </Box>
             </Box>
         );

@@ -40,30 +40,37 @@ jobs:
 
       - name: Setup zen-code config
         run: |
-          # Create code-graph.json config file for Anthropic
+          # Create zen-code config directory and settings.json for Anthropic
           # Use Python to safely generate JSON with proper escaping
           python3 << 'PYTHON_SCRIPT'
           import json
           import os
 
+          # Ensure .zen-code directory exists
+          zen_config_dir = os.path.expanduser("~/.zen-code")
+          os.makedirs(zen_config_dir, exist_ok=True)
+
           config = {
-              "config": {
-                  "main_model": os.environ.get("ZEN_CODE_MODEL", "glm-4.7"),
-                  "model_provider": "anthropic",
-                  "anthropic_api_key": os.environ.get("ANTHROPIC_API_KEY", ""),
-                  "anthropic_base_url": os.environ.get("ANTHROPIC_BASE_URL", ""),
-                  "enable_thinking": True
-              }
+              "main_model": os.environ.get("ZEN_CODE_MODEL", "glm-4.7"),
+              "model_provider": "anthropic",
+              "anthropic_api_key": os.environ.get("ANTHROPIC_API_KEY", ""),
+              "anthropic_base_url": os.environ.get("ANTHROPIC_BASE_URL", ""),
+              "enable_thinking": True
           }
 
-          with open(os.path.expanduser("~/.code-graph.json"), "w") as f:
+          config_path = os.path.join(zen_config_dir, "settings.json")
+          with open(config_path, "w") as f:
               json.dump(config, f, indent=2)
+
+          print(f"✓ Config directory created: {zen_config_dir}")
+          print(f"✓ Config file created: {config_path}")
           PYTHON_SCRIPT
 
-          echo "Config file created at ~/.code-graph.json:"
+          echo "Verifying config file:"
           # Verify file exists
-          if [ -f ~/.code-graph.json ]; then
+          if [ -f ~/.zen-code/settings.json ]; then
             echo "✓ Config file created successfully"
+            cat ~/.zen-code/settings.json
           else
             echo "✗ Failed to create config file"
             exit 1

@@ -2,7 +2,7 @@ import { createUITool, ToolManager } from '@langgraph-js/sdk';
 import { Box, Text } from 'ink';
 import { generateOptimizedDiff } from './diffUtils';
 import { editToolSchema } from '../../../../agents/code/tools/filesystem_tools';
-import { cleanPath } from '../../utils/cleanPath';
+
 import Link from '../components/Link';
 
 // MODIFIED: Updated interface to match new schema
@@ -27,7 +27,7 @@ export const replace_in_file = createUITool({
         let removedCount = 0;
         let addedCount = 0;
         if (hasDiff) {
-            const fullDiff = generateOptimizedDiff(input.new_string, input.old_string, { maxLines: undefined });
+            const fullDiff = generateOptimizedDiff(input.old_string, input.new_string, { maxLines: undefined });
             for (const line of fullDiff) {
                 if (line.type === 'removed') removedCount++;
                 if (line.type === 'added') addedCount++;

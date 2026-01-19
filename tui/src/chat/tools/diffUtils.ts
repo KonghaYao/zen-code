@@ -318,9 +318,11 @@ export function generateOptimizedDiff(
 ) {
     // 如果文本很大，使用更激进的截断策略
     const isLarge = isLargeText(oldText) || isLargeText(newText);
-    
-    const maxLines = options?.maxLines ?? (isLarge ? 10 : 20);
+
+    // 区分"显式传入 undefined"和"没传参数"
+    const hasMaxLines = options !== undefined && 'maxLines' in options;
+    const maxLines = hasMaxLines ? options.maxLines : (isLarge ? 10 : 20);
     const contextLines = options?.contextLines ?? (isLarge ? 1 : 3);
-    
+
     return generateLineDiff(oldText, newText, { maxLines, contextLines });
 }
