@@ -33,7 +33,7 @@ async function readStdin(): Promise<string> {
  * @param useStdin - 是否从 stdin 读取（用于管道支持）
  */
 export async function runNonInteractive(prompt?: string, useStdin: boolean = false) {
-    // 初始化配置（读取 ~/.code-graph.json）
+    // 初始化配置（读取 ~/.zen-code/settings.json）
     await initDb();
     const config = getConfig();
 

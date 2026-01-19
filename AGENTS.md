@@ -41,7 +41,7 @@ cd tui && pnpm install      # TUI
 
 ## Configuration
 
-**Config**: `~/.code-graph.json`
+**Config**: `~/.zen-code/settings.json`
 
 ```json
 {

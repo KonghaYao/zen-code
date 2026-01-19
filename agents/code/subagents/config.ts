@@ -28,7 +28,7 @@ export interface AgentConfig {
  * from agents/code/skills/subagents.ts
  *
  * Future extensions:
- * - Load from ~/.code-graph.json
+ * - Load from ~/.zen-code/settings.json
  * - Load from database
  * - Remote configuration service
  */
