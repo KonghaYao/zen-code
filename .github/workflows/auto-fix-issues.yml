@@ -38,211 +38,53 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Setup zen-code config
-        run: |
-          # Create zen-code config directory and settings.json for Anthropic
-          # Use Python to safely generate JSON with proper escaping
-          python3 << 'PYTHON_SCRIPT'
-          import json
-          import os
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
 
-          # Ensure .zen-code directory exists
-          zen_config_dir = os.path.expanduser("~/.zen-code")
-          os.makedirs(zen_config_dir, exist_ok=True)
-
-          config = {
-              "main_model": os.environ.get("ZEN_CODE_MODEL", "glm-4.7"),
-              "model_provider": "anthropic",
-              "anthropic_api_key": os.environ.get("ANTHROPIC_API_KEY", ""),
-              "anthropic_base_url": os.environ.get("ANTHROPIC_BASE_URL", ""),
-              "enable_thinking": True
-          }
-
-          config_path = os.path.join(zen_config_dir, "settings.json")
-          with open(config_path, "w") as f:
-              json.dump(config, f, indent=2)
-
-          print(f"✓ Config directory created: {zen_config_dir}")
-          print(f"✓ Config file created: {config_path}")
-          PYTHON_SCRIPT
-
-          echo "Verifying config file:"
-          # Verify file exists
-          if [ -f ~/.zen-code/settings.json ]; then
-            echo "✓ Config file created successfully"
-            cat ~/.zen-code/settings.json
-          else
-            echo "✗ Failed to create config file"
-            exit 1
-          fi
+      - name: Prepare context
+        id: prepare
         env:
-          ZEN_CODE_MODEL: ${{ secrets.ZEN_CODE_MODEL || 'glm-4.7' }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
-
-      - name: Get issue context
-        id: issue_context
-        run: |
-          ISSUE_NUMBER="${{ github.event.issue.number || github.event.inputs.issue_number }}"
-          echo "number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
-
-          # Get issue details using GitHub CLI
-          ISSUE_TITLE=$(gh issue view $ISSUE_NUMBER --json title -q '.title')
-          ISSUE_BODY=$(gh issue view $ISSUE_NUMBER --json body -q '.body')
-
-          # Combine title and body
-          ISSUE_CONTENT="Title: ${ISSUE_TITLE}
-
-          ${ISSUE_BODY}"
-
-          echo "body<<EOF" >> $GITHUB_OUTPUT
-          echo "$ISSUE_CONTENT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.inputs.issue_number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run zen-code to fix issue
-        id: zen_code
-        run: |
-          ISSUE_NUMBER="${{ steps.issue_context.outputs.number }}"
-          ISSUE_BODY="${{ steps.issue_context.outputs.body }}"
-
-          # Create prompt from issue
-          PROMPT="Fix or Answer the issue described below:
-
-          Issue #${ISSUE_NUMBER}:
-          ${ISSUE_BODY}
-
-          Don't make code changes or output md file if you can answer in readonly mode.
-          Analyze the problem, response answer to me"
-
-          # Run zen-code in non-interactive mode and capture output
-          # Use -p flag to pass prompt directly (not via pipe)
-          ZEN_OUTPUT=$(bunx --bun zen-code -p --yolo "$PROMPT" 2>&1 || true)
-
-          # Save output to step output (multiline)
-          echo "output<<EOF" >> $GITHUB_OUTPUT
-          echo "$ZEN_OUTPUT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-          # Show output in logs
-          echo "$ZEN_OUTPUT"
-        env:
           ZEN_CODE_MODEL: ${{ env.ZEN_CODE_MODEL }}
+          MODEL_PROVIDER: ${{ env.MODEL_PROVIDER }}
           ANTHROPIC_API_KEY: ${{ env.ANTHROPIC_API_KEY }}
           ANTHROPIC_BASE_URL: ${{ env.ANTHROPIC_BASE_URL }}
-          YOLO_MODE: "true"
-
-      - name: Check for changes
-        id: check_changes
         run: |
-          if [[ -n $(git status --porcelain) ]]; then
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "Detected changes:"
-            git status --short
+          chmod +x .github/scripts/prepare_context.py
+          python3 .github/scripts/prepare_context.py
+
+      - name: Run zen-code
+        id: zen_code
+        run: |
+          echo "=========================================="
+          echo "Running zen-code"
+          echo "=========================================="
+          bunx --bun zen-code -p --yolo "${{ steps.prepare.outputs.prompt }}" 2>&1 | tee /tmp/zen_output.txt
+
+          # Set output (limit to 64KB for GitHub Actions)
+          echo "zen_output<<EOF" >> $GITHUB_OUTPUT
+          cat /tmp/zen_output.txt | head -c 60000 >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          # Check if PR should be created
+          if [ -f /tmp/create-pr ]; then
+            echo "should_create_pr=true" >> $GITHUB_OUTPUT
+            echo "✓ PR creation requested"
           else
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "No changes detected"
+            echo "should_create_pr=false" >> $GITHUB_OUTPUT
+            echo "ℹ️  No PR requested"
           fi
 
-      - name: Create Pull Request
-        id: create_pr
-        if: steps.check_changes.outputs.has_changes == 'true'
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: auto-fix/issue-${{ steps.issue_context.outputs.number }}
-          title: "Auto-fix: Issue #${{ steps.issue_context.outputs.number }}"
-          body: |
-            ## 自动修复 PR
-
-            此 PR 由 Zen Code 自动生成，用于修复 Issue #${{ steps.issue_context.outputs.number }}
-
-            ### Issue 内容
-            ${{ steps.issue_context.outputs.body }}
-
-            ### 执行输出
-            <details>
-            <summary>查看 Zen Code 执行日志</summary>
-
-            ```
-            ${{ steps.zen_code.outputs.output }}
-            ```
-            </details>
-
-            ---
-
-            🤖 由 [Auto Fix Issues](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) 工作流自动生成
-          labels: auto-generated, automated fix
-          commit-message: "fix: auto-fix issue #${{ steps.issue_context.outputs.number }}"
-          draft: false
-
-      - name: Comment on issue
-        if: steps.check_changes.outputs.has_changes == 'true'
-        run: |
-          # Use Python to safely generate JSON body with proper escaping
-          BODY=$(python3 << 'PYTHON_SCRIPT'
-          import json
-          import os
-
-          pr_url = os.environ.get("PR_URL", "")
-          zen_output = os.environ.get("ZEN_OUTPUT", "")
-
-          body = f"""## ✅ 自动修复完成
-
-          我已创建 PR 来解决此问题：{pr_url}
-
-          ### 执行输出
-          <details>
-          <summary>查看 Zen Code 执行日志</summary>
-
-          ```
-          {zen_output}
-          ```
-
-          </details>
-
-          ---
-          🤖 由 Zen Code 自动生成"""
-
-          print(json.dumps({"body": body}))
-          PYTHON_SCRIPT
-          )
-
-          gh api repos/:owner/:repo/issues/${{ steps.issue_context.outputs.number }}/comments --method POST --input - <<< "$BODY"
+      - name: Process results and create PR
         env:
+          ISSUE_NUMBER: ${{ steps.prepare.outputs.number }}
+          ISSUE_TITLE: ${{ steps.prepare.outputs.title }}
+          ISSUE_BODY: ${{ steps.prepare.outputs.body }}
+          ZEN_OUTPUT: ${{ steps.zen_code.outputs.zen_output }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_URL: ${{ steps.create_pr.outputs.pull_request_url }}
-          ZEN_OUTPUT: ${{ steps.zen_code.outputs.output }}
-
-      - name: Comment on issue (no changes)
-        if: steps.check_changes.outputs.has_changes == 'false'
         run: |
-          # Use Python to safely generate JSON body with proper escaping
-          BODY=$(python3 << 'PYTHON_SCRIPT'
-          import json
-          import os
-
-          zen_output = os.environ.get("ZEN_OUTPUT", "")
-
-          body = f"""{zen_output}
-
-          ---
-          🤖 由 Zen Code 自动生成"""
-
-          print(json.dumps({"body": body}))
-          PYTHON_SCRIPT
-          )
-
-          gh api repos/:owner/:repo/issues/${{ steps.issue_context.outputs.number }}/comments --method POST --input - <<< "$BODY"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ZEN_OUTPUT: ${{ steps.zen_code.outputs.output }}
-
-      - name: Remove auto-fix label
-        if: always()
-        run: |
-          ISSUE_NUMBER="${{ steps.issue_context.outputs.number }}"
-          gh issue edit $ISSUE_NUMBER --remove-label "auto-fix" || true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          chmod +x .github/scripts/auto_fix_issue.py
+          python3 .github/scripts/auto_fix_issue.py
