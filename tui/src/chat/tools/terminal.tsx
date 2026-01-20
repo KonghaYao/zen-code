@@ -1,23 +1,86 @@
-import { createUITool, ToolManager } from '@langgraph-js/sdk';
-import { Box, Text, useFocusManager, useInput } from 'ink';
-import { useState } from 'react';
+import { createUITool, ToolManager, ToolRenderData } from '@langgraph-js/sdk';
+import { Box, Text } from 'ink';
+import { useState, useEffect, useRef } from 'react';
 import { InputPreviewer } from '../components/MessageTool';
-import { MultiSelectPro } from '../components/input/MultiSelect';
-import { EnhancedTextInput } from '../components/input/EnhancedTextInput';
 import { LimitedOutput } from '../components/LimitedOutput';
+import { useApproval } from '../context/ApprovalContext';
+import { ApprovalRequest } from '../components/GlobalApprovalPanel/types';
 
-// Color scheme for terminal actions
-const ACTION_COLORS: { [key: string]: string } = {
-    approve: 'green',
-    reject: 'red',
-    edit: 'yellow',
-    modify: 'cyan',
-    interrupt: 'magenta',
-    retry: 'blue',
-};
+/**
+ * 扩展的审批请求类型，包含工具引用
+ */
+interface ToolApprovalRequest extends Omit<ApprovalRequest, 'id' | 'createdAt' | 'status'> {
+    tool: ToolRenderData<Record<string, never>, any>;
+}
 
-const getActionColor = (action: string): string => {
-    return ACTION_COLORS[action.toLowerCase()] || 'white';
+// 创建一个内部组件来使用 hooks
+const TerminalContent: React.FC<{ tool: ToolRenderData<Record<string, never>, any> }> = ({ tool }) => {
+    const { addApprovalRequest } = useApproval();
+    const [submitted, setSubmitted] = useState(false);
+    const submittedRef = useRef(false);
+    const addApprovalRequestRef = useRef(addApprovalRequest);
+
+    // 保持 ref 同步
+    useEffect(() => {
+        addApprovalRequestRef.current = addApprovalRequest;
+    }, [addApprovalRequest]);
+
+    // 获取审批配置
+    const interrupt = tool.getHumanInTheLoopData();
+
+    // 当有审批配置时，自动添加到全局审批队列（只添加一次）
+    useEffect(() => {
+        if (interrupt?.reviewConfig && !submittedRef.current) {
+            submittedRef.current = true;
+            setSubmitted(true);
+
+            // 获取消息索引和描述
+            const description = tool.getInputRepaired()?.description;
+
+            // 使用 ref 避免依赖变化导致重复执行
+            const request: ToolApprovalRequest = {
+                toolCall: {
+                    name: tool.message.name!,
+                    args: tool.getInputRepaired(),
+                },
+                tool,
+                messageIndex: undefined,
+                description,
+            };
+            addApprovalRequestRef.current(request);
+        }
+    }, [interrupt, tool]); // 移除 addApprovalRequest 依赖
+
+    if (interrupt?.reviewConfig && submitted) {
+        return (
+            <Box flexDirection="column">
+                <Box paddingX={1}>
+                    <InputPreviewer content={tool.getInputRepaired()} />
+                </Box>
+                <Box paddingX={1} paddingY={1}>
+                    <Text color="yellow">
+                        ⏳ Wait for Approval
+                    </Text>
+                </Box>
+            </Box>
+        );
+    }
+
+    // 渲染输出（如果有）
+    const renderOutput = () => {
+        if (!tool.output) return null;
+        return <LimitedOutput content={tool.output} maxLines={10} borderColor="cyan" />;
+    };
+
+    return (
+        <Box flexDirection="column">
+            <Box paddingX={1}>
+                <InputPreviewer content={tool.getInputRepaired()} />
+            </Box>
+            {/* Output */}
+            {renderOutput()}
+        </Box>
+    );
 };
 
 export const terminal = createUITool({
@@ -26,169 +89,6 @@ export const terminal = createUITool({
     parameters: {},
     handler: ToolManager.waitForUIDone,
     render(tool) {
-        const interrupt = tool.getHumanInTheLoopData();
-        const [selectState, setSelectState] = useState('approve');
-        const [isEditing, setEditing] = useState(false);
-        const [editValue, setEditValue] = useState('');
-
-        const actionButtons = () => {
-            if (!interrupt?.reviewConfig) return null;
-            const buttons = interrupt.reviewConfig.allowedDecisions.map((i) => {
-                return {
-                    label: i,
-                    value: i,
-                };
-            });
-
-            return (
-                <Box flexDirection="column" paddingX={1}>
-                    <Text color="cyan" bold>
-                        Terminal Action Required
-                    </Text>
-                    <Box>
-                        <MultiSelectPro
-                            singleSelect
-                            options={buttons}
-                            onSubmit={([item]) => {
-                                if (item === 'approve') {
-                                    tool.sendResumeData({
-                                        type: item,
-                                    });
-                                    return;
-                                }
-                                setSelectState(item);
-                                setEditing(true);
-                                if (item === 'edit') {
-                                    setEditValue(JSON.stringify(tool.getInputRepaired(), null, 2));
-                                    // 编辑状态不用聚焦，edit 面板有一个输入框
-                                } else {
-                                    setEditValue('');
-                                    focusManager.focus('global-input');
-                                }
-                            }}
-                            autoFocus
-                        />
-                    </Box>
-                </Box>
-            );
-        };
-        const focusManager = useFocusManager();
-
-        // MODIFIED: Add Esc key handler for canceling edit mode
-        useInput((input, key) => {
-            if (isEditing && key.escape) {
-                handleEditCancel();
-            }
-        });
-
-        const handleEditSubmit = () => {
-            if (editValue.trim()) {
-                if (selectState === 'edit') {
-                    tool.sendResumeData({
-                        type: selectState as any,
-                        edited_action: {
-                            name: tool.message.name!,
-                            args: JSON.parse(editValue),
-                        },
-                    });
-                    setEditing(false);
-                    setEditValue('');
-                } else {
-                    tool.sendResumeData({
-                        type: selectState as any,
-                        message: 'User Reject to run this tool, reason: ' + editValue,
-                    });
-                    setEditing(false);
-                    setEditValue('');
-                }
-            }
-            focusManager.focus('global-input');
-        };
-
-        const handleEditCancel = () => {
-            setEditing(false);
-            setEditValue('');
-            focusManager.focus('global-input');
-        };
-
-        const renderEditUI = () => {
-            const actionColor = getActionColor(selectState);
-            const isEditMode = selectState === 'edit';
-
-            return (
-                <Box flexDirection="column" paddingX={1} marginTop={0}>
-                    <Box>
-                        <Text color={actionColor} bold>
-                            {selectState.toUpperCase()} MODE
-                        </Text>
-                        <Text color="gray"> - Press Enter to submit, Esc to cancel</Text>
-                    </Box>
-
-                    {isEditMode ? (
-                        <Box flexDirection="column" marginTop={0}>
-                            <Text color="yellow" dimColor>
-                                Editing action arguments (JSON format):
-                            </Text>
-                            <Box paddingX={1}>
-                                <EnhancedTextInput
-                                    value={editValue}
-                                    onChange={setEditValue}
-                                    onSubmit={handleEditSubmit}
-                                    placeholder="Enter JSON..."
-                                    autoFocus
-                                />
-                            </Box>
-                        </Box>
-                    ) : (
-                        <Box flexDirection="column" marginTop={0}>
-                            <Text color="cyan" dimColor>
-                                Enter additional message for this action:
-                            </Text>
-                            <Box paddingX={1}>
-                                <EnhancedTextInput
-                                    value={editValue}
-                                    onChange={setEditValue}
-                                    onSubmit={handleEditSubmit}
-                                    placeholder="Enter message..."
-                                    autoFocus={false}
-                                />
-                            </Box>
-                        </Box>
-                    )}
-
-                    <Box marginTop={0}>
-                        <Text color="gray">
-                            <Text color={actionColor} bold>
-                                ↵
-                            </Text>{' '}
-                            Submit |
-                            <Text color="red" bold>
-                                {' '}
-                                Esc
-                            </Text>{' '}
-                            Cancel
-                        </Text>
-                    </Box>
-                </Box>
-            );
-        };
-
-        const renderOutput = () => {
-            if (!tool.output) return null;
-
-            return <LimitedOutput content={tool.output} maxLines={10} borderColor="cyan" />;
-        };
-
-        return (
-            <Box flexDirection="column">
-                <Box paddingX={1}>
-                    <InputPreviewer content={tool.getInputRepaired()}></InputPreviewer>
-                </Box>
-                {/* Main Content */}
-                {isEditing ? renderEditUI() : actionButtons()}
-                {/* Output */}
-                {renderOutput()}
-            </Box>
-        );
+        return <TerminalContent tool={tool} />;
     },
 });

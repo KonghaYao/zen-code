@@ -19,6 +19,9 @@ import ModelPanel from './components/ModelPanel';
 import AgentPanel from './components/AgentPanel';
 import StatusBar from './components/StatusBar';
 import { useInput } from '../utils/use-input';
+import { ApprovalProvider, useApproval } from './context/ApprovalContext';
+import { GlobalApprovalPanel } from './components/GlobalApprovalPanel';
+import { ApprovalRequest, ApprovalStatus } from './components/GlobalApprovalPanel/types';
 
 const ChatMessages = () => {
     const { renderMessages, loading, inChatError, isFELocking } = useChat();
@@ -172,7 +175,6 @@ const Chat: React.FC = () => {
 
     const focusManager = useFocusManager();
     const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge' | 'model' | 'agent'>('chat');
-
     // Global Ctrl+C exit handler
     // Disable when panel is open to avoid duplicate input handling
     useInput(
@@ -210,6 +212,7 @@ const Chat: React.FC = () => {
         setActiveView('chat');
         focusManager.focus('global-input');
     }, [focusManager]);
+    const { hasPendingRequests } = useApproval();
 
     return (
         <Box flexDirection="column" width="100%">
@@ -217,13 +220,22 @@ const Chat: React.FC = () => {
                 {activeView === 'chat' && (
                     <Box flexDirection="column" flexGrow={1}>
                         <ChatMessages key={currentChatId} />
-                        <ChatInput
-                            switchToHistory={switchToHistory}
-                            switchToKnowledge={switchToKnowledge}
-                            switchToModel={switchToModel}
-                            switchToAgent={switchToAgent}
-                            closePanel={closePanel}
-                        />
+                        {
+                            hasPendingRequests ?
+                                <Box borderStyle="single" borderColor="cyan" paddingX={0} paddingY={0}>
+                                    <GlobalApprovalPanel
+                                        allowedDecisions={['approve', 'edit', 'reject']}
+                                        autoShow={true}
+                                    />
+                                </Box>
+                                : <ChatInput
+                                    switchToHistory={switchToHistory}
+                                    switchToKnowledge={switchToKnowledge}
+                                    switchToModel={switchToModel}
+                                    switchToAgent={switchToAgent}
+                                    closePanel={closePanel}
+                                />
+                        }
                     </Box>
                 )}
                 {activeView === 'history' && <HistoryPanel onClose={closePanel} />}
@@ -237,6 +249,8 @@ const Chat: React.FC = () => {
 };
 
 const ChatWrapper: React.FC = () => {
+
+
     return (
         <ChatProvider
             apiUrl="http://127.0.0.1:8123"
@@ -253,7 +267,9 @@ const ChatWrapper: React.FC = () => {
         >
             <ChatInputBufferProvider>
                 <SettingsProvider>
-                    <Chat />
+                    <ApprovalProvider>
+                        <Chat />
+                    </ApprovalProvider>
                 </SettingsProvider>
             </ChatInputBufferProvider>
         </ChatProvider>

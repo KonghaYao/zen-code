@@ -71,14 +71,14 @@ export const MessagesBox = ({
     // 首次渲染时直接显示，后续使用 Static
     if (!ready) {
         return (
-            <Box flexDirection="column" paddingY={1}>
+            <Box flexDirection="column">
                 {renderMessages.map((message, i) => renderMessage(message, i, i === index))}
             </Box>
         );
     }
 
     return (
-        <Box flexDirection="column" paddingY={1}>
+        <Box flexDirection="column">
             {/* 历史消息：用 Static 固定，使用 key 强制重新挂载 */}
             <Static
                 items={histories}

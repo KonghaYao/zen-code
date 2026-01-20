@@ -180,8 +180,7 @@ const MessageTool: React.FC<MessageToolProps> = ({ message, messageNumber }) => 
                     {messageNumber} {message.name}
                     <Text color="gray">{label}</Text>
                 </Text>
-                <Spacer />
-                <Text>{getStatusEmoji(message?.status)}</Text>
+                <Text> {getStatusEmoji(message?.status)}</Text>
             </Box>
             {message.sub_messages?.length ? (
                 <Box>
