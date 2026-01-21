@@ -48,6 +48,8 @@ export interface CommandContext {
     switchToAgent?: () => void;
     /** 关闭面板返回聊天 */
     closePanel?: () => void;
+    /** 启动 Ralph 循环模式 */
+    startRalphLoop?: (text: string) => void;
 }
 
 export interface CommandDefinition {

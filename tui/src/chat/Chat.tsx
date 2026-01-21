@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text, useFocusManager } from 'ink';
 import Spinner from 'ink-spinner';
 import { MessagesBox } from './components/MessageBox';
@@ -22,6 +22,7 @@ import { useInput } from '../utils/use-input';
 import { ApprovalProvider, useApproval } from './context/ApprovalContext';
 import { GlobalApprovalPanel } from './components/GlobalApprovalPanel';
 import { ApprovalRequest, ApprovalStatus } from './components/GlobalApprovalPanel/types';
+import { useRalphLoop } from './hooks/useRalphLoop';
 
 const ChatMessages = () => {
     const { renderMessages, loading, inChatError, isFELocking } = useChat();
@@ -63,8 +64,17 @@ const ChatInput: React.FC<ChatInputProps> = ({
     switchToAgent,
     closePanel,
 }) => {
-    const { userInput, setUserInput, sendMessage, loading } = useChat();
+    const { userInput, setUserInput, sendMessage, loading, renderMessages } = useChat();
     const { extraParams } = useSettings();
+
+    // 使用 Ralph Loop hook
+    const { ralphLoopText, startRalphLoop, sendTextMessage } = useRalphLoop({
+        loading,
+        renderMessages,
+        sendMessage,
+        setUserInput,
+        extraParams,
+    });
 
     // 使用命令处理组件，传递面板切换回调
     const commandHandler = useCommandHandler({
@@ -74,9 +84,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
         switchToModel,
         switchToAgent,
         closePanel,
+        startRalphLoop,
     });
 
-    const sendTextMessage = async (inputValue: string) => {
+    const handleSendMessage = async (inputValue: string) => {
         if (!inputValue) return;
 
         // 命令优先处理：直接检查而不是依赖 executeCommand 内部检测
@@ -95,16 +106,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         }
 
         // 普通消息处理
-        const content: Message[] = [
-            {
-                type: 'human',
-                content: inputValue,
-            },
-        ];
-
-        sendMessage(content, {
-            extraParams,
-        }).then(() => {
+        sendTextMessage(inputValue).then(() => {
             notify('Zen Code 完成任务');
         });
     };
@@ -131,7 +133,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
             <ChatInputBuffer
                 value={userInput}
                 onChange={setUserInput}
-                onSubmit={sendTextMessage}
+                onSubmit={handleSendMessage}
                 loading={loading}
                 placeholder="输入消息..."
                 commandHandler={commandHandler}
@@ -146,7 +148,7 @@ const Chat: React.FC = () => {
     const { bufferedMessage, clearBuffer } = useChatInputBuffer();
     // 初始化工具
     useEffect(() => {
-        console.clear()
+        console.clear();
         setTools(DefaultTools);
     }, []);
 
@@ -208,7 +210,7 @@ const Chat: React.FC = () => {
     }, []);
 
     const closePanel = useCallback(() => {
-        console.clear()
+        console.clear();
         setActiveView('chat');
         focusManager.focus('global-input');
     }, [focusManager]);
@@ -220,22 +222,19 @@ const Chat: React.FC = () => {
                 {activeView === 'chat' && (
                     <Box flexDirection="column" flexGrow={1}>
                         <ChatMessages key={currentChatId} />
-                        {
-                            hasPendingRequests ?
-                                <Box borderStyle="single" borderColor="cyan" paddingX={0} paddingY={0}>
-                                    <GlobalApprovalPanel
-                                        allowedDecisions={['approve', 'edit', 'reject']}
-                                        autoShow={true}
-                                    />
-                                </Box>
-                                : <ChatInput
-                                    switchToHistory={switchToHistory}
-                                    switchToKnowledge={switchToKnowledge}
-                                    switchToModel={switchToModel}
-                                    switchToAgent={switchToAgent}
-                                    closePanel={closePanel}
-                                />
-                        }
+                        {hasPendingRequests ? (
+                            <Box borderStyle="single" borderColor="cyan" paddingX={0} paddingY={0}>
+                                <GlobalApprovalPanel allowedDecisions={['approve', 'edit', 'reject']} autoShow={true} />
+                            </Box>
+                        ) : (
+                            <ChatInput
+                                switchToHistory={switchToHistory}
+                                switchToKnowledge={switchToKnowledge}
+                                switchToModel={switchToModel}
+                                switchToAgent={switchToAgent}
+                                closePanel={closePanel}
+                            />
+                        )}
                     </Box>
                 )}
                 {activeView === 'history' && <HistoryPanel onClose={closePanel} />}
@@ -249,8 +248,6 @@ const Chat: React.FC = () => {
 };
 
 const ChatWrapper: React.FC = () => {
-
-
     return (
         <ChatProvider
             apiUrl="http://127.0.0.1:8123"

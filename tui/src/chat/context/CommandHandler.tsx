@@ -25,6 +25,7 @@ interface CommandHandlerProps {
     switchToAgent?: () => void;
     /** 关闭面板返回聊天 */
     closePanel?: () => void;
+    startRalphLoop: (text: string) => void;
 }
 
 interface CommandHandlerReturn {
@@ -84,6 +85,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
                 switchToModel,
                 switchToAgent,
                 closePanel,
+                startRalphLoop: props.startRalphLoop,
             };
 
             const result = await commandRegistry.executeCommand(userInput, commandContext);
