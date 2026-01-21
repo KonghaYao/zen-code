@@ -7,9 +7,11 @@ import { builtinCommands } from './implementations';
 import { extendedCommands } from './extended';
 // NEW: Import agent switching commands
 import { agentCommands } from './agentCommands';
+// NEW: Import interview commands
+import { interviewCommands } from './interviewCommand';
 
 // 注册内置命令
-[...builtinCommands, ...extendedCommands, ...agentCommands].forEach((command) => {
+[...builtinCommands, ...extendedCommands, ...agentCommands, ...interviewCommands].forEach((command) => {
     commandRegistry.register(command);
 });
 
