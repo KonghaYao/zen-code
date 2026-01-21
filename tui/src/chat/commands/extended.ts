@@ -561,6 +561,44 @@ export const modelPanelCommand: CommandDefinition = {
     },
 };
 
+/**
+ * /ralph 命令 - 循环执行直到返回 <COMPLETE></COMPLETE>
+ */
+export const ralphCommand: CommandDefinition = {
+    name: 'ralph',
+    description: '进入循环模式，持续发送响应直到返回 <COMPLETE></COMPLETE>',
+    aliases: [],
+    usage: '/ralph <text>',
+    requiresArgs: true,
+    execute: async (args: string[], context) => {
+        const text = args.join(' ');
+
+        if (!text.trim()) {
+            return {
+                success: false,
+                message: '请提供要循环的文本内容',
+                shouldClearInput: true,
+            };
+        }
+
+        // 检查是否有 startRalphLoop 回调
+        if (context.startRalphLoop) {
+            context.startRalphLoop(text);
+            return {
+                success: true,
+                message: `进入 Ralph 循环模式: "${text}"`,
+                shouldClearInput: true,
+            };
+        }
+
+        return {
+            success: false,
+            message: 'Ralph 循环功能不可用',
+            shouldClearInput: true,
+        };
+    },
+};
+
 // 导出扩展命令列表
 export const extendedCommands: CommandDefinition[] = [
     statusCommand,
@@ -573,4 +611,5 @@ export const extendedCommands: CommandDefinition[] = [
     knowledgeCommand, // NEW: 添加知识库面板命令
     closePanelCommand, // NEW: 添加关闭面板命令
     modelPanelCommand, // NEW: 添加模型面板命令
+    ralphCommand, // NEW: 添加 Ralph 循环命令
 ];
