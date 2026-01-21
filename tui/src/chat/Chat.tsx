@@ -22,6 +22,7 @@ import { useInput } from '../utils/use-input';
 import { ApprovalProvider, useApproval } from './context/ApprovalContext';
 import { GlobalApprovalPanel } from './components/GlobalApprovalPanel';
 import { ApprovalRequest, ApprovalStatus } from './components/GlobalApprovalPanel/types';
+import { InteractionProvider, useInteractionContext, UnifiedUIPanel } from './interaction';
 import { useRalphLoop } from './hooks/useRalphLoop';
 
 const ChatMessages = () => {
@@ -215,6 +216,10 @@ const Chat: React.FC = () => {
         focusManager.focus('global-input');
     }, [focusManager]);
     const { hasPendingRequests } = useApproval();
+    const { hasPendingInteractions } = useInteractionContext();
+
+    // 判断是否显示统一交互面板（只在没有 pending 交互时显示）
+    const showUnifiedPanel = hasPendingInteractions;
 
     return (
         <Box flexDirection="column" width="100%">
@@ -222,7 +227,12 @@ const Chat: React.FC = () => {
                 {activeView === 'chat' && (
                     <Box flexDirection="column" flexGrow={1}>
                         <ChatMessages key={currentChatId} />
-                        {hasPendingRequests ? (
+                        {/* 优先使用新的统一交互面板 */}
+                        {showUnifiedPanel ? (
+                            <Box borderStyle="single" borderColor="cyan" paddingX={0} paddingY={0}>
+                                <UnifiedUIPanel />
+                            </Box>
+                        ) : hasPendingRequests ? (
                             <Box borderStyle="single" borderColor="cyan" paddingX={0} paddingY={0}>
                                 <GlobalApprovalPanel allowedDecisions={['approve', 'edit', 'reject']} autoShow={true} />
                             </Box>
@@ -265,7 +275,9 @@ const ChatWrapper: React.FC = () => {
             <ChatInputBufferProvider>
                 <SettingsProvider>
                     <ApprovalProvider>
-                        <Chat />
+                        <InteractionProvider>
+                            <Chat />
+                        </InteractionProvider>
                     </ApprovalProvider>
                 </SettingsProvider>
             </ChatInputBufferProvider>
