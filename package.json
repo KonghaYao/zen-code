@@ -1,14 +1,20 @@
 {
-    "name": "agents",
+    "name": "code-graph",
     "author": "Your Name",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "private": true,
     "type": "module",
     "scripts": {
-        "dev:server": "bun run agents/code/server.ts",
-        "dev": "bun run tui/src/cli.ts",
-        "preview:bun": "bun run tui/cli.js",
-        "preview": "node --env-file=.env tui/cli.js"
+        "dev:server": "bun run server.ts",
+        "dev:tui": "bun run zen-code/src/app.tsx",
+        "dev:web": "bun run zen-worker",
+        "dev": "pnpm dev:server",
+        "preview:bun": "bun run zen-code/dist/cli.mjs",
+        "preview": "node --env-file=.env zen-code/dist/cli.mjs",
+        "build": "pnpm -r --filter './packages/*' build && pnpm --filter zen-code build && pnpm --filter zen-worker build",
+        "build:packages": "pnpm -r --filter './packages/*' build",
+        "build:zen-code": "pnpm --filter zen-code build",
+        "build:zen-worker": "pnpm --filter zen-worker build"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.71.2",

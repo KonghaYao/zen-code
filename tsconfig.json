@@ -21,6 +21,6 @@
         "skipLibCheck": true,
         "strict": true
     },
-    "include": ["tui/", "agents/"],
+    "include": ["zen-code/", "agents/", "packages/agent/src/initChatModel.ts"],
     "exclude": ["node_modules/", "dist"]
 }

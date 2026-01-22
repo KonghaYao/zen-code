@@ -1,6 +1,6 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import { rgPath } from '../../../../tui/src/utils/ripgrep';
+import { rgPath } from '../../../../zen-code/src/utils/ripgrep';
 import { execa } from 'execa';
 
 // 使用 execa 执行命令的异步函数

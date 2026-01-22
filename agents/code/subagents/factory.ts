@@ -5,7 +5,7 @@
  * Used by switchBranch to route to different agent configurations.
  */
 
-import { initChatModel } from '../initChatModel.js';
+import { initChatModel } from '../../../packages/agent/src/initChatModel.js';
 import { AgentMiddleware, createAgent, Runtime } from 'langchain';
 import { CodeState, CodeStateType } from '../state.js';
 import { AgentsMdMiddleware } from '../middlewares/agentsMD.js';

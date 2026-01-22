@@ -1,0 +1,19 @@
+{
+    "name": "@codegraph/config",
+    "version": "1.0.0",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "watch": "tsc --watch"
+    },
+    "dependencies": {
+        "lowdb": "^7.0.1",
+        "yaml": "^2.8.2"
+    },
+    "devDependencies": {
+        "@types/node": "^20.19.30",
+        "typescript": "^5.9.3"
+    }
+}

@@ -3,7 +3,7 @@ import { CodeAnnotation as CodeState, CodeStateType } from './state.js';
 import { getBufferMessage } from './utils/get_buffer_message.js';
 import { REMOVE_ALL_MESSAGES, START, StateGraph } from '@langchain/langgraph';
 import { AIMessage, RemoveMessage } from '@langchain/core/messages';
-import { initChatModel } from './initChatModel.js';
+import { initChatModel } from '../../packages/agent/src/initChatModel.js';
 import { analyzeAndSaveMemories } from './memories/analyze.js';
 import { loadAgentsList, getDefaultAgentId, type AgentConfig } from './subagents/config.js';
 import { createStandardAgent } from './subagents/factory.js';

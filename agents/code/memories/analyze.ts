@@ -3,8 +3,8 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { cleanPath } from '../../../tui/src/utils/cleanPath';
-import { createAgent, providerStrategy, toolStrategy } from 'langchain';
+import { cleanPath } from '../../../zen-code/src/utils/cleanPath.js';
+import { createAgent, toolStrategy } from 'langchain';
 
 /**
  * 记忆候选者 Schema（包含完整的 frontmatter 信息）
