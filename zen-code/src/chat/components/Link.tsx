@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text } from 'ink';
-import { getColor } from '../../utils/colors';
-import { cleanPath } from '../..//utils/cleanPath';
+import { getColor } from '@codegraph/union-client';
+import { cleanPath } from '@codegraph/union-client';
 
 interface LinkProps {
     /** File path or URL to display */

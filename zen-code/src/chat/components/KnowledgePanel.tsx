@@ -9,7 +9,7 @@ import { UniversalPanel } from './Panel/UniversalPanel';
 import { PanelConfig, PanelContext } from './Panel/types';
 import { listMemories, type MemoryMetadata } from '@codegraph/agent/src/memories/load';
 import { listSkills, type SkillMetadata } from '@codegraph/agent/src/skills/load';
-import { cleanPath } from '../../utils/cleanPath';
+import { cleanPath } from '@codegraph/union-client';
 
 interface KnowledgePanelProps {
     onClose: () => void;

@@ -32,7 +32,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const loadConfig = async () => {
         await initDb();
-        const loadedConfig = getConfig();
+        const loadedConfig = await getConfig();
 
         // 并行加载模型列表
         const models = await get_allowed_models().catch(() => []);
@@ -44,7 +44,8 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
             /** @ts-ignore 避免空值覆盖 */
             if (models[0].provider) config['model_provider'] = models[0].provider;
             await updateDbConfig(config);
-            setConfig({ ...getConfig() });
+            const newConfig = await getConfig();
+            setConfig(newConfig);
         } else {
             setConfig(loadedConfig);
         }
@@ -57,7 +58,8 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const updateConfig = async (newConfig: Partial<AppConfig>) => {
         await updateDbConfig(newConfig);
-        setConfig({ ...getConfig() });
+        const updatedConfig = await getConfig();
+        setConfig(updatedConfig);
     };
 
     if (loading) {

@@ -4,6 +4,7 @@
 
 export { useAgent } from './useAgent.js';
 export { useConfig } from './useConfig.js';
+export { useWindowSize } from './useWindowSize.js';
 
 // TODO: 添加更多 Hooks
 // export { useSkills } from './useSkills.js';

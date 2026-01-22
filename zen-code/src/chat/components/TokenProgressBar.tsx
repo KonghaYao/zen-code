@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import { calculateTokenUsage, formatTokenCount } from '../../utils/tokenUsage';
+import { calculateTokenUsage, formatTokenCount } from '@codegraph/union-client';
 
 interface TokenProgressBarProps {
     currentTokens: number;

@@ -38,7 +38,7 @@ async function readStdin(): Promise<string> {
 export async function runNonInteractive(prompt?: string, useStdin: boolean = false) {
     // 初始化配置（读取 ~/.zen-code/settings.json）
     await initDb();
-    const config = getConfig();
+    const config = await getConfig();
 
     // 决定输入来源
     let finalPrompt = prompt || '';

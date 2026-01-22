@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
-import { getCurrentUser } from '../../utils/user';
+import { getCurrentUser, getTerminalName } from '@codegraph/union-client';
 import { useSettings } from '../context/SettingsContext';
 import Shimmer from './Shimmer';
-import { getTerminalName } from '../../utils/colors';
 
 const WelcomeHeader: React.FC = () => {
     const username = getCurrentUser();

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import { getCurrentUser } from '../../utils/user';
-import { getColor } from '../../utils/colors';
+import { getCurrentUser, getColor } from '@codegraph/union-client';
 
 interface MessageHumanProps {
     content: string | any[];

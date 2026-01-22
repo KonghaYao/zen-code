@@ -1,6 +1,6 @@
 import { createUITool, ToolManager } from '@langgraph-js/sdk';
 import { Box, Text } from 'ink';
-import { cleanPath } from '../../utils/cleanPath';
+import { cleanPath } from '@codegraph/union-client';
 import { z } from 'zod';
 import Link from '../components/Link';
 

@@ -3,6 +3,8 @@
  * 从 @codegraph/config 重新导出
  */
 
+import { AppConfig, PluginConfig, PluginSource, Skill, SkillContent } from '@codegraph/config';
+
 export type {
   AppConfig,
   MCPConfig,

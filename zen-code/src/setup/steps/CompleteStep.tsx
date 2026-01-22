@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { AIProvider } from '../types';
-import { dbPath } from '../../chat/store';
+import { dbPath } from '../../chat/store/index';
 
 interface CompleteStepProps {
     provider: AIProvider;
@@ -52,7 +52,7 @@ export const CompleteStep: React.FC<CompleteStepProps> = ({ provider, model, onE
                         </Box>
                         <Box>
                             <Text color="blue">配置路径 ::</Text>
-                            <Text color="gray">{dbPath}</Text>
+                            <Text color="gray">{dbPath()}</Text>
                         </Box>
                     </Box>
 

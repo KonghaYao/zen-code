@@ -1,5 +1,5 @@
 import { Box, Text } from 'ink';
-import { useWindowSize } from '../../hooks/useWindowSize';
+import { useWindowSize } from '@codegraph/union-client';
 
 interface LimitedOutputProps {
     content: string;

@@ -4,7 +4,7 @@ import MessageHuman from './MessageHuman';
 import MessageAI from './MessageAI';
 import MessageTool from './MessageTool';
 import { RenderMessage } from '@langgraph-js/sdk';
-import { getColor } from '../../utils/colors';
+import { getColor } from '@codegraph/union-client';
 import { useChat } from '@langgraph-js/sdk/react';
 
 export const MessagesBox = ({

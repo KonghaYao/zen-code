@@ -4,7 +4,7 @@ import { RenderMessage } from '@langgraph-js/sdk';
 import { getThinkingContent, getTextContent } from '@langgraph-js/sdk';
 import { useSettings } from '../context/SettingsContext';
 import Markdown from './Markdown';
-import { getColor } from '../../utils/colors';
+import { getColor } from '@codegraph/union-client';
 
 interface MessageAIProps {
     message: RenderMessage;

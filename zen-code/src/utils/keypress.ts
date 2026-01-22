@@ -1,4 +1,10 @@
-// Copied from https://github.com/enquirer/enquirer/blob/36785f3399a41cd61e9d28d1eb9c2fcd73d69b4c/lib/keypress.js
+/**
+ * Keypress parsing utilities
+ * Cross-platform keyboard event parsing for terminal applications
+ * 
+ * Copied from https://github.com/enquirer/enquirer/blob/36785f3399a41cd61e9d28d1eb9c2fcd73d69b4c/lib/keypress.js
+ */
+
 import { Buffer } from 'node:buffer';
 
 const optionKeyCodeRe = /^(?:\x1b)([a-zA-Z0-9])$/;
@@ -100,7 +106,7 @@ const isCtrlKey = (code: string) => {
     return ['Oa', 'Ob', 'Oc', 'Od', 'Oe', '[2^', '[3^', '[5^', '[6^', '[7^', '[8^'].includes(code);
 };
 
-type ParsedKey = {
+export type ParsedKey = {
     name: string;
     ctrl: boolean;
     meta: boolean;
@@ -111,7 +117,7 @@ type ParsedKey = {
     code?: string;
 };
 
-const parseKeypress = (s: Buffer | string = ''): ParsedKey => {
+export const parseKeypress = (s: Buffer | string = ''): ParsedKey => {
     let parts;
 
     if (Buffer.isBuffer(s)) {

@@ -1,84 +1,52 @@
-import { Low } from 'lowdb';
-import { JSONFile } from 'lowdb/node';
-import os from 'os';
-import path from 'path';
-import fs from 'fs';
+/**
+ * 配置存储
+ * 使用 @codegraph/config 包统一管理配置
+ */
 
-export interface AppConfig {
-    main_model: string;
-    model_provider?: string;
-    mcp_config?: MCPConfig;
-    openai_api_key?: string;
-    openai_base_url?: string;
-    anthropic_api_key?: string;
-    anthropic_base_url?: string;
-    stream_refresh_interval?: number;
-    enable_thinking?: boolean;
-    switch_command?: string;
-}
+import { FileSystemConfigStore } from '@codegraph/config';
+import type { AppConfig, MCPConfig } from '@codegraph/config';
 
-export interface MCPConfig { }
-interface Data {
-    config: AppConfig;
-}
+// 导出类型
+export type { AppConfig, MCPConfig };
 
-const defaultData: Data = {
-    config: {
-        main_model: 'claude-sonnet-4-5',
-        model_provider: 'openai',
-    },
-};
+// 创建配置存储实例
+const configStore = new FileSystemConfigStore();
 
-// 将配置文件存储到用户目录
-const userHome = os.homedir();
-const zenConfigDir = path.join(userHome, '.zen-code');
-export const dbPath = path.join(zenConfigDir, 'settings.json');
-const adapter = new JSONFile<Data>(dbPath);
-const db = new Low(adapter, defaultData);
-
+/**
+ * 初始化配置数据库
+ */
 export const initDb = async () => {
-    // 确保配置目录存在
-    await fs.promises.mkdir(zenConfigDir, { recursive: true });
-    await db.read();
-    if (!db.data || !db.data.config) {
-        db.data = defaultData;
-        await db.write();
-    }
-
-    // 将配置设置到环境变量
-    syncEnvFromConfig();
+  await configStore.initialize();
 };
 
-export const getConfig = () => db.data.config;
+/**
+ * 获取配置
+ * 注意：为了兼容性，这里改为异步
+ */
+export const getConfig = async (): Promise<AppConfig> => {
+  return await configStore.getConfig();
+};
+
+/**
+ * 更新配置
+ */
+export const updateConfig = async (newConfig: Partial<AppConfig>) => {
+  await configStore.updateConfig(newConfig);
+};
+
+/**
+ * 获取配置文件路径
+ */
+export const dbPath = (): string => {
+  return configStore.getZenConfigDir() + '/settings.json';
+};
 
 /**
  * 将配置同步到环境变量
+ * 注意：FileSystemConfigStore 已经在 initialize 和 updateConfig 中自动同步
+ * 这个函数保留用于手动同步场景
  */
-export const syncEnvFromConfig = () => {
-    if (db.data.config.model_provider) {
-        process.env.MODEL_PROVIDER = db.data.config.model_provider;
-    }
-    if (db.data.config.openai_api_key) {
-        process.env.OPENAI_API_KEY = db.data.config.openai_api_key;
-    }
-    if (db.data.config.openai_base_url) {
-        process.env.OPENAI_BASE_URL = db.data.config.openai_base_url;
-    }
-    if (db.data.config.anthropic_api_key) {
-        process.env.ANTHROPIC_API_KEY = db.data.config.anthropic_api_key;
-    }
-    if (db.data.config.anthropic_base_url) {
-        process.env.ANTHROPIC_BASE_URL = db.data.config.anthropic_base_url;
-    }
-};
-
-export const updateConfig = async (newConfig: Partial<AppConfig>) => {
-    // 确保配置目录存在
-    await fs.promises.mkdir(zenConfigDir, { recursive: true });
-
-    Object.assign(db.data.config, newConfig);
-    await db.write();
-
-    // 同步更新所有环境变量
-    syncEnvFromConfig();
+export const syncEnvFromConfig = async () => {
+  // 读取配置会自动触发环境变量同步
+  await configStore.getConfig();
 };
