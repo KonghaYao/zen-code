@@ -7,11 +7,11 @@
  * 3. Agent reads full SKILL.md content when relevant to a task
  *
  * Skills directory structure (per-agent + project):
- * User-level: ~/.deepagents/{AGENT_NAME}/skills/
- * Project-level: {PROJECT_ROOT}/.deepagents/skills/
+ * User-level: ~/.claude/{AGENT_NAME}/skills/
+ * Project-level: {PROJECT_ROOT}/.claude/skills/
  *
  * Example structure:
- * ~/.deepagents/{AGENT_NAME}/skills/
+ * ~/.claude/{AGENT_NAME}/skills/
  * ├── web-research/
  * │   ├── SKILL.md        # Required: YAML frontmatter + instructions
  * │   └── helper.py       # Optional: supporting files
@@ -19,7 +19,7 @@
  * │   ├── SKILL.md
  * │   └── checklist.md
  *
- * .deepagents/skills/
+ * .claude/skills/
  * ├── project-specific/
  * │   └── SKILL.md        # Project-specific skills
  */
@@ -83,8 +83,8 @@ Remember: Skills are tools to make you more capable and consistent. When in doub
  * - Agent reads full SKILL.md content when a skill is relevant (progressive disclosure)
  *
  * Supports both user-level and project-level skills:
- * - User skills: ~/.deepagents/{AGENT_NAME}/skills/
- * - Project skills: {PROJECT_ROOT}/.deepagents/skills/
+ * - User skills: ~/.claude/{AGENT_NAME}/skills/
+ * - Project skills: {PROJECT_ROOT}/.claude/skills/
  * - Project skills override user skills with the same name
  */
 export class SkillsMiddleware implements AgentMiddleware {
@@ -121,7 +121,7 @@ export class SkillsMiddleware implements AgentMiddleware {
         }
         // Store display paths for prompts
         if (this.assistantId) {
-            this.userSkillsDisplay = `~/.deepagents/${this.assistantId}/skills`;
+            this.userSkillsDisplay = `~/.claude/${this.assistantId}/skills`;
         }
         this.systemPromptTemplate = SKILLS_SYSTEM_PROMPT;
     }

@@ -1,9 +1,6 @@
 import React, { createContext, useContext, ReactNode, useMemo, useState, useCallback, useEffect } from 'react';
-import { ApprovalRequest, ApprovalStatus } from './types';
-
-// 导出类型
-export type { ApprovalRequest } from './types';
-export { ApprovalStatus } from './types';
+import type { ApprovalRequest } from '../components/Approval/types';
+import { ApprovalStatus } from '../components/Approval/types';
 
 /**
  * 审批上下文接口
@@ -60,14 +57,14 @@ export const ApprovalProvider: React.FC<ApprovalProviderProps> = ({
     // 内部状态管理
     const [requests, setRequests] = useState<ApprovalRequest[]>([]);
     const [activeTab, setActiveTab] = useState<string | null>(null);
-    /**
-         * 执行审批请求的回调
-         *
-         * 这个函数会收到一个 ApprovalRequest，需要调用对应 tool 的 sendResumeData
-         * tool 对象在 terminal.tsx 中添加请求时存储在 request 中
-         */
-    const onExecuteRequest = useCallback(async (request: ApprovalRequest & { tool?: any }) => {
 
+    /**
+     * 执行审批请求的回调
+     *
+     * 这个函数会收到一个 ApprovalRequest，需要调用对应 tool 的 sendResumeData
+     * tool 对象在添加请求时存储在 request 中
+     */
+    const onExecuteRequest = useCallback(async (request: ApprovalRequest & { tool?: any }) => {
         // 从 request 中获取 tool 对象（需要在添加请求时存储）
         const tool = request.tool;
         if (!tool) {
@@ -95,9 +92,10 @@ export const ApprovalProvider: React.FC<ApprovalProviderProps> = ({
                 message,
             });
         } else {
-            console.error('[ChatWrapper] Unknown approval status:', status);
+            console.error('[ApprovalContext] Unknown approval status:', status);
         }
     }, []);
+
     /**
      * 生成唯一 ID
      */
@@ -219,8 +217,6 @@ export const ApprovalProvider: React.FC<ApprovalProviderProps> = ({
         }
     }, [allRequestsProcessed, executeApproved]);
 
-
-
     // 构建上下文值，使用 useMemo 优化性能
     const contextValue = useMemo<ApprovalContextValue>(
         () => ({
@@ -233,7 +229,6 @@ export const ApprovalProvider: React.FC<ApprovalProviderProps> = ({
             executeApproved,
             hasPendingRequests,
             allRequestsProcessed,
-
         }),
         [requests, addApprovalRequest, updateApprovalRequest, removeApprovalRequest, clearCompletedApprovals, executeRequest, executeApproved, hasPendingRequests, allRequestsProcessed]
     );

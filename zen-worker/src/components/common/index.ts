@@ -6,3 +6,5 @@ export type { InputProps } from './Input';
 
 export { Modal } from './Modal';
 export type { ModalProps } from './Modal';
+
+export { JSONViewer } from './JSONViewer';
