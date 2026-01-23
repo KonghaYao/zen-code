@@ -5,9 +5,10 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev:server": "bun run server.ts",
-        "dev:tui": "bun run zen-code/src/app.tsx",
-        "dev:web": "bun run zen-worker",
+        "dev:server": "bun run ./packages/agent/src/server.ts",
+        "dev:tui": "bun run zen-code/src/cli.ts",
+        "dev:web": "cd zen-worker && bun run dev",
+        "dev:all": "pnpm-run-all --parallel dev:server dev:web",
         "dev": "pnpm dev:server",
         "preview:bun": "bun run zen-code/dist/cli.mjs",
         "preview": "node --env-file=.env zen-code/dist/cli.mjs",

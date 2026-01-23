@@ -5,8 +5,8 @@ import { MessagesBox } from './components/MessageBox';
 import HistoryPanel from './components/HistoryPanel';
 import { ChatProvider, useChat } from '@langgraph-js/sdk/react';
 import { Message } from '@langgraph-js/sdk';
-import { SettingsProvider, useSettings } from './context/SettingsContext';
-import { ChatInputBufferProvider, useChatInputBuffer } from './context/ChatInputBufferContext';
+import { SettingsProvider, useSettings } from '@codegraph/union-client';
+import { ChatInputBufferProvider, useChatInputBuffer } from '@codegraph/union-client';
 import { useCommandHandler } from './context/CommandHandler';
 import { LangGraphFetch } from '@codegraph/agent/src/export';
 import WelcomeHeader from './components/WelcomeHeader';
@@ -19,11 +19,13 @@ import ModelPanel from './components/ModelPanel';
 import AgentPanel from './components/AgentPanel';
 import StatusBar from './components/StatusBar';
 import { useInput } from '../utils/use-input';
-import { ApprovalProvider, useApproval } from './context/ApprovalContext';
+import { ApprovalProvider, useApproval } from '@codegraph/union-client';
 import { GlobalApprovalPanel } from './components/GlobalApprovalPanel';
 
 import { InteractionProvider, useInteractionContext, UnifiedUIPanel } from './interaction';
 import { useRalphLoop } from './hooks/useRalphLoop';
+import { get_allowed_models } from '@codegraph/agent/src/utils/get_allowed_models';
+import { configStore } from './store';
 
 const ChatMessages = () => {
     const { renderMessages, loading, inChatError, isFELocking } = useChat();
@@ -273,7 +275,7 @@ const ChatWrapper: React.FC = () => {
             autoRestoreLastSession
         >
             <ChatInputBufferProvider>
-                <SettingsProvider>
+                <SettingsProvider get_allowed_models={get_allowed_models} manager={configStore}>
                     <ApprovalProvider>
                         <InteractionProvider>
                             <Chat />

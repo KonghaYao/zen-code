@@ -23,12 +23,13 @@ const defaultData: Data = {
 export class FileSystemConfigStore implements IConfigStore {
   private db: Low<Data>;
   private zenConfigDir: string;
-
+  public dbPath: string
   constructor() {
     const userHome = os.homedir();
     this.zenConfigDir = path.join(userHome, '.zen-code');
     const dbPath = path.join(this.zenConfigDir, 'settings.json');
     const adapter = new JSONFile<Data>(dbPath);
+    this.dbPath = dbPath
     this.db = new Low(adapter, defaultData);
   }
 

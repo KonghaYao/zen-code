@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Text } from 'ink';
 import EnhancedTextInput from './EnhancedTextInput';
-import { useChatInputBuffer } from '../../context/ChatInputBufferContext';
+import { useChatInputBuffer } from '@codegraph/union-client';
 
 export interface ChatInputBufferProps {
     value: string;
@@ -105,8 +105,8 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
                                 ? '按 Esc 清空缓冲区'
                                 : 'AI 响应中，Enter 将消息加入缓冲区'
                             : isCommandInput
-                            ? '输入命令... (试试 /help)'
-                            : placeholder
+                                ? '输入命令... (试试 /help)'
+                                : placeholder
                     }
                 />
             </Box>

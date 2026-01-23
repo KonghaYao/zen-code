@@ -11,6 +11,7 @@ export class ConfigManager {
   private skillStore: ISkillStore;
   private pluginStore: IPluginStore;
   private remoteStore?: IRemoteStore;
+  private _initialized: boolean = false;
 
   constructor(
     configStore: IConfigStore,
@@ -24,33 +25,76 @@ export class ConfigManager {
     this.remoteStore = remoteStore;
   }
 
+  /**
+   * 初始化管理器（延迟初始化）
+   * 必须在使用其他方法前调用
+   */
+  async initialize(): Promise<void> {
+    if (this._initialized) {
+      return;
+    }
+
+    // 初始化 configStore
+    if ('initialize' in this.configStore && typeof this.configStore.initialize === 'function') {
+      await this.configStore.initialize();
+    }
+
+    // 初始化 skillStore
+    if ('initialize' in this.skillStore && typeof this.skillStore.initialize === 'function') {
+      await this.skillStore.initialize();
+    }
+
+    // 初始化 pluginStore
+    if ('initialize' in this.pluginStore && typeof this.pluginStore.initialize === 'function') {
+      await this.pluginStore.initialize();
+    }
+
+    this._initialized = true;
+  }
+
+  /**
+   * 确保已初始化（内部使用）
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (!this._initialized) {
+      throw new Error('ConfigManager not initialized. Call await manager.initialize() first.');
+    }
+  }
+
   // 配置相关
   async getConfig(): Promise<AppConfig> {
+    await this.ensureInitialized();
     return await this.configStore.getConfig();
   }
 
   async updateConfig(config: Partial<AppConfig>): Promise<void> {
+    await this.ensureInitialized();
     return await this.configStore.updateConfig(config);
   }
 
   // Skills 相关
   async listSkills(): Promise<Skill[]> {
+    await this.ensureInitialized();
     return await this.skillStore.listSkills();
   }
 
   async getSkill(name: string): Promise<SkillContent | null> {
+    await this.ensureInitialized();
     return await this.skillStore.getSkill(name);
   }
 
   async saveSkill(name: string, content: SkillContent): Promise<void> {
+    await this.ensureInitialized();
     return await this.skillStore.saveSkill(name, content);
   }
 
   async deleteSkill(name: string): Promise<void> {
+    await this.ensureInitialized();
     return await this.skillStore.deleteSkill(name);
   }
 
   async syncSkillsFromRemote(): Promise<void> {
+    await this.ensureInitialized();
     if (!this.remoteStore) {
       throw new Error('Remote store not configured');
     }
@@ -59,39 +103,32 @@ export class ConfigManager {
 
   // Plugins 相关
   async listPlugins(): Promise<Plugin[]> {
+    await this.ensureInitialized();
     return await this.pluginStore.listPlugins();
   }
 
   async getPluginConfig(name: string): Promise<PluginConfig | null> {
+    await this.ensureInitialized();
     return await this.pluginStore.getPluginConfig(name);
   }
 
   async updatePluginConfig(name: string, config: PluginConfig): Promise<void> {
+    await this.ensureInitialized();
     return await this.pluginStore.updatePluginConfig(name, config);
   }
 
   async installPlugin(name: string, source: PluginSource): Promise<void> {
+    await this.ensureInitialized();
     return await this.pluginStore.installPlugin(name, source);
   }
 
   async uninstallPlugin(name: string): Promise<void> {
+    await this.ensureInitialized();
     return await this.pluginStore.uninstallPlugin(name);
   }
-
-  /**
-   * 工厂方法：创建默认的文件系统 ConfigManager
-   */
-  static async createFS(): Promise<ConfigManager> {
-    const { FileSystemConfigStore } = await import('./implementations/FileSystemConfigStore.js');
-    const { FileSystemSkillStore } = await import('./implementations/FileSystemSkillStore.js');
-    const { FileSystemPluginStore } = await import('./implementations/FileSystemPluginStore.js');
-
-    const configStore = new FileSystemConfigStore();
-    const skillStore = new FileSystemSkillStore();
-    const pluginStore = new FileSystemPluginStore();
-
-    await configStore.initialize();
-
-    return new ConfigManager(configStore, skillStore, pluginStore);
+  /** fs 专用 */
+  getConfigPath() {
+    /** @ts-ignore */
+    return this.configStore?.dbPath
   }
 }

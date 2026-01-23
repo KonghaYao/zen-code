@@ -3,7 +3,7 @@
  * 这个文件可以作为添加新命令的参考
  */
 
-import { dbPath, getConfig } from '../store/index';
+import { configStore } from '../store/index';
 import { type CommandDefinition } from './types';
 
 /**
@@ -112,7 +112,7 @@ export const configCommand: CommandDefinition = {
     execute: async (args: string[], context) => {
         // 无参数：显示所有配置
         if (args.length === 0) {
-            const config = await getConfig();
+            const config = await configStore.getConfig();
             const hasOpenAIKey = !!config.openai_api_key;
             const hasOpenAIBaseUrl = !!config.openai_base_url;
             const hasAnthropicKey = !!config.anthropic_api_key;
@@ -120,7 +120,7 @@ export const configCommand: CommandDefinition = {
 
             const configLines = [
                 '当前配置:',
-                dbPath(),
+                configStore.getConfigPath(),
                 `  main_model: ${config.main_model || 'N/A'}`,
                 `  model_provider: ${config.model_provider || 'openai'}`,
                 `  enable_thinking: ${config.enable_thinking ?? true}`,

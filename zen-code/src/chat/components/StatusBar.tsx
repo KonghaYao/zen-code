@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import { useSettings } from '../context/SettingsContext';
+import { useSettings } from '@codegraph/union-client';
 import { useChat } from '@langgraph-js/sdk/react';
 import { MCPStatusPanel } from './MCPStatusPanel';
 

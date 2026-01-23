@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode, useMemo, useState, useCallback, useEffect } from 'react';
-import { ApprovalRequest, ApprovalStatus } from '../components/GlobalApprovalPanel/types';
+import { ApprovalRequest, ApprovalStatus } from './types';
 
 /**
  * 审批上下文接口

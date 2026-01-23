@@ -7,7 +7,7 @@ import { Spacer, Text } from 'ink';
 import { UniversalPanel } from './Panel/UniversalPanel';
 import { SelectItem } from './Panel/SelectItem';
 import { PanelConfig } from './Panel/types';
-import { useSettings } from '../context/SettingsContext';
+import { useSettings } from '@codegraph/union-client';
 import type { ModelConfig } from '@codegraph/agent/src/utils/get_allowed_models';
 
 interface ModelPanelProps {

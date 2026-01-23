@@ -2,7 +2,7 @@ import { useMemo, useCallback, forwardRef, useImperativeHandle, useEffect, useSt
 import { Box, Text } from 'ink';
 import { Tabs, TabItem } from '../input/Tabs';
 import { ApprovalItem } from './ApprovalItem';
-import { useApproval } from '../../context/ApprovalContext';
+import { useApproval } from '@codegraph/union-client';
 import { ApprovalRequest, ApprovalStatus } from './types';
 import useInput from '../../../utils/use-input';
 
