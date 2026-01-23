@@ -82,7 +82,7 @@ export interface PanelConfig<T = any> {
   // 虚拟滚动配置
   /** 每项高度 (行数) */
   itemHeight: number;
-  /** 可见数量 (默认 20) */
+  /** 可见数量 (默认 8) */
   visibleCount?: number;
 
   // 额外配置

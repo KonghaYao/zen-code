@@ -8,6 +8,6 @@
         "declarationMap": true,
         "sourceMap": true
     },
-    "include": ["src/**/*", "../../zen-code/src/chat/store/index.ts"],
+    "include": ["src/**/*"],
     "exclude": ["node_modules", "dist"]
 }

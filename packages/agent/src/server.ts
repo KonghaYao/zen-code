@@ -24,7 +24,7 @@ app.use('/api/*', async (c, next) => {
   const path = c.req.path;
   // ConfigServer 路由前缀
   if (path.startsWith('/api/config') ||
-    path.startsWith('/api/skill') ||
+    path.startsWith('/api/skills') ||
     path.startsWith('/api/plugins') ||
     path.startsWith('/api/plugin') ||
     path.startsWith('/api/health')) {
@@ -40,9 +40,6 @@ app.route('/api/models', createModelsRouter());
 app.route("/api/langgraph", LGApp)
 
 export default {
-  fetch: (...args) => {
-    console.log(args[0]);
-    return app.fetch(...args)
-  },
+  fetch: app.fetch,
   port: 8123,
 };
