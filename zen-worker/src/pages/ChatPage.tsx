@@ -12,8 +12,7 @@ import { cn } from '../lib/utils';
 
 import { useSettings } from '@codegraph/union-client';
 import { useApprovalIntegration } from '../hooks/useApprovalIntegration';
-import { UnifiedUIPanel } from '../interaction';
-import { useInteractionContext } from '../interaction';
+import { UnifiedUIPanel, useInteractionContext } from '../interaction';
 import DefaultTools from '../tools';
 import { Streamdown } from 'streamdown';
 import { code } from '@streamdown/code';
@@ -32,12 +31,17 @@ export function ChatPage() {
     sendMessage,
     stopGeneration,
     setTools,
+    currentChatId,
   } = useChat();
   const { extraParams } = useSettings();
 
   useEffect(() => {
     setTools(DefaultTools);
   }, [setTools]);
+
+  // MODIFIED: 移除 clearAll() 调用
+  // 现在通过 chatId 进行会话隔离，不需要清空 InteractionContext
+  // 每个会话的交互通过 metadata.chatId 字段区分
 
   useApprovalIntegration();
 
@@ -86,9 +90,9 @@ export function ChatPage() {
       {/* 消息列表 */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-4 py-8">
-          {/* 统一交互面板 */}
+          {/* 统一交互面板 - Sticky 定位 */}
           {hasPendingInteractions && (
-            <div className="mb-6">
+            <div className="sticky top-0 z-10 mb-6 py-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 -mx-4 px-4">
               <UnifiedUIPanel />
             </div>
           )}

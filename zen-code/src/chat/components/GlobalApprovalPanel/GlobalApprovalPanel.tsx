@@ -3,7 +3,7 @@ import { Box, Text } from 'ink';
 import { Tabs, TabItem } from '../input/Tabs';
 import { ApprovalItem } from './ApprovalItem';
 import { useApproval } from '@codegraph/union-client';
-import { ApprovalRequest, ApprovalStatus } from './types';
+import { ApprovalRequest, ApprovalStatus } from '@codegraph/union-client';
 import useInput from '../../../utils/use-input';
 
 interface GlobalApprovalPanelProps {

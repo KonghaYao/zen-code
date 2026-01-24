@@ -5,5 +5,5 @@
  */
 
 // 导出 union-client 中的类型
-export type { ApprovalRequest, ApprovalCallbacks } from '@codegraph/union-client';
+export type { ApprovalRequest } from '@codegraph/union-client';
 export { ApprovalStatus } from '@codegraph/union-client';

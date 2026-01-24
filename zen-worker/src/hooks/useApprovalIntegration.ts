@@ -106,95 +106,112 @@ function getMessageId(message: any): string {
  * 2. 将工具调用添加到 InteractionContext（通过 exists 检测避免重复）
  * 3. 执行逻辑由 UnifiedUIPanel 中的渲染器处理（通过 tool.sendResumeData 发送结果）
  *
+ * MODIFIED: 会话隔离逻辑
+ * - 为每个交互添加 chatId 字段，实现会话隔离
+ * - 检测重复时，只检查当前会话（chatId）的交互
+ * - 会话切换时不再清空 InteractionContext，避免历史交互丢失
+ *
  * 关键机制：
  * - 所有工具（包括 ask_user_with_options、terminal）都统一处理
- * - 通过 exists 检测避免重复添加
+ * - 通过 chatId + 工具名+参数 检测避免重复添加
  * - HITL 中间件生效时：工具 render 函数先添加，exists 检测跳过
  * - HITL 中间件未生效时：此 Hook 添加，工具 render 函数通过 getInteractions() 查找
  */
 export const useApprovalIntegration = () => {
-    const { renderMessages } = useChat();
+    const { renderMessages, currentChatId } = useChat();
     const { addInteraction, getInteractions } = useInteractionContext();
-    const processedMessageIds = useRef<Set<string>>(new Set());
 
     // 调试：打印消息数量
     useEffect(() => {
-        console.log('[useApprovalIntegration] renderMessages count:', renderMessages.length);
-    }, [renderMessages]);
+        console.log('[useApprovalIntegration] renderMessages count:', renderMessages.length, 'chatId:', currentChatId);
+    }, [renderMessages, currentChatId]);
 
     /**
-     * 监听 renderMessages 变化，检测新的工具调用
+     * MODIFIED: 监听 renderMessages 变化，检测新的工具调用
+     *
+     * 去重逻辑：
+     * 1. 只检查当前会话（chatId）的交互
+     * 2. 对于每个工具调用消息，检查当前会话中是否已存在（工具名+参数匹配）
+     * 3. 只添加不存在的工具调用
+     * 4. 为每个交互添加 chatId 字段，实现会话隔离
+     *
+     * 注意：移除 getInteractions 依赖，避免无限循环（每次添加交互都会更新 getInteractions 的引用）
      */
     useEffect(() => {
-        console.log('[useApprovalIntegration] Checking renderMessages:', renderMessages.length);
+        if (!currentChatId) {
+            console.log('[useApprovalIntegration] No chatId, skipping');
+            return;
+        }
+
+        console.log('[useApprovalIntegration] Checking renderMessages:', renderMessages.length, 'chatId:', currentChatId);
+
+        // MODIFIED: 获取当前交互列表（用于去重检查）
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        const currentInteractions = getInteractions();
+        const currentSessionInteractions = currentInteractions.filter(i => i.metadata.chatId === currentChatId);
+
+        console.log('[useApprovalIntegration] Current session interactions count:', currentSessionInteractions.length);
 
         for (const message of renderMessages) {
-            const messageId = getMessageId(message);
-
-            // 如果已经处理过这个消息，跳过
-            if (processedMessageIds.current.has(messageId)) {
-                continue;
-            }
-
             // 检查是否是工具调用
             if (isToolCallMessage(message)) {
-                console.log('[useApprovalIntegration] Found tool call message:', message.type, message.name);
-                console.log('[useApprovalIntegration] Full message:', message);
-                console.log('[useApprovalIntegration] message.content:', message.content);
-                console.log('[useApprovalIntegration] message.input:', message.input);
-
                 const toolCallInfo = extractToolCallInfo(message);
 
                 if (toolCallInfo) {
-                    console.log('[useApprovalIntegration] Extracted toolCallInfo:', toolCallInfo);
-
-                    // MODIFIED: 跳过白名单中的工具（这些工具自己创建交互）
+                    // 跳过白名单中的工具（这些工具自己创建交互）
                     if (SKIP_TOOLS.includes(toolCallInfo.name)) {
-                        console.log('[useApprovalIntegration] ⚠️ Skipping tool (self-handled):', toolCallInfo.name);
-                        processedMessageIds.current.add(messageId);
+                        console.log('[useApprovalIntegration] Skipping tool (self-handled):', toolCallInfo.name);
                         continue;
                     }
 
-                    // 检查是否已经在交互队列中
-                    const interactions = getInteractions();
-                    const exists = interactions.some(i =>
+                    // MODIFIED: 检查当前会话中是否已经存在（工具名+参数匹配）
+                    const exists = currentSessionInteractions.some(i =>
                         i.content.type === 'approval' &&
                         i.content.toolCall.name === toolCallInfo.name &&
                         JSON.stringify(i.content.toolCall.args) === JSON.stringify(toolCallInfo.args)
                     );
 
-                    if (!exists) {
-                        console.log('[useApprovalIntegration] Adding tool to interaction queue:', toolCallInfo.name);
-
-                        addInteraction(
-                            {
-                                type: 'approval',
-                                toolCall: {
-                                    name: toolCallInfo.name,
-                                    args: toolCallInfo.args,
-                                },
-                                editableFields: ['args'],
-                            },
-                            {
-                                tool: toolCallInfo.tool, // 存储 tool 对象，工具的 render 函数会用它调用 sendResumeData
-                                metadata: {
-                                    title: `审批 ${toolCallInfo.name}`,
-                                    description: (message as any).description,
-                                    groupKey: 'approvals',
-                                },
-                            }
-                        );
-
-                        // 标记为已处理
-                        processedMessageIds.current.add(messageId);
+                    if (exists) {
+                        console.log('[useApprovalIntegration] Tool already exists in current session, skipping:', toolCallInfo.name);
+                        continue;
                     }
+
+                    // MODIFIED: 只添加真正新的工具调用，并附带 chatId
+                    console.log('[useApprovalIntegration] Adding new tool to interaction queue:', toolCallInfo.name, 'chatId:', currentChatId);
+
+                    addInteraction(
+                        {
+                            type: 'approval',
+                            toolCall: {
+                                name: toolCallInfo.name,
+                                args: toolCallInfo.args,
+                            },
+                            editableFields: ['args'],
+                        },
+                        {
+                            tool: toolCallInfo.tool, // 存储 tool 对象，工具的 render 函数会用它调用 sendResumeData
+                            metadata: {
+                                title: `审批 ${toolCallInfo.name}`,
+                                description: (message as any).description,
+                                groupKey: 'approvals',
+                                chatId: currentChatId, // MODIFIED: 添加 chatId 实现会话隔离
+                            },
+                        }
+                    );
                 }
             }
         }
-    }, [renderMessages, addInteraction, getInteractions]);
+    }, [renderMessages, addInteraction, currentChatId]);
 
     return {
-        hasPendingApprovals: getInteractions().some(i => i.content.type === 'approval' && (i.state === 'idle' || i.state === 'active')),
-        approvalCount: getInteractions().filter(i => i.content.type === 'approval').length,
+        hasPendingApprovals: getInteractions().some(i =>
+            i.content.type === 'approval' &&
+            (i.state === 'idle' || i.state === 'active') &&
+            i.metadata.chatId === currentChatId
+        ),
+        approvalCount: getInteractions().filter(i =>
+            i.content.type === 'approval' &&
+            i.metadata.chatId === currentChatId
+        ).length,
     };
 };

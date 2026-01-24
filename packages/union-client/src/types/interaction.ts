@@ -47,6 +47,8 @@ export interface InteractionMetadata {
   groupKey?: string;
   /** 消息索引（关联的消息） */
   messageIndex?: number;
+  /** 会话 ID（用于会话隔离） */
+  chatId?: string;
 }
 
 /**

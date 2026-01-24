@@ -4,7 +4,7 @@
  * 显示审批选择器、编辑器
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ApprovalRequest } from './types';
 import { ApprovalStatus } from './types';
 
@@ -40,6 +40,15 @@ export const ApprovalItem: React.FC<ApprovalItemProps> = ({
 
     const messageIndex = request.messageIndex;
     const description = request.description;
+
+    // MODIFIED: 当 request.status 变化时重置编辑状态
+    useEffect(() => {
+        if (request.status === 'pending') {
+            setEditing(false);
+            setEditValue('');
+            setSelectState('approve');
+        }
+    }, [request.status]);
 
     const handleEditSubmit = () => {
         if (!editValue.trim()) return;
@@ -205,6 +214,34 @@ export const ApprovalItem: React.FC<ApprovalItemProps> = ({
             </div>
         );
     };
+
+    // MODIFIED: 如果已经处理过，显示状态而不是操作按钮
+    if (request.status !== 'pending' && !isEditing) {
+        const statusConfig = {
+            approved: { text: '已批准', color: 'green', icon: '✅' },
+            rejected: { text: '已拒绝', color: 'red', icon: '❌' },
+            edited: { text: '已编辑并提交', color: 'yellow', icon: '✏️' },
+        };
+
+        const config = statusConfig[request.status as keyof typeof statusConfig];
+        if (config) {
+            return (
+                <div className={`bg-${config.color}-50 border-l-4 border-${config.color}-500 p-4 rounded`}>
+                    <div className={`font-bold text-${config.color}-600 mb-1 flex items-center gap-2`}>
+                        <span>{config.icon}</span>
+                        <span>{config.text}</span>
+                    </div>
+                    <div className="text-sm text-gray-600 font-medium">{request.toolCall.name}</div>
+                    {messageIndex !== undefined && (
+                        <div className="text-xs text-gray-500 mt-1">消息索引: {messageIndex}</div>
+                    )}
+                    {description && (
+                        <div className="text-xs text-gray-500 mt-1">{description}</div>
+                    )}
+                </div>
+            );
+        }
+    }
 
     return isEditing ? renderEditUI() : renderActionSelector();
 };

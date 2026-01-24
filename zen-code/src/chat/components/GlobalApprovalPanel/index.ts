@@ -7,8 +7,4 @@
 export { GlobalApprovalPanel } from './GlobalApprovalPanel';
 export type { GlobalApprovalPanelRef } from './GlobalApprovalPanel';
 export { ApprovalItem } from './ApprovalItem';
-export type {
-    ApprovalRequest,
-    ApprovalStatus,
-    ApprovalCallbacks,
-} from './types';
+

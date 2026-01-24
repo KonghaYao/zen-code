@@ -2,7 +2,7 @@ import { Box, Text, useFocusManager, useInput } from 'ink';
 import { useState } from 'react';
 import { MultiSelectPro } from '../input/MultiSelect';
 import { EnhancedTextInput } from '../input/EnhancedTextInput';
-import { ApprovalRequest, ApprovalStatus } from './types';
+import { ApprovalRequest, ApprovalStatus } from '@codegraph/union-client';
 
 /**
  * Color scheme for approval actions

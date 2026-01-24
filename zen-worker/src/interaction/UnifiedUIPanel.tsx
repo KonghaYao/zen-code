@@ -7,29 +7,40 @@
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useInteractionContext } from '@codegraph/union-client';
+import { useChat } from '@langgraph-js/sdk/react';
 import { rendererRegistry } from './registry';
 import { InteractionRendererWrapper } from './InteractionRendererWrapper';
 import type { PanelInteraction } from './types';
 
 /**
  * 统一 UI 面板组件
+ *
+ * MODIFIED: 支持 chatId 会话隔离
+ * - 只显示当前会话（chatId）的交互
+ * - 会话切换时，activeTab 自动重置
  */
 export const UnifiedUIPanel: React.FC = () => {
   const ctx = useInteractionContext();
+  const { currentChatId } = useChat();
   const [activeTab, setActiveTab] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  // 获取所有待处理的交互
-  const pendingInteractions = useMemo(
-    () => ctx.getInteractions().filter(i => i.state === 'idle' || i.state === 'active'),
-    [ctx.getInteractions(), refreshKey]
+  // MODIFIED: 当会话切换时，重置 activeTab
+  useEffect(() => {
+    console.log('[UnifiedUIPanel] Session changed, resetting activeTab:', currentChatId);
+    setActiveTab(null);
+  }, [currentChatId]);
+
+  // MODIFIED: 只获取当前会话的交互
+  const allSessionInteractions = useMemo(
+    () => ctx.getInteractions().filter(i => i.metadata.chatId === currentChatId),
+    [ctx.updateCount, currentChatId]
   );
 
-  // 刷新交互列表
-  const handleRefresh = useCallback(() => {
-    setRefreshKey(prev => prev + 1);
-    console.log('[UnifiedUIPanel] Refreshed interactions');
-  }, []);
+  // MODIFIED: 当前会话中未处理的交互
+  const pendingInteractions = useMemo(
+    () => allSessionInteractions.filter(i => i.state === 'idle' || i.state === 'active'),
+    [allSessionInteractions]
+  );
 
   // 初始化和自动切换 activeTab
   useEffect(() => {
@@ -42,10 +53,11 @@ export const UnifiedUIPanel: React.FC = () => {
     }
   }, [pendingInteractions, activeTab]);
 
-  // 批量执行所有已处理的交互
+  // MODIFIED: 批量执行所有已处理的交互（仅当前会话）
   const executeApproved = useCallback(async () => {
+    console.log('[UnifiedUIPanel] Submitting all interactions, chatId:', currentChatId);
     await ctx.submitInteractions();
-  }, [ctx]);
+  }, [ctx, currentChatId]);
 
   // 快捷键: Alt+E 执行所有已处理的交互
   useEffect(() => {
@@ -91,7 +103,8 @@ export const UnifiedUIPanel: React.FC = () => {
   const renderCurrentInteraction = () => {
     if (!activeTab) return null;
 
-    const interaction = pendingInteractions.find(i => i.id === activeTab);
+    // MODIFIED: 从当前会话的所有交互中查找（包括已处理的），以便正确显示状态
+    const interaction = allSessionInteractions.find(i => i.id === activeTab);
     if (!interaction) return null;
 
     const renderer = rendererRegistry.get(interaction.content.type);
@@ -108,6 +121,7 @@ export const UnifiedUIPanel: React.FC = () => {
 
     return (
       <InteractionRendererWrapper
+        key={`${interaction.id}-${interaction.state}`} // MODIFIED: 添加 key 确保状态变化时重新渲染
         interaction={interaction}
         renderer={renderer}
         onChange={(updates) => {
@@ -135,12 +149,19 @@ export const UnifiedUIPanel: React.FC = () => {
     confirm: '❓',
   };
 
+  // 状态标记映射
+  const statusBadgeMap: Record<string, { text: string; color: string }> = {
+    submitted: { text: '✓', color: 'bg-green-500' },
+    edited: { text: '✏️', color: 'bg-yellow-500' },
+    cancelled: { text: '✗', color: 'bg-red-500' },
+  };
+
   return (
     <div className="border-2 border-blue-500 rounded-lg p-4 bg-white shadow-lg">
       {/* 标题栏 */}
       <div className="flex items-center justify-between mb-4 pb-3 border-b">
         <h2 className="text-lg font-semibold text-gray-700">
-          待处理交互 ({pendingInteractions.length})
+          交互列表 ({pendingInteractions.length} 待处理 / {allSessionInteractions.length} 总计)
         </h2>
         <div className="flex items-center gap-3">
           {ctx.hasPendingInteractions && (
@@ -149,14 +170,15 @@ export const UnifiedUIPanel: React.FC = () => {
             </span>
           )}
           <button
-            onClick={handleRefresh}
-            className="text-sm text-blue-500 hover:text-blue-700 flex items-center gap-1"
-            title="刷新交互列表"
-          >
-            🔄 刷新
-          </button>
-          <button
-            onClick={ctx.clearCompleted}
+            onClick={() => {
+              // MODIFIED: 只清空当前会话的已完成交互
+              const toKeep = allSessionInteractions.filter(i => i.state === 'idle' || i.state === 'active');
+              const toRemove = ctx.getInteractions().filter(i =>
+                i.metadata.chatId === currentChatId &&
+                (i.state === 'submitted' || i.state === 'edited' || i.state === 'cancelled')
+              );
+              toRemove.forEach(i => ctx.removeInteraction(i.id));
+            }}
             className="text-sm text-gray-500 hover:text-gray-700"
           >
             清空已完成
@@ -166,24 +188,33 @@ export const UnifiedUIPanel: React.FC = () => {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-4 overflow-x-auto">
-        {pendingInteractions.map((interaction) => {
+        {allSessionInteractions.map((interaction) => {
           const isActive = interaction.id === activeTab;
           const icon = iconMap[interaction.content.type] || '📌';
           const title = interaction.metadata.title || interaction.content.type;
+          const isProcessed = interaction.state === 'submitted' || interaction.state === 'edited' || interaction.state === 'cancelled';
+          const statusBadge = isProcessed ? statusBadgeMap[interaction.state] : null;
 
           return (
             <button
               key={interaction.id}
               onClick={() => setActiveTab(interaction.id)}
               className={`
-                px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap
+                relative px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap
                 ${isActive
                   ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : isProcessed
+                    ? 'bg-gray-200 text-gray-500 hover:bg-gray-300'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }
               `}
             >
               {icon} {title}
+              {statusBadge && (
+                <span className={`absolute -top-1 -right-1 ${statusBadge.color} text-white text-xs rounded-full w-4 h-4 flex items-center justify-center`}>
+                  {statusBadge.text}
+                </span>
+              )}
             </button>
           );
         })}

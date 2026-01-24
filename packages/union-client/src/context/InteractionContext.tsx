@@ -70,6 +70,12 @@ export interface InteractionContextValue {
    */
   removeInteraction: (id: string) => void;
 
+  /**
+   * 清空所有交互
+   * 用于会话切换时重置状态
+   */
+  clearAll: () => void;
+
   // ========== 查询 ==========
   /**
    * 获取单个交互
@@ -108,6 +114,16 @@ export interface InteractionContextValue {
   clearCompleted: () => void;
 
   // ========== 状态 ==========
+  /**
+   * 所有交互列表（只读）
+   */
+  interactions: AnyPanelInteraction[];
+
+  /**
+   * 交互版本号（用于强制更新）
+   */
+  updateCount: number;
+
   /**
    * 是否有待处理的交互
    */
@@ -156,6 +172,7 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({
 }) => {
   // 内部状态管理
   const [interactions, setInteractions] = useState<AnyPanelInteraction[]>([]);
+  const [updateCount, setUpdateCount] = useState(0);
 
   /**
    * 生成唯一 ID
@@ -211,6 +228,7 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({
 
 
     setInteractions(prev => [...prev, newInteraction as any]);
+    setUpdateCount(c => c + 1);
 
     return newInteraction;
   }, [generateId]);
@@ -227,7 +245,7 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({
         ? { ...int, ...updates, updatedAt: new Date() } as any
         : int
     ));
-
+    setUpdateCount(c => c + 1);
   }, []);
 
   /**
@@ -235,6 +253,16 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({
    */
   const removeInteraction = useCallback((id: string) => {
     setInteractions(prev => prev.filter(int => int.id !== id));
+    setUpdateCount(c => c + 1);
+  }, []);
+
+  /**
+   * 清空所有交互
+   * 用于会话切换时重置状态
+   */
+  const clearAll = useCallback(() => {
+    setInteractions([]);
+    setUpdateCount(c => c + 1);
   }, []);
 
   /**
@@ -246,9 +274,10 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({
 
   /**
    * 获取所有交互
+   * MODIFIED: 返回数组副本以确保每次调用都有新引用，触发依赖更新
    */
   const getInteractions = useCallback(() => {
-    return interactions;
+    return [...interactions];
   }, [interactions]);
 
   /**
@@ -293,6 +322,7 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({
     setInteractions(prev => prev.filter(
       int => int.state === 'idle' || int.state === 'active'
     ));
+    setUpdateCount(c => c + 1);
   }, []);
 
   // ========== 计算属性 ==========
@@ -335,12 +365,15 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({
       addInteraction,
       updateInteraction,
       removeInteraction,
+      clearAll,
       getInteraction,
       getInteractions,
       getInteractionsByState,
       getInteractionsByContent,
       submitInteractions,
       clearCompleted,
+      interactions,
+      updateCount,
       hasPendingInteractions,
       allInteractionsProcessed,
     }),
@@ -348,12 +381,15 @@ export const InteractionProvider: React.FC<InteractionProviderProps> = ({
       addInteraction,
       updateInteraction,
       removeInteraction,
+      clearAll,
       getInteraction,
       getInteractions,
       getInteractionsByState,
       getInteractionsByContent,
       submitInteractions,
       clearCompleted,
+      interactions,
+      updateCount,
       hasPendingInteractions,
       allInteractionsProcessed,
     ]
