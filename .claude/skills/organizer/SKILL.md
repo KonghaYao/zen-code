@@ -1,6 +1,6 @@
 ---
 name: 'organizer'
-description: '知识整理和文档维护'
+description: '如果你需要整理记忆，那么参考这份记忆整理文档'
 tags: ['documentation', 'knowledge-management']
 ---
 

@@ -1,10 +1,10 @@
 ---
 name: "complete-refactoring-2025-q1"
-description: "2025年Q1完整重构总结：从零散组件到统一架构。涵盖UI交互系统v2.0、TUI面板系统、配置管理统一、跨平台支持、代码共享、前端集成等六大核心领域。关键模式：分层架构、泛型组件系统、可插拔渲染器、依赖注入、Context模式。适用于需要系统性重构的大型TUI+Web应用。"
-tags: ["refactoring", "architecture", "ui-system", "config-management", "cross-platform", "code-sharing", "union-client", "tui", "web-ui"]
+description: "2025年Q1完整重构总结：从零散组件到统一架构。涵盖UI交互系统v2.0、TUI面板系统、配置管理统一、跨平台支持、代码共享、前端集成等六大核心领域。关键模式：分层架构、泛型组件系统、可插拔渲染器、依赖注入、Context模式。统一 InteractionContext 迁移到 union-client，实现 zen-code 和 zen-worker 代码共享。适用于需要系统性重构的大型TUI+Web应用。"
+tags: ["refactoring", "architecture", "ui-system", "config-management", "cross-platform", "code-sharing", "union-client", "tui", "web-ui", "interaction-context"]
 category: "architecture"
 created: "2025-01-23"
-last_updated: "2025-01-23"
+last_updated: "2025-01-24"
 priority: "high"
 context_scope: "project"
 ---
@@ -20,7 +20,7 @@ context_scope: "project"
 - **2025-01-20**: UI交互系统v2.0、统一面板架构
 - **2025-01-21**: 配置管理统一、跨平台实现
 - **2025-01-22**: LangGraph SDK集成、Web UI开发
-- **2025-01-23**: Hono中间件集成、远程配置管理
+- **2025-01-23**: Hono中间件集成、远程配置管理、InteractionContext迁移到union-client
 
 ### 核心目标
 1. **统一交互模式** - TUI和Web UI一致的用户体验
@@ -49,9 +49,77 @@ context_scope: "project"
 - **独立Tab显示** - 每个交互独立显示，执行完自动隐藏
 - **类型安全组合** - 通过组合基础类型实现复杂交互
 
-**关键实现**：
+### 分层架构实现
+
+**基础类型层** (`union-client/src/types/interaction.ts`):
 ```typescript
-// 注册自定义渲染器
+enum InteractionState {
+  IDLE = 'idle',
+  ACTIVE = 'active',
+  SUBMITTED = 'submitted',
+  CANCELLED = 'cancelled',
+  EDITED = 'edited',
+}
+
+enum InteractionCategory {
+  PANEL = 'panel',
+  MODAL = 'modal',
+  TOOLTIP = 'tooltip',
+}
+
+interface BaseInteraction {
+  id: string;
+  category: InteractionCategory;
+  state: InteractionState;
+  content: InteractionContent;
+  metadata: InteractionMetadata;
+  config: InteractionConfig;
+}
+```
+
+**面板层** (`union-client/src/types/panel.ts`):
+```typescript
+interface PanelInteraction extends BaseInteraction {
+  category: 'panel';
+  config: PanelConfig;
+  content: InteractionContent;
+}
+
+type ApprovalInteraction = PanelInteraction & {
+  content: ApprovalContent;
+  result?: ApprovalResult;
+};
+```
+
+**内容类型** (`union-client/src/types/content.ts`):
+```typescript
+type InteractionContent =
+  | ApprovalContent      // 工具审批
+  | SelectionContent     // 选项选择
+  | InputContent        // 文本输入
+  | ConfirmContent      // 确认对话框
+  | CustomContent;      // 自定义内容
+```
+
+### 渲染器系统
+
+**可插拔渲染器注册** (`union-client/src/interaction/registry.ts`):
+```typescript
+class GlobalRendererRegistry implements RendererRegistry {
+  private renderers = new Map<InteractionContent['type'], InteractionRenderer<any>>();
+
+  register<T extends InteractionContent>(type: T['type'], renderer: InteractionRenderer<T>) {
+    this.renderers.set(type, renderer);
+  }
+
+  get<T extends InteractionContent>(type: T['type']): InteractionRenderer<T> | undefined {
+    return this.renderers.get(type);
+  }
+}
+
+// 使用示例
+rendererRegistry.register('approval', ApprovalRenderer);
+rendererRegistry.register('selection', SelectionRenderer);
 rendererRegistry.register('file-picker', {
   type: 'file-picker',
   render(interaction, onChange) {
@@ -59,15 +127,149 @@ rendererRegistry.register('file-picker', {
   },
   defaultConfig: { layout: { border: true } },
 });
-
-// 统一面板自动路由
-<UnifiedUIPanel>
-  {interaction.content.type === 'approval' && <ApprovalRenderer />}
-  {interaction.content.type === 'selection' && <SelectionRenderer />}
-</UnifiedUIPanel>
 ```
 
-### 面板系统重构
+### InteractionContext统一实现
+
+**迁移到union-client** (`packages/union-client/src/context/InteractionContext.tsx`):
+
+**核心功能**：
+```typescript
+interface InteractionContextValue {
+  // 添加交互
+  addInteraction(
+    content: InteractionContent,
+    options?: { tool?: any; metadata?: Partial<InteractionMetadata> }
+  ): PanelInteraction;
+
+  // 更新交互
+  updateInteraction(id: string, updates: Partial<PanelInteraction>): void;
+
+  // 移除交互
+  removeInteraction(id: string): void;
+
+  // 查询交互
+  getInteraction(id: string): AnyPanelInteraction | undefined;
+  getInteractions(): AnyPanelInteraction[];
+  getInteractionsByState(state: InteractionState): AnyPanelInteraction[];
+  getInteractionsByContent<T extends InteractionContent['type']>(
+    type: T
+  ): Array<Extract<AnyPanelInteraction, { content: { type: T } }>>;
+
+  // 批量操作
+  submitInteractions(): Promise<void>;
+  clearCompleted(): void;
+
+  // 状态标识
+  hasPendingInteractions: boolean;
+  allInteractionsProcessed: boolean;
+}
+```
+
+**自动提交逻辑**：
+```typescript
+useEffect(() => {
+  if (allInteractionsProcessed && hasPendingInteractions === false) {
+    submitInteractions();
+    setTimeout(() => clearCompleted(), 100);
+  }
+}, [allInteractionsProcessed, hasPendingInteractions]);
+```
+
+**状态过滤**：
+```typescript
+// 只显示待处理的交互
+const pendingInteractions = interactions.filter(
+  i => i.state === 'idle' || i.state === 'active'
+);
+```
+
+**项目重新导出**（保持向后兼容）:
+```typescript
+// zen-code/src/chat/interaction/context.tsx
+export {
+  InteractionProvider,
+  useInteractionContext,
+  type InteractionContextValue,
+  type InteractionProviderProps,
+} from '@codegraph/union-client';
+
+// zen-worker/src/interaction/context.tsx（相同）
+```
+
+### 统一面板组件
+
+**UnifiedUIPanel** (`union-client/src/interaction/UnifiedUIPanel.tsx`):
+
+**核心特性**：
+1. 每个交互独立Tab显示
+2. 执行完后自动隐藏
+3. 自动跳转到下一个待处理交互
+
+**实现示例**：
+```typescript
+// 只显示待处理的交互
+const pendingInteractions = ctx.getInteractions().filter(
+  i => i.state === 'idle' || i.state === 'active'
+);
+
+// 没有待处理交互时不渲染
+if (pendingInteractions.length === 0) {
+  return null;
+}
+
+// 每个交互一个tab
+const tabItems = pendingInteractions.map(interaction => ({
+  id: interaction.id,
+  label: `${icon} ${interaction.metadata.title || interaction.content.type}`,
+}));
+
+// 提交后跳转到下一个
+onChange={(updates) => {
+  ctx.updateInteraction(interaction.id, updates);
+  if (updates.state === 'submitted') {
+    nextTab(interaction.id);
+  }
+}}
+```
+
+**Chat.tsx 集成**：
+```typescript
+const { hasPendingInteractions } = useInteractionContext();
+const showUnifiedPanel = hasPendingInteractions; // 只在有待处理交互时显示
+```
+
+### 工具集成模式
+
+**标准模式**：
+```typescript
+// 1. 添加交互
+const interaction = addInteraction(content, { tool, metadata });
+
+// 2. 轮询检查状态（临时方案）
+useEffect(() => {
+  const checkInteraction = () => {
+    const interaction = getInteractions().find(i => i.id === interactionId);
+    if (interaction?.state === 'submitted' && !interaction.resultSent) {
+      tool.sendResumeData({ type: 'respond', message });
+      updateInteraction(interactionId, { resultSent: true });
+    }
+  };
+  const interval = setInterval(checkInteraction, 100);
+  return () => clearInterval(interval);
+}, [interactionId]);
+```
+
+**关键注意**：
+- 使用 `resultSent` 标记防止重复发送结果
+- 交互完成后自动清理（100ms延迟）
+- 使用 `idle | active` 状态判断待处理交互（不是 `pending`）
+
+---
+
+## 二、TUI面板系统
+
+### 统一面板系统重构
 
 **从分散实现到统一系统**：
 
@@ -91,17 +293,58 @@ interface PanelConfig<T> {
 }
 ```
 
-**核心特性**：
-- **简化虚拟滚动** - 数组切片减少渲染数量（非真正虚拟滚动）
-- **自定义模糊搜索** - 手动实现 fuzzyMatch，无需外部依赖
-- **统一快捷键** - `/`搜索、`↑↓`导航、`1-9`跳转、`q`关闭、`Tab`切换过滤器
-- **布局优化** - 列表在上方，搜索栏在下方，快捷键提示在底部
+### 核心特性
 
-**实现差异**（重要）：
-- ⚠️ **虚拟滚动**：只做数组切片，无滚动偏移（Ink 布局限制）
-- ⚠️ **搜索栏**：在面板下方，不在上方
-- ⚠️ **过滤器**：不可见，通过 Tab 键切换
-- ✅ **搜索功能**：使用自定义 fuzzyMatch 实现
+**简化虚拟滚动**：
+- 数组切片减少渲染数量（startIndex → endIndex）
+- 非真正虚拟滚动（无滚动偏移）
+- Ink 布局系统限制导致
+
+**自定义模糊搜索**：
+- 手动实现 fuzzyMatch 函数
+- 不依赖 fuzzy 库
+- 减少包大小和维护成本
+
+**统一快捷键**：
+- `/` - 搜索
+- `↑↓` - 导航
+- `1-9` - 跳转
+- `q` - 关闭
+- `Tab` - 切换过滤器
+
+**布局优化**：
+- 列表在上方
+- 搜索栏在下方
+- 快捷键提示在底部
+
+### 实现差异（重要）
+
+**与规格文档的差异**：
+
+1. **虚拟滚动**
+   - ❌ 规格：使用 marginTop 负偏移实现真正的滚动效果
+   - ✅ 实际：只进行数组切片，无滚动偏移
+   - 原因：Ink 布局系统不支持 marginTop 负偏移
+
+2. **搜索栏位置**
+   - ❌ 规格：在面板上方，包含过滤器标签和状态信息
+   - ✅ 实际：在面板下方，只包含搜索输入框
+   - 原因：简化 UI，减少视觉干扰
+
+3. **快捷键提示**
+   - ❌ 规格：在标题栏右侧
+   - ✅ 实际：在面板底部固定显示
+   - 原因：更清晰，不占用标题栏空间
+
+4. **Fuzzy Search**
+   - ❌ 规格：使用 fuzzy 库
+   - ✅ 实际：自定义 fuzzyMatch 函数
+   - 原因：减少依赖，包大小优化
+
+5. **默认可见数量**
+   - ❌ 规格：visibleCount 默认 20
+   - ✅ 实际：visibleCount 默认 8
+   - 原因：适配 TUI 小屏幕
 
 ### 输入组件系统
 
@@ -148,7 +391,7 @@ useEffect(() => {
 
 ---
 
-## 二、配置管理统一
+## 三、配置管理统一
 
 ### 架构分层
 
@@ -228,6 +471,7 @@ app.use('/api/*', async (c) => {
 - **Hooks** - useWindowSize, useConfig, useAgent
 - **工具函数** - cleanPath, notify, colors, user, tokenUsage, keypress
 - **配置系统** - 从lowdb迁移到@codegraph/config
+- **InteractionContext** - 完整的交互系统实现
 
 **API变更**：
 ```typescript
@@ -248,7 +492,7 @@ const path = dbPath();
 
 ---
 
-## 三、LangGraph SDK集成
+## 四、LangGraph SDK集成
 
 ### 正确使用模式
 
@@ -299,7 +543,7 @@ useEffect(() => {
 
 ---
 
-## 四、关键技术模式
+## 五、关键技术模式
 
 ### 1. Context依赖注入
 
@@ -372,7 +616,7 @@ type InteractionContent = ApprovalContent | SelectionContent | ...;
 
 ---
 
-## 五、性能优化
+## 六、性能优化
 
 ### 虚拟滚动
 - **TUI面板** - 只渲染20项，支持1000+列表
@@ -398,55 +642,6 @@ const handleSelect = useCallback((item) => {
 
 ---
 
-## 六、实现差异与设计决策
-
-### 规格文档 vs 实际实现
-
-**统一面板系统**的关键差异：
-
-1. **虚拟滚动实现**
-   - ❌ 规格：使用 marginTop 负偏移实现真正的滚动效果
-   - ✅ 实际：只进行数组切片，无滚动偏移
-   - 原因：Ink 布局系统不支持 marginTop 负偏移
-
-2. **搜索栏位置和内容**
-   - ❌ 规格：在面板上方，包含过滤器标签和状态信息
-   - ✅ 实际：在面板下方，只包含搜索输入框
-   - 原因：简化 UI，减少视觉干扰
-
-3. **快捷键提示**
-   - ❌ 规格：在标题栏右侧
-   - ✅ 实际：在面板底部固定显示
-   - 原因：更清晰，不占用标题栏空间
-
-4. **Fuzzy Search**
-   - ❌ 规格：使用 fuzzy 库
-   - ✅ 实际：自定义 fuzzyMatch 函数
-   - 原因：减少依赖，包大小优化
-
-5. **默认可见数量**
-   - ❌ 规格：visibleCount 默认 20
-   - ✅ 实际：visibleCount 默认 8
-   - 原因：适配 TUI 小屏幕
-
-### 设计决策总结
-
-**为什么采用简化实现？**
-
-1. **Ink 限制**：Ink 的布局系统基于 Flexbox，不支持 CSS 风格的负偏移
-2. **依赖控制**：不引入 fuzzy 库，减少包大小和维护成本
-3. **用户体验**：搜索栏在下方更符合"先浏览，再搜索"的操作习惯
-4. **代码简洁**：去除非核心功能，保持代码可维护性
-
-**保留的核心优势**：
-- ✅ 统一的交互模式
-- ✅ 数组切片减少渲染数量
-- ✅ 自定义 fuzzy search 实现
-- ✅ 灵活的过滤器系统
-- ✅ 强大的快捷键支持
-
----
-
 ## 七、代码质量提升
 
 ### TypeScript严格模式
@@ -460,24 +655,16 @@ const handleSelect = useCallback((item) => {
 | 面板代码 | 450行 | 345行 | 23% |
 | 工具函数 | 重复实现 | union-client共享 | -80% |
 | 配置管理 | lowdb独立 | @codegraph/config统一 | -100% |
-
-### 面板系统实现细节
-**实际实现**：
-- VirtualScrollList：只做数组切片（startIndex → endIndex），无滚动偏移
-- SearchBar：只包含搜索输入框，使用 EnhancedTextInput 组件
-- UniversalPanel：布局顺序为 [标题栏 → 列表 → 搜索栏 → 快捷键提示]
-- usePanelSearch：自定义 fuzzyMatch 函数，不依赖 fuzzy 库
-- usePanelNavigation：支持 Tab 键切换过滤器，支持组合键（Ctrl/meta）
-
-**关键简化原因**：
-1. Ink 布局系统不支持 marginTop 负偏移
-2. 避免引入 fuzzy 依赖
-3. 简化 UI，减少视觉干扰
+| InteractionContext | 重复实现 | union-client统一 | -100% |
 
 ### 文件组织
 ```
 packages/config/        # 配置管理包
 packages/union-client/  # 共享逻辑包
+├── src/context/       # InteractionContext等
+├── src/types/         # 类型定义
+├── src/hooks/         # 共享Hooks
+└── src/utils/         # 工具函数
 agents/code/           # 后端Agent
 tui/                   # TUI前端
 zen-worker/            # Web UI前端
@@ -493,7 +680,7 @@ zen-worker/            # Web UI前端
 - 输入组件系统
 - 审批面板完整
 
-### 阶段2：UI交互系统v2（1.20）
+### 阶段2：UI交互系统v2（1.20-1.21）
 - 分层架构设计
 - 可插拔渲染器
 - 统一交互模式
@@ -507,6 +694,11 @@ zen-worker/            # Web UI前端
 - LangGraph SDK集成
 - RemoteConfigManager
 - Hono中间件集成
+
+### 阶段5：InteractionContext统一（1.23）
+- 迁移到union-client
+- zen-code和zen-worker共享实现
+- 类型系统统一
 
 ---
 
@@ -547,6 +739,7 @@ zen-worker/            # Web UI前端
 - 需要跨平台支持的服务
 - 需要大量面板选择的TUI应用
 - 需要可扩展UI交互系统
+- 需要统一交互状态管理
 
 ### 不适用的场景
 - 纯静态站点（无后端）
@@ -582,11 +775,23 @@ zen-worker/            # Web UI前端
 - `packages/config/src/ConfigServer.ts`
 - `packages/config/src/implementations/RemoteConfigStore.ts`
 
-### UI系统
-- `tui/src/chat/interaction/` - 统一UI交互系统
+### UI交互系统（union-client）
+- `packages/union-client/src/context/InteractionContext.tsx` - 完整实现
+- `packages/union-client/src/types/interaction.ts` - 统一类型
+- `packages/union-client/src/types/panel.ts` - 面板类型
+- `packages/union-client/src/types/content.ts` - 内容类型
+- `packages/union-client/src/interaction/registry.ts` - 渲染器注册
+- `packages/union-client/src/interaction/UnifiedUIPanel.tsx` - 统一面板
+
+### TUI系统
+- `tui/src/chat/interaction/` - 统一UI交互系统（重新导出）
 - `tui/src/chat/components/Panel/` - 面板系统
 - `tui/src/chat/components/input/` - 输入组件
 - `tui/src/chat/components/GlobalApprovalPanel/` - 审批面板
+
+### Web UI系统
+- `zen-worker/src/interaction/` - 统一UI交互系统（重新导出）
+- `zen-worker/src/pages/ChatPage.tsx` - 页面集成
 
 ### 前端集成
 - `packages/union-client/src/hooks/useSkills.ts`
@@ -606,6 +811,7 @@ zen-worker/            # Web UI前端
 
 **核心成就**：
 - ✅ 统一的UI交互模式（TUI+Web）
+- ✅ InteractionContext 迁移到 union-client，消除重复代码
 - ✅ 代码复用率提升80%
 - ✅ 配置管理完全统一
 - ✅ 跨平台支持完善
@@ -615,6 +821,13 @@ zen-worker/            # Web UI前端
 - ❌ 移除了lowdb依赖
 - ❌ 移除了重复的工具函数实现
 - ❌ 移除了自定义的配置管理代码
+- ❌ 移除了重复的InteractionContext实现
 - ❌ 统一了LangGraph SDK使用方式
+
+**架构演进**：
+1. 从零散组件到统一系统
+2. 从重复实现到共享层（union-client）
+3. 从分散配置到统一管理
+4. 从单一平台到跨平台支持
 
 这是一次成功的系统性重构，为项目未来的发展奠定了坚实的架构基础。
