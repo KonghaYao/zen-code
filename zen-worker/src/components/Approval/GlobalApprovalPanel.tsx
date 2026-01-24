@@ -13,6 +13,8 @@ import { ApprovalItem } from './ApprovalItem';
 import type { ApprovalRequest } from './types';
 import { ApprovalStatus } from './types';
 import { useApproval } from '../../contexts/ApprovalContext';
+import { Badge } from '../ui/badge';
+import { Separator } from '../ui/separator';
 
 interface GlobalApprovalPanelProps {
     /** 允许的审批决策 */
@@ -155,14 +157,23 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
             <div className={`${compact ? 'p-2' : 'p-4'} bg-white border border-gray-200 rounded-lg shadow-sm`}>
                 {/* 统计信息 */}
                 {showHeader && (
-                    <div className="flex items-center gap-4 mb-3 pb-3 border-b">
-                        <span className="text-sm text-gray-500">|</span>
-                        <span className="text-sm text-green-600 font-medium">✅ {stats.approved}</span>
-                        <span className="text-sm text-yellow-600 font-medium">📝 {stats.edited}</span>
-                        <span className="text-sm text-red-600 font-medium">❌ {stats.rejected}</span>
-                        <span className="text-sm text-gray-500">|</span>
-                        <span className="text-sm text-blue-600 font-medium">⏳ {stats.pending} pending</span>
-                    </div>
+                    <>
+                        <div className="flex items-center gap-2 mb-3">
+                            <Badge variant="outline" className="text-green-600 border-green-600">
+                                ✅ {stats.approved}
+                            </Badge>
+                            <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                                📝 {stats.edited}
+                            </Badge>
+                            <Badge variant="outline" className="text-red-600 border-red-600">
+                                ❌ {stats.rejected}
+                            </Badge>
+                            <Badge variant="secondary" className="text-blue-600">
+                                ⏳ {stats.pending} pending
+                            </Badge>
+                        </div>
+                        <Separator className="mb-3" />
+                    </>
                 )}
 
                 {/* Tabs */}
@@ -170,6 +181,13 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
                     <div className="flex gap-2 overflow-x-auto">
                         {requests.map((request) => {
                             const isSelected = request.id === activeTab;
+                            const statusVariant = {
+                                [ApprovalStatus.Pending]: 'secondary',
+                                [ApprovalStatus.Approved]: 'default',
+                                [ApprovalStatus.Edited]: 'outline',
+                                [ApprovalStatus.Rejected]: 'destructive',
+                            }[request.status] as const;
+
                             const statusIcon = {
                                 [ApprovalStatus.Pending]: '⏳',
                                 [ApprovalStatus.Approved]: '✅',
@@ -181,13 +199,16 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
                                 <button
                                     key={request.id}
                                     onClick={() => handleTabChange(request.id)}
-                                    className={`px-3 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
                                         isSelected
                                             ? 'bg-blue-500 text-white shadow-md'
                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                                 >
-                                    {statusIcon} {request.toolCall.name}
+                                    <Badge variant={statusVariant} className="text-xs">
+                                        {statusIcon}
+                                    </Badge>
+                                    {request.toolCall.name}
                                 </button>
                             );
                         })}
@@ -210,17 +231,20 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
 
                 {/* 批量执行按钮提示 */}
                 {showHeader && (stats.approved > 0 || stats.edited > 0 || stats.rejected > 0) && (
-                    <div className="mt-4 pt-3 border-t text-sm text-gray-500 flex justify-between items-center">
-                        <span>
-                            <span className="font-medium text-green-600">批准完成后将自动执行</span>
-                        </span>
-                        <button
-                            onClick={executeApproved}
-                            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
-                        >
-                            立即执行已批准的请求
-                        </button>
-                    </div>
+                    <>
+                        <Separator className="mt-4 mb-3" />
+                        <div className="text-sm text-gray-500 flex justify-between items-center">
+                            <span className="font-medium text-green-600">
+                                批准完成后将自动执行
+                            </span>
+                            <button
+                                onClick={executeApproved}
+                                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                            >
+                                立即执行已批准的请求
+                            </button>
+                        </div>
+                    </>
                 )}
             </div>
         );

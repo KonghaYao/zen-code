@@ -156,7 +156,7 @@ export class CommandSystemMiddleware implements AgentMiddleware {
         const systemPromptAddon = `
 ## Command System
 
-Command System 是基础工具能力的扩充，提供批量调用和动态查询功能。
+Command System 是基础工具能力的扩充，提供批量调用和动态查询功能。当你遇到某些比较困难的操作时，可以先查看 Command System 有无操作工具提供。
 
 **扩充能力**：
 - \`batch_command\` - 批量执行多个工具调用，格式：{commands: [{name, args}, ...]}
@@ -178,7 +178,7 @@ Command System 是基础工具能力的扩充，提供批量调用和动态查�
 
 **重要**：
 - Command System 不替代直接工具调用，而是提供额外的批量/查询能力
-- 工具列表动态变化，运行时查询获取最新信息
+- 工具列表可能会动态变化，运行时查询获取最新信息
 - 批量调用中的工具独立执行，失败不影响其他操作
 `;
 

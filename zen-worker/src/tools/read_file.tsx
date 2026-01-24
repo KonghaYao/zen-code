@@ -1,9 +1,11 @@
 /**
  * read_file 工具 - React DOM 版本
+ * 使用 shadcn/ui 组件
  */
 
 import React from 'react';
 import { createUITool } from '@langgraph-js/sdk';
+import { ToolCard } from '../components/ToolCard';
 
 export const read_file = createUITool({
     name: 'read_file',
@@ -22,19 +24,15 @@ export const read_file = createUITool({
         const totalLines = lines.length;
 
         return (
-            <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">📄</span>
-                    <span className="text-blue-700 font-medium">{input?.file_path}</span>
-                    <span className="text-gray-500 text-sm">({totalLines} lines)</span>
-                </div>
-
-                {output && (
-                    <pre className="bg-white p-2 rounded text-xs overflow-x-auto max-h-64 overflow-y-auto">
-                        {output}
-                    </pre>
-                )}
-            </div>
+            <ToolCard
+                icon="📄"
+                title={input?.file_path || 'Read File'}
+                operation="read"
+                meta={`${totalLines} lines`}
+                output={output}
+                variant="blue"
+                scrollable={true}
+            />
         );
     },
 });

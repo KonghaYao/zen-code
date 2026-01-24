@@ -2,7 +2,9 @@
  * PluginsPage - 插件管理页面
  */
 
-import { Button } from '../components/common/Button';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
 
 export function PluginsPage() {
   return (
@@ -17,14 +19,19 @@ export function PluginsPage() {
         </Button>
       </div>
 
-      <div className="bg-gray-50 rounded-lg p-8 text-center">
-        <div className="text-6xl mb-4">🧩</div>
-        <h3 className="text-xl font-semibold text-gray-700 mb-2">插件功能开发中</h3>
-        <p className="text-gray-500 max-w-md mx-auto">
-          插件系统将允许您扩展 Zen Worker 的功能，添加自定义工具和集成。
-        </p>
-        <p className="text-sm text-gray-400 mt-4">敬请期待...</p>
-      </div>
+      <Card>
+        <CardContent className="p-8 text-center">
+          <div className="text-6xl mb-4">🧩</div>
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">
+            插件功能开发中
+            <Badge variant="secondary" className="ml-2">即将推出</Badge>
+          </h3>
+          <p className="text-gray-500 max-w-md mx-auto">
+            插件系统将允许您扩展 Zen Worker 的功能，添加自定义工具和集成。
+          </p>
+          <p className="text-sm text-gray-400 mt-4">敬请期待...</p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

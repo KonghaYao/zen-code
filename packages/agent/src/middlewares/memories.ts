@@ -7,17 +7,17 @@
  * 3. Agent reads full MEMORY.md content when relevant to a task
  *
  * Memories directory structure (per-agent + project):
- * User-level: ~/.deepagents/{AGENT_NAME}/memories/
- * Project-level: {PROJECT_ROOT}/.deepagents/memories/
+ * User-level: ~/.claude/{AGENT_NAME}/memories/
+ * Project-level: {PROJECT_ROOT}/.claude/memories/
  *
  * Example structure:
- * ~/.deepagents/{AGENT_NAME}/memories/
+ * ~/.claude/{AGENT_NAME}/memories/
  * ├── langgraph-model-initialization/
  * │   └── MEMORY.md        # Required: YAML frontmatter + content
  * ├── bug-fixes/
  * │   └── MEMORY.md
  *
- * .deepagents/memories/
+ * .claude/memories/
  * ├── project-setup/
  * │   └── MEMORY.md        # Project-specific memories
  */
@@ -63,8 +63,8 @@ const MEMORIES_SYSTEM_PROMPT = `## Memory System
  * - Agent reads full MEMORY.md content when a memory is relevant (progressive disclosure)
  *
  * Supports both user-level and project-level memories:
- * - User memories: ~/.deepagents/{AGENT_NAME}/memories/
- * - Project memories: {PROJECT_ROOT}/.deepagents/memories/
+ * - User memories: ~/.claude/{AGENT_NAME}/memories/
+ * - Project memories: {PROJECT_ROOT}/.claude/memories/
  * - Project memories override user memories with the same name
  */
 export class MemoriesMiddleware implements AgentMiddleware {
@@ -94,14 +94,14 @@ export class MemoriesMiddleware implements AgentMiddleware {
     constructor(options: { memoriesDir?: string; assistantId?: string; projectMemoriesDir?: string } = {}) {
         this.memoriesDir = options.memoriesDir;
         this.assistantId = options.assistantId;
-        this.projectMemoriesDir = options.projectMemoriesDir || './.deepagents/memories';
+        this.projectMemoriesDir = options.projectMemoriesDir || './.claude/memories';
 
         if (this.memoriesDir && !this.assistantId) {
             console.warn('user memories directory is provided, but assistant id is not provided');
         }
         // Store display paths for prompts
         if (this.assistantId) {
-            this.userMemoriesDisplay = `~/.deepagents/${this.assistantId}/memories`;
+            this.userMemoriesDisplay = `~/.claude/${this.assistantId}/memories`;
         }
         this.systemPromptTemplate = MEMORIES_SYSTEM_PROMPT;
     }

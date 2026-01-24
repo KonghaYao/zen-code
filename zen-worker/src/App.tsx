@@ -7,6 +7,7 @@ import { SkillsPage } from './pages/SkillsPage';
 import { PluginsPage } from './pages/PluginsPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { InteractionProvider } from './interaction';
+import { Toaster } from './components/ui/sonner';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
+      <Toaster />
     </InteractionProvider>
   );
 }

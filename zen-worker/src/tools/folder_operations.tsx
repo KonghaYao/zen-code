@@ -1,9 +1,11 @@
 /**
  * folder_operations 工具 - React DOM 版本
+ * 使用 shadcn/ui 组件
  */
 
 import React from 'react';
 import { createUITool } from '@langgraph-js/sdk';
+import { ToolCard } from '../components/ToolCard';
 
 export const folder_operations = createUITool({
     name: 'folder_operations',
@@ -17,20 +19,13 @@ export const folder_operations = createUITool({
         const output = tool.output;
 
         return (
-            <div className="bg-indigo-50 border-l-4 border-indigo-500 p-3 rounded">
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">📁</span>
-                    <span className="text-indigo-700 font-medium">
-                        {input?.operation || 'unknown'}: {input?.folder_path || ''}
-                    </span>
-                </div>
-
-                {output && (
-                    <pre className="bg-white p-2 rounded text-xs">
-                        {JSON.stringify(output, null, 2)}
-                    </pre>
-                )}
-            </div>
+            <ToolCard
+                icon="📁"
+                title={input?.folder_path || 'Folder Operation'}
+                operation={input?.operation || 'unknown'}
+                output={output}
+                variant="indigo"
+            />
         );
     },
 });

@@ -71,7 +71,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     const { extraParams } = useSettings();
 
     // 使用 Ralph Loop hook
-    const { ralphLoopText, startRalphLoop, sendTextMessage } = useRalphLoop({
+    const { startRalphLoop, sendTextMessage } = useRalphLoop({
         loading,
         renderMessages,
         sendMessage,

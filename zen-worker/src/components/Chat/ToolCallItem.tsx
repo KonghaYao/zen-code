@@ -6,7 +6,6 @@
 import React from 'react';
 import type { RenderMessage } from '@langgraph-js/sdk';
 import { getMessageContent } from '@langgraph-js/sdk';
-import { JSONViewer } from '../common/JSONViewer';
 import { useToolMetadata } from './ToolRegistry';
 
 export interface ToolCallItemProps {
@@ -127,7 +126,10 @@ export const ToolCallItem: React.FC<ToolCallItemProps> = ({ message, messageNumb
           <div className="mb-2">
             <div className="text-sm font-medium text-gray-700 mb-1">参数</div>
             <div className="bg-white p-2 rounded border border-gray-200">
-              <JSONViewer data={toolCallArgs} maxDepth={3} />
+              <div>
+
+                {JSON.stringify(toolCallArgs)}
+              </div>
             </div>
           </div>
         )}

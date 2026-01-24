@@ -1,9 +1,11 @@
 /**
  * todo_tool 工具 - React DOM 版本
+ * 使用 shadcn/ui 组件
  */
 
 import React from 'react';
 import { createUITool } from '@langgraph-js/sdk';
+import { ToolCard } from '../components/ToolCard';
 
 export const todo_tool = createUITool({
     name: 'todo_tool',
@@ -17,20 +19,13 @@ export const todo_tool = createUITool({
         const output = tool.output;
 
         return (
-            <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded">
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">✅</span>
-                    <span className="text-green-700 font-medium">
-                        Todo Tool
-                    </span>
-                </div>
-
-                {output && (
-                    <pre className="bg-white p-2 rounded text-xs">
-                        {JSON.stringify(output, null, 2)}
-                    </pre>
-                )}
-            </div>
+            <ToolCard
+                icon="✅"
+                title="Todo List"
+                operation={input?.action || 'manage'}
+                output={output}
+                variant="green"
+            />
         );
     },
 });

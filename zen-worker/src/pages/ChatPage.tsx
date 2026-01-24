@@ -1,17 +1,25 @@
 /**
  * ChatPage - 聊天页面
- * 参照 zen-code 实现，使用统一交互系统
+ * Claude 风格设计
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useChat } from '@langgraph-js/sdk/react';
-import { Button } from '../components/common/Button';
-import { MessageItem } from '../components/Chat/MessageItem';
+import { Button } from '../components/ui/button';
+import { Textarea } from '../components/ui/textarea';
+import { ArrowUpIcon, Loader2, StopCircleIcon, User, Bot } from 'lucide-react';
+import { cn } from '../lib/utils';
+
 import { useSettings } from '@codegraph/union-client';
 import { useApprovalIntegration } from '../hooks/useApprovalIntegration';
 import { UnifiedUIPanel } from '../interaction';
 import { useInteractionContext } from '../interaction';
 import DefaultTools from '../tools';
+import { Streamdown } from 'streamdown';
+import { code } from '@streamdown/code';
+import { math } from '@streamdown/math';
+import { mermaid } from '@streamdown/mermaid';
+import { cjk } from '@streamdown/cjk';
 
 
 export function ChatPage() {
@@ -25,38 +33,28 @@ export function ChatPage() {
     stopGeneration,
     setTools,
   } = useChat();
-  const { extraParams } = useSettings()
+  const { extraParams } = useSettings();
 
-  // 初始化工具
   useEffect(() => {
     setTools(DefaultTools);
   }, [setTools]);
 
-  // 集成审批系统
   useApprovalIntegration();
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { hasPendingInteractions, getInteractions } = useInteractionContext();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { hasPendingInteractions } = useInteractionContext();
+  const [autoResize, setAutoResize] = useState(false);
 
-  // 调试：打印交互状态
-  useEffect(() => {
-    const interactions = getInteractions();
-    console.log('[ChatPage] hasPendingInteractions:', hasPendingInteractions);
-    console.log('[ChatPage] interactions:', interactions);
-  }, [hasPendingInteractions, getInteractions]);
-
-  // 自动滚动到底部
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [renderMessages]);
-
-  // 自动聚焦输入框
   useEffect(() => {
     if (!loading && !hasPendingInteractions) {
       textareaRef.current?.focus();
     }
   }, [loading, hasPendingInteractions]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [renderMessages, loading]);
 
   const handleSend = async () => {
     if (!userInput.trim() || loading) return;
@@ -66,6 +64,8 @@ export function ChatPage() {
         content: userInput,
       },
     ], { extraParams });
+    setUserInput('');
+    setAutoResize(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -75,100 +75,187 @@ export function ChatPage() {
     }
   };
 
+  const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
+    const target = e.target as HTMLTextAreaElement;
+    setAutoResize(target.value.length > 0);
+    setUserInput(target.value);
+  };
+
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-background">
       {/* 消息列表 */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {/* 统一交互面板 */}
-        {hasPendingInteractions && (
-          <div className="mb-4">
-            <UnifiedUIPanel />
-          </div>
-        )}
-
-        {renderMessages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center text-gray-500">
-              <p className="text-lg mb-2">欢迎使用 Zen Worker</p>
-              <p className="text-sm">开始输入消息与 AI 助手对话</p>
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          {/* 统一交互面板 */}
+          {hasPendingInteractions && (
+            <div className="mb-6">
+              <UnifiedUIPanel />
             </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {renderMessages.map((message, index) => (
-              <MessageItem
-                key={`${message.id}-${index}`}
-                message={message}
-                messageNumber={index + 1}
-              />
-            ))}
+          )}
 
-            {/* Loading indicator */}
-            {loading && (
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white">
-                  🤖
+          {renderMessages.length === 0 ? (
+            <div className="flex items-center justify-center h-full min-h-[60vh]">
+              <div className="text-center space-y-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10">
+                  <Bot className="w-8 h-8 text-primary" />
                 </div>
-                <div className="flex-1 bg-blue-50 rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                    <p className="text-sm text-gray-600">思考中...</p>
+                <div>
+                  <h2 className="text-2xl font-semibold mb-2">Zen Worker</h2>
+                  <p className="text-muted-foreground">我是你的 AI 助手，有什么可以帮你的吗？</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {renderMessages.map((message, index) => (
+                <MessageBubble
+                  key={`${message.id}-${index}`}
+                  message={message}
+                />
+              ))}
+
+              {/* Loading indicator */}
+              {loading && (
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Bot className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 pt-2">
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Scroll anchor */}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
 
-        {/* Error */}
-        {inChatError && (
-          <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800">{inChatError}</p>
-          </div>
-        )}
+          {/* Error */}
+          {inChatError && (
+            <div className="my-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-sm text-destructive">{inChatError}</p>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Input Area */}
+      {/* Input Area - Claude 风格 */}
       {!hasPendingInteractions && (
-        <div className="border-t bg-white p-4">
-          <div className="flex gap-2 max-w-4xl mx-auto">
-            <div className="flex-1 relative">
-              <textarea
+        <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="max-w-3xl mx-auto p-4">
+            <div className="relative flex items-end gap-2 bg-muted/50 rounded-3xl p-2 border border-border shadow-sm">
+              <Textarea
                 ref={textareaRef}
                 value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
+                onChange={handleInput}
                 onKeyDown={handleKeyDown}
-                placeholder="输入消息... (Enter 发送, Shift+Enter 换行)"
+                placeholder="发送消息给 Zen Worker..."
                 disabled={loading}
-                rows={1}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                style={{ minHeight: '48px', maxHeight: '200px' }}
+                rows={autoResize ? undefined : 1}
+                className="min-h-[44px] max-h-[200px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:shadow-none px-4 py-3 text-base"
+                style={{ height: autoResize ? 'auto' : '44px' }}
               />
-              <div className="absolute bottom-2 right-2 text-xs text-gray-400">
-                按 Enter 发送，Shift + Enter 换行
+              <div className="flex items-center gap-1 pb-1 pr-1">
+                {loading ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={stopGeneration}
+                    className="h-9 w-9 rounded-full flex-shrink-0"
+                  >
+                    <StopCircleIcon className="w-5 h-5" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleSend}
+                    disabled={!userInput.trim()}
+                    size="icon"
+                    className="h-9 w-9 rounded-full flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <ArrowUpIcon className="w-5 h-5" />
+                  </Button>
+                )}
               </div>
             </div>
-            <Button
-              onClick={handleSend}
-              disabled={loading || !userInput.trim()}
-              isLoading={loading}
-              className="px-6 self-end"
-            >
-              {loading ? '发送中...' : '发送'}
-            </Button>
-            {loading && (
-              <Button
-                variant="danger"
-                onClick={stopGeneration}
-                className="self-end"
-              >
-                停止
-              </Button>
-            )}
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              Enter 发送，Shift + Enter 换行
+            </p>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Claude 风格消息气泡
+interface MessageBubbleProps {
+  message: any;
+}
+
+function MessageBubble({ message }: MessageBubbleProps) {
+  const isHuman = message.type === 'human';
+  const getContent = () => {
+    if (typeof message.content === 'string') {
+      return message.content;
+    }
+    if (Array.isArray(message.content)) {
+      return message.content
+        .map((item: any) => {
+          if (item.type === 'text') return item.text;
+          if (item.type === 'tool-use') return `[使用工具: ${item.name}]`;
+          if (item.type === 'tool-result') return `[工具结果]`;
+          return '';
+        })
+        .join('\n');
+    }
+    return JSON.stringify(message.content);
+  };
+
+  const content = getContent();
+
+  return (
+    <div className={cn(
+      "flex gap-4",
+      isHuman ? "justify-end" : "justify-start"
+    )}>
+      {!isHuman && (
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+          <Bot className="w-5 h-5 text-primary" />
+        </div>
+      )}
+
+      <div className={cn(
+        "flex-1 max-w-[85%] space-y-2",
+        isHuman && "flex flex-col items-end"
+      )}>
+        <div className={cn(
+          "text-sm",
+          isHuman ? "text-muted-foreground" : "text-foreground"
+        )}>
+          {isHuman ? '你' : 'Zen Worker'}
+        </div>
+
+        <div className={cn(
+          "text-base leading-relaxed",
+          isHuman && "bg-secondary rounded-3xl px-4 py-3"
+        )}>
+          {isHuman ? (
+            <div className="whitespace-pre-wrap">{content}</div>
+          ) : (
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <Streamdown
+                plugins={{ code, mermaid, math, cjk }}
+              >
+                {content}
+              </Streamdown>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {isHuman && (
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+          <User className="w-5 h-5 text-foreground" />
         </div>
       )}
     </div>
