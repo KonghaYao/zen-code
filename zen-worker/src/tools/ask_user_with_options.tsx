@@ -2,10 +2,9 @@
  * ask_user_with_options 工具 - React DOM 版本
  *
  * 使用统一 UI 交互系统
- * 当工具被中断时，自动添加到交互队列
  */
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createUITool, ToolManager, ToolRenderData } from '@langgraph-js/sdk';
 import { useInteractionContext } from '../interaction';
 import type { SelectionContent } from '../interaction';
@@ -20,15 +19,17 @@ const SelectionContentComponent: React.FC<{
     const { addInteraction, getInteractions, updateInteraction } = useInteractionContext();
     const [interactionId, setInteractionId] = useState<string | null>(null);
     const hasProcessedRef = useRef(false);
-    const input = tool.getInputRepaired();
 
+    // MODIFIED: 对齐 zen-code，工具自己创建 selection 交互
     // 当工具中断时，自动添加交互
     useEffect(() => {
         if (tool.state === 'interrupted' && !interactionId && !hasProcessedRef.current) {
+            const input = tool.getInputRepaired();
+
             // 转换选项格式
-            const options = input?.options?.map((option: any) => ({
-                label: option.label || option,
-                value: option.label || option,
+            const options = input.options?.map((option: any) => ({
+                label: option.label,
+                value: option.label,
                 description: option.description,
             })) || [];
 
@@ -36,27 +37,23 @@ const SelectionContentComponent: React.FC<{
             const content: SelectionContent = {
                 type: 'selection',
                 options,
-                singleSelect: input?.type === 'single_select',
-                allowCustomInput: input?.allow_custom_input ?? true,
-                placeholder: input?.placeholder,
+                singleSelect: input.type === 'single_select',
+                allowCustomInput: input.allow_custom_input ?? true,
+                placeholder: input.placeholder,
             };
 
             // 添加交互
-            const interaction = addInteraction(
-                content,
-                {
-                    tool,
-                    metadata: {
-                        title: input?.description || '请选择一个选项',
-                        groupKey: 'user-input',
-                    },
-                }
-            );
+            const interaction = addInteraction(content, {
+                tool,
+                metadata: {
+                    title: input.description || 'Select an option',
+                    groupKey: 'user-input',
+                },
+            });
 
             setInteractionId(interaction.id);
-            console.log('[ask_user_with_options] Added interaction:', interaction.id);
         }
-    }, [tool, interactionId, addInteraction, input]);
+    }, [tool, interactionId, addInteraction]);
 
     // 监听交互状态变化，当交互完成时发送结果
     useEffect(() => {

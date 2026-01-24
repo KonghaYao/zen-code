@@ -37,13 +37,14 @@ export function ChatPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { hasPendingInteractions, interactions } = useInteractionContext();
+  const { hasPendingInteractions, getInteractions } = useInteractionContext();
 
   // 调试：打印交互状态
   useEffect(() => {
+    const interactions = getInteractions();
     console.log('[ChatPage] hasPendingInteractions:', hasPendingInteractions);
     console.log('[ChatPage] interactions:', interactions);
-  }, [hasPendingInteractions, interactions]);
+  }, [hasPendingInteractions, getInteractions]);
 
   // 自动滚动到底部
   useEffect(() => {

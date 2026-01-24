@@ -4,10 +4,8 @@
 
 // ========== 基础类型 ==========
 export type {
-  BaseInteraction,
   InteractionMetadata,
   InteractionToolData,
-  ContentType,
 } from './types';
 export { InteractionCategory, InteractionState } from './types';
 
@@ -54,7 +52,7 @@ export {
   InteractionProvider,
   useInteractionContext,
 } from './context';
-export type { InteractionContextValue, InteractionProviderProps } from './context';
+export type { InteractionContextValue } from './context';
 
 // ========== 渲染器 ==========
 export type {

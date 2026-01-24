@@ -13,10 +13,10 @@ import { SelectionRenderer } from './renderers/SelectionRenderer';
  */
 export function registerDefaultRenderers(): void {
   // 注册审批渲染器
-  rendererRegistry.register(ApprovalRenderer);
+  rendererRegistry.register('approval', ApprovalRenderer);
 
   // 注册选择渲染器
-  rendererRegistry.register(SelectionRenderer);
+  rendererRegistry.register('selection', SelectionRenderer);
 
   console.log('[InteractionSetup] Registered default renderers:', rendererRegistry.getTypes());
 }

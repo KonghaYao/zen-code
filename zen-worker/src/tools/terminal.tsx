@@ -20,56 +20,61 @@ const ApprovalContentComponent: React.FC<{
   const { addInteraction, getInteractions, updateInteraction } = useInteractionContext();
   const [interactionId, setInteractionId] = useState<string | null>(null);
   const hasProcessedRef = useRef(false);
-
   // 获取审批配置
   const interrupt = tool.getHumanInTheLoopData();
 
-  // 详细日志
-  console.log('[terminal] ===== Tool Render Debug =====');
-  console.log('[terminal] tool.state:', tool.state);
-  console.log('[terminal] tool.status:', tool.status);
-  console.log('[terminal] interrupt:', interrupt);
-  console.log('[terminal] tool.message:', tool.message);
-  console.log('[terminal] tool.getInputRepaired():', tool.getInputRepaired());
-
   // 当有审批配置时，自动添加到交互队列
   useEffect(() => {
-    console.log('[terminal] tool.state:', tool.state);
-    console.log('[terminal] interrupt:', interrupt);
-    console.log('[terminal] tool:', tool);
-    console.log('[terminal] tool.message:', tool.message);
+    console.log('[terminal] Effect triggered:', {
+      hasInterrupt: !!interrupt?.reviewConfig,
+      toolState: tool.state,
+      interactionId,
+      hasProcessed: hasProcessedRef.current,
+    });
 
     if (interrupt?.reviewConfig && tool.state === 'interrupted' && !interactionId && !hasProcessedRef.current) {
-      console.log('[terminal] Adding approval interaction for tool:', tool.message.name);
-
-      // 获取消息索引和描述
-      const input = tool.getInputRepaired();
-      const description = input?.description;
+      // 获取描述
+      const description = tool.getInputRepaired()?.description;
 
       // 构建审批内容
       const content: ApprovalContent = {
         type: 'approval',
         toolCall: {
           name: tool.message.name!,
-          args: input,
+          args: tool.getInputRepaired(),
         },
         editableFields: ['args'],
       };
 
-      // 添加交互
-      const interaction = addInteraction(content, {
-        tool,
-        metadata: {
-          title: `审批 ${tool.message.name}`,
-          description,
-          groupKey: 'approvals',
-        },
-      });
+      // 检查是否已经存在相同的交互（由 useApprovalIntegration 添加）
+      const interactions = getInteractions();
+      const existingInteraction = interactions.find(i =>
+        i.content.type === 'approval' &&
+        (i.content as any).toolCall?.name === tool.message.name &&
+        JSON.stringify((i.content as any).toolCall?.args) === JSON.stringify(tool.getInputRepaired())
+      );
 
-      setInteractionId(interaction.id);
-      console.log('[terminal] Added approval interaction:', interaction.id);
+      if (existingInteraction) {
+        // 如果已存在，使用已存在的交互 ID，并更新 tool 对象
+        console.log('[terminal] Found existing interaction, updating tool object:', existingInteraction.id);
+        setInteractionId(existingInteraction.id);
+        updateInteraction(existingInteraction.id, { tool });
+      } else {
+        // 如果不存在，添加新的交互
+        console.log('[terminal] Adding new interaction:', content);
+        const interaction = addInteraction(content, {
+          tool,
+          metadata: {
+            title: `Approve ${tool.message.name}`,
+            description,
+            groupKey: 'approvals',
+          },
+        });
+        console.log('[terminal] Interaction added with ID:', interaction.id);
+        setInteractionId(interaction.id);
+      }
     }
-  }, [interrupt, tool, interactionId, addInteraction]);
+  }, [interrupt, tool, interactionId, addInteraction, getInteractions, updateInteraction]);
 
   // 监听交互状态变化，当交互完成时发送结果
   useEffect(() => {
@@ -104,8 +109,6 @@ const ApprovalContentComponent: React.FC<{
               message,
             });
           }
-
-          console.log('[terminal] Sent approval result:', result.status);
         }
 
         // 标记结果已发送

@@ -1,20 +1,29 @@
 /**
  * useApprovalIntegration - 审批系统集成 Hook
  *
- * 监听 LangGraph 消息流，检测中断的工具并添加到 InteractionContext
- * 注意：执行逻辑由各工具的 render 函数自己处理（如 terminal.tsx），此 Hook 只负责检测和添加
+ * 监听 LangGraph 消息流，检测工具调用并添加到 InteractionContext
  *
- * 重要：此 Hook 只处理非 UI 工具的情况。UI 工具（如 terminal）会在自己的 render 函数中处理审批
+ * 职责：
+ * 1. 监听 renderMessages，检测工具调用
+ * 2. 将工具调用添加到 InteractionContext（仅对需要审批的工具）
+ * 3. 通过 exists 检测避免重复添加
+ *
+ * 注意：
+ * - 仅处理需要全局审批的工具（如 terminal）
+ * - HITL 中间件生效时：工具 render 函数先添加，exists 检测跳过
+ * - HITL 中间件未生效时：此 Hook 添加，工具 render 函数通过 getInteractions() 查找
  */
+
+/**
+ * 不需要全局审批的工具白名单
+ * 这些工具会自己创建特定类型的交互（如 selection）
+ */
+const SKIP_TOOLS: string[] = [
+];
 
 import { useEffect, useRef } from 'react';
 import { useChat } from '@langgraph-js/sdk/react';
 import { useInteractionContext } from '../interaction';
-
-/**
- * UI 工具列表 - 这些工具会在自己的 render 函数中处理审批
- */
-const UI_TOOLS = ['terminal', 'ask_user_with_options'];
 
 /**
  * 检查消息是否是工具调用（通过 type 或 content 判断）
@@ -40,25 +49,37 @@ function isToolCallMessage(message: any): boolean {
  * 从消息中提取工具调用信息
  */
 function extractToolCallInfo(message: any): { name: string; args: any; tool?: any } | null {
+    console.log('[extractToolCallInfo] Extracting from message:', message);
+
     // 优先从 content.tool_calls 获取
     if (message.content && message.content.tool_calls && Array.isArray(message.content.tool_calls)) {
         const toolCall = message.content.tool_calls[0];
+        const args = toolCall.args || toolCall.function?.arguments || toolCall.function?.parameters || {};
+
+        console.log('[extractToolCallInfo] From tool_calls:', { name: toolCall.name, args });
+
         return {
             name: toolCall.name || toolCall.function?.name,
-            args: toolCall.args || toolCall.function?.arguments || {},
+            args,
             tool: message, // 存储整个 message 对象
         };
     }
 
     // 尝试从 message 本身获取
     if (message.name) {
+        // 尝试多个可能的参数字段
+        const args = message.input || message.args || message.content?.input || message.content?.args || message.parameters || {};
+
+        console.log('[extractToolCallInfo] From message:', { name: message.name, args });
+
         return {
             name: message.name,
-            args: message.input || message.args || message.content?.input || {},
+            args,
             tool: message,
         };
     }
 
+    console.log('[extractToolCallInfo] Failed to extract tool call info');
     return null;
 }
 
@@ -81,19 +102,32 @@ function getMessageId(message: any): string {
  * 审批系统集成 Hook
  *
  * 职责：
- * 1. 监听 renderMessages，检测工具调用
- * 2. 将工具调用添加到 InteractionContext（统一交互系统）
- * 3. 执行逻辑由各工具的 render 函数自己处理
+ * 1. 监听 renderMessages，检测所有工具调用
+ * 2. 将工具调用添加到 InteractionContext（通过 exists 检测避免重复）
+ * 3. 执行逻辑由 UnifiedUIPanel 中的渲染器处理（通过 tool.sendResumeData 发送结果）
+ *
+ * 关键机制：
+ * - 所有工具（包括 ask_user_with_options、terminal）都统一处理
+ * - 通过 exists 检测避免重复添加
+ * - HITL 中间件生效时：工具 render 函数先添加，exists 检测跳过
+ * - HITL 中间件未生效时：此 Hook 添加，工具 render 函数通过 getInteractions() 查找
  */
 export const useApprovalIntegration = () => {
     const { renderMessages } = useChat();
     const { addInteraction, getInteractions } = useInteractionContext();
     const processedMessageIds = useRef<Set<string>>(new Set());
 
+    // 调试：打印消息数量
+    useEffect(() => {
+        console.log('[useApprovalIntegration] renderMessages count:', renderMessages.length);
+    }, [renderMessages]);
+
     /**
      * 监听 renderMessages 变化，检测新的工具调用
      */
     useEffect(() => {
+        console.log('[useApprovalIntegration] Checking renderMessages:', renderMessages.length);
+
         for (const message of renderMessages) {
             const messageId = getMessageId(message);
 
@@ -104,12 +138,19 @@ export const useApprovalIntegration = () => {
 
             // 检查是否是工具调用
             if (isToolCallMessage(message)) {
+                console.log('[useApprovalIntegration] Found tool call message:', message.type, message.name);
+                console.log('[useApprovalIntegration] Full message:', message);
+                console.log('[useApprovalIntegration] message.content:', message.content);
+                console.log('[useApprovalIntegration] message.input:', message.input);
+
                 const toolCallInfo = extractToolCallInfo(message);
 
                 if (toolCallInfo) {
-                    // 跳过 UI 工具 - 它们会在自己的 render 函数中处理审批
-                    if (UI_TOOLS.includes(toolCallInfo.name)) {
-                        console.log('[useApprovalIntegration] Skipping UI tool:', toolCallInfo.name);
+                    console.log('[useApprovalIntegration] Extracted toolCallInfo:', toolCallInfo);
+
+                    // MODIFIED: 跳过白名单中的工具（这些工具自己创建交互）
+                    if (SKIP_TOOLS.includes(toolCallInfo.name)) {
+                        console.log('[useApprovalIntegration] ⚠️ Skipping tool (self-handled):', toolCallInfo.name);
                         processedMessageIds.current.add(messageId);
                         continue;
                     }
@@ -153,7 +194,7 @@ export const useApprovalIntegration = () => {
     }, [renderMessages, addInteraction, getInteractions]);
 
     return {
-        hasPendingApprovals: getInteractions().some(i => i.content.type === 'approval' && i.state === 'pending'),
+        hasPendingApprovals: getInteractions().some(i => i.content.type === 'approval' && (i.state === 'idle' || i.state === 'active')),
         approvalCount: getInteractions().filter(i => i.content.type === 'approval').length,
     };
 };

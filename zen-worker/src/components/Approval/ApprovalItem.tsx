@@ -68,7 +68,9 @@ export const ApprovalItem: React.FC<ApprovalItemProps> = ({
     };
 
     const handleActionSelect = (item: string) => {
+        console.log('[ApprovalItem] Action selected:', item);
         if (item === 'approve') {
+            console.log('[ApprovalItem] Calling onApprove');
             onApprove();
             return;
         }

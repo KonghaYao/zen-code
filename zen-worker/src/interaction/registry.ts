@@ -5,6 +5,7 @@
  */
 
 import type { InteractionRenderer, RendererRegistry } from './types';
+import type { InteractionContent } from './types';
 
 /**
  * 全局渲染器注册表
@@ -14,13 +15,18 @@ class RendererRegistryManager {
 
   /**
    * 注册渲染器
+   * @param type 内容类型
+   * @param renderer 渲染器
    */
-  register<T extends InteractionRenderer>(renderer: T): void {
-    if (this.registry[renderer.type]) {
-      console.warn(`[RendererRegistry] Renderer for type "${renderer.type}" already exists, overwriting.`);
+  register<T extends InteractionContent>(
+    type: T['type'],
+    renderer: InteractionRenderer<T>
+  ): void {
+    if (this.registry[type]) {
+      console.warn(`[RendererRegistry] Renderer for type "${type}" already exists, overwriting.`);
     }
-    this.registry[renderer.type] = renderer;
-    console.log(`[RendererRegistry] Registered renderer for type: ${renderer.type}`);
+    this.registry[type] = renderer;
+    console.log(`[RendererRegistry] Registered renderer for type: ${type}`);
   }
 
   /**
