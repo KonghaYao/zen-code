@@ -32,8 +32,17 @@ export const interviewCommand: CommandDefinition = {
   description: 'Start Interview mode to clarify requirements through questions',
   aliases: ['i'],
   usage: '/interview [your request]',
+  requiresArgs: true,
   execute: async (args: string[], context: CommandContext): Promise<CommandResult> => {
-    const userRequest = args.join(' ') || 'Help me complete a task';
+    const userRequest = args.join(' ').trim();
+
+    if (!userRequest) {
+      return {
+        success: false,
+        message: '❌ Interview 模式需要提供任务描述\n用法: /interview [your request]',
+      };
+    }
+
     const enhancedMessage = INTERVIEW_PREFIX + userRequest;
 
     context.sendMessage(

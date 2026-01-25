@@ -9,9 +9,15 @@ import { extendedCommands } from './extended';
 import { agentCommands } from './agentCommands';
 // NEW: Import interview commands
 import { interviewCommands } from './interviewCommand';
+// NEW: Import plan commands
+import { planCommands } from './planCommand';
+// NEW: Import spark commands
+import { sparkCommands } from './sparkCommand';
+// NEW: Import spark-to-task commands
+import { sparkToTaskCommands } from './sparkToTaskCommand';
 
 // 注册内置命令
-[...builtinCommands, ...extendedCommands, ...agentCommands, ...interviewCommands].forEach((command) => {
+[...builtinCommands, ...extendedCommands, ...agentCommands, ...interviewCommands, ...planCommands, ...sparkCommands, ...sparkToTaskCommands].forEach((command) => {
     commandRegistry.register(command);
 });
 

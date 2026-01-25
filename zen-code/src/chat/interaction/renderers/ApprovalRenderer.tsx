@@ -3,8 +3,6 @@
  * 渲染审批类型的交互内容
  */
 
-import React from 'react';
-import { Box, Text } from 'ink';
 import type { InteractionRenderer } from '../registry';
 import type { ApprovalContent } from '../content';
 import type { PanelInteraction } from '../panel';
@@ -49,8 +47,8 @@ export const ApprovalRenderer: InteractionRenderer<ApprovalContent> = {
       id: interaction.id,
       toolCall: content.toolCall,
       status: interaction.state === 'submitted' ? 'approved' :
-              interaction.state === 'edited' ? 'edited' :
-              interaction.state === 'cancelled' ? 'rejected' : 'pending',
+        interaction.state === 'edited' ? 'edited' :
+          interaction.state === 'cancelled' ? 'rejected' : 'pending',
       createdAt: interaction.createdAt,
       messageIndex: metadata.messageIndex,
       description: metadata.description,
