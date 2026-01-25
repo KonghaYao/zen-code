@@ -297,11 +297,7 @@ const Chat: React.FC = () => {
         },
         [sendMessage, extraParams, closePanel],
     );
-    const { hasPendingRequests } = useApproval();
     const { hasPendingInteractions } = useInteractionContext();
-
-    // 判断是否显示统一交互面板（只在没有 pending 交互时显示）
-    const showUnifiedPanel = hasPendingInteractions;
 
     return (
         <Box flexDirection="column" width="100%">
@@ -310,13 +306,9 @@ const Chat: React.FC = () => {
                     <Box flexDirection="column" flexGrow={1}>
                         <ChatMessages key={currentChatId} />
                         {/* 优先使用新的统一交互面板 */}
-                        {showUnifiedPanel ? (
-                            <Box borderStyle="single" borderColor="cyan" paddingX={0} paddingY={0}>
+                        {hasPendingInteractions ? (
+                            <Box paddingX={0} paddingY={0}>
                                 <UnifiedUIPanel />
-                            </Box>
-                        ) : hasPendingRequests ? (
-                            <Box borderStyle="single" borderColor="cyan" paddingX={0} paddingY={0}>
-                                <GlobalApprovalPanel allowedDecisions={['approve', 'edit', 'reject']} autoShow={true} />
                             </Box>
                         ) : (
                             <ChatInput

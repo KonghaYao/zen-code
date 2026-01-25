@@ -1,17 +1,15 @@
 /**
  * 统一 UI 面板组件
  *
- * 每个交互一个 Tab，执行完后自动隐藏
+ * 每个交互一个 Tab，永远显示所有 interactions
  */
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Box, Text } from 'ink';
+import { Box, Text, useFocusManager } from 'ink';
 import { Tabs, TabItem } from '../components/input/Tabs';
 import { useInteractionContext } from './context';
 import { InteractionRendererWrapper } from './InteractionRendererWrapper';
 import { rendererRegistry } from './registry';
-import type { AnyPanelInteraction } from './panel';
-import useInput from '../../utils/use-input';
 
 /**
  * 统一 UI 面板组件
@@ -19,82 +17,68 @@ import useInput from '../../utils/use-input';
 export const UnifiedUIPanel: React.FC = () => {
   const ctx = useInteractionContext();
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const { focusNext } = useFocusManager();
 
-  // 获取所有待处理的交互（idle 或 active 状态）
-  const pendingInteractions = useMemo(() => {
-    return ctx.getInteractions().filter(i => i.state === 'idle' || i.state === 'active');
+  // 获取所有交互
+  const allInteractions = useMemo(() => {
+    return ctx.getInteractions();
   }, [ctx.getInteractions()]);
 
-  // 初始化和自动切换 activeTab
+  // 初始化 activeTab
   useEffect(() => {
-    if (pendingInteractions.length > 0 && !activeTab) {
-      // 第一次初始化，选择第一个
-      setActiveTab(pendingInteractions[0].id);
-    } else if (activeTab && !pendingInteractions.find(i => i.id === activeTab)) {
-      // 当前激活的 tab 不在 pending 列表中，切换到第一个
-      setActiveTab(pendingInteractions.length > 0 ? pendingInteractions[0].id : null);
+    if (allInteractions.length > 0 && !activeTab) {
+      setActiveTab(allInteractions[0].id);
     }
-  }, [pendingInteractions, activeTab]);
+  }, [allInteractions, activeTab]);
 
-  // 构建 Tab items（每个交互一个 tab）
+  // 构建 Tab items（每个交互一个 tab，包括已完成的）
   const tabItems: TabItem[] = useMemo(() => {
-    return pendingInteractions.map((interaction) => {
-      const icon = {
-        approval: '✅',
-        selection: '📋',
-        input: '📝',
-        confirm: '❓',
-      }[interaction.content.type] || '📌';
+    return allInteractions.map((interaction) => {
+      // 根据状态添加不同的标记
+      const statusIcon = {
+        idle: '🔄',
+        active: '🔄',
+        submitted: '✅',
+        edited: '⛔',
+        cancelled: '🚫',
+      }[interaction.state] || '';
 
       return {
         id: interaction.id,
-        label: `${icon} ${interaction.metadata.title || interaction.content.type}`,
+        label: `${statusIcon} ${interaction.metadata.title || interaction.content.type}`,
         content: null, // 不在这里渲染内容
       };
     });
-  }, [pendingInteractions]);
+  }, [allInteractions]);
 
   // Tab 切换处理
   const handleTabChange = useCallback((index: number, item: TabItem) => {
     setActiveTab(item.id);
   }, []);
 
-  // 批量执行所有已处理的交互
-  const executeApproved = useCallback(async () => {
-    await ctx.submitInteractions();
-  }, [ctx]);
 
-  // 快捷键: Alt+E 执行所有已处理的交互
-  useInput(
-    (input, key) => {
-      if (key.alt && input === 'e') {
-        executeApproved();
-      }
-    },
-    { isActive: true }
-  );
-
-  // 跳转到下一个待处理的交互
+  // 跳转到下一个交互
   const nextTab = useCallback((currentId: string) => {
-    const currentIndex = pendingInteractions.findIndex(i => i.id === currentId);
-    const nextPending = pendingInteractions.slice(currentIndex + 1).find(i => i.state === 'idle');
+    const currentIndex = allInteractions.findIndex(i => i.id === currentId);
+    const nextIndex = (currentIndex + 1) % allInteractions.length;
+    setActiveTab(allInteractions[nextIndex].id);
+  }, [allInteractions]);
 
-    if (nextPending) {
-      setActiveTab(nextPending.id);
-    } else {
-      // 如果后面没有，从前面找
-      const firstPending = pendingInteractions.find(i => i.state === 'idle');
-      if (firstPending) {
-        setActiveTab(firstPending.id);
-      }
+  // 当 activeTab 变化时，延迟调用 focusNext
+  useEffect(() => {
+    if (activeTab) {
+      const timer = setTimeout(() => {
+        focusNext();
+      }, 100);
+      return () => clearTimeout(timer);
     }
-  }, [pendingInteractions]);
+  }, [activeTab, focusNext]);
 
   // 渲染当前激活的交互
   const renderCurrentInteraction = () => {
     if (!activeTab) return null;
 
-    const interaction = pendingInteractions.find(i => i.id === activeTab);
+    const interaction = allInteractions.find(i => i.id === activeTab);
     if (!interaction) return null;
 
     const renderer = rendererRegistry.get(interaction.content.type);
@@ -122,19 +106,16 @@ export const UnifiedUIPanel: React.FC = () => {
     );
   };
 
-  // 没有待处理的交互时不渲染
-  if (pendingInteractions.length === 0) {
+  // 没有任何交互时不渲染
+  if (allInteractions.length === 0) {
     return null;
   }
 
   return (
-    <Box flexDirection="column" paddingY={1}>
+    <Box flexDirection="column" borderColor='cyan' borderStyle='single' width='100%'>
       {/* 标题栏 */}
       <Box justifyContent="space-between" paddingX={1} marginBottom={1}>
-        <Text color="cyan" bold>Interactions</Text>
-        {ctx.hasPendingInteractions && (
-          <Text color="yellow">Alt+E to submit all | ←→ to switch</Text>
-        )}
+        <Text color="cyan" bold>Interactions ({allInteractions.length})</Text>
       </Box>
 
       {/* Tabs */}

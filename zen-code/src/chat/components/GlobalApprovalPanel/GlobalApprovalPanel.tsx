@@ -205,7 +205,7 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
                         items={tabItems}
                         defaultIndex={tabItems.findIndex(item => item.id === activeTab)}
                         onChange={handleTabChange}
-                        autoFocus={true}
+                        autoFocus={false}
                         variant="line"
                     />
                 </Box>

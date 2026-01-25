@@ -48,7 +48,8 @@ export const Tabs: React.FC<TabsProps> = ({
                 handleTabChange(selectedIndex + 1);
             }
         },
-        { isActive: isFocused && !disabled },
+        // 这里不需要 focus 也能够左右跳
+        { isActive: !disabled },
     );
 
     const renderTabs = () => {
@@ -132,8 +133,6 @@ export const Tabs: React.FC<TabsProps> = ({
                 marginTop={1}
                 paddingX={2}
                 paddingY={1}
-                borderStyle="round"
-                borderColor={isFocused && !disabled ? 'gray' : 'gray'}
                 flexDirection="column"
             >
                 {selectedItem.content}
