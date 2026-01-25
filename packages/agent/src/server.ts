@@ -12,6 +12,9 @@ import { logger } from 'hono/logger';
 // 注册 graph（使用新的包）
 import { registerGraph } from '@langgraph-js/pure-graph';
 import { Hono } from 'hono';
+import { downloadRipGrep } from './utils/ripgrep.js';
+
+await downloadRipGrep()
 registerGraph('code', graph);
 
 const app = new Hono()

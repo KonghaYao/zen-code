@@ -117,7 +117,6 @@ const downloadRipGrepAndroid = async (platform: string) => {
 
 export const rgPath = join(__dirname, `rg${process.platform === 'win32' ? '.exe' : ''}`);
 
-console.log(rgPath);
 export const downloadRipGrep = async (overrideBinPath?: string) => {
     if (await pathExists(rgPath)) {
         console.log('rg cached');

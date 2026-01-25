@@ -144,3 +144,5 @@ node_modules
 .DS_Store
 __pycache__
 deno.lock
+
+**/*/rg
