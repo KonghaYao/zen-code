@@ -1,13 +1,15 @@
 ---
-name: "subagents-system-architecture"
-description: "专业化子代理系统完整架构，通过 LangGraph switchBranch 实现任务路由和委托。包含10个子代理（finder, planner, reviewer, debugger, refactor, tester, security, performance, organizer, default），每个代理有特定的工具分配策略（只读/读写/全部）和中间件配置。配置系统基于 AgentConfig 接口，支持工具白名单、中间件开关、动态提示词解析。完整实现包括后端配置系统、前端 TUI 集成和工具映射规范。与 SubAgentsMiddleware 插件系统独立运行。"
-tags: ["subagents", "agent-configuration", "task-routing", "langgraph", "switchbranch", "middleware", "factory-pattern", "tui", "agent-system"]
+name: "subagents-system-complete"
+description: "专业化子代理系统完整架构，通过 LangGraph switchBranch 实现任务路由和委托。包含10个子代理（finder, planner, reviewer, debugger, refactor, tester, security, performance, organizer, default），每个代理有特定的工具分配策略和中间件配置。配置系统基于 AgentConfig 接口，支持工具白名单、中间件开关、动态提示词解析。完整实现包括后端配置系统、前端 TUI 集成、Skills 文件系统架构和工具映射规范。"
+tags: ["subagents", "skills", "agent-configuration", "task-routing", "langgraph", "switchbranch", "middleware", "factory-pattern", "tui", "agent-system", "migration", "file-system"]
 category: "architecture"
 created: "2025-01-13"
-last_updated: "2025-01-17"
+last_updated: "2025-01-25"
 priority: "high"
 context_scope: "project"
 ---
+
+# SubAgent 系统完整架构
 
 ## 系统概述
 
@@ -23,6 +25,8 @@ context_scope: "project"
 | **使用场景** | AI 自主委托专门任务 | 用户明确切换 agent 模式 |
 
 两者协同工作：`default` agent 通过 SubAgentsMiddleware 委托给专业化子代理。
+
+---
 
 ## 核心架构
 
@@ -113,6 +117,110 @@ const systemPrompt = typeof config.systemPrompt === 'function'
     : config.systemPrompt;
 ```
 
+---
+
+## Skills 文件系统架构
+
+### 背景与迁移
+
+**原方案**：提示词硬编码在 `prompts/subagents/*.ts` 文件中
+- 不利于编辑和版本控制
+- 无法支持用户自定义
+
+**新方案**：文件系统 Skills 架构
+- 创建 `.claude/skills/` 目录存储 SKILL.md 文件
+- SkillsMiddleware 自动扫描并注入到对应 agent 的系统提示词
+- 统一使用 YAML frontmatter + Markdown 格式
+- 通过目录名（如 organizer）匹配 agent ID
+
+### 架构变更
+
+**Before**:
+```typescript
+// prompts/subagents/organizer.ts
+export function getOrganizerPrompt(): string {
+  return `你是记忆系统维护专家...`;
+}
+
+// subagents/config.ts
+organizer: {
+  systemPrompt: getOrganizerPrompt,  // 硬编码
+  tools: ['all'],
+  middleware: { skills: true, ... },
+}
+```
+
+**After**:
+```typescript
+// .claude/skills/organizer/SKILL.md
+---
+name: 'knowledge-organizer'
+description: '知识整理和文档维护'
+tags: ['documentation', 'knowledge-management']
+---
+
+你是记忆系统维护专家，负责持续优化项目的知识基础设施...
+
+// subagents/config.ts
+organizer: {
+  systemPrompt: '',  // 由 SkillsMiddleware 注入
+  tools: ['all'],
+  middleware: { skills: true, ... },
+}
+```
+
+### 关键实现
+
+**1. 添加 loadSkillContent 函数** (`agents/code/skills/load.ts`)
+
+```typescript
+export function loadSkillContent(skillPath: string): string | null {
+  try {
+    if (!existsSync(skillPath)) return null;
+    return readFileSync(skillPath, 'utf-8');
+  } catch (error) {
+    console.warn(`Error loading skill: ${error}`);
+    return null;
+  }
+}
+```
+
+**2. 更新 SkillsMiddleware 路径** (`agents/code/middlewares/skills.ts:117`)
+
+```typescript
+constructor(options: {...} = {}) {
+  this.projectSkillsDir = options.projectSkillsDir || './.claude/skills';
+}
+```
+
+**3. 简化 Agent 配置** (`agents/code/subagents/config.ts`)
+
+移除所有 subagent 的 `systemPrompt` 导入，改为空字符串，添加注释说明由 SkillsMiddleware 注入。
+
+**4. 目录结构**
+
+```
+.claude/skills/
+└── organizer/
+    └── SKILL.md          # YAML frontmatter + 提示词内容
+```
+
+### 工作流程
+
+1. Agent 被调用（如 organizer）
+2. SkillsMiddleware 扫描 `.claude/skills/`
+3. 根据目录名匹配 agent ID
+4. 加载 SKILL.md 内容
+5. 注入到系统提示词开头
+
+### 适用场景
+
+- 需要外部化管理 agent 提示词
+- 支持用户自定义覆盖（通过 `~/.deepagents/skills/`）
+- 提示词需要频繁修改或版本控制
+
+---
+
 ## LangGraph 集成
 
 ### 图路由逻辑
@@ -182,6 +290,8 @@ tools: ['glob_tool']  // ❌ glob_tool 是导入变量名
 tools: ['glob_files']  // ✅ glob_files 是实际的 tool.name
 ```
 
+---
+
 ## 前端 TUI 集成
 
 ### AgentPanel 组件
@@ -213,21 +323,24 @@ interface AppConfig {
 3. Context `extraParams` 从 config 读取
 4. 后端根据 `switch_command` 路由到对应 agent
 
+---
+
 ## 扩展指南
 
 ### 添加新 Agent（5 步）
 
-1. 在 `prompts/subagents/` 中添加提示词文件
-2. 在 `prompts/subagents/index.ts` 中导出函数
-3. 在 `config.ts` 的 `loadAgentsList()` 中添加配置
-4. 可选：在 `factory.ts` 中添加专用创建函数
-5. 可选：在 `SubAgentsMiddleware` 中注册（如果需要被委托）
+1. 在 `.claude/skills/` 中添加 SKILL.md 文件
+2. 在 `config.ts` 的 `loadAgentsList()` 中添加配置
+3. 可选：在 `factory.ts` 中添加专用创建函数
+4. 可选：在 `SubAgentsMiddleware` 中注册（如果需要被委托）
 
 ### 添加新工具
 
 1. 在 `factory.ts` 的 `ALL_TOOLS` 数组中添加
 2. 在 `TOOL_MAP` 中自动映射（使用 tool.name）
 3. 在 agent 配置中使用 tool.name 字符串
+
+---
 
 ## 最佳实践
 
@@ -244,27 +357,21 @@ interface AppConfig {
 - **规划 agents**（planner）：只启用必要工具和 agents_md
 - **全功能 agents**（default）：启用所有中间件
 
-### 注意事项
+### Skills 文件管理
+
+- Skill 目录名必须与 agent ID 匹配
+- YAML frontmatter 必须包含 `name` 和 `description`
+- default agent 保留使用 `prompts/coding.ts` 的硬编码提示词
+
+---
+
+## 注意事项
 
 - 避免过度嵌套：专业化子代理不应再委托给其他子代理
 - 工具权限要匹配职责：分析类子代理不应有写入权限
 - 提示词要聚焦：每个子代理专注单一领域
 
-## 故障排查
-
-### 常见问题
-
-1. **工具未生效**
-   - 检查工具名称是否与 TOOL_MAP 键名匹配
-   - 确认工具已添加到 ALL_TOOLS 数组
-
-2. **Agent 切换无效**
-   - 检查 `switch_command` 是否正确传递到后端
-   - 确认 agentId 在 loadAgentsList() 中存在
-
-3. **中间件未启用**
-   - 检查 config.middleware 对应字段是否为 true
-   - 确认中间件依赖配置（如 mcp_config）
+---
 
 ## 适用场景
 
@@ -272,6 +379,9 @@ interface AppConfig {
 - 多任务类型的代码助手系统
 - 需要权限分离（只读/读写）的场景
 - 使用 LangGraph 构建的多 agent 系统
+- 需要外部化管理 agent 提示词的场景
+
+---
 
 ## 核心文件结构
 
@@ -279,20 +389,21 @@ interface AppConfig {
 agents/code/subagents/
 ├── config.ts        # 配置定义（AgentConfig 接口、loadAgentsList）
 ├── factory.ts       # 标准工厂（createStandardAgent）
-├── finder.ts        # Finder 子代理实现示例
 └── README.md        # 完整文档
 
-agents/code/prompts/subagents/
-├── index.ts         # 提示词注册中心
-├── finder.ts        # 文件搜索专家
-├── planner.ts       # 任务规划专家
-├── reviewer.ts      # 代码审查专家
-├── debugger.ts      # 调试专家
-├── refactor.ts      # 重构专家
-├── tester.ts        # 测试专家
-├── security.ts      # 安全专家
-├── performance.ts   # 性能专家
-└── organizer.ts     # 知识整理专家
+.claude/skills/
+├── finder/SKILL.md
+├── planner/SKILL.md
+├── reviewer/SKILL.md
+├── debugger/SKILL.md
+├── refactor/SKILL.md
+├── tester/SKILL.md
+├── security/SKILL.md
+├── performance/SKILL.md
+└── organizer/SKILL.md
+
+agents/code/skills/
+└── load.ts          # Skills 加载函数
 
 tui/src/chat/components/
 └── AgentPanel.tsx   # Agent 选择面板

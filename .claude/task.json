@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-01-25T02:57:13.321Z",
+  "tasks": {},
+  "history": [],
+  "config": {
+    "maxConcurrentAgents": 3,
+    "retryLimit": 3,
+    "autoResume": false
+  }
+}

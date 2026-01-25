@@ -1,7 +1,7 @@
 ---
 name: "tui-architecture-complete"
-description: "TUI 系统完整架构：包括多行文本输入组件（EnhancedTextInput）、统一面板系统（UniversalPanel）、全局审批面板（GlobalApprovalPanel）和 Ink Static 组件优化。涵盖二维光标系统、虚拟滚动、跨平台快捷键、Unicode 处理、模糊搜索、命令系统集成、批量执行、自动跳转等核心特性。适用于构建高性能、跨平台的复杂 TUI 应用。"
-tags: ["tui", "ink", "multiline-input", "panel-system", "approval-panel", "cross-platform", "virtual-scroll", "command-system", "react", "text-editor", "fuzzy-search", "keyboard-shortcuts"]
+description: "TUI 系统完整架构：包括多行文本输入组件（EnhancedTextInput）、统一面板系统（UniversalPanel）、全局审批面板（GlobalApprovalPanel）和 Ink Static 组件优化。涵盖二维光标系统、虚拟滚动、跨平台快捷键、Unicode 处理、模糊搜索、命令系统集成、批量执行、自动跳转、UniversalPanel 删除扩展、TaskPanel 导航过滤修复等核心特性。适用于构建高性能、跨平台的复杂 TUI 应用。"
+tags: ["tui", "ink", "multiline-input", "panel-system", "approval-panel", "cross-platform", "virtual-scroll", "command-system", "react", "text-editor", "fuzzy-search", "keyboard-shortcuts", "universal-panel", "task-panel", "delete-feature", "navigation", "bug-fix"]
 category: "architecture"
 created: "2025-01-17"
 last_updated: "2025-01-24"
@@ -597,3 +597,222 @@ return (
 
 ### Ink Static 优化
 - `tui/src/chat/components/MessageBox.tsx` - 消息框组件
+
+---
+
+## 五、UniversalPanel 删除功能扩展
+
+### 背景与需求
+
+需要为 TaskPanel 添加删除任务功能，并希望删除能力能够扩展到所有使用 UniversalPanel 的组件。
+
+### 解决方案
+
+#### 1. 扩展类型定义
+
+`components/Panel/types.ts:44-47`：
+```typescript
+// 交互配置
+/** 选择项回调 */
+onSelect?: (item: T) => void | Promise<void>;
+/** 删除项回调 */
+onDelete?: (item: T) => void | Promise<void>;
+```
+
+#### 2. 扩展导航 Hook
+
+`components/Panel/usePanelNavigation.ts`：
+- 添加 `onDelete` 参数到接口
+- 在键盘处理中添加 backspace/delete 键支持
+
+`usePanelNavigation.ts:116-124`：
+```typescript
+case key.backspace:
+case key.delete:
+    if (onDelete) {
+        const selectedItem = filteredItems[selectedIndex];
+        if (selectedItem) {
+            onDelete(selectedItem);
+        }
+    }
+    break;
+```
+
+#### 3. UniversalPanel 传递回调
+
+`components/Panel/UniversalPanel.tsx:58-60`：
+```typescript
+const { selectedIndex } = usePanelNavigation<T>({
+    // ...
+    onDelete: config.onDelete,
+    // ...
+});
+```
+
+#### 4. TaskPanel 实现
+
+`components/TaskPanel.tsx` 添加删除处理和刷新机制：
+- `refreshTrigger` 状态：触发列表重新加载
+- `handleDeleteTask`：调用 store 删除任务并触发刷新
+- 配置 `onDelete` 回调
+- statusInfo 显示操作提示
+
+`TaskPanel.tsx:88-102`：
+```typescript
+const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+const handleDeleteTask = useCallback(async (task: TaskNode) => {
+    try {
+        const { getTasksStore } = await import('../store/tasks');
+        const tasksStore = getTasksStore(process.cwd());
+        await tasksStore.initialize();
+        const success = await tasksStore.deleteTask(task.id);
+        if (success) {
+            setRefreshTrigger(prev => prev + 1);
+        }
+    } catch (error) {
+        console.error('Error deleting task:', error);
+    }
+}, []);
+```
+
+#### 5. 任务存储扩展
+
+**TaskStoreManager** (`packages/config/src/implementations/taskStore.ts:196-207`)：
+```typescript
+async deleteTask(taskId: string): Promise<boolean> {
+    await this.db.read();
+    if (!this.db.data.tasks[taskId]) {
+        return false;
+    }
+    delete this.db.data.tasks[taskId];
+    this.db.data.lastUpdated = new Date().toISOString();
+    await this.db.write();
+    return true;
+}
+```
+
+**TasksStore** (`store/tasks.ts:43-47`)：
+```typescript
+async deleteTask(taskId: string): Promise<boolean> {
+    this.ensureInitialized();
+    return await this.store!.deleteTask(taskId);
+}
+```
+
+### 注意事项
+
+1. **删除后刷新**：使用 refreshTrigger 状态而不是直接操作 items，确保数据源重新加载
+2. **键盘兼容**：同时支持 backspace 和 delete 键
+3. **用户体验**：在 statusInfo 显示操作提示（如 "Backspace 删除"）
+4. **错误处理**：捕获删除失败的情况并在控制台记录
+
+---
+
+## 六、TaskPanel 导航过滤修复
+
+### Bug 描述
+
+TaskPanel 和所有使用 UniversalPanel 的组件在过滤状态下选择功能错误。当用户使用过滤器（如只看"待领取"任务）时，上下箭头导航会选错任务。
+
+### 根本原因
+
+`zen-code/src/chat/components/Panel/usePanelNavigation.ts` 中，导航逻辑基于原始 `items` 数组而不是 `filteredItems` 数组：
+
+```typescript
+// 错误：使用 items.length 和 items[selectedIndex]
+if (items.length === 0) return;
+
+switch (true) {
+    case key.upArrow:
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : items.length - 1));
+        break;
+    case key.downArrow:
+        setSelectedIndex((prev) => (prev < items.length - 1 ? prev + 1 : 0));
+        break;
+    // ...
+}
+```
+
+**问题**：`selectedIndex` 是基于 `filteredItems` 的索引，但导航使用 `items` 的长度和边界，导致：
+- 过滤后列表变短，但 `selectedIndex` 变化范围仍然基于原始列表长度
+- Enter 选择时使用 `items[selectedIndex]` 而不是 `filteredItems[selectedIndex]`
+
+### 解决方案
+
+将所有导航逻辑从 `items` 改为 `filteredItems`：
+
+`zen-code/src/chat/components/Panel/usePanelNavigation.ts:60-95`
+
+```typescript
+// 导航快捷键（基于过滤后的列表）
+if (filteredItems.length === 0) return;
+
+switch (true) {
+    case key.upArrow:
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : filteredItems.length - 1));
+        break;
+
+    case key.downArrow:
+        setSelectedIndex((prev) => (prev < filteredItems.length - 1 ? prev + 1 : 0));
+        break;
+
+    case key.pageUp:
+        setSelectedIndex((prev) => Math.max(0, prev - visibleCount));
+        break;
+
+    case key.pageDown:
+        setSelectedIndex((prev) => Math.min(filteredItems.length - 1, prev + visibleCount));
+        break;
+
+    case key.home:
+        setSelectedIndex(0);
+        break;
+
+    case key.end:
+        setSelectedIndex(filteredItems.length - 1);
+        break;
+
+    case key.return:
+        if (onSelect) {
+            const selectedItem = filteredItems[selectedIndex]; // 使用 filteredItems
+            if (selectedItem) {
+                onSelect(selectedItem);
+            }
+        }
+        break;
+}
+```
+
+**影响范围**：
+- 数字键快速跳转（1-9）
+- 上下箭头导航
+- Page Up/Down
+- Home/End
+- Enter 选择
+
+### 适用范围
+
+所有使用 UniversalPanel 的组件：
+- TaskPanel（任务看板）
+- HistoryPanel（历史记录）
+- ModelPanel（模型选择）
+- AgentPanel（Agent 选择）
+- KnowledgePanel（知识库）
+- MCPStatusPanel（MCP 状态）
+
+### 验证方法
+
+1. 打开任意面板（如任务面板）
+2. 使用过滤器（如 Tab 切换到"待领取"）
+3. 使用 ↑↓ 箭头导航
+4. 按 Enter 选择
+5. 确认选中的是显示的项，而不是原始列表中的项
+
+### 相关修复
+
+同时修复了 TaskPanel 的数据源刷新问题：
+- 移除了复杂的缓存机制（useState + useRef）
+- 直接传递 `refreshTasks` 函数作为 `dataSource`
+- 确保每次打开面板都显示最新数据
+- 与 HistoryPanel 和 ModelPanel 的实现模式保持一致
