@@ -1,14 +1,21 @@
 {
-    "name": "agents",
+    "name": "code-graph",
     "author": "Your Name",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "private": true,
     "type": "module",
     "scripts": {
-        "dev:server": "bun run agents/code/server.ts",
-        "dev": "bun run tui/src/cli.ts",
-        "preview:bun": "bun run tui/cli.js",
-        "preview": "node --env-file=.env tui/cli.js"
+        "dev:server": "bun run ./packages/agent/src/server.ts",
+        "dev:tui": "bun run zen-code/src/cli.ts",
+        "dev:web": "cd zen-worker && bun run dev",
+        "dev:all": "pnpm-run-all --parallel dev:server dev:web",
+        "dev": "pnpm dev:server",
+        "preview:bun": "bun run zen-code/dist/cli.mjs",
+        "preview": "node --env-file=.env zen-code/dist/cli.mjs",
+        "build": "pnpm -r --filter './packages/*' build && pnpm --filter zen-code build && pnpm --filter zen-worker build",
+        "build:packages": "pnpm -r --filter './packages/*' build",
+        "build:zen-code": "pnpm --filter zen-code build",
+        "build:zen-worker": "pnpm --filter zen-worker build"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.71.2",
@@ -32,6 +39,7 @@
         "zod": "^4.3.5"
     },
     "devDependencies": {
+        "@types/bun": "^1.3.6",
         "@types/node": "^20.19.30",
         "rollup-plugin-node-externals": "^8.1.2",
         "tsx": "^4.21.0",
@@ -42,6 +50,9 @@
             "@lvce-editor/ripgrep",
             "esbuild"
         ],
-        "overrides": {}
+        "overrides": {
+            "react": "^19.2.3",
+            "react-dom": "^19.2.3"
+        }
     }
 }
