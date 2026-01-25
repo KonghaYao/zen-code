@@ -89,7 +89,7 @@ export class CommandSystemMiddleware implements AgentMiddleware {
                         if (r.error) {
                             return `[${r.tool}] 错误: ${r.error}`;
                         }
-                        return `[${r.tool}]\n${r.result}`;
+                        return `[${r.tool}]\n${JSON.stringify(r.result)}`;
                     })
                     .join('\n\n');
             },
@@ -121,7 +121,7 @@ export class CommandSystemMiddleware implements AgentMiddleware {
                     inputSchema: t.schema
                 }));
 
-                return JSON.stringify(toolInfo, null, 2);
+                return JSON.stringify(toolInfo, null, 2) + '\n\n Use batch_command tool to use command above only!';
             },
             {
                 name: 'list_available_commands',
@@ -156,30 +156,57 @@ export class CommandSystemMiddleware implements AgentMiddleware {
         const systemPromptAddon = `
 ## Command System
 
-Command System 是基础工具能力的扩充，提供批量调用和动态查询功能。当你遇到某些比较困难的操作时，可以先查看 Command System 有无操作工具提供。
+Command System 是**额外工具扩展层**，提供工具发现和批量调用能力。
 
-**扩充能力**：
-- \`batch_command\` - 批量执行多个工具调用，格式：{commands: [{name, args}, ...]}
-- \`list_available_commands\` - 查询所有已注册工具的完整列表（包括 MCP 工具、系统工具和其他工具）
+### 核心理念
 
-**工具来源**：
-- MCP 提供的工具
-- 系统内置工具
-- 其他注册的工具
+**标准工具**（你已熟知的）：
+- read_file, write_file, edit_file, glob_files, search-files-rg 等
+- 这些工具已直接可用，无需通过 Command System
 
-**使用场景**：
-1. **批量操作** - 需要同时执行多个独立任务时使用 batch_command
-2. **工具发现** - 不确定可用工具时调用 list_available_commands 查询
-3. **MCP 工具访问** - MCP 提供的工具通过 Command System 暴露
+**扩展工具**（通过 Command System 发现）：
+- 用户配置的 MCP 工具
+- 部分系统工具
+- 这些工具**需要先发现**，再调用
 
-**示例**：
-- 批量读取：{commands: [{name: "read_file", args: {file_path: "/path/file1"}}, {name: "read_file", args: {file_path: "/path/file2"}}]}
-- 组合操作：{commands: [{name: "grep", args: {pattern: "function"}}, {name: "read_file", args: {file_path: "./src/main.js"}}]}
+### 两个 Commands
 
-**重要**：
-- Command System 不替代直接工具调用，而是提供额外的批量/查询能力
-- 工具列表可能会动态变化，运行时查询获取最新信息
-- 批量调用中的工具独立执行，失败不影响其他操作
+1. **list_available_commands** - 工具发现器
+   - 查询扩展层有哪些工具可用
+   - 获取工具的参数格式和描述
+   - 当你不确定"有什么工具"时使用
+
+2. **batch_command** - 批量调用器
+   - 统一调用一个或者多个工具
+   - 格式：{commands: [{name: "tool_name", args: {...}}]}
+   - 批量操作、并行执行、统一错误处理
+
+### 工作流程
+
+**场景 1：你知道扩展工具名**
+\`\`\`
+# 直接调用扩展工具
+<tool_name>({参数})
+\`\`\`
+
+**场景 2：你不确定有什么扩展工具**
+\`\`\`
+# 第一步：发现工具
+list_available_commands()
+→ 返回所有可用扩展工具列表
+
+# 第二步：使用工具
+batch_command({
+  commands: [{name: "<发现的工具名>", args: {...}}]
+})
+\`\`\`
+
+### 关键理解
+
+- **扩展层**：Command System 不是工具的全部，而是额外扩展
+- **发现机制**：通过 list_available_commands 探索可用能力
+- **按需使用**：已知工具直接调用，未知工具先发现再调用
+- **动态性**：扩展工具列表可能变化，运行时查询获取最新信息
 `;
 
         // 创建新的系统提示词

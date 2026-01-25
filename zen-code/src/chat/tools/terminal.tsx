@@ -116,7 +116,7 @@ const ApprovalContentComponent: React.FC<{
   // 渲染输出（如果有）
   const renderOutput = () => {
     if (!tool.output) return null;
-    return <LimitedOutput content={tool.output} maxLines={10} borderColor="cyan" />;
+    return <LimitedOutput content={tool.output} maxLines={5} borderColor="cyan" />;
   };
 
   return (

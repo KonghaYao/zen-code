@@ -53,7 +53,6 @@ export class MCPManager {
      */
     async initialize(): Promise<void> {
         const globalConfig = await getConfig();
-
         if (!globalConfig.mcp_config || Object.keys(globalConfig.mcp_config).length === 0) {
             this.client = null;
             this.serverStatuses.clear();
@@ -80,11 +79,10 @@ export class MCPManager {
     async getAllTools() {
         if (!this.client) {
             await this.initialize();
-            return [];
         }
 
         // 从 client 获取工具列表
-        const tools = await this.client.getTools();
+        const tools = await this.client!.getTools();
         this.cacheTools = tools
         return tools;
     }
