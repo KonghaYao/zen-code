@@ -23,6 +23,7 @@ interface CommandHandlerProps {
     switchToModel?: () => void;
     /** 切换到 Agent 面板 */
     switchToAgent?: () => void;
+    switchToTask?: () => void;
     /** 关闭面板返回聊天 */
     closePanel?: () => void;
     startRalphLoop: (text: string) => void;
@@ -48,7 +49,7 @@ interface CommandHandlerReturn {
 }
 
 export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerReturn => {
-    const { onCommandExecuted, switchToHistory, switchToKnowledge, switchToModel, switchToAgent, closePanel } = props;
+    const { onCommandExecuted, switchToHistory, switchToKnowledge, switchToModel, switchToAgent, closePanel, switchToTask } = props;
 
     // 从 useChat 获取所有需要的状态和函数
     const { userInput, setUserInput, sendMessage, currentAgent, client, createNewChat, renderMessages } = useChat();
@@ -84,6 +85,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
                 switchToKnowledge,
                 switchToModel,
                 switchToAgent,
+                switchToTask,
                 closePanel,
                 startRalphLoop: props.startRalphLoop,
             };

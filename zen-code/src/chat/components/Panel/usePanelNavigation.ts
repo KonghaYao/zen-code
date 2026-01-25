@@ -12,6 +12,7 @@ interface UsePanelNavigationOptions<T> {
     visibleCount?: number;
     filteredItems?: T[];
     onSelect?: (item: T) => void | Promise<void>;
+    onDelete?: (item: T) => void | Promise<void>;
     onClose?: () => void;
     onSearch?: () => void;
     onFilter?: () => void;
@@ -35,6 +36,7 @@ export function usePanelNavigation<T>(options: UsePanelNavigationOptions<T>): Us
         visibleCount = 20,
         filteredItems = items,
         onSelect,
+        onDelete,
         onClose,
         onSearch,
         onFilter,
@@ -84,20 +86,8 @@ export function usePanelNavigation<T>(options: UsePanelNavigationOptions<T>): Us
         }
 
         // 通用快捷键
-        if (input === 'q' || input === 'c' || key.escape) {
+        if (key.escape) {
             onClose?.();
-            return;
-        }
-
-        // 数字键快速跳转
-        if (/^[1-9]$/.test(input)) {
-            const index = parseInt(input) - 1;
-            if (index < items.length) {
-                setSelectedIndex(index);
-                if (onSelect) {
-                    onSelect(items[index]);
-                }
-            }
             return;
         }
 
@@ -120,16 +110,16 @@ export function usePanelNavigation<T>(options: UsePanelNavigationOptions<T>): Us
             return;
         }
 
-        // 导航快捷键
-        if (items.length === 0) return;
+        // 导航快捷键（基于过滤后的列表）
+        if (filteredItems.length === 0) return;
 
         switch (true) {
             case key.upArrow:
-                setSelectedIndex((prev) => (prev > 0 ? prev - 1 : items.length - 1));
+                setSelectedIndex((prev) => (prev > 0 ? prev - 1 : filteredItems.length - 1));
                 break;
 
             case key.downArrow:
-                setSelectedIndex((prev) => (prev < items.length - 1 ? prev + 1 : 0));
+                setSelectedIndex((prev) => (prev < filteredItems.length - 1 ? prev + 1 : 0));
                 break;
 
             case key.pageUp:
@@ -137,7 +127,7 @@ export function usePanelNavigation<T>(options: UsePanelNavigationOptions<T>): Us
                 break;
 
             case key.pageDown:
-                setSelectedIndex((prev) => Math.min(items.length - 1, prev + visibleCount));
+                setSelectedIndex((prev) => Math.min(filteredItems.length - 1, prev + visibleCount));
                 break;
 
             case key.home:
@@ -145,14 +135,24 @@ export function usePanelNavigation<T>(options: UsePanelNavigationOptions<T>): Us
                 break;
 
             case key.end:
-                setSelectedIndex(items.length - 1);
+                setSelectedIndex(filteredItems.length - 1);
                 break;
 
             case key.return:
                 if (onSelect) {
-                    const selectedItem = items[selectedIndex];
+                    const selectedItem = filteredItems[selectedIndex];
                     if (selectedItem) {
                         onSelect(selectedItem);
+                    }
+                }
+                break;
+
+            case key.backspace:
+            case key.delete:
+                if (onDelete) {
+                    const selectedItem = filteredItems[selectedIndex];
+                    if (selectedItem) {
+                        onDelete(selectedItem);
                     }
                 }
                 break;

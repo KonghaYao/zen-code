@@ -70,5 +70,24 @@ export const helpCommand: CommandDefinition = {
     },
 };
 
+/**
+ * /task 命令 - 打开任务看板
+ */
+export const taskCommand: CommandDefinition = {
+    name: 'task',
+    description: '打开任务看板面板',
+    aliases: ['tasks', 'kanban'],
+    usage: '/task',
+    execute: async (args: string[], context: CommandContext): Promise<CommandResult> => {
+        context.switchToTask?.();
+
+        return {
+            success: true,
+            message: '打开任务看板',
+            shouldClearInput: true,
+        };
+    },
+};
+
 // 导出所有命令
-export const builtinCommands: CommandDefinition[] = [initCommand, helpCommand];
+export const builtinCommands: CommandDefinition[] = [initCommand, helpCommand, taskCommand];

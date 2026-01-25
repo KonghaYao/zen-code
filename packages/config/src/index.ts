@@ -24,15 +24,6 @@ export { RemoteConfigStore } from './implementations/RemoteConfigStore.js';
 export { RemoteSkillStore } from './implementations/RemoteSkillStore.js';
 export { RemotePluginStore } from './implementations/RemotePluginStore.js';
 
-// 类型
-export type {
-  AppConfig,
-  MCPConfig,
-  Skill,
-  SkillContent,
-  Plugin,
-  PluginConfig,
-  PluginSource,
-  PluginPackage,
-  RemoteStoreConfig,
-} from './types/index.js';
+export * from './types';
+
+export { SparkStoreManager, TaskStoreManager } from './implementations/index.js';

@@ -14,8 +14,12 @@ interface StatusBarProps {
  */
 const StatusBar: React.FC<StatusBarProps> = ({ }) => {
     const { extraParams } = useSettings();
-    const { currentChatId } = useChat();
+    const { currentChatId, renderMessages } = useChat();
     const isYoloMode = process.env.YOLO_MODE === 'true';
+
+    // 检查消息数量，超过 100 时提示可压缩
+    const messageCount = renderMessages?.length || 0;
+    const shouldShowCompressionHint = messageCount > 100;
 
     return (
         <Box flexDirection="column" width="100%">
@@ -39,6 +43,12 @@ const StatusBar: React.FC<StatusBarProps> = ({ }) => {
                         </Text>
                     )}
                     <MCPStatusPanel />
+                    {shouldShowCompressionHint && (
+                        <Text color="red" bold>
+                            {' '}
+                            💡 /summary
+                        </Text>
+                    )}
                 </Box>
                 <Box>
                     <Text dimColor>{currentChatId?.slice(0, 6) || 'N/A'}</Text>

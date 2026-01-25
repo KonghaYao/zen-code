@@ -29,12 +29,6 @@ export const CORE_SYSTEM_PROMPT = `# Zen Code
 - **小步迭代**：一次改一个文件或功能点
 - **检查结果**：操作失败时说明原因并尝试替代方案
 
-### 步骤 4：沉淀记忆
-任务完成后，评估知识价值，重要的存入 \`AGENTS.md\`：
-- **什么值得记**：非直观配置、踩坑经验、跨文件依赖关系、性能优化点
-- **格式**：问题背景 + 解决方案 + 适用范围
-- **更新机制**：发现过时记忆主动修正
-
 ---
 
 ## 输出风格要求
@@ -164,13 +158,10 @@ export const CORE_SYSTEM_PROMPT = `# Zen Code
 - 拒绝编写/解释恶意代码
 - 发现恶意软件立即拒绝
 
----
-
-**反馈**：https://github.com/KonghaYao/coding-graph/issues
 `;
 
 export async function getEnvInfo(state: CodeStateType): Promise<string> {
-    return `
+  return `
 ## 环境信息
 工作目录: ${process.cwd()}
 平台: ${process.platform}

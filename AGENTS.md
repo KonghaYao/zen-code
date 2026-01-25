@@ -126,11 +126,12 @@ const graph = new StateGraph(CodeState)
 
 **Available Branches**:
 - `smart_memory` - Analyze conversation and save to `.claude/memories/`
-- Agent routing via `switch_command` (e.g., 'default', 'finder', 'planner')
+- Agent routing via `switch_command` (currently only 'default' agent available)
 
 **Available Agents** (configured in `subagents/config.ts`):
-- `default` - Full-featured assistant with all tools and middleware
-- Future: `finder`, `planner`, `reviewer`, `debugger`, etc.
+- `default` - "Jarvis" with full capabilities
+
+**Note**: SubAgentsMiddleware is implemented but no sub-agents are currently registered (the agent Map is empty). The system supports dynamic agent configuration through `AgentConfig`, enabling future addition of specialized agents.
 
 ### Middleware System
 
@@ -139,39 +140,86 @@ const graph = new StateGraph(CodeState)
 ```typescript
 // packages/agent/src/subagents/factory.ts
 export async function createStandardAgent(config: AgentConfig, state, runtime) {
+    const model = await initChatModel(state.main_model, {
+        modelProvider: process.env.MODEL_PROVIDER || 'openai',
+        streamUsage: true,
+        enableThinking: state.enable_thinking ?? true,
+    });
+
+    // Filter tools based on config
+    let tools = config.tools.includes('all')
+        ? [...ALL_TOOLS]
+        : config.tools
+            .map((name) => TOOL_MAP.get(name))
+            .filter((t): t is (typeof ALL_TOOLS)[number] => t !== undefined);
+
+    // Build middleware chain based on config
     const middleware: AgentMiddleware[] = [];
-    
-    // Add middleware based on config
-    if (config.middleware.subagents) middleware.push(new SubAgentsMiddleware());
-    if (config.middleware.memories) middleware.push(new MemoriesMiddleware());
-    if (config.middleware.skills) middleware.push(new SkillsMiddleware());
-    if (config.middleware.agents_md) middleware.push(new AgentsMdMiddleware());
-    
-    // Command System (always enabled for MCP tools)
+
+    // SubAgents (configurable)
+    if (config.middleware.subagents) {
+        const subagents = new SubAgentsMiddleware();
+        middleware.push(subagents);
+    }
+
+    // MemoriesMiddleware (configurable)
+    if (config.middleware.memories) {
+        middleware.push(new MemoriesMiddleware({
+            projectMemoriesDir: './.claude/memories',
+        }));
+    }
+
+    // SkillsMiddleware (configurable)
+    if (config.middleware.skills) {
+        middleware.push(new SkillsMiddleware({
+            projectSkillsDir: './.claude/skills',
+        }));
+    }
+
+    // AgentsMdMiddleware (configurable)
+    if (config.middleware.agents_md) {
+        middleware.push(new AgentsMdMiddleware());
+    }
+
+    // CommandSystem (always enabled)
     const commandSystem = new CommandSystemMiddleware();
+    const commandTools = [read_tool, glob_tool];
+    // Add MCP tools if enabled
     if (config.middleware.mcp) {
-        commandSystem.registerTools(await MCPManager.getInstance().getAllTools());
+        const mcpTools = await MCPManager.getInstance().getAllTools();
+        commandTools.push(...mcpTools);
     }
+    commandSystem.registerTools(commandTools);
     middleware.push(commandSystem);
-    
+
     // HITL (always enabled unless YOLO_MODE)
+    const interruptOn = { ...ask_user_with_options_config.interruptOn };
     if (process.env.YOLO_MODE !== 'true') {
-        middleware.push(
-            humanInTheLoopMiddleware({
-                interruptOn: {
-                    ...ask_user_with_options_config.interruptOn,
-                    terminal: { allowedDecisions: ['approve', 'reject', 'edit'] },
-                },
-            }),
-        );
+        Object.assign(interruptOn, {
+            terminal: { allowedDecisions: ['approve', 'reject', 'edit'] },
+        });
     }
-    
+    middleware.push(humanInTheLoopMiddleware({ interruptOn }));
+
     // Anthropic cache (Anthropic only)
     if (process.env.MODEL_PROVIDER === 'anthropic') {
         middleware.push(anthropicPromptCachingMiddleware());
     }
-    
-    return createAgent({ model, tools, middleware });
+
+    // Resolve system prompt
+    const systemPrompt =
+        typeof config.systemPrompt === 'function'
+            ? await config.systemPrompt(state)
+            : config.systemPrompt || CORE_SYSTEM_PROMPT;
+
+    return createAgent({
+        name: config.name,
+        model,
+        systemPrompt: systemPrompt + `\n\n${await getEnvInfo(state)}`,
+        tools,
+        stateSchema: CodeState,
+        middleware,
+    });
 }
 ```
 
@@ -233,9 +281,14 @@ interface AgentConfig {
 **Current Agents**:
 - `default` - "Jarvis" with full capabilities
 
+**Current Status**:
+- Only `default` agent is available ("Jarvis" with full capabilities)
+- SubAgentsMiddleware is implemented but no sub-agents are registered (the agent Map is empty)
+
 **Future Extensions**:
-- Load from `~/.zen-code/settings.json`
-- Load from database
+- Add specialized agents (finder, planner, reviewer, debugger, etc.) via `AgentConfig`
+- Load agent configurations from `~/.zen-code/settings.json`
+- Load agent configurations from database
 - Remote configuration service
 
 ### Memory System
@@ -257,24 +310,45 @@ interface AgentConfig {
 ### Tool System
 
 **Categories**:
-- `filesystem_tools` - read, write, glob, grep, folder operations
+- `interaction` - ask_user_with_options (user approval and input)
+- `filesystem_tools` - read, write, glob, grep, folder, replace
 - `bash_tools` - terminal command execution
-- `memory` - memory storage and retrieval
-- `task_tools` - todo list management
+- `task_tools` - todo list management (todo_write, add_task, commit_task)
+- `memory` - memory storage and retrieval (triggered via smart_memory)
 
 **Command System** (additional capabilities):
 - `batch_command` - Execute multiple tools in one call
 - `list_available_commands` - Query all available tools at runtime
 
+**Tool Registration**:
+- CommandSystem does **not** automatically register all tools
+- Tools are manually registered via `commandSystem.registerTools(commandTools)`
+- Currently registered tools: `read_tool`, `glob_tool` + MCP tools (if enabled)
+- Injects system prompt via `wrapModelCall` to document Command System capabilities
+
+**Implementation Details**:
+```typescript
+// factory.ts
+const commandSystem = new CommandSystemMiddleware();
+const commandTools = [read_tool, glob_tool];  // Manually specify tools
+if (config.middleware.mcp) {
+    const mcpTools = await MCPManager.getInstance().getAllTools();
+    commandTools.push(...mcpTools);
+}
+commandSystem.registerTools(commandTools);  // Register before adding to middleware
+middleware.push(commandSystem);
+```
+
 **MCP Integration**:
 - MCP tools exposed through CommandSystemMiddleware
 - MCPManager singleton manages connections and tool caching
+- MCP tools are added to commandTools array when enabled
 - Configured via `mcp_config` in settings
 
 **Tool Sources**:
-- MCP provided tools
-- System built-in tools
-- Other registered tools
+- MCP provided tools (added to CommandSystem when enabled)
+- System built-in tools (manually registered to CommandSystem: read_tool, glob_tool)
+- Other registered tools (available via ALL_TOOLS but not in CommandSystem)
 
 ## Coding Standards
 
@@ -289,8 +363,17 @@ interface AgentConfig {
 
 ### Add New Tool
 
+Tools are organized by functionality in groups (e.g., `filesystem_tools/`, `bash_tools/`, `task_tools/`):
+
+**Current Tool Groups**:
+- `filesystem_tools/` - read, write, glob, grep, folder, replace (uses `export *`)
+- `bash_tools/` - bash execution (uses `export const bash_tools = [...]`)
+- `task_tools/` - todo, add_task, commit_task (uses `export *`)
+
+**Option 1: Add to existing group**
+
 ```typescript
-// packages/agent/src/tools/my_tool/index.ts
+// packages/agent/src/tools/filesystem_tools/my_tool.ts
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 
@@ -305,15 +388,48 @@ export const my_tool = tool(
     }
 );
 
-// Export from tools/my_tool/index.ts (not tools/index.ts)
+// Export in tools/filesystem_tools/index.ts
+export * from './my_tool.js';
+```
 
-// Register in factory.ts: Import and add to ALL_TOOLS array
-import { my_tool } from '../tools/my_tool/index.js';
+**Option 2: Create new group**
+
+```typescript
+// packages/agent/src/tools/my_tools/my_tool.ts
+export const my_tool = tool(/* ... */);
+
+// Export in tools/my_tools/index.ts
+export * from './my_tool.js';
+// Or export array (like bash_tools)
+export const my_tools = [my_tool];
+```
+
+**Register in factory.ts**:
+
+```typescript
+// packages/agent/src/subagents/factory.ts
+import { my_tool } from '../tools/filesystem_tools/index.js';
+// Or for array exports:
+import { my_tools } from '../tools/my_tools/index.js';
 
 const ALL_TOOLS = [
-    my_tool,
-    ...existingTools,
+    // ...existing tools
+    ask_user_with_options,
+    todo_write_tool,
+    add_task_tool,
+    glob_tool,
+    grep_tool,
+    read_tool,
+    write_tool,
+    replace_tool,
+    folder_tool,
+    ...bash_tools,  // Array spread for bash_tools
+    my_tool,        // Add new tool here
+    // or for array exports: ...my_tools,
 ];
+
+// Update TOOL_MAP
+const TOOL_MAP = new Map(ALL_TOOLS.map((t) => [t.name, t]));
 ```
 
 ### Add New Middleware

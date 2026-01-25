@@ -49,7 +49,7 @@ export function VirtualScrollList<T>({
     const visibleItems = items.slice(startIndex, endIndex);
 
     return (
-        <Box flexDirection="column" borderStyle="single" borderColor="gray" width="100%">
+        <Box flexDirection="column" width="100%" gap={1}>
             {visibleItems.map((item, idx) => renderItem(item, startIndex + idx, startIndex + idx === selectedIndex))}
         </Box>
     );

@@ -56,6 +56,7 @@ export function UniversalPanel<T extends Record<string, any>>({ config, onClose 
         initialIndex,
         visibleCount: config.visibleCount,
         onSelect: config.onSelect,
+        onDelete: config.onDelete,
         onClose,
         onSearch: () => setSearchTerm(''),
         onFilter: () => {
@@ -136,11 +137,15 @@ export function UniversalPanel<T extends Record<string, any>>({ config, onClose 
                     </Text>
                     :确认
                     <Text color="cyan" bold>
-                        1-9
+                        /
                     </Text>
-                    :跳转
+                    :搜索
                     <Text color="cyan" bold>
-                        q
+                        Tab
+                    </Text>
+                    :过滤
+                    <Text color="cyan" bold>
+                        ESC
                     </Text>
                     :关闭
                 </Text>

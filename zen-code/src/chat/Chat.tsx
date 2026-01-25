@@ -21,11 +21,13 @@ import StatusBar from './components/StatusBar';
 import { useInput } from '../utils/use-input';
 import { ApprovalProvider, useApproval } from '@codegraph/union-client';
 import { GlobalApprovalPanel } from './components/GlobalApprovalPanel';
+import TaskPanel from './components/TaskPanel';
 
 import { InteractionProvider, useInteractionContext, UnifiedUIPanel } from './interaction';
 import { useRalphLoop } from './hooks/useRalphLoop';
 import { get_allowed_models } from '@codegraph/agent/src/utils/get_allowed_models';
 import { configStore } from './store';
+import { TaskNode } from '@codegraph/config';
 
 const ChatMessages = () => {
     const { renderMessages, loading, inChatError, isFELocking } = useChat();
@@ -57,6 +59,7 @@ interface ChatInputProps {
     switchToKnowledge?: () => void;
     switchToModel?: () => void;
     switchToAgent?: () => void;
+    switchToTask?: () => void;
     closePanel?: () => void;
 }
 
@@ -65,6 +68,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     switchToKnowledge,
     switchToModel,
     switchToAgent,
+    switchToTask,
     closePanel,
 }) => {
     const { userInput, setUserInput, sendMessage, loading, renderMessages } = useChat();
@@ -86,6 +90,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         switchToKnowledge,
         switchToModel,
         switchToAgent,
+        switchToTask,
         closePanel,
         startRalphLoop,
     });
@@ -147,7 +152,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
 const Chat: React.FC = () => {
     const { extraParams } = useSettings();
-    const { setTools, loading, stopGeneration, currentChatId, sendMessage } = useChat();
+    const { setTools, createNewChat, loading, stopGeneration, currentChatId, sendMessage } = useChat();
     const { bufferedMessage, clearBuffer } = useChatInputBuffer();
     // 初始化工具
     useEffect(() => {
@@ -179,7 +184,7 @@ const Chat: React.FC = () => {
     }, [loading]);
 
     const focusManager = useFocusManager();
-    const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge' | 'model' | 'agent'>('chat');
+    const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge' | 'model' | 'agent' | 'task'>('chat');
     // Global Ctrl+C exit handler
     // Disable when panel is open to avoid duplicate input handling
     useInput(
@@ -212,11 +217,86 @@ const Chat: React.FC = () => {
         setActiveView('agent');
     }, []);
 
+    const switchToTask = useCallback(() => {
+        setActiveView('task');
+    }, []);
+
     const closePanel = useCallback(() => {
         console.clear();
         setActiveView('chat');
         focusManager.focus('global-input');
     }, [focusManager]);
+
+    // NEW: 格式化任务为提示词
+    const formatTaskToPrompt = (task: TaskNode): string => {
+        let prompt = `# 任务：${task.title}\n\n`;
+        prompt += `**描述：**\n${task.description}\n\n`;
+
+        if (task.agentType) {
+            prompt += `**建议 Agent 类型：** ${task.agentType}\n\n`;
+        }
+
+        if (task.estimatedTime) {
+            prompt += `**预估时间：** ${task.estimatedTime}\n\n`;
+        }
+
+        if (task.complexity) {
+            prompt += `**复杂度：** ${task.complexity}\n\n`;
+        }
+
+        if (task.dependencies && task.dependencies.length > 0) {
+            prompt += `**依赖任务：**\n${task.dependencies.map(id => `- ${id}`).join('\n')}\n\n`;
+        }
+
+        if (task.acceptanceCriteria && task.acceptanceCriteria.length > 0) {
+            prompt += `**验收标准：**\n${task.acceptanceCriteria.map((c, i) => `${i + 1}. ${c}`).join('\n')}\n\n`;
+        }
+
+        if (task.children && task.children.length > 0) {
+            prompt += `**子任务：**\n`;
+            task.children.forEach((child, idx) => {
+                prompt += `\n### 子任务 ${idx + 1}: ${child.title}\n`;
+                prompt += `${child.description}\n`;
+                if (child.acceptanceCriteria && child.acceptanceCriteria.length > 0) {
+                    prompt += `验收标准：\n${child.acceptanceCriteria.map(c => `- ${c}`).join('\n')}\n`;
+                }
+            });
+            prompt += '\n';
+        }
+
+        return prompt.trim();
+    };
+
+    // NEW: 执行任务的回调
+    const handleExecuteTask = useCallback(
+        (task: TaskNode) => {
+            // 格式化任务内容为提示词
+            const taskPrompt = formatTaskToPrompt(task);
+
+            // 发送消息给 agent
+            const content: Message[] = [
+                {
+                    type: 'human',
+                    content: `${taskPrompt}\n\n请你先写一个 TODO LIST 然后开始这个任务，最后完成任务的时候，使用 commit_task`,
+                },
+            ];
+
+            createNewChat().then(() => {
+                sendMessage(content, {
+                    extraParams: {
+                        ...extraParams,
+                        is_in_task: true,
+                    },
+                }).then(() => {
+                    notify('任务已发送给 Agent');
+                });
+            })
+
+            // 关闭面板并返回聊天界面
+            closePanel();
+        },
+        [sendMessage, extraParams, closePanel],
+    );
     const { hasPendingRequests } = useApproval();
     const { hasPendingInteractions } = useInteractionContext();
 
@@ -244,6 +324,7 @@ const Chat: React.FC = () => {
                                 switchToKnowledge={switchToKnowledge}
                                 switchToModel={switchToModel}
                                 switchToAgent={switchToAgent}
+                                switchToTask={switchToTask}
                                 closePanel={closePanel}
                             />
                         )}
@@ -253,6 +334,7 @@ const Chat: React.FC = () => {
                 {activeView === 'knowledge' && <KnowledgePanel onClose={closePanel} />}
                 {activeView === 'model' && <ModelPanel onClose={closePanel} />}
                 {activeView === 'agent' && <AgentPanel onClose={closePanel} />}
+                {activeView === 'task' && <TaskPanel onClose={closePanel} onExecuteTask={handleExecuteTask} />}
             </Box>
             <StatusBar />
         </Box>

@@ -33,6 +33,7 @@ export const CodeAnnotation = createState(MessagesAnnotation, SubAgentAnnotation
   agent_name: createDefaultAnnotation(() => 'Code Agent'),
   switch_command: createDefaultAnnotation(() => null),
   enable_thinking: createDefaultAnnotation(() => true),
+  is_in_task: createDefaultAnnotation(() => false)
 });
 
 export type CodeStateType = typeof CodeAnnotation.State;

@@ -2,6 +2,9 @@
  * 配置类型定义
  */
 
+// Task System types
+export * from './task';
+
 export interface AppConfig {
   main_model: string;
   model_provider?: 'openai' | 'anthropic';

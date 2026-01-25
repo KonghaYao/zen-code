@@ -76,6 +76,8 @@ export interface PanelConfig<T = any> {
   // 交互配置
   /** 选择项回调 */
   onSelect?: (item: T) => void | Promise<void>;
+  /** 删除项回调 */
+  onDelete?: (item: T) => void | Promise<void>;
   /** 判断是否为当前选中项 */
   isSelected?: (item: T) => boolean;
 
@@ -142,7 +144,7 @@ export interface PanelContainerProps {
   icon: string;
   count?: number;
   children: React.ReactNode;
-  statusInfo?: React.ReactNode;
+  statusInfo?: React.ReactNode
 }
 
 /**
