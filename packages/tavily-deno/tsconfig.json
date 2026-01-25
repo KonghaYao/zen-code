@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "lib": ["ES2020", "DOM", "DOM.Iterable"],
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "resolveJsonModule": true,
+        "allowImportingTsExtensions": true,
+        "verbatimModuleSyntax": true,
+        "strict": true,
+        "noEmit": true,
+        "baseUrl": "."
+    },
+    "include": ["main.ts"],
+    "exclude": ["node_modules", "dist"]
+}
