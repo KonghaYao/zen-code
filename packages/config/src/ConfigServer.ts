@@ -1,5 +1,5 @@
 import type { ConfigManager } from './ConfigManager.js';
-import type { AppConfig, Skill, SkillContent, Plugin, PluginConfig, PluginSource } from './types/index.js';
+import type { AppConfig, SkillContent, PluginConfig, PluginSource } from './types/index.js';
 
 /**
  * HTTP 方法类型

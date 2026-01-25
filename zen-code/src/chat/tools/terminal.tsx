@@ -6,7 +6,6 @@
 import { createUITool, ToolManager, ToolRenderData } from '@langgraph-js/sdk';
 import { Box, Text } from 'ink';
 import { useState, useEffect, useRef } from 'react';
-import { InputPreviewer } from '../components/MessageTool';
 import { LimitedOutput } from '../components/LimitedOutput';
 import { useInteractionContext } from '../interaction';
 import type { ApprovalContent } from '../interaction/content';
@@ -105,9 +104,6 @@ const ApprovalContentComponent: React.FC<{
   if (interrupt?.reviewConfig && interactionId && !tool.output) {
     return (
       <Box flexDirection="column">
-        <Box paddingX={1}>
-          <InputPreviewer content={tool.getInputRepaired()} />
-        </Box>
         <Box paddingX={1} paddingY={1}>
           <Text color="yellow">
             ⏳ Wait for Approval
@@ -125,9 +121,6 @@ const ApprovalContentComponent: React.FC<{
 
   return (
     <Box flexDirection="column">
-      <Box paddingX={1}>
-        <InputPreviewer content={tool.getInputRepaired()} />
-      </Box>
       {/* Output */}
       {renderOutput()}
     </Box>

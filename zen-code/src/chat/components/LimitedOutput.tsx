@@ -34,6 +34,8 @@ export const LimitedOutput = ({
             <Box
                 borderStyle={borderStyle as any}
                 borderColor={borderColor}
+                borderLeft={false}
+                borderRight={false}
                 flexDirection="column"
                 paddingX={paddingX}
                 marginTop={marginTop}

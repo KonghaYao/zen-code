@@ -9,10 +9,10 @@ import { type CommandDefinition, type CommandResult, type CommandContext } from 
  * /init 命令 - 初始化新的对话会话
  */
 export const initCommand: CommandDefinition = {
-    name: 'init',
+    name: 'new',
     description: '初始化新的对话会话',
-    aliases: ['new', 'start', 'n'],
-    usage: '/init [主题]',
+    aliases: ['new', 'n'],
+    usage: '/new [主题]',
     execute: async (args: string[], context: CommandContext): Promise<CommandResult> => {
         const topic = args.join(' ');
 

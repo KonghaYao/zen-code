@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from 'react';
 import type { AppConfig, MCPConfig, ConfigManager } from '@codegraph/config';
 
 export interface ModelConfig {
@@ -17,6 +17,8 @@ interface SettingsContextType {
     };
     AVAILABLE_MODELS: ModelConfig[];
     manager: ConfigManager;
+    compactMode: boolean;
+    toggleCompactMode: () => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -40,6 +42,14 @@ export const SettingsProvider = ({ manager, get_allowed_models, children }: Sett
             switch_command: config?.switch_command || '',
         };
     }, [config, AVAILABLE_MODELS]);
+
+    const compactMode = useMemo(() => {
+        return config?.compact_mode ?? false;
+    }, [config]);
+
+    const toggleCompactMode = async () => {
+        await updateConfig({ compact_mode: !compactMode });
+    };
 
     const loadConfig = async () => {
         // 使用 ConfigManager 初始化和获取配置
@@ -81,7 +91,7 @@ export const SettingsProvider = ({ manager, get_allowed_models, children }: Sett
     }
 
     return (
-        <SettingsContext.Provider value={{ config, updateConfig, extraParams, AVAILABLE_MODELS, manager }}>
+        <SettingsContext.Provider value={{ config, updateConfig, extraParams, AVAILABLE_MODELS, manager, compactMode, toggleCompactMode }}>
             {children}
         </SettingsContext.Provider>
     );

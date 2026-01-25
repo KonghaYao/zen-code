@@ -7,7 +7,7 @@ export function formatMessage(
   message: ParsedMessage,
   options: MessageFormatOptions = {}
 ): string {
-  const { showTimestamp = false, showThinking = true, compact = false } = options;
+  const { showTimestamp = false, showThinking = true } = options;
 
   let result = '';
 

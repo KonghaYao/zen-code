@@ -11,6 +11,8 @@ interface SettingsContextType {
         switch_command?: string;
     };
     AVAILABLE_MODELS: ModelConfig[];
+    compactMode: boolean;
+    toggleCompactMode: () => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -29,6 +31,14 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
             switch_command: config?.switch_command || '',
         };
     }, [config, AVAILABLE_MODELS]);
+
+    const compactMode = useMemo(() => {
+        return config?.compact_mode ?? false;
+    }, [config]);
+
+    const toggleCompactMode = async () => {
+        await updateConfig({ compact_mode: !compactMode });
+    };
 
     const loadConfig = async () => {
         await initDb();
@@ -67,7 +77,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
 
     return (
-        <SettingsContext.Provider value={{ config, updateConfig, extraParams, AVAILABLE_MODELS }}>
+        <SettingsContext.Provider value={{ config, updateConfig, extraParams, AVAILABLE_MODELS, compactMode, toggleCompactMode }}>
             {children}
         </SettingsContext.Provider>
     );

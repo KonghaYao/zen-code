@@ -16,6 +16,7 @@ export interface AppConfig {
   stream_refresh_interval?: number;
   enable_thinking?: boolean;
   switch_command?: string;
+  compact_mode?: boolean;
 }
 
 export interface MCPConfig {

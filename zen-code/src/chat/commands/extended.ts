@@ -423,7 +423,7 @@ export const mcpCommand: CommandDefinition = {
 export const summarizeCommand: CommandDefinition = {
     name: 'summarize',
     description: '智能总结对话并提取有价值信息保存为记忆',
-    aliases: ['sum', 'summary'],
+    aliases: ['sum', 'summary', 'compact'],
     usage: '/sum',
     execute: async (args: string[], context) => {
         // 检查是否有聊天记录
