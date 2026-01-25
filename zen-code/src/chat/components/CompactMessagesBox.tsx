@@ -11,8 +11,6 @@ import { CompactToolSummary } from './CompactToolSummary';
 interface CompactMessagesBoxProps {
     renderMessages: RenderMessage[];
     startIndex: number;
-    expandedMessages?: Set<string>;
-    onToggleExpansion?: (messageId: string) => void;
 }
 type CompactRenderMessages = RenderMessage | {
     id: string
@@ -23,7 +21,6 @@ type CompactRenderMessages = RenderMessage | {
 export const CompactMessagesBox = ({
     renderMessages,
     startIndex,
-    expandedMessages = new Set(),
 }: CompactMessagesBoxProps) => {
     const { currentChatId, getToolUIRender } = useChat();
     // 修复 Static 首次渲染问题：强制重新渲染

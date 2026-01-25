@@ -20,8 +20,7 @@ import ModelPanel from './components/ModelPanel';
 import AgentPanel from './components/AgentPanel';
 import StatusBar from './components/StatusBar';
 import { useInput } from '../utils/use-input';
-import { ApprovalProvider, useApproval } from '@codegraph/union-client';
-import { GlobalApprovalPanel } from './components/GlobalApprovalPanel';
+import { ApprovalProvider } from '@codegraph/union-client';
 import TaskPanel from './components/TaskPanel';
 
 import { InteractionProvider, useInteractionContext, UnifiedUIPanel } from './interaction';
@@ -29,45 +28,16 @@ import { useRalphLoop } from './hooks/useRalphLoop';
 import { get_allowed_models } from '@codegraph/agent/src/utils/get_allowed_models';
 import { configStore } from './store';
 import { TaskNode } from '@codegraph/config';
+import { toFile } from 'openai';
 
 interface ChatMessagesProps {
-    toggleExpansionRef?: React.MutableRefObject<(() => void) | null>;
+
 }
 
-const ChatMessages: React.FC<ChatMessagesProps> = ({ toggleExpansionRef }) => {
+const ChatMessages: React.FC<ChatMessagesProps> = () => {
     const { renderMessages, loading, inChatError, isFELocking } = useChat();
     const { compactMode } = useSettings();
-    const [expandedMessages, setExpandedMessages] = React.useState<Set<string>>(new Set());
 
-    // Toggle message expansion
-    const toggleMessageExpansion = useCallback((messageId: string) => {
-        setExpandedMessages(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(messageId)) {
-                newSet.delete(messageId);
-            } else {
-                newSet.add(messageId);
-            }
-            return newSet;
-        });
-    }, []);
-
-    // Toggle last message expansion (for Ctrl+O shortcut)
-    const toggleLastMessageExpansion = useCallback(() => {
-        if (compactMode && renderMessages.length > 0) {
-            const lastMessage = renderMessages[renderMessages.length - 1];
-            if (lastMessage.id) {
-                toggleMessageExpansion(lastMessage.id);
-            }
-        }
-    }, [compactMode, renderMessages, toggleMessageExpansion]);
-
-    // Expose toggle function to parent via ref
-    useEffect(() => {
-        if (toggleExpansionRef) {
-            toggleExpansionRef.current = toggleLastMessageExpansion;
-        }
-    }, [toggleLastMessageExpansion, toggleExpansionRef]);
 
     const visibleMessages = renderMessages;
 
@@ -78,8 +48,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ toggleExpansionRef }) => {
                 <CompactMessagesBox
                     renderMessages={visibleMessages}
                     startIndex={0}
-                    expandedMessages={expandedMessages}
-                    onToggleExpansion={toggleMessageExpansion}
                 />
             ) : (
                 <MessagesBox
@@ -201,7 +169,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
 };
 
 const Chat: React.FC = () => {
-    const { extraParams, compactMode } = useSettings();
+    const { extraParams, toggleCompactMode } = useSettings();
     const { setTools, createNewChat, loading, stopGeneration, currentChatId, sendMessage, renderMessages } = useChat();
     const { bufferedMessage, clearBuffer } = useChatInputBuffer();
     // 初始化工具
@@ -235,7 +203,6 @@ const Chat: React.FC = () => {
 
     const focusManager = useFocusManager();
     const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge' | 'model' | 'agent' | 'task'>('chat');
-    const toggleLastMessageExpansionRef = useRef<(() => void) | null>(null);
 
     // Global Ctrl+C exit handler and Ctrl+O expand handler
     // Disable when panel is open to avoid duplicate input handling
@@ -248,10 +215,7 @@ const Chat: React.FC = () => {
                     process.exit();
                 }
             } else if (key.ctrl && input === 'o' && activeView === 'chat' && !loading) {
-                // Toggle last message expansion in compact mode
-                if (compactMode && toggleLastMessageExpansionRef.current) {
-                    toggleLastMessageExpansionRef.current();
-                }
+                toggleCompactMode();
             }
         },
         { isActive: activeView === 'chat' },
@@ -361,7 +325,7 @@ const Chat: React.FC = () => {
             <Box flexGrow={1} flexDirection="row">
                 {activeView === 'chat' && (
                     <Box flexDirection="column" flexGrow={1}>
-                        <ChatMessages key={currentChatId} toggleExpansionRef={toggleLastMessageExpansionRef} />
+                        <ChatMessages key={currentChatId} />
                         {/* 优先使用新的统一交互面板 */}
                         {hasPendingInteractions ? (
                             <Box paddingX={0} paddingY={0}>
