@@ -73,12 +73,17 @@ export class MCPManager {
         await this.refreshAll();
     }
     cacheTools: any[] = []
+
     /**
      * 获取所有 MCP 工具（带缓存）
      */
     async getAllTools() {
         if (!this.client) {
             await this.initialize();
+        }
+        // 如果初始化完成，还是没有，则认为是 没有 MCP
+        if (!this.client) {
+            return []
         }
 
         // 从 client 获取工具列表
