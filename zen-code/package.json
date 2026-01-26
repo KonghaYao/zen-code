@@ -10,7 +10,10 @@
     "scripts": {
         "dev": "bun run src/app.tsx",
         "build": "vite build",
-        "prepublish": "pnpm build"
+        "prepublish": "pnpm build",
+        "test": "vitest",
+        "test:ui": "vitest --ui",
+        "test:coverage": "vitest --coverage"
     },
     "keywords": [],
     "author": "KonghaYao",

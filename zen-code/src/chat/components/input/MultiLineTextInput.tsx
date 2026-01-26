@@ -641,7 +641,7 @@ export function MultiLineTextInput({
                 // Single character/line input
                 const currentLine = state.lines[state.cursorLine];
                 const newLine =
-                    currentLine.slice(0, state.cursorColumn) + input + (currentLine?.slice(state.cursorColumn) || "");
+                    (currentLine?.slice(0, state.cursorColumn) || "") + input + (currentLine?.slice(state.cursorColumn) || "");
 
                 const newLines = [...state.lines];
                 newLines[state.cursorLine] = newLine;
