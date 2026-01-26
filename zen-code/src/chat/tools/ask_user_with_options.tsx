@@ -9,7 +9,7 @@ import { Box, Text } from 'ink';
 import { useEffect, useState, useRef } from 'react';
 import { useInteractionContext } from '../interaction';
 import type { SelectionContent } from '../interaction/content';
-
+import { useFocusManager } from 'ink'
 // 内部组件：使用新的交互系统
 const SelectionContentComponent: React.FC<{
   tool: any;
@@ -18,7 +18,7 @@ const SelectionContentComponent: React.FC<{
   const [interactionId, setInteractionId] = useState<string | null>(null);
   const hasProcessedRef = useRef(false);
   const input = tool.getInputRepaired();
-  const fm = require('ink').useFocusManager();
+  const fm = useFocusManager();
 
   // 当工具中断时，自动添加交互
   useEffect(() => {
