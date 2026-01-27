@@ -55,13 +55,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = () => {
                     startIndex={0}
                 />
             )}
-            {loading && !isFELocking() && (
-                <Box marginTop={1} paddingLeft={1}>
-                    <Text>
-                        <Spinner type="dots" /> <Shimmer text="正在思考中... Ctrl + C 中断"></Shimmer>
-                    </Text>
-                </Box>
-            )}
             {inChatError && (
                 <Box marginTop={0} paddingLeft={1}>
                     <Text color="red">❌ {JSON.stringify(inChatError)}</Text>

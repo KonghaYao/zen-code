@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
+import Spinner from 'ink-spinner';
 import { useSettings } from '@codegraph/union-client';
 import { useChat } from '@langgraph-js/sdk/react';
 import { MCPStatusPanel } from './MCPStatusPanel';
@@ -15,6 +16,7 @@ interface StatusBarProps {
 const StatusBar: React.FC<StatusBarProps> = ({ }) => {
     const { extraParams, compactMode } = useSettings();
     const { currentChatId, renderMessages } = useChat();
+    const { loading: chatLoading } = useChat();
     const isYoloMode = process.env.YOLO_MODE === 'true';
 
     // 检查消息数量，超过 100 时提示可压缩
@@ -24,10 +26,17 @@ const StatusBar: React.FC<StatusBarProps> = ({ }) => {
     return (
         <Box flexDirection="column" width="100%">
             <Box paddingX={1} paddingY={0} justifyContent="space-between" width="100%">
-                <Box>
-                    <Text color="magenta" bold>
-                        ⚡ Zen Code
-                    </Text>
+                <Box gap={1}>
+                    {chatLoading && (
+                        <Text color="yellow" bold inverse>
+                            {" LOADING "}
+                        </Text>
+                    )}
+                    {!chatLoading && (
+                        <Text color="magenta" bold>
+                            Zen Code
+                        </Text>
+                    )}
                     <Text color="cyan" bold>
                         {' '}
                         {extraParams.main_model}
@@ -36,10 +45,10 @@ const StatusBar: React.FC<StatusBarProps> = ({ }) => {
                         {' '}
                         @{extraParams.switch_command || 'default'}
                     </Text>
-                    {compactMode && (
+                    {!compactMode && (
                         <Text color="blue" bold>
                             {' '}
-                            [COMPACT]
+                            [FULL]
                         </Text>
                     )}
                     {isYoloMode && (
@@ -52,11 +61,11 @@ const StatusBar: React.FC<StatusBarProps> = ({ }) => {
                     {shouldShowCompressionHint && (
                         <Text color="red" bold>
                             {' '}
-                            💡 /summary
+                            /summary
                         </Text>
                     )}
-                    <Text color="red" bold>
-                        💡 {renderMessages.length}
+                    <Text color="green" bold>
+                        {renderMessages.length}
                     </Text>
 
                 </Box>
