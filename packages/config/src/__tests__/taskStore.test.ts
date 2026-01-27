@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TaskStoreManager } from '../implementations/taskStore';
 import { TaskNode } from '../types/task';
 import { rmSync, existsSync } from 'fs';

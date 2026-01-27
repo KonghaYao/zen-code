@@ -62,7 +62,7 @@ export function parseMessage(message: any): ParsedMessage {
  */
 export function extractThinking(message: any): string | null {
   // TODO: 根据 LangGraph SDK 的实际格式提取思考内容
-  if (message.thinking) {
+  if ('thinking' in message) {
     return message.thinking;
   }
   return null;

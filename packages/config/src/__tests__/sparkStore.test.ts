@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { SparkStoreManager } from '../implementations/sparkStore';
 import { SparkItemType } from '../types/task';
 import { rmSync, existsSync } from 'fs';
