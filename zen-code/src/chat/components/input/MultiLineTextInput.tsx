@@ -1,66 +1,13 @@
-import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
+import { useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { Box, Text, useFocus } from 'ink';
 import chalk from 'chalk';
 import { Key } from 'ink';
 import useInput from '../../../utils/use-input';
+import { useMultiLineInput } from '../../../hooks/useMultiLineInput';
 import {
-    splitTextIntoLines,
-    joinLinesIntoText,
     calculateVisibleRange,
     ensureCursorVisible,
-    clampCursor,
 } from './textInputUtils.js';
-
-/**
- * Find word boundary for cursor movement
- * @param line - Current line text
- * @param cursorColumn - Current cursor position
- * @param direction - -1 for left, 1 for right
- * @returns New cursor column position
- */
-function findWordBoundary(line: string, cursorColumn: number, direction: -1 | 1): number {
-    const length = line.length;
-
-    if (direction === -1) {
-        // Moving left - find start of previous word
-        if (cursorColumn === 0) return 0;
-
-        let pos = cursorColumn - 1;
-
-        // Skip trailing whitespace
-        while (pos > 0 && /\s/.test(line[pos])) {
-            pos--;
-        }
-
-        // Skip word characters
-        while (pos > 0 && !/\s/.test(line[pos])) {
-            pos--;
-        }
-
-        // Move to first character of the word
-        if (pos > 0 || (pos === 0 && !/\s/.test(line[0]))) {
-            return pos;
-        }
-        return 0;
-    } else {
-        // Moving right - find start of next word
-        if (cursorColumn >= length) return length;
-
-        let pos = cursorColumn;
-
-        // Skip word characters
-        while (pos < length && !/\s/.test(line[pos])) {
-            pos++;
-        }
-
-        // Skip whitespace
-        while (pos < length && /\s/.test(line[pos])) {
-            pos++;
-        }
-
-        return pos;
-    }
-}
 
 /**
  * Props for MultiLineTextInput component
@@ -78,16 +25,6 @@ export type MultiLineProps = {
     readonly maxVisibleLines?: number; // Maximum visible lines (auto-calculate if not provided)
     readonly enableVirtualScroll?: boolean; // Enable virtual scrolling
 };
-
-/**
- * Internal state for multi-line text input
- */
-interface TextInputState {
-    lines: string[];
-    cursorLine: number;
-    cursorColumn: number;
-    firstVisibleLine: number;
-}
 
 /**
  * Props for LineRenderer component
@@ -146,6 +83,7 @@ const LineRenderer = memo(function LineRenderer({
 
 /**
  * MultiLineTextInput - enhanced text input with multi-line support
+ * Refactored to use useMultiLineInput hook for pure logic
  */
 export function MultiLineTextInput({
     id,
@@ -162,152 +100,145 @@ export function MultiLineTextInput({
 }: MultiLineProps) {
     const { isFocused } = useFocus({ autoFocus, id });
 
-    // MODIFIED: Track if we're doing internal updates to skip useEffect sync
-    const isInternalUpdateRef = useRef(false);
-    // MODIFIED: Store previous value to detect real external changes
+    // Track if this update is from external prop change
+    const isExternalUpdateRef = useRef(false);
     const previousValueRef = useRef(originalValue);
 
-    // Initialize state from value
-    const [state, setState] = useState<TextInputState>(() => {
-        const lines = splitTextIntoLines(originalValue);
-        return {
-            lines,
-            cursorLine: lines.length - 1,
-            cursorColumn: lines[lines.length - 1].length,
-            firstVisibleLine: 0,
-        };
-    });
+    // Use the refactored hook for pure logic
+    const {
+        text,
+        lines,
+        cursorLine,
+        cursorColumn,
+        moveLeft,
+        moveRight,
+        moveUp,
+        moveDown,
+        moveWordLeft,
+        moveWordRight,
+        moveToLineStart,
+        moveToLineEnd,
+        input,
+        insertText,
+        insertNewline,
+        backspace,
+        deleteChar,
+        backspaceWord,
+        deleteWord,
+    } = useMultiLineInput(originalValue);
 
-    // Sync state with external value changes
+    // Track first visible line for virtual scrolling
+    const firstVisibleLineRef = useRef(0);
+
+    // Detect external prop changes
     useEffect(() => {
-        // MODIFIED: Skip sync if this is an internal update
-        if (isInternalUpdateRef.current) {
-            isInternalUpdateRef.current = false; // Reset flag immediately
-            previousValueRef.current = originalValue; // Update previous value
-            return;
+        // If originalValue changed and it's different from current text
+        if (originalValue !== previousValueRef.current && originalValue !== text) {
+            isExternalUpdateRef.current = true;
         }
-
-        // MODIFIED: Only sync if value actually changed from previous external value
-        if (originalValue === previousValueRef.current) {
-            return;
-        }
-
-        setState((previousState) => {
-            const lines = splitTextIntoLines(originalValue);
-            const newValue = joinLinesIntoText(lines);
-            const oldValue = joinLinesIntoText(previousState.lines);
-
-            // Only update if value actually changed (avoid cursor reset on every input)
-            if (newValue === oldValue) {
-                return previousState;
-            }
-
-            // Clamp cursor to valid range
-            const clamped = clampCursor(lines, previousState.cursorLine, previousState.cursorColumn);
-
-            return {
-                ...previousState,
-                lines,
-                ...clamped,
-            };
-        });
-
         previousValueRef.current = originalValue;
-    }, [originalValue]);
+    }, [originalValue, text]);
 
-    // Calculate max visible lines (terminal height - some padding)
+    // Sync hook state back to parent component
+    useEffect(() => {
+        // Skip onChange notification if this is an external update
+        if (isExternalUpdateRef.current) {
+            isExternalUpdateRef.current = false;
+            return;
+        }
+
+        // Notify parent of changes
+        if (text !== originalValue) {
+            onChange?.(text);
+        }
+    }, [text, onChange, originalValue]);
+
+    // Calculate max visible lines
     const maxVisibleLines = useMemo(() => {
         if (maxVisibleLinesProp) {
             return maxVisibleLinesProp;
         }
-        // Default: show 10 lines or total lines, whichever is smaller
-        return Math.min(10, state.lines.length);
-    }, [maxVisibleLinesProp, state.lines.length]);
+        return Math.min(10, lines.length);
+    }, [maxVisibleLinesProp, lines.length]);
+
+    // Update viewport to ensure cursor is visible
+    useEffect(() => {
+        firstVisibleLineRef.current = ensureCursorVisible(
+            cursorLine,
+            firstVisibleLineRef.current,
+            maxVisibleLines,
+            lines.length,
+        );
+    }, [cursorLine, maxVisibleLines, lines.length]);
 
     // Calculate visible range
     const { start: visibleStart, end: visibleEnd } = useMemo(
-        () => calculateVisibleRange(state.lines.length, state.firstVisibleLine, maxVisibleLines),
-        [state.lines.length, state.firstVisibleLine, maxVisibleLines],
+        () => calculateVisibleRange(lines.length, firstVisibleLineRef.current, maxVisibleLines),
+        [lines.length, firstVisibleLineRef.current, maxVisibleLines],
     );
 
-    // Handle cursor move with viewport sync
-    const moveCursor = useCallback(
-        (newLine: number, newColumn: number) => {
-            const clamped = clampCursor(state.lines, newLine, newColumn);
-            const newFirstVisibleLine = ensureCursorVisible(
-                clamped.line,
-                state.firstVisibleLine,
-                maxVisibleLines,
-                state.lines.length,
-            );
+    // Handle input
+    const handleInputChange = useCallback((char: string) => {
+        input(char);
+    }, [input]);
 
-            setState({
-                ...state,
-                cursorLine: clamped.line,
-                cursorColumn: clamped.column,
-                firstVisibleLine: newFirstVisibleLine,
-            });
-        },
-        [state, maxVisibleLines],
-    );
+    // Handle newline
+    const handleNewline = useCallback(() => {
+        insertNewline();
+    }, [insertNewline]);
 
-    // Handle text change
-    const handleChange = useCallback(
-        (newLines: string[]) => {
-            const newValue = joinLinesIntoText(newLines);
-            // MODIFIED: Mark as internal update before calling onChange
-            isInternalUpdateRef.current = true;
-            onChange?.(newValue);
-        },
-        [onChange],
-    );
+    // Handle backspace
+    const handleBackspace = useCallback(() => {
+        backspace();
+    }, [backspace]);
 
-    useInput((input, key) => {
+    // Handle delete
+    const handleDelete = useCallback(() => {
+        deleteChar();
+    }, [deleteChar]);
+
+    // Handle backspace word
+    const handleBackspaceWord = useCallback(() => {
+        backspaceWord();
+    }, [backspaceWord]);
+
+    // Handle delete word
+    const handleDeleteWord = useCallback(() => {
+        deleteWord();
+    }, [deleteWord]);
+
+    // Handle paste (multi-character or newline-containing input)
+    const handlePaste = useCallback((text: string) => {
+        insertText(text);
+    }, [insertText]);
+
+    useInput((inputStr, key) => {
         if (disabled || !isFocused) {
             return;
         }
 
         if (onHotKey) {
-            const result = onHotKey(input, key);
+            const result = onHotKey(inputStr, key);
             if (!result) {
                 return;
             }
         }
+
         // Block certain keys that are handled elsewhere
-        if ((key.ctrl && input === 'c') || key.tab || (key.shift && key.tab)) {
+        if ((key.ctrl && inputStr === 'c') || key.tab || (key.shift && key.tab)) {
             return;
         }
 
         // Handle Enter key
         if (key.return) {
-            // MODIFIED: Regular Enter submits (swapped from original)
+            // Regular Enter submits
             if (!key.ctrl && !key.alt) {
-                onSubmit?.(joinLinesIntoText(state.lines));
+                onSubmit?.(text);
                 return;
             }
 
             // Ctrl/Cmd + Enter for newline
-            const currentLine = state.lines[state.cursorLine];
-            const beforeCursor = currentLine.slice(0, state.cursorColumn);
-            const afterCursor = currentLine.slice(state.cursorColumn);
-
-            const newLines = [...state.lines];
-            newLines[state.cursorLine] = beforeCursor;
-            newLines.splice(state.cursorLine + 1, 0, afterCursor);
-
-            setState({
-                lines: newLines,
-                cursorLine: state.cursorLine + 1,
-                cursorColumn: 0,
-                firstVisibleLine: ensureCursorVisible(
-                    state.cursorLine + 1,
-                    state.firstVisibleLine,
-                    maxVisibleLines,
-                    newLines.length,
-                ),
-            });
-
-            handleChange(newLines);
+            handleNewline();
             return;
         }
 
@@ -316,17 +247,9 @@ export function MultiLineTextInput({
             if (!showCursor) return;
 
             if (key.ctrl || key.alt) {
-                // Ctrl (Windows) or Option/Alt (macOS): jump word left
-                const currentLine = state.lines[state.cursorLine];
-                const newColumn = findWordBoundary(currentLine, state.cursorColumn, -1);
-                moveCursor(state.cursorLine, newColumn);
-            } else if (state.cursorColumn > 0) {
-                // Move left within line
-                moveCursor(state.cursorLine, state.cursorColumn - 1);
-            } else if (state.cursorLine > 0) {
-                // Move to end of previous line
-                const prevLineLength = state.lines[state.cursorLine - 1].length;
-                moveCursor(state.cursorLine - 1, prevLineLength);
+                moveWordLeft();
+            } else {
+                moveLeft();
             }
             return;
         }
@@ -335,16 +258,9 @@ export function MultiLineTextInput({
             if (!showCursor) return;
 
             if (key.ctrl || key.alt) {
-                // Ctrl (Windows) or Option/Alt (macOS): jump word right
-                const currentLine = state.lines[state.cursorLine];
-                const newColumn = findWordBoundary(currentLine, state.cursorColumn, 1);
-                moveCursor(state.cursorLine, newColumn);
-            } else if (state.cursorColumn < state.lines[state.cursorLine].length) {
-                // Move right within line
-                moveCursor(state.cursorLine, state.cursorColumn + 1);
-            } else if (state.cursorLine < state.lines.length - 1) {
-                // Move to start of next line
-                moveCursor(state.cursorLine + 1, 0);
+                moveWordRight();
+            } else {
+                moveRight();
             }
             return;
         }
@@ -354,10 +270,10 @@ export function MultiLineTextInput({
 
             if (key.alt || key.ctrl) {
                 // Cmd/Ctrl + Up: jump to line start
-                moveCursor(state.cursorLine, 0);
+                moveToLineStart();
             } else {
                 // Regular Up: move to previous line
-                moveCursor(state.cursorLine - 1, state.cursorColumn);
+                moveUp();
             }
             return;
         }
@@ -367,303 +283,67 @@ export function MultiLineTextInput({
 
             if (key.alt || key.ctrl) {
                 // Cmd/Ctrl + Down: jump to line end
-                moveCursor(state.cursorLine, state.lines[state.cursorLine].length);
+                moveToLineEnd();
             } else {
                 // Regular Down: move to next line
-                moveCursor(state.cursorLine + 1, state.cursorColumn);
+                moveDown();
             }
             return;
         }
 
         // Handle Home key (Ctrl+A or Cmd+Left)
-        if ((key.ctrl && input === 'a') || (key.alt && key.leftArrow)) {
+        if ((key.ctrl && inputStr === 'a') || (key.alt && key.leftArrow)) {
             if (!showCursor) return;
-            moveCursor(state.cursorLine, 0);
+            moveToLineStart();
             return;
         }
 
         // Handle End key (Ctrl+E or Cmd+Right)
-        if ((key.ctrl && input === 'e') || (key.alt && key.rightArrow)) {
+        if ((key.ctrl && inputStr === 'e') || (key.alt && key.rightArrow)) {
             if (!showCursor) return;
-            moveCursor(state.cursorLine, state.lines[state.cursorLine].length);
+            moveToLineEnd();
             return;
         }
-        // Handle Backspace (delete backward)
+
+        // Handle Backspace
         if (key.backspace) {
-            // MODIFIED: Clamp cursor to valid range before processing
-            // This fixes the issue where cursorColumn > line.length
-            const clamped = clampCursor(state.lines, state.cursorLine, state.cursorColumn);
-            const needsClamp = clamped.column !== state.cursorColumn || clamped.line !== state.cursorLine;
-
-            // Use clamped cursor position for processing
-            const cursorLine = clamped.line;
-            const cursorColumn = clamped.column;
-
             if (key.ctrl || key.alt) {
-                // Ctrl+Backspace or Cmd+Backspace: delete word backward
-                const currentLine = state.lines[cursorLine];
-
-                if (cursorColumn > 0) {
-                    // Find the word boundary to the left
-                    const wordStart = findWordBoundary(currentLine, cursorColumn, -1);
-
-                    if (wordStart < cursorColumn) {
-                        // Delete from word start to cursor
-                        const newLine = currentLine.slice(0, wordStart) + currentLine.slice(cursorColumn);
-                        const newLines = [...state.lines];
-                        newLines[cursorLine] = newLine;
-
-                        const newValue = joinLinesIntoText(newLines);
-
-                        setState({
-                            ...state,
-                            lines: newLines,
-                            cursorLine: needsClamp ? cursorLine : state.cursorLine,
-                            cursorColumn: wordStart,
-                        });
-
-                        // MODIFIED: Mark as internal update before calling onChange
-                        isInternalUpdateRef.current = true;
-                        onChange?.(newValue);
-                    }
-                } else if (cursorLine > 0) {
-                    // At line start - delete newline (merge with previous line)
-                    const prevLine = state.lines[cursorLine - 1];
-                    const newLines = [...state.lines];
-                    newLines[cursorLine - 1] = prevLine + currentLine;
-                    newLines.splice(cursorLine, 1);
-
-                    const newValue = joinLinesIntoText(newLines);
-
-                    setState({
-                        lines: newLines,
-                        cursorLine: cursorLine - 1,
-                        cursorColumn: prevLine.length,
-                        firstVisibleLine: ensureCursorVisible(
-                            cursorLine - 1,
-                            state.firstVisibleLine,
-                            maxVisibleLines,
-                            newLines.length,
-                        ),
-                    });
-
-                    // MODIFIED: Mark as internal update before calling onChange
-                    isInternalUpdateRef.current = true;
-                    onChange?.(newValue);
-                }
+                handleBackspaceWord();
             } else {
-                // Regular Backspace: delete single character
-                if (cursorColumn > 0) {
-                    const currentLine = state.lines[cursorLine];
-                    const newLine =
-                        currentLine.slice(0, cursorColumn - 1) + currentLine.slice(cursorColumn);
-
-                    const newLines = [...state.lines];
-                    newLines[cursorLine] = newLine;
-
-                    const newValue = joinLinesIntoText(newLines);
-
-                    setState({
-                        ...state,
-                        lines: newLines,
-                        cursorLine: needsClamp ? cursorLine : state.cursorLine,
-                        cursorColumn: cursorColumn - 1,
-                    });
-
-                    // MODIFIED: Mark as internal update before calling onChange
-                    isInternalUpdateRef.current = true;
-                    onChange?.(newValue);
-                } else if (cursorLine > 0) {
-                    // At line start - delete newline character (merge lines)
-                    const prevLine = state.lines[cursorLine - 1];
-                    const currentLine = state.lines[cursorLine];
-                    const newLines = [...state.lines];
-
-                    newLines[cursorLine - 1] = prevLine + currentLine;
-                    newLines.splice(cursorLine, 1);
-
-                    const newFirstVisibleLine = ensureCursorVisible(
-                        cursorLine - 1,
-                        state.firstVisibleLine,
-                        maxVisibleLines,
-                        newLines.length,
-                    );
-
-                    const newValue = joinLinesIntoText(newLines);
-
-                    setState({
-                        lines: newLines,
-                        cursorLine: cursorLine - 1,
-                        cursorColumn: prevLine.length,
-                        firstVisibleLine: newFirstVisibleLine,
-                    });
-
-                    // MODIFIED: Mark as internal update before calling onChange
-                    isInternalUpdateRef.current = true;
-                    onChange?.(newValue);
-                }
+                handleBackspace();
             }
             return;
         }
 
-        // Handle Delete (delete forward)
+        // Handle Delete
         if (key.delete) {
-            const currentLine = state.lines[state.cursorLine];
-
             if (key.ctrl || key.alt) {
-                // Ctrl+Delete or Cmd+Delete: delete word forward
-                if (state.cursorColumn < currentLine.length) {
-                    // Find the word boundary to the right
-                    const wordEnd = findWordBoundary(currentLine, state.cursorColumn, 1);
-
-                    if (wordEnd > state.cursorColumn) {
-                        // Delete from cursor to word end
-                        const newLine = currentLine.slice(0, state.cursorColumn) + currentLine.slice(wordEnd);
-                        const newLines = [...state.lines];
-                        newLines[state.cursorLine] = newLine;
-
-                        setState({
-                            ...state,
-                            lines: newLines,
-                        });
-
-                        handleChange(newLines);
-                    }
-                } else if (state.cursorLine < state.lines.length - 1) {
-                    // At line end - merge with next line
-                    const nextLine = state.lines[state.cursorLine + 1];
-                    const newLines = [...state.lines];
-
-                    newLines[state.cursorLine] = currentLine + nextLine;
-                    newLines.splice(state.cursorLine + 1, 1);
-
-                    setState({
-                        ...state,
-                        lines: newLines,
-                    });
-
-                    handleChange(newLines);
-                }
+                handleDeleteWord();
             } else {
-                // Regular Delete: delete single character
-                if (state.cursorColumn < currentLine.length) {
-                    const newLine =
-                        currentLine.slice(0, state.cursorColumn) + currentLine.slice(state.cursorColumn + 1);
-
-                    const newLines = [...state.lines];
-                    newLines[state.cursorLine] = newLine;
-
-                    setState({
-                        ...state,
-                        lines: newLines,
-                    });
-
-                    handleChange(newLines);
-                } else if (state.cursorLine < state.lines.length - 1) {
-                    // At line end - merge with next line
-                    const nextLine = state.lines[state.cursorLine + 1];
-                    const newLines = [...state.lines];
-
-                    newLines[state.cursorLine] = currentLine + nextLine;
-                    newLines.splice(state.cursorLine + 1, 1);
-
-                    setState({
-                        ...state,
-                        lines: newLines,
-                    });
-
-                    handleChange(newLines);
-                }
+                handleDelete();
             }
             return;
         }
 
-        // Handle regular input
-        if (input) {
-            // Check if input contains newlines (paste operation)
-            if (input.includes('\n')) {
-                // Multi-line paste
-                const newLinesFromPaste = splitTextIntoLines(input);
-
-                if (newLinesFromPaste.length === 1) {
-                    // Single line (shouldn't happen with the check above, but handle anyway)
-                    const currentLine = state.lines[state.cursorLine];
-                    const newLine =
-                        currentLine.slice(0, state.cursorColumn) + input + currentLine.slice(state.cursorColumn);
-
-                    const newLines = [...state.lines];
-                    newLines[state.cursorLine] = newLine;
-
-                    setState({
-                        ...state,
-                        lines: newLines,
-                        cursorColumn: state.cursorColumn + input.length,
-                    });
-
-                    handleChange(newLines);
-                } else {
-                    // Multi-line paste
-                    const currentLine = state.lines[state.cursorLine];
-                    const beforeCursor = currentLine.slice(0, state.cursorColumn);
-                    const afterCursor = currentLine.slice(state.cursorColumn);
-
-                    const newLines = [...state.lines];
-
-                    // Replace current line with beforeCursor + first pasted line
-                    newLines[state.cursorLine] = beforeCursor + newLinesFromPaste[0];
-
-                    // Insert middle lines
-                    const middleLines = newLinesFromPaste.slice(1, -1);
-                    newLines.splice(state.cursorLine + 1, 0, ...middleLines);
-
-                    // Insert last line + afterCursor
-                    const lastLine = newLinesFromPaste[newLinesFromPaste.length - 1] + afterCursor;
-                    newLines.splice(state.cursorLine + middleLines.length + 1, 0, lastLine);
-
-                    const newCursorLine = state.cursorLine + newLinesFromPaste.length - 1;
-                    const newCursorColumn = newLinesFromPaste[newLinesFromPaste.length - 1].length;
-
-                    setState({
-                        lines: newLines,
-                        cursorLine: newCursorLine,
-                        cursorColumn: newCursorColumn,
-                        firstVisibleLine: ensureCursorVisible(
-                            newCursorLine,
-                            state.firstVisibleLine,
-                            maxVisibleLines,
-                            newLines.length,
-                        ),
-                    });
-
-                    handleChange(newLines);
-                }
+        // Handle regular input or paste (multi-character input)
+        if (inputStr) {
+            // Detect paste: multi-character input or contains newlines
+            if (inputStr.length > 1 || inputStr.includes('\n')) {
+                // For paste, use handlePaste to mark as internal update
+                handlePaste(inputStr);
             } else {
-                // Single character/line input
-                const currentLine = state.lines[state.cursorLine];
-                const newLine =
-                    (currentLine?.slice(0, state.cursorColumn) || "") + input + (currentLine?.slice(state.cursorColumn) || "");
-
-                const newLines = [...state.lines];
-                newLines[state.cursorLine] = newLine;
-
-                setState({
-                    ...state,
-                    lines: newLines,
-                    cursorColumn: state.cursorColumn + input.length,
-                });
-
-                handleChange(newLines);
+                handleInputChange(inputStr);
             }
         }
     });
 
     // Render visible lines
     const visibleLines = useMemo(() => {
-        return state.lines.slice(visibleStart, visibleEnd);
-    }, [state.lines, visibleStart, visibleEnd]);
+        return lines.slice(visibleStart, visibleEnd);
+    }, [lines, visibleStart, visibleEnd]);
 
-    // Handle empty state - check if all lines are completely empty (length === 0)
-    const isEmpty = state.lines.length === 0 || state.lines.every((line) => line.length === 0);
+    // Handle empty state
+    const isEmpty = lines.length === 0 || lines.every((line) => line.length === 0);
 
     if (isEmpty) {
         if (!isFocused || !showCursor) {
@@ -682,8 +362,8 @@ export function MultiLineTextInput({
                         key={actualLineNumber}
                         content={line}
                         lineNumber={actualLineNumber}
-                        showCursor={showCursor && actualLineNumber === state.cursorLine}
-                        cursorColumn={state.cursorColumn}
+                        showCursor={showCursor && actualLineNumber === cursorLine}
+                        cursorColumn={cursorColumn}
                         isFocused={isFocused}
                     />
                 );

@@ -39,7 +39,7 @@ interface CommandHandlerReturn {
     /** 命令错误信息 */
     commandError: string | null;
     /** 执行命令函数 */
-    executeCommand: () => Promise<boolean>;
+    executeCommand: (inputValue?: string) => Promise<boolean>;
     /** 命令提示UI组件 */
     CommandHintUI: React.FC;
     /** 命令错误UI组件 */
@@ -64,14 +64,17 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
     const commandSuggestions = isCommandInput ? commandRegistry.getSuggestions(userInput) : [];
     const showCommandHint = isCommandInput;
 
-    const executeCommand = useCallback(async (): Promise<boolean> => {
-        if (!commandRegistry.isCommand(userInput)) {
+    const executeCommand = useCallback(async (inputValue?: string): Promise<boolean> => {
+        // 使用传入的 inputValue 或回退到 userInput 状态
+        const commandInput = inputValue || userInput;
+
+        if (!commandRegistry.isCommand(commandInput)) {
             return false; // 不是命令，返回 false 让调用者继续处理
         }
 
         try {
             const commandContext: CommandContext = {
-                userInput,
+                userInput: commandInput,
                 setUserInput,
                 sendMessage,
                 currentAgent,
@@ -90,7 +93,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
                 startRalphLoop: props.startRalphLoop,
             };
 
-            const result = await commandRegistry.executeCommand(userInput, commandContext);
+            const result = await commandRegistry.executeCommand(commandInput, commandContext);
 
             if (!result.success) {
                 setCommandError(result.message || '命令执行失败');

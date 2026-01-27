@@ -40,7 +40,7 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
         onChange(newValue); // 同步到外部 userInput，让 CommandHandler 能检测到
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = (internalValue: string) => {
         if (!internalValue.trim()) return;
 
         // 命令优先处理

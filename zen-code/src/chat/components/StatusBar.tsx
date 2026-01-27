@@ -28,8 +28,8 @@ const StatusBar: React.FC<StatusBarProps> = ({ }) => {
             <Box paddingX={1} paddingY={0} justifyContent="space-between" width="100%">
                 <Box gap={1}>
                     {chatLoading && (
-                        <Text color="yellow" bold inverse>
-                            {" LOADING "}
+                        <Text color="yellow" bold>
+                            <Spinner></Spinner>   {"LOADING "}
                         </Text>
                     )}
                     {!chatLoading && (

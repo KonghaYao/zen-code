@@ -108,16 +108,11 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
     const handleSendMessage = async (inputValue: string) => {
         if (!inputValue) return;
-
         // 命令优先处理：直接检查而不是依赖 executeCommand 内部检测
         if (inputValue.startsWith('/')) {
-            // 先更新 userInput，让 CommandHandler 能读取到
-            setUserInput(inputValue);
-
-            // 等待状态更新后再执行命令
-            await new Promise((resolve) => setTimeout(resolve, 0));
-
-            const commandHandled = await commandHandler.executeCommand();
+            // 直接执行命令，不依赖 userInput 状态
+            // CommandHandler 内部会用 inputValue 而不是 userInput
+            const commandHandled = await commandHandler.executeCommand(inputValue);
             if (commandHandled) {
                 setUserInput(''); // 命令已处理，清空输入
                 return;
@@ -147,14 +142,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
             {/* 命令成功消息显示 */}
             <commandHandler.CommandSuccessUI />
-            {/* <Text>{JSON.stringify(userInput)}</Text> */}
+            <Text>{JSON.stringify(userInput)}</Text>
             {/* 使用 ChatInputBuffer 组件 */}
             <ChatInputBuffer
                 value={userInput}
                 onChange={setUserInput}
                 onSubmit={handleSendMessage}
                 loading={loading}
-                placeholder="输入消息..."
                 commandHandler={commandHandler}
             />
         </Box>
