@@ -1,6 +1,6 @@
 {
     "name": "zen-code",
-    "version": "3.0.1",
+    "version": "3.0.3",
     "description": "",
     "main": "./dist/cli.mjs",
     "bin": "./dist/cli.mjs",
