@@ -1,9 +1,21 @@
+import { PermissionAction } from '../permission/types';
+
 /**
  * 配置类型定义
  */
 
 // Task System types
 export * from './task';
+
+// ============================================================================
+// Tool Types
+// ============================================================================
+
+/**
+ * 工具调用参数类型
+ * 统一项目中工具参数的类型声明
+ */
+export type ToolArgs = Record<string, unknown>;
 
 export interface AppConfig {
   main_model: string;
@@ -17,6 +29,21 @@ export interface AppConfig {
   enable_thinking?: boolean;
   switch_command?: string;
   compact_mode?: boolean;
+  permissions?: PermissionConfig;
+}
+
+/**
+ * Permission control configuration for tool calls
+ */
+export interface PermissionConfig {
+  /** Rules that allow tool use without confirmation */
+  allow?: string[];
+  /** Rules that require user confirmation before execution */
+  ask?: string[];
+  /** Rules that deny tool use completely */
+  deny?: string[];
+  /** Default permission mode: 'ask' (default), 'allow', or 'deny' */
+  defaultMode?: PermissionAction;
 }
 
 export interface MCPConfig {

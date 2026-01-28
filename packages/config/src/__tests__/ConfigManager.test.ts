@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ConfigManager } from '../ConfigManager.js';
 import type { IConfigStore, ISkillStore, IPluginStore, IRemoteStore } from '../interfaces/index.js';
 import type { AppConfig, Skill, SkillContent, Plugin, PluginConfig, PluginSource } from '../types/index.js';
+import type { PermissionResult } from '../permission/types.js';
 
 // Mock stores
 const mockConfigStore = {
@@ -41,7 +42,7 @@ describe('ConfigManager', () => {
   beforeEach(() => {
     // Clear all mocks before each test
     vi.clearAllMocks();
-    
+
     // Create a new manager instance for each test
     manager = new ConfigManager(
       mockConfigStore,
@@ -77,14 +78,13 @@ describe('ConfigManager', () => {
 
   describe('getConfig', () => {
     const mockConfig: AppConfig = {
-      agentName: 'test-agent',
-      model: 'gpt-4',
-      maxTokens: 2000,
+      main_model: 'gpt-4',
+      model_provider: 'openai',
     };
 
     it('should return config after initialization', async () => {
-      vi.mocked(mockConfigStore.getConfig).mockResolvedValue(mockConfig);
-      
+      (mockConfigStore.getConfig as any).mockResolvedValue(mockConfig);
+
       await manager.initialize();
       const config = await manager.getConfig();
 
@@ -102,7 +102,7 @@ describe('ConfigManager', () => {
   describe('updateConfig', () => {
     it('should update config after initialization', async () => {
       const update = { model: 'gpt-3.5-turbo' };
-      
+
       await manager.initialize();
       await manager.updateConfig(update);
 
@@ -124,8 +124,8 @@ describe('ConfigManager', () => {
     ];
 
     it('should return list of skills after initialization', async () => {
-      vi.mocked(mockSkillStore.listSkills).mockResolvedValue(mockSkills);
-      
+      (mockSkillStore.listSkills as any).mockResolvedValue(mockSkills);
+
       await manager.initialize();
       const skills = await manager.listSkills();
 
@@ -148,8 +148,8 @@ describe('ConfigManager', () => {
     };
 
     it('should return skill content after initialization', async () => {
-      vi.mocked(mockSkillStore.getSkill).mockResolvedValue(mockSkillContent);
-      
+      (mockSkillStore.getSkill as any).mockResolvedValue(mockSkillContent);
+
       await manager.initialize();
       const content = await manager.getSkill('skill1');
 
@@ -158,8 +158,8 @@ describe('ConfigManager', () => {
     });
 
     it('should return null if skill not found', async () => {
-      vi.mocked(mockSkillStore.getSkill).mockResolvedValue(null);
-      
+      (mockSkillStore.getSkill as any).mockResolvedValue(null);
+
       await manager.initialize();
       const content = await manager.getSkill('nonexistent');
 
@@ -235,7 +235,7 @@ describe('ConfigManager', () => {
       );
 
       await managerWithoutRemote.initialize();
-      
+
       await expect(managerWithoutRemote.syncSkillsFromRemote()).rejects.toThrow(
         'Remote store not configured'
       );
@@ -249,8 +249,8 @@ describe('ConfigManager', () => {
     ];
 
     it('should return list of plugins after initialization', async () => {
-      vi.mocked(mockPluginStore.listPlugins).mockResolvedValue(mockPlugins);
-      
+      (mockPluginStore.listPlugins as any).mockResolvedValue(mockPlugins);
+
       await manager.initialize();
       const plugins = await manager.listPlugins();
 
@@ -272,8 +272,8 @@ describe('ConfigManager', () => {
     };
 
     it('should return plugin config after initialization', async () => {
-      vi.mocked(mockPluginStore.getPluginConfig).mockResolvedValue(mockPluginConfig);
-      
+      (mockPluginStore.getPluginConfig as any).mockResolvedValue(mockPluginConfig);
+
       await manager.initialize();
       const config = await manager.getPluginConfig('plugin1');
 
@@ -282,8 +282,8 @@ describe('ConfigManager', () => {
     });
 
     it('should return null if plugin config not found', async () => {
-      vi.mocked(mockPluginStore.getPluginConfig).mockResolvedValue(null);
-      
+      (mockPluginStore.getPluginConfig as any).mockResolvedValue(null);
+
       await manager.initialize();
       const config = await manager.getPluginConfig('nonexistent');
 
@@ -363,7 +363,7 @@ describe('ConfigManager', () => {
       const path = manager.getConfigPath();
 
       expect(path).toBe(mockPath);
-      
+
       // Clean up
       delete (mockConfigStore as any).dbPath;
     });
@@ -375,6 +375,174 @@ describe('ConfigManager', () => {
       const path = manager.getConfigPath();
 
       expect(path).toBeUndefined();
+    });
+  });
+
+  describe('Permissions', () => {
+    beforeEach(async () => {
+      // Reset PermissionStore singleton before each permissions test
+      const { PermissionStore } = await import('../implementations/permissionStore.js');
+      PermissionStore.resetInstance();
+    });
+
+    describe('checkBashPermission', () => {
+      it('should check bash command permission after initialization', async () => {
+        // Mock getConfig to return permissions config
+        (mockConfigStore.getConfig as any).mockResolvedValue({
+          main_model: 'gpt-4',
+          permissions: {
+            allow: ['Bash(git status)'],  // Use exact match
+            ask: [],
+            deny: [],
+            defaultMode: 'ask' as const,
+          },
+        } as AppConfig);
+
+        await manager.initialize();
+        const result = await manager.checkBashPermission('git status');
+
+        expect(result).toBeDefined();
+        expect(result?.allowed).toBe(true);
+        expect(result?.requiresApproval).toBe(false);
+        expect(result?.matchedRule?.action).toBe('allow');
+      });
+
+      it('should throw error if not initialized', async () => {
+        await expect(manager.checkBashPermission('git status')).rejects.toThrow(
+          'ConfigManager not initialized. Call await manager.initialize() first.'
+        );
+      });
+
+      it('should handle cwd parameter', async () => {
+        (mockConfigStore.getConfig as any).mockResolvedValue({
+          main_model: 'gpt-4',
+          permissions: {
+            allow: ['Bash(ls )'],
+            ask: [],
+            deny: [],
+            defaultMode: 'ask' as const,
+          },
+        } as AppConfig);
+
+        await manager.initialize();
+        const result = await manager.checkBashPermission('ls', '/tmp');
+
+        expect(result).toBeDefined();
+      });
+    });
+
+    describe('checkReadPermission', () => {
+      it('should check read file permission after initialization', async () => {
+        const mockPermissionResult: PermissionResult = {
+          allowed: true,
+          requiresApproval: false,
+        };
+
+        (mockConfigStore.getConfig as any).mockResolvedValue({
+          main_model: 'gpt-4',
+          permissions: {
+            allow: ['Read(./src/*.ts)'],
+            ask: [],
+            deny: [],
+            defaultMode: 'ask' as const,
+          },
+        } as AppConfig);
+
+        await manager.initialize();
+        const result = await manager.checkReadPermission('./src/test.ts');
+
+        expect(result).toBeDefined();
+      });
+
+      it('should throw error if not initialized', async () => {
+        await expect(manager.checkReadPermission('./test.txt')).rejects.toThrow(
+          'ConfigManager not initialized. Call await manager.initialize() first.'
+        );
+      });
+    });
+
+    describe('checkWritePermission', () => {
+      it('should check write file permission after initialization', async () => {
+        (mockConfigStore.getConfig as any).mockResolvedValue({
+          main_model: 'gpt-4',
+          permissions: {
+            allow: ['Write(./dist/*.js)'],
+            ask: [],
+            deny: ['Write(.env)'],
+            defaultMode: 'ask' as const,
+          },
+        } as AppConfig);
+
+        await manager.initialize();
+        const result = await manager.checkWritePermission('./dist/bundle.js');
+
+        expect(result).toBeDefined();
+      });
+
+      it('should throw error if not initialized', async () => {
+        await expect(manager.checkWritePermission('./test.txt')).rejects.toThrow(
+          'ConfigManager not initialized. Call await manager.initialize() first.'
+        );
+      });
+    });
+
+    describe('getPermissionMatcher', () => {
+      it('should get permission matcher after initialization', async () => {
+        (mockConfigStore.getConfig as any).mockResolvedValue({
+          main_model: 'gpt-4',
+          permissions: {
+            allow: ['Bash(git status)'],
+            ask: [],
+            deny: [],
+            defaultMode: 'ask' as const,
+          },
+        } as AppConfig);
+
+        await manager.initialize();
+        const matcher = await manager.getPermissionMatcher();
+
+        expect(matcher).toBeDefined();
+      });
+
+      it('should return undefined if no permissions configured', async () => {
+        (mockConfigStore.getConfig as any).mockResolvedValue({
+          main_model: 'gpt-4',
+          // No permissions field
+        } as AppConfig);
+
+        await manager.initialize();
+        const matcher = await manager.getPermissionMatcher();
+
+        expect(matcher).toBeUndefined();
+      });
+
+      it('should throw error if not initialized', async () => {
+        await expect(manager.getPermissionMatcher()).rejects.toThrow(
+          'ConfigManager not initialized. Call await manager.initialize() first.'
+        );
+      });
+    });
+
+    describe('setToolNameMapper', () => {
+      it('should set tool name mapper', async () => {
+        await manager.initialize();
+
+        manager.setToolNameMapper({ 'myCustomBash': 'Bash' });
+
+        // Tool name mapper should be set
+        // Note: We can't directly access permissionStore to verify,
+        // but we can verify it doesn't throw an error
+        expect(() => manager.setToolNameMapper({ 'test': 'Bash' })).not.toThrow();
+      });
+
+      it('should allow updating mapper multiple times', async () => {
+        await manager.initialize();
+
+        manager.setToolNameMapper({ 'mapper1': 'Bash' });
+        manager.setToolNameMapper({ 'mapper2': 'Read', 'mapper3': 'Write' });
+
+        expect(() => manager.setToolNameMapper({})).not.toThrow();
+      });
     });
   });
 });

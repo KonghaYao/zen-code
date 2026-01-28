@@ -2,6 +2,8 @@ import type { IConfigStore } from './interfaces/IConfigStore.js';
 import type { ISkillStore, IRemoteStore } from './interfaces/ISkillStore.js';
 import type { IPluginStore } from './interfaces/IPluginStore.js';
 import type { AppConfig, Skill, SkillContent, Plugin, PluginConfig, PluginSource } from './types/index.js';
+import type { PermissionResult } from './permission/types.js';
+import { PermissionStore } from './implementations/permissionStore.js';
 
 /**
  * 配置管理器（统一入口）
@@ -11,6 +13,7 @@ export class ConfigManager {
   private skillStore: ISkillStore;
   private pluginStore: IPluginStore;
   private remoteStore?: IRemoteStore;
+  private permissionStore: PermissionStore;
   private _initialized: boolean = false;
 
   constructor(
@@ -23,6 +26,7 @@ export class ConfigManager {
     this.skillStore = skillStore;
     this.pluginStore = pluginStore;
     this.remoteStore = remoteStore;
+    this.permissionStore = PermissionStore.getInstance(configStore);
   }
 
   /**
@@ -126,6 +130,40 @@ export class ConfigManager {
     await this.ensureInitialized();
     return await this.pluginStore.uninstallPlugin(name);
   }
+
+  // Permissions 相关
+  /**
+   * 检查 Bash 命令权限
+   */
+  async checkBashPermission(command: string, cwd?: string): Promise<PermissionResult | undefined> {
+    await this.ensureInitialized();
+    return await this.permissionStore.checkBashPermission(command, cwd);
+  }
+
+  /**
+   * 检查读取文件权限
+   */
+  async checkReadPermission(filePath: string): Promise<PermissionResult | undefined> {
+    await this.ensureInitialized();
+    return await this.permissionStore.checkReadPermission(filePath);
+  }
+
+  /**
+   * 检查写入文件权限
+   */
+  async checkWritePermission(filePath: string): Promise<PermissionResult | undefined> {
+    await this.ensureInitialized();
+    return await this.permissionStore.checkWritePermission(filePath);
+  }
+
+  /**
+   * 获取权限匹配器（用于高级操作）
+   */
+  async getPermissionMatcher() {
+    await this.ensureInitialized();
+    return await this.permissionStore.getPermissions();
+  }
+
   /** fs 专用 */
   getConfigPath() {
     /** @ts-ignore */

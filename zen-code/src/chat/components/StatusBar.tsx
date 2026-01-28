@@ -4,6 +4,7 @@ import Spinner from 'ink-spinner';
 import { useSettings } from '@codegraph/union-client';
 import { useChat } from '@langgraph-js/sdk/react';
 import { MCPStatusPanel } from './MCPStatusPanel';
+import Shimmer from './Shimmer';
 
 interface StatusBarProps {
     currentChatId?: string;
@@ -29,7 +30,9 @@ const StatusBar: React.FC<StatusBarProps> = ({ }) => {
                 <Box gap={1}>
                     {chatLoading && (
                         <Text color="yellow" bold>
-                            <Spinner></Spinner>   {"LOADING "}
+                            <Spinner></Spinner>
+                            <Shimmer
+                                text='LOADING'></Shimmer>
                         </Text>
                     )}
                     {!chatLoading && (

@@ -13,3 +13,7 @@ export { RemotePluginStore } from './RemotePluginStore.js';
 // Task System implementations
 export { SparkStoreManager } from './sparkStore.js';
 export { TaskStoreManager } from './taskStore.js';
+
+// Permission System implementations
+export { PermissionStore } from './permissionStore.js';
+

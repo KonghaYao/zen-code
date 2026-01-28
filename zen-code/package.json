@@ -34,6 +34,7 @@
         "lowdb": "^7.0.1",
         "marked": "^16.4.2",
         "marked-terminal": "^7.3.0",
+        "micromatch": "^4.0.8",
         "node-notifier": "^10.0.1",
         "node-sqlite3-wasm": "^0.8.53",
         "openai": "^6.16.0",

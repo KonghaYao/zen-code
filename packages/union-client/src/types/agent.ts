@@ -2,6 +2,11 @@
  * Agent 相关类型定义
  */
 
+/**
+ * 工具调用参数类型
+ */
+export type ToolArgs = Record<string, unknown>;
+
 export interface AgentMessage {
   id: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
@@ -14,9 +19,9 @@ export interface AgentMessage {
 export interface ToolCall {
   id: string;
   name: string;
-  args: Record<string, any>;
+  args: ToolArgs;
   status: 'pending' | 'running' | 'completed' | 'failed';
-  result?: any;
+  result?: unknown;
   error?: string;
 }
 
