@@ -25,12 +25,12 @@ export const initChatModel = async (
             streamUsage: true,
             streaming: true,
             maxRetries: 1,
-            maxTokens: 65536,
+            maxTokens: 64000,
             thinking: enableThinking
                 ? {
-                      budget_tokens: 1024,
-                      type: 'enabled',
-                  }
+                    budget_tokens: 1024,
+                    type: 'enabled',
+                }
                 : undefined,
         });
     } else {
@@ -40,10 +40,10 @@ export const initChatModel = async (
             maxRetries: 1,
             modelKwargs: enableThinking
                 ? {
-                      thinking: {
-                          type: 'enabled',
-                      },
-                  }
+                    thinking: {
+                        type: 'enabled',
+                    },
+                }
                 : undefined,
         });
     }
