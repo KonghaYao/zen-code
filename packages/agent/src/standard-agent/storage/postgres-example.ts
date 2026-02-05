@@ -24,7 +24,7 @@
  * ```
  */
 
-import { Pool, PoolClient, QueryResult } from 'pg';
+import { Pool, QueryResult } from 'pg';
 import { z } from 'zod';
 import { BaseStorage, IStorage } from './abstract.js';
 import { ModelSchema, PromptSchema, ToolSchema, MiddlewareSchema, AgentSchema } from '../index.js';
@@ -220,23 +220,26 @@ export class PostgresStorage extends BaseStorage implements IStorage {
     // ========================================
 
     async insertModel(data: z.infer<typeof ModelSchema>): Promise<void> {
-        await this.query(`
+        await this.query(
+            `
             INSERT INTO models (
                 id, model_name, model_provider, stream_usage, enable_thinking,
                 temperature, max_tokens, top_p, frequency_penalty, presence_penalty
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        `, [
-            data.id,
-            data.model_name,
-            data.model_provider,
-            data.stream_usage,
-            data.enable_thinking,
-            data.temperature,
-            data.max_tokens,
-            data.top_p,
-            data.frequency_penalty,
-            data.presence_penalty,
-        ]);
+        `,
+            [
+                data.id,
+                data.model_name,
+                data.model_provider,
+                data.stream_usage,
+                data.enable_thinking,
+                data.temperature,
+                data.max_tokens,
+                data.top_p,
+                data.frequency_penalty,
+                data.presence_penalty,
+            ],
+        );
     }
 
     async getModel(id: string): Promise<any | undefined> {
@@ -250,23 +253,26 @@ export class PostgresStorage extends BaseStorage implements IStorage {
     }
 
     async updateModel(data: z.infer<typeof ModelSchema>): Promise<void> {
-        await this.query(`
+        await this.query(
+            `
             UPDATE models SET
                 model_name = $1, model_provider = $2, stream_usage = $3, enable_thinking = $4,
                 temperature = $5, max_tokens = $6, top_p = $7, frequency_penalty = $8, presence_penalty = $9
             WHERE id = $10
-        `, [
-            data.model_name,
-            data.model_provider,
-            data.stream_usage,
-            data.enable_thinking,
-            data.temperature,
-            data.max_tokens,
-            data.top_p,
-            data.frequency_penalty,
-            data.presence_penalty,
-            data.id,
-        ]);
+        `,
+            [
+                data.model_name,
+                data.model_provider,
+                data.stream_usage,
+                data.enable_thinking,
+                data.temperature,
+                data.max_tokens,
+                data.top_p,
+                data.frequency_penalty,
+                data.presence_penalty,
+                data.id,
+            ],
+        );
     }
 
     async deleteModel(id: string): Promise<void> {
@@ -278,10 +284,13 @@ export class PostgresStorage extends BaseStorage implements IStorage {
     // ========================================
 
     async insertPrompt(data: z.infer<typeof PromptSchema>): Promise<void> {
-        await this.query(`
+        await this.query(
+            `
             INSERT INTO prompts (id, name, content, metadata)
             VALUES ($1, $2, $3, $4)
-        `, [data.id, data.name, data.content, data.metadata ? JSON.stringify(data.metadata) : null]);
+        `,
+            [data.id, data.name, data.content, data.metadata ? JSON.stringify(data.metadata) : null],
+        );
     }
 
     async getPrompt(id: string): Promise<any | undefined> {
@@ -300,10 +309,13 @@ export class PostgresStorage extends BaseStorage implements IStorage {
     }
 
     async updatePrompt(data: z.infer<typeof PromptSchema>): Promise<void> {
-        await this.query(`
+        await this.query(
+            `
             UPDATE prompts SET name = $1, content = $2, metadata = $3
             WHERE id = $4
-        `, [data.name, data.content, data.metadata ? JSON.stringify(data.metadata) : null, data.id]);
+        `,
+            [data.name, data.content, data.metadata ? JSON.stringify(data.metadata) : null, data.id],
+        );
     }
 
     async deletePrompt(id: string): Promise<void> {
@@ -315,10 +327,13 @@ export class PostgresStorage extends BaseStorage implements IStorage {
     // ========================================
 
     async insertTool(data: z.infer<typeof ToolSchema>): Promise<void> {
-        await this.query(`
+        await this.query(
+            `
             INSERT INTO tools (id, name, description)
             VALUES ($1, $2, $3)
-        `, [data.id, data.name, data.description]);
+        `,
+            [data.id, data.name, data.description],
+        );
     }
 
     async getTool(id: string): Promise<any | undefined> {
@@ -332,10 +347,13 @@ export class PostgresStorage extends BaseStorage implements IStorage {
     }
 
     async updateTool(data: z.infer<typeof ToolSchema>): Promise<void> {
-        await this.query(`
+        await this.query(
+            `
             UPDATE tools SET name = $1, description = $2
             WHERE id = $3
-        `, [data.name, data.description, data.id]);
+        `,
+            [data.name, data.description, data.id],
+        );
     }
 
     async deleteTool(id: string): Promise<void> {
@@ -347,10 +365,13 @@ export class PostgresStorage extends BaseStorage implements IStorage {
     // ========================================
 
     async insertMiddleware(data: z.infer<typeof MiddlewareSchema>): Promise<void> {
-        await this.query(`
+        await this.query(
+            `
             INSERT INTO middlewares (id, name, description)
             VALUES ($1, $2, $3)
-        `, [data.id, data.name, data.description]);
+        `,
+            [data.id, data.name, data.description],
+        );
     }
 
     async getMiddleware(id: string): Promise<any | undefined> {
@@ -364,10 +385,13 @@ export class PostgresStorage extends BaseStorage implements IStorage {
     }
 
     async updateMiddleware(data: z.infer<typeof MiddlewareSchema>): Promise<void> {
-        await this.query(`
+        await this.query(
+            `
             UPDATE middlewares SET name = $1, description = $2
             WHERE id = $3
-        `, [data.name, data.description, data.id]);
+        `,
+            [data.name, data.description, data.id],
+        );
     }
 
     async deleteMiddleware(id: string): Promise<void> {
@@ -383,35 +407,44 @@ export class PostgresStorage extends BaseStorage implements IStorage {
         try {
             await client.query('BEGIN');
 
-            await client.query(`
+            await client.query(
+                `
                 INSERT INTO agents (id, name, description, system_prompt_id, model_id)
                 VALUES ($1, $2, $3, $4, $5)
-            `, [data.id, data.name, data.description, data.system_prompt, data.model]);
+            `,
+                [data.id, data.name, data.description, data.system_prompt, data.model],
+            );
 
             // Insert tools
             for (const [toolId, value] of Object.entries(data.tools)) {
-                await client.query(`
+                await client.query(
+                    `
                     INSERT INTO agent_tools (agent_id, tool_id, enabled, custom_params)
                     VALUES ($1, $2, $3, $4)
-                `, [
-                    data.id,
-                    toolId,
-                    typeof value === 'boolean' ? value : true,
-                    typeof value === 'boolean' ? null : JSON.stringify(value),
-                ]);
+                `,
+                    [
+                        data.id,
+                        toolId,
+                        typeof value === 'boolean' ? value : true,
+                        typeof value === 'boolean' ? null : JSON.stringify(value),
+                    ],
+                );
             }
 
             // Insert middlewares
             for (const [midId, value] of Object.entries(data.middleware)) {
-                await client.query(`
+                await client.query(
+                    `
                     INSERT INTO agent_middlewares (agent_id, middleware_id, enabled, custom_params)
                     VALUES ($1, $2, $3, $4)
-                `, [
-                    data.id,
-                    midId,
-                    typeof value === 'boolean' ? value : true,
-                    typeof value === 'boolean' ? null : JSON.stringify(value),
-                ]);
+                `,
+                    [
+                        data.id,
+                        midId,
+                        typeof value === 'boolean' ? value : true,
+                        typeof value === 'boolean' ? null : JSON.stringify(value),
+                    ],
+                );
             }
 
             await client.query('COMMIT');
@@ -428,9 +461,12 @@ export class PostgresStorage extends BaseStorage implements IStorage {
         if (!agentRow) return undefined;
 
         const tools: Record<string, any> = {};
-        const toolRows = await this.query(`
+        const toolRows = await this.query(
+            `
             SELECT * FROM agent_tools WHERE agent_id = $1
-        `, [id]);
+        `,
+            [id],
+        );
         for (const row of toolRows.rows) {
             if (row.custom_params) {
                 tools[row.tool_id] = JSON.parse(row.custom_params);
@@ -440,9 +476,12 @@ export class PostgresStorage extends BaseStorage implements IStorage {
         }
 
         const middlewares: Record<string, any> = {};
-        const middlewareRows = await this.query(`
+        const middlewareRows = await this.query(
+            `
             SELECT * FROM agent_middlewares WHERE agent_id = $1
-        `, [id]);
+        `,
+            [id],
+        );
         for (const row of middlewareRows.rows) {
             if (row.custom_params) {
                 middlewares[row.middleware_id] = JSON.parse(row.custom_params);
@@ -490,37 +529,46 @@ export class PostgresStorage extends BaseStorage implements IStorage {
         try {
             await client.query('BEGIN');
 
-            await client.query(`
+            await client.query(
+                `
                 UPDATE agents SET name = $1, description = $2, system_prompt_id = $3, model_id = $4
                 WHERE id = $5
-            `, [data.name, data.description, data.system_prompt, data.model, data.id]);
+            `,
+                [data.name, data.description, data.system_prompt, data.model, data.id],
+            );
 
             // Delete and reinsert tools
             await client.query(`DELETE FROM agent_tools WHERE agent_id = $1`, [data.id]);
             for (const [toolId, value] of Object.entries(data.tools)) {
-                await client.query(`
+                await client.query(
+                    `
                     INSERT INTO agent_tools (agent_id, tool_id, enabled, custom_params)
                     VALUES ($1, $2, $3, $4)
-                `, [
-                    data.id,
-                    toolId,
-                    typeof value === 'boolean' ? value : true,
-                    typeof value === 'boolean' ? null : JSON.stringify(value),
-                ]);
+                `,
+                    [
+                        data.id,
+                        toolId,
+                        typeof value === 'boolean' ? value : true,
+                        typeof value === 'boolean' ? null : JSON.stringify(value),
+                    ],
+                );
             }
 
             // Delete and reinsert middlewares
             await client.query(`DELETE FROM agent_middlewares WHERE agent_id = $1`, [data.id]);
             for (const [midId, value] of Object.entries(data.middleware)) {
-                await client.query(`
+                await client.query(
+                    `
                     INSERT INTO agent_middlewares (agent_id, middleware_id, enabled, custom_params)
                     VALUES ($1, $2, $3, $4)
-                `, [
-                    data.id,
-                    midId,
-                    typeof value === 'boolean' ? value : true,
-                    typeof value === 'boolean' ? null : JSON.stringify(value),
-                ]);
+                `,
+                    [
+                        data.id,
+                        midId,
+                        typeof value === 'boolean' ? value : true,
+                        typeof value === 'boolean' ? null : JSON.stringify(value),
+                    ],
+                );
             }
 
             await client.query('COMMIT');
@@ -551,12 +599,15 @@ export class PostgresStorage extends BaseStorage implements IStorage {
         if (!systemPrompt) throw new Error(`Prompt ${agent.system_prompt_id} not found`);
 
         const tools: any[] = [];
-        const toolRows = await this.query(`
+        const toolRows = await this.query(
+            `
             SELECT t.*, at.enabled, at.custom_params
             FROM agent_tools at
             JOIN tools t ON at.tool_id = t.id
             WHERE at.agent_id = $1
-        `, [id]);
+        `,
+            [id],
+        );
         for (const row of toolRows.rows) {
             tools.push({
                 ...row,
@@ -566,12 +617,15 @@ export class PostgresStorage extends BaseStorage implements IStorage {
         }
 
         const middlewares: any[] = [];
-        const middlewareRows = await this.query(`
+        const middlewareRows = await this.query(
+            `
             SELECT m.*, am.enabled, am.custom_params
             FROM agent_middlewares am
             JOIN middlewares m ON am.middleware_id = m.id
             WHERE am.agent_id = $1
-        `, [id]);
+        `,
+            [id],
+        );
         for (const row of middlewareRows.rows) {
             middlewares.push({
                 ...row,

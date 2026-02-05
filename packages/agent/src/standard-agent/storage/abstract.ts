@@ -109,12 +109,12 @@ export interface IStorage {
     /**
      * Initialize the storage backend (create tables, indexes, etc.)
      */
-    initialize?(): void | Promise<void>;
+    initialize?(): Promise<void> | void;
 
     /**
      * Close the storage connection
      */
-    close(): void | Promise<void>;
+    close(): Promise<void>;
 
     // ========================================
     // Transactions
@@ -122,68 +122,66 @@ export interface IStorage {
     /**
      * Execute a transaction. If the callback throws, the transaction is rolled back.
      */
-    transaction<T>(fn: () => T): T | Promise<T>;
+    transaction<T>(fn: () => T | Promise<T>): Promise<T>;
 
     // ========================================
     // Models
     // ========================================
-    insertModel(data: z.infer<typeof ModelSchema>): void | Promise<void>;
-    getModel(id: string): ModelRow | undefined | Promise<ModelRow | undefined>;
-    getAllModels(): ModelRow[] | Promise<ModelRow[]>;
-    updateModel(data: z.infer<typeof ModelSchema>): void | Promise<void>;
-    deleteModel(id: string): void | Promise<void>;
+    insertModel(data: z.infer<typeof ModelSchema>): Promise<void>;
+    getModel(id: string): Promise<ModelRow | undefined>;
+    getAllModels(): Promise<ModelRow[]>;
+    updateModel(data: z.infer<typeof ModelSchema>): Promise<void>;
+    deleteModel(id: string): Promise<void>;
 
     // ========================================
     // Prompts
     // ========================================
-    insertPrompt(data: z.infer<typeof PromptSchema>): void | Promise<void>;
-    getPrompt(id: string): PromptRow | undefined | Promise<PromptRow | undefined>;
-    getPromptByName(name: string): PromptRow | undefined | Promise<PromptRow | undefined>;
-    getAllPrompts(): PromptRow[] | Promise<PromptRow[]>;
-    updatePrompt(data: z.infer<typeof PromptSchema>): void | Promise<void>;
-    deletePrompt(id: string): void | Promise<void>;
+    insertPrompt(data: z.infer<typeof PromptSchema>): Promise<void>;
+    getPrompt(id: string): Promise<PromptRow | undefined>;
+    getPromptByName(name: string): Promise<PromptRow | undefined>;
+    getAllPrompts(): Promise<PromptRow[]>;
+    updatePrompt(data: z.infer<typeof PromptSchema>): Promise<void>;
+    deletePrompt(id: string): Promise<void>;
 
     // ========================================
     // Tools
     // ========================================
-    insertTool(data: z.infer<typeof ToolSchema>): void | Promise<void>;
-    getTool(id: string): ToolRow | undefined | Promise<ToolRow | undefined>;
-    getAllTools(): ToolRow[] | Promise<ToolRow[]>;
-    updateTool(data: z.infer<typeof ToolSchema>): void | Promise<void>;
-    deleteTool(id: string): void | Promise<void>;
+    insertTool(data: z.infer<typeof ToolSchema>): Promise<void>;
+    getTool(id: string): Promise<ToolRow | undefined>;
+    getAllTools(): Promise<ToolRow[]>;
+    updateTool(data: z.infer<typeof ToolSchema>): Promise<void>;
+    deleteTool(id: string): Promise<void>;
 
     // ========================================
     // Middlewares
     // ========================================
-    insertMiddleware(data: z.infer<typeof MiddlewareSchema>): void | Promise<void>;
-    getMiddleware(id: string): MiddlewareRow | undefined | Promise<MiddlewareRow | undefined>;
-    getAllMiddlewares(): MiddlewareRow[] | Promise<MiddlewareRow[]>;
-    updateMiddleware(data: z.infer<typeof MiddlewareSchema>): void | Promise<void>;
-    deleteMiddleware(id: string): void | Promise<void>;
+    insertMiddleware(data: z.infer<typeof MiddlewareSchema>): Promise<void>;
+    getMiddleware(id: string): Promise<MiddlewareRow | undefined>;
+    getAllMiddlewares(): Promise<MiddlewareRow[]>;
+    updateMiddleware(data: z.infer<typeof MiddlewareSchema>): Promise<void>;
+    deleteMiddleware(id: string): Promise<void>;
 
     // ========================================
     // Agents
     // ========================================
-    insertAgent(data: z.infer<typeof AgentSchema>): void | Promise<void>;
-    getAgent(id: string): (AgentRow & {
-        tools: Record<string, boolean | any>;
-        middlewares: Record<string, boolean | any>;
-    }) | undefined | Promise<(
-        AgentRow & { tools: Record<string, boolean | any>; middlewares: Record<string, boolean | any> }
-    ) | undefined>;
-    getAllAgents(): (AgentRow & {
-        tools: Record<string, boolean | any>;
-        middlewares: Record<string, boolean | any>;
-    })[] | Promise<(
-        AgentRow & { tools: Record<string, boolean | any>; middlewares: Record<string, boolean | any> }
-    )[]>;
-    updateAgent(data: z.infer<typeof AgentSchema>): void | Promise<void>;
-    deleteAgent(id: string): void | Promise<void>;
+    insertAgent(data: z.infer<typeof AgentSchema>): Promise<void>;
+    getAgent(id: string): Promise<
+        | (AgentRow & {
+              tools: Record<string, boolean | any>;
+              middlewares: Record<string, boolean | any>;
+          })
+        | undefined
+    >;
+    getAllAgents(): Promise<
+        (AgentRow & { tools: Record<string, boolean | any>; middlewares: Record<string, boolean | any> })[]
+    >;
+    updateAgent(data: z.infer<typeof AgentSchema>): Promise<void>;
+    deleteAgent(id: string): Promise<void>;
 
     // ========================================
     // Query Helpers
     // ========================================
-    getAgentWithDependencies(id: string): AgentWithRelations | undefined | Promise<AgentWithRelations | undefined>;
+    getAgentWithDependencies(id: string): Promise<AgentWithRelations | undefined>;
 }
 
 // ========================================
@@ -237,44 +235,42 @@ export abstract class BaseStorage implements IStorage {
     }
 
     // Abstract methods that must be implemented
-    abstract initialize?(): void | Promise<void>;
-    abstract close(): void | Promise<void>;
-    abstract transaction<T>(fn: () => T): T | Promise<T>;
-    abstract insertModel(data: z.infer<typeof ModelSchema>): void | Promise<void>;
-    abstract getModel(id: string): ModelRow | undefined | Promise<ModelRow | undefined>;
-    abstract getAllModels(): ModelRow[] | Promise<ModelRow[]>;
-    abstract updateModel(data: z.infer<typeof ModelSchema>): void | Promise<void>;
-    abstract deleteModel(id: string): void | Promise<void>;
-    abstract insertPrompt(data: z.infer<typeof PromptSchema>): void | Promise<void>;
-    abstract getPrompt(id: string): PromptRow | undefined | Promise<PromptRow | undefined>;
-    abstract getPromptByName(name: string): PromptRow | undefined | Promise<PromptRow | undefined>;
-    abstract getAllPrompts(): PromptRow[] | Promise<PromptRow[]>;
-    abstract updatePrompt(data: z.infer<typeof PromptSchema>): void | Promise<void>;
-    abstract deletePrompt(id: string): void | Promise<void>;
-    abstract insertTool(data: z.infer<typeof ToolSchema>): void | Promise<void>;
-    abstract getTool(id: string): ToolRow | undefined | Promise<ToolRow | undefined>;
-    abstract getAllTools(): ToolRow[] | Promise<ToolRow[]>;
-    abstract updateTool(data: z.infer<typeof ToolSchema>): void | Promise<void>;
-    abstract deleteTool(id: string): void | Promise<void>;
-    abstract insertMiddleware(data: z.infer<typeof MiddlewareSchema>): void | Promise<void>;
-    abstract getMiddleware(id: string): MiddlewareRow | undefined | Promise<MiddlewareRow | undefined>;
-    abstract getAllMiddlewares(): MiddlewareRow[] | Promise<MiddlewareRow[]>;
-    abstract updateMiddleware(data: z.infer<typeof MiddlewareSchema>): void | Promise<void>;
-    abstract deleteMiddleware(id: string): void | Promise<void>;
-    abstract insertAgent(data: z.infer<typeof AgentSchema>): void | Promise<void>;
-    abstract getAgent(id: string): (AgentRow & {
-        tools: Record<string, boolean | any>;
-        middlewares: Record<string, boolean | any>;
-    }) | undefined | Promise<(
-        AgentRow & { tools: Record<string, boolean | any>; middlewares: Record<string, boolean | any> }
-    ) | undefined>;
-    abstract getAllAgents(): (AgentRow & {
-        tools: Record<string, boolean | any>;
-        middlewares: Record<string, boolean | any>;
-    })[] | Promise<(
-        AgentRow & { tools: Record<string, boolean | any>; middlewares: Record<string, boolean | any> }
-    )[]>;
-    abstract updateAgent(data: z.infer<typeof AgentSchema>): void | Promise<void>;
-    abstract deleteAgent(id: string): void | Promise<void>;
-    abstract getAgentWithDependencies(id: string): AgentWithRelations | undefined | Promise<AgentWithRelations | undefined>;
+    abstract initialize?(): Promise<void> | void;
+    abstract close(): Promise<void>;
+    abstract transaction<T>(fn: () => T | Promise<T>): Promise<T>;
+    abstract insertModel(data: z.infer<typeof ModelSchema>): Promise<void>;
+    abstract getModel(id: string): Promise<ModelRow | undefined>;
+    abstract getAllModels(): Promise<ModelRow[]>;
+    abstract updateModel(data: z.infer<typeof ModelSchema>): Promise<void>;
+    abstract deleteModel(id: string): Promise<void>;
+    abstract insertPrompt(data: z.infer<typeof PromptSchema>): Promise<void>;
+    abstract getPrompt(id: string): Promise<PromptRow | undefined>;
+    abstract getPromptByName(name: string): Promise<PromptRow | undefined>;
+    abstract getAllPrompts(): Promise<PromptRow[]>;
+    abstract updatePrompt(data: z.infer<typeof PromptSchema>): Promise<void>;
+    abstract deletePrompt(id: string): Promise<void>;
+    abstract insertTool(data: z.infer<typeof ToolSchema>): Promise<void>;
+    abstract getTool(id: string): Promise<ToolRow | undefined>;
+    abstract getAllTools(): Promise<ToolRow[]>;
+    abstract updateTool(data: z.infer<typeof ToolSchema>): Promise<void>;
+    abstract deleteTool(id: string): Promise<void>;
+    abstract insertMiddleware(data: z.infer<typeof MiddlewareSchema>): Promise<void>;
+    abstract getMiddleware(id: string): Promise<MiddlewareRow | undefined>;
+    abstract getAllMiddlewares(): Promise<MiddlewareRow[]>;
+    abstract updateMiddleware(data: z.infer<typeof MiddlewareSchema>): Promise<void>;
+    abstract deleteMiddleware(id: string): Promise<void>;
+    abstract insertAgent(data: z.infer<typeof AgentSchema>): Promise<void>;
+    abstract getAgent(id: string): Promise<
+        | (AgentRow & {
+              tools: Record<string, boolean | any>;
+              middlewares: Record<string, boolean | any>;
+          })
+        | undefined
+    >;
+    abstract getAllAgents(): Promise<
+        (AgentRow & { tools: Record<string, boolean | any>; middlewares: Record<string, boolean | any> })[]
+    >;
+    abstract updateAgent(data: z.infer<typeof AgentSchema>): Promise<void>;
+    abstract deleteAgent(id: string): Promise<void>;
+    abstract getAgentWithDependencies(id: string): Promise<AgentWithRelations | undefined>;
 }

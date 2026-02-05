@@ -34,38 +34,34 @@ export class InjectedAgentPackage extends AgentPackage {
     constructor(options: SchemaInjectionOptions) {
         super({ models: [], prompts: [], agents: [] });
         this.storage = options.storage ?? new AgentStorage(options.dbPath ?? ':memory:');
-
-        if (options.autoInitialize !== false) {
-            this.loadAllSchemas();
-        }
     }
 
     // ========================================
     // Schema Loading
     // ========================================
-    private loadAllSchemas(): void {
+    private async loadAllSchemas(): Promise<void> {
         // Load Models
-        for (const modelRow of this.storage.getAllModels()) {
+        for (const modelRow of await this.storage.getAllModels()) {
             this.injectModel(modelRow);
         }
 
         // Load Prompts
-        for (const promptRow of this.storage.getAllPrompts()) {
+        for (const promptRow of await this.storage.getAllPrompts()) {
             this.injectPrompt(promptRow);
         }
 
         // Load Tools (schema only)
-        for (const toolRow of this.storage.getAllTools()) {
+        for (const toolRow of await this.storage.getAllTools()) {
             this.injectTool(toolRow);
         }
 
         // Load Middlewares (schema only)
-        for (const middlewareRow of this.storage.getAllMiddlewares()) {
+        for (const middlewareRow of await this.storage.getAllMiddlewares()) {
             this.injectMiddleware(middlewareRow);
         }
 
         // Load Agents
-        for (const agentData of this.storage.getAllAgents()) {
+        for (const agentData of await this.storage.getAllAgents()) {
             this.injectAgent(agentData);
         }
     }
@@ -150,7 +146,7 @@ export class InjectedAgentPackage extends AgentPackage {
     // ========================================
     // Reload Schemas from Database
     // ========================================
-    reloadSchemas(): void {
+    async reloadSchemas(): Promise<void> {
         // Clear existing schemas by creating a new instance
         // Access and clear internal maps via reflection
         (this as any)._models.clear();
@@ -159,36 +155,43 @@ export class InjectedAgentPackage extends AgentPackage {
         (this as any)._middlewares.clear();
         (this as any)._agents.clear();
 
-        this.loadAllSchemas();
+        await this.loadAllSchemas();
+    }
+
+    // ========================================
+    // Public Initialization
+    // ========================================
+    async initialize(): Promise<void> {
+        await this.loadAllSchemas();
     }
 
     // ========================================
     // Schema Persistence
     // ========================================
-    persistModel(data: any): void {
-        this.storage.insertModel(data);
+    async persistModel(data: any): Promise<void> {
+        await this.storage.insertModel(data);
         this.injectModel(data as any);
     }
 
-    persistPrompt(data: any): void {
-        this.storage.insertPrompt(data);
+    async persistPrompt(data: any): Promise<void> {
+        await this.storage.insertPrompt(data);
         this.injectPrompt(data as any);
     }
 
-    persistTool(data: any): void {
-        this.storage.insertTool(data);
+    async persistTool(data: any): Promise<void> {
+        await this.storage.insertTool(data);
         this.injectTool(data as any);
     }
 
-    persistMiddleware(data: any): void {
-        this.storage.insertMiddleware(data);
+    async persistMiddleware(data: any): Promise<void> {
+        await this.storage.insertMiddleware(data);
         this.injectMiddleware(data as any);
     }
 
-    persistAgent(data: any): void {
-        this.storage.insertAgent(data);
-        // Re-fetch from database to get the correct format for injection
-        const agentRow = this.storage.getAgent(data.id);
+    async persistAgent(data: any): Promise<void> {
+        await this.storage.insertAgent(data);
+        // Re-fetch from database to get correct format for injection
+        const agentRow = await this.storage.getAgent(data.id);
         if (agentRow) {
             this.injectAgent(agentRow);
         }
@@ -197,57 +200,57 @@ export class InjectedAgentPackage extends AgentPackage {
     // ========================================
     // Schema Update
     // ========================================
-    updateModel(data: any): void {
-        this.storage.updateModel(data);
-        this.reloadSchemas();
+    async updateModel(data: any): Promise<void> {
+        await this.storage.updateModel(data);
+        await this.reloadSchemas();
     }
 
-    updatePrompt(data: any): void {
-        this.storage.updatePrompt(data);
-        this.reloadSchemas();
+    async updatePrompt(data: any): Promise<void> {
+        await this.storage.updatePrompt(data);
+        await this.reloadSchemas();
     }
 
-    updateTool(data: any): void {
-        this.storage.updateTool(data);
-        this.reloadSchemas();
+    async updateTool(data: any): Promise<void> {
+        await this.storage.updateTool(data);
+        await this.reloadSchemas();
     }
 
-    updateMiddleware(data: any): void {
-        this.storage.updateMiddleware(data);
-        this.reloadSchemas();
+    async updateMiddleware(data: any): Promise<void> {
+        await this.storage.updateMiddleware(data);
+        await this.reloadSchemas();
     }
 
-    updateAgent(data: any): void {
-        this.storage.updateAgent(data);
-        this.reloadSchemas();
+    async updateAgent(data: any): Promise<void> {
+        await this.storage.updateAgent(data);
+        await this.reloadSchemas();
     }
 
     // ========================================
     // Schema Deletion
     // ========================================
-    deleteModel(id: string): void {
-        this.storage.deleteModel(id);
-        this.reloadSchemas();
+    async deleteModel(id: string): Promise<void> {
+        await this.storage.deleteModel(id);
+        await this.reloadSchemas();
     }
 
-    deletePrompt(id: string): void {
-        this.storage.deletePrompt(id);
-        this.reloadSchemas();
+    async deletePrompt(id: string): Promise<void> {
+        await this.storage.deletePrompt(id);
+        await this.reloadSchemas();
     }
 
-    deleteTool(id: string): void {
-        this.storage.deleteTool(id);
-        this.reloadSchemas();
+    async deleteTool(id: string): Promise<void> {
+        await this.storage.deleteTool(id);
+        await this.reloadSchemas();
     }
 
-    deleteMiddleware(id: string): void {
-        this.storage.deleteMiddleware(id);
-        this.reloadSchemas();
+    async deleteMiddleware(id: string): Promise<void> {
+        await this.storage.deleteMiddleware(id);
+        await this.reloadSchemas();
     }
 
-    deleteAgent(id: string): void {
-        this.storage.deleteAgent(id);
-        this.reloadSchemas();
+    async deleteAgent(id: string): Promise<void> {
+        await this.storage.deleteAgent(id);
+        await this.reloadSchemas();
     }
 
     // ========================================
@@ -275,12 +278,12 @@ export class InjectedAgentPackage extends AgentPackage {
     /**
      * Import an AgentPackage to SQLite
      */
-    importAgentPackage(pkg: AgentPackage): void {
-        this.storage.transaction(() => {
+    async importAgentPackage(pkg: AgentPackage): Promise<void> {
+        await this.storage.transaction(async () => {
             // Import models
             for (const model of pkg.listModels()) {
                 try {
-                    this.storage.insertModel(model.toJSON());
+                    await this.storage.insertModel(model.toJSON());
                 } catch (e) {
                     // Skip if already exists
                     if ((e as any).message && !(e as any).message.includes('UNIQUE constraint')) {
@@ -292,7 +295,7 @@ export class InjectedAgentPackage extends AgentPackage {
             // Import prompts
             for (const prompt of pkg.listPrompts()) {
                 try {
-                    this.storage.insertPrompt(prompt.toJSON());
+                    await this.storage.insertPrompt(prompt.toJSON());
                 } catch (e) {
                     if ((e as any).message && !(e as any).message.includes('UNIQUE constraint')) {
                         throw e;
@@ -303,7 +306,7 @@ export class InjectedAgentPackage extends AgentPackage {
             // Import tools
             for (const tool of pkg.listTools()) {
                 try {
-                    this.storage.insertTool(tool.toJSON());
+                    await this.storage.insertTool(tool.toJSON());
                 } catch (e) {
                     if ((e as any).message && !(e as any).message.includes('UNIQUE constraint')) {
                         throw e;
@@ -314,7 +317,7 @@ export class InjectedAgentPackage extends AgentPackage {
             // Import middlewares
             for (const middleware of pkg.listMiddlewares()) {
                 try {
-                    this.storage.insertMiddleware(middleware.toJSON());
+                    await this.storage.insertMiddleware(middleware.toJSON());
                 } catch (e) {
                     if ((e as any).message && !(e as any).message.includes('UNIQUE constraint')) {
                         throw e;
@@ -326,7 +329,7 @@ export class InjectedAgentPackage extends AgentPackage {
             for (const agent of pkg.listAgents()) {
                 const agentData = agent.toJSON();
                 try {
-                    this.storage.insertAgent(agentData);
+                    await this.storage.insertAgent(agentData);
                 } catch (e) {
                     if ((e as any).message && !(e as any).message.includes('UNIQUE constraint')) {
                         throw e;
@@ -336,7 +339,7 @@ export class InjectedAgentPackage extends AgentPackage {
         });
 
         // Reload schemas after import
-        this.reloadSchemas();
+        await this.reloadSchemas();
     }
 
     /**
@@ -356,8 +359,8 @@ export class InjectedAgentPackage extends AgentPackage {
     // ========================================
     // Cleanup
     // ========================================
-    close(): void {
-        this.storage.close();
+    async close(): Promise<void> {
+        await this.storage.close();
     }
 }
 
@@ -365,11 +368,17 @@ export class InjectedAgentPackage extends AgentPackage {
 // Factory Functions
 // ========================================
 export function createInjectedAgentPackage(dbPath: string, autoInitialize = true): InjectedAgentPackage {
-    return new InjectedAgentPackage({ dbPath, autoInitialize });
+    const pkg = new InjectedAgentPackage({ dbPath, autoInitialize: false });
+    if (autoInitialize) {
+        pkg.initialize().catch((error) => {
+            console.error('Failed to initialize agent package:', error);
+        });
+    }
+    return pkg;
 }
 
-export function createInjectedAgentPackageFromMemory(pkg: AgentPackage, dbPath: string): InjectedAgentPackage {
+export async function createInjectedAgentPackageFromMemory(pkg: AgentPackage, dbPath: string): Promise<InjectedAgentPackage> {
     const injected = new InjectedAgentPackage({ dbPath, autoInitialize: false });
-    injected.importAgentPackage(pkg);
+    await injected.importAgentPackage(pkg);
     return injected;
 }

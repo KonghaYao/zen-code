@@ -3,14 +3,13 @@ import { ModelSchema, PromptSchema, ToolSchema, MiddlewareSchema, AgentSchema } 
 import { z } from 'zod';
 import {
     BaseStorage,
-    IStorage,
     ModelRow,
     PromptRow,
     ToolRow,
     MiddlewareRow,
     AgentToolRow,
     AgentMiddlewareRow,
-    AgentWithRelations,
+    AgentRow,
 } from './abstract.js';
 
 /**
@@ -23,9 +22,9 @@ import {
  * @example
  * ```typescript
  * const storage = new AgentStorage('./agents.db');
- * storage.insertModel({ ... });
- * const model = storage.getModel('model-id');
- * storage.close();
+ * await storage.insertModel({ ... });
+ * const model = await storage.getModel('model-id');
+ * await storage.close();
  * ```
  */
 
@@ -33,63 +32,13 @@ import {
 // SQLite Storage Implementation
 // ========================================
 export class AgentStorage extends BaseStorage {
-    id: string;
-    model_name: string;
-    model_provider: string;
-    stream_usage: number;
-    enable_thinking: number;
-    temperature: number;
-    max_tokens: number;
-    top_p: number;
-    frequency_penalty: number;
-    presence_penalty: number;
-    created_at: string;
-    updated_at: string;
-}
-
-export interface PromptRow {
-    id: string;
-    name: string;
-    content: string;
-    metadata: string | null;
-    created_at: string;
-    updated_at: string;
-}
-
-export interface ToolRow {
-    id: string;
-    name: string;
-    description: string;
-    created_at: string;
-    updated_at: string;
-}
-
-export interface MiddlewareRow {
-    id: string;
-    name: string;
-    description: string;
-    created_at: string;
-    updated_at: string;
-}
-
-// Re-export types from abstract.ts for backward compatibility
-export type {
-    ModelRow,
-    PromptRow,
-    ToolRow,
-    MiddlewareRow,
-    AgentToolRow,
-    AgentMiddlewareRow,
-    AgentWithRelations,
-};
-
-// ========================================
-// SQLite Storage Implementation
-// ========================================
-export class AgentStorage extends BaseStorage {
+    initialize?(): Promise<void> | void {
+        throw new Error('Method not implemented.');
+    }
     private db: Database;
 
     constructor(dbPath: string) {
+        super();
         this.db = new Database(dbPath, { create: true });
         this.db.exec('PRAGMA journal_mode = WAL');
         this.db.exec('PRAGMA foreign_keys = ON');
@@ -213,10 +162,10 @@ export class AgentStorage extends BaseStorage {
     // ========================================
     // Transaction Management
     // ========================================
-    transaction<T>(fn: () => T): T {
+    async transaction<T>(fn: () => T | Promise<T>): Promise<T> {
         this.db.exec('BEGIN TRANSACTION');
         try {
-            const result = fn();
+            const result = await fn();
             this.db.exec('COMMIT');
             return result;
         } catch (error) {
@@ -228,7 +177,7 @@ export class AgentStorage extends BaseStorage {
     // ========================================
     // Models
     // ========================================
-    insertModel(data: z.infer<typeof ModelSchema>): void {
+    async insertModel(data: z.infer<typeof ModelSchema>): Promise<void> {
         const stmt = this.db.query(`
             INSERT INTO models (
                 id, model_name, model_provider, stream_usage, enable_thinking,
@@ -249,18 +198,18 @@ export class AgentStorage extends BaseStorage {
         );
     }
 
-    getModel(id: string): ModelRow | undefined {
+    async getModel(id: string): Promise<ModelRow | undefined> {
         const stmt = this.db.query('SELECT * FROM models WHERE id = ?1');
         const result = stmt.get(id) as ModelRow | null;
         return result ?? undefined;
     }
 
-    getAllModels(): ModelRow[] {
+    async getAllModels(): Promise<ModelRow[]> {
         const stmt = this.db.query('SELECT * FROM models');
         return stmt.all() as ModelRow[];
     }
 
-    updateModel(data: z.infer<typeof ModelSchema>): void {
+    async updateModel(data: z.infer<typeof ModelSchema>): Promise<void> {
         const stmt = this.db.query(`
             UPDATE models SET
                 model_name = ?1, model_provider = ?2, stream_usage = ?3, enable_thinking = ?4,
@@ -281,7 +230,7 @@ export class AgentStorage extends BaseStorage {
         );
     }
 
-    deleteModel(id: string): void {
+    async deleteModel(id: string): Promise<void> {
         const stmt = this.db.query('DELETE FROM models WHERE id = ?1');
         stmt.run(id);
     }
@@ -289,7 +238,7 @@ export class AgentStorage extends BaseStorage {
     // ========================================
     // Prompts
     // ========================================
-    insertPrompt(data: z.infer<typeof PromptSchema>): void {
+    async insertPrompt(data: z.infer<typeof PromptSchema>): Promise<void> {
         const stmt = this.db.query(`
             INSERT INTO prompts (id, name, content, metadata)
             VALUES (?1, ?2, ?3, ?4)
@@ -297,24 +246,24 @@ export class AgentStorage extends BaseStorage {
         stmt.run(data.id, data.name, data.content, data.metadata ? JSON.stringify(data.metadata) : null);
     }
 
-    getPrompt(id: string): PromptRow | undefined {
+    async getPrompt(id: string): Promise<PromptRow | undefined> {
         const stmt = this.db.query('SELECT * FROM prompts WHERE id = ?1');
         const result = stmt.get(id) as PromptRow | null;
         return result ?? undefined;
     }
 
-    getPromptByName(name: string): PromptRow | undefined {
+    async getPromptByName(name: string): Promise<PromptRow | undefined> {
         const stmt = this.db.query('SELECT * FROM prompts WHERE name = ?1');
         const result = stmt.get(name) as PromptRow | null;
         return result ?? undefined;
     }
 
-    getAllPrompts(): PromptRow[] {
+    async getAllPrompts(): Promise<PromptRow[]> {
         const stmt = this.db.query('SELECT * FROM prompts');
         return stmt.all() as PromptRow[];
     }
 
-    updatePrompt(data: z.infer<typeof PromptSchema>): void {
+    async updatePrompt(data: z.infer<typeof PromptSchema>): Promise<void> {
         const stmt = this.db.query(`
             UPDATE prompts SET name = ?1, content = ?2, metadata = ?3
             WHERE id = ?4
@@ -322,7 +271,7 @@ export class AgentStorage extends BaseStorage {
         stmt.run(data.name, data.content, data.metadata ? JSON.stringify(data.metadata) : null, data.id);
     }
 
-    deletePrompt(id: string): void {
+    async deletePrompt(id: string): Promise<void> {
         const stmt = this.db.query('DELETE FROM prompts WHERE id = ?1');
         stmt.run(id);
     }
@@ -330,7 +279,7 @@ export class AgentStorage extends BaseStorage {
     // ========================================
     // Tools
     // ========================================
-    insertTool(data: z.infer<typeof ToolSchema>): void {
+    async insertTool(data: z.infer<typeof ToolSchema>): Promise<void> {
         const stmt = this.db.query(`
             INSERT INTO tools (id, name, description)
             VALUES (?1, ?2, ?3)
@@ -338,18 +287,18 @@ export class AgentStorage extends BaseStorage {
         stmt.run(data.id, data.name, data.description);
     }
 
-    getTool(id: string): ToolRow | undefined {
+    async getTool(id: string): Promise<ToolRow | undefined> {
         const stmt = this.db.query('SELECT * FROM tools WHERE id = ?1');
         const result = stmt.get(id) as ToolRow | null;
         return result ?? undefined;
     }
 
-    getAllTools(): ToolRow[] {
+    async getAllTools(): Promise<ToolRow[]> {
         const stmt = this.db.query('SELECT * FROM tools');
         return stmt.all() as ToolRow[];
     }
 
-    updateTool(data: z.infer<typeof ToolSchema>): void {
+    async updateTool(data: z.infer<typeof ToolSchema>): Promise<void> {
         const stmt = this.db.query(`
             UPDATE tools SET name = ?1, description = ?2
             WHERE id = ?3
@@ -357,7 +306,7 @@ export class AgentStorage extends BaseStorage {
         stmt.run(data.name, data.description, data.id);
     }
 
-    deleteTool(id: string): void {
+    async deleteTool(id: string): Promise<void> {
         const stmt = this.db.query('DELETE FROM tools WHERE id = ?1');
         stmt.run(id);
     }
@@ -365,7 +314,7 @@ export class AgentStorage extends BaseStorage {
     // ========================================
     // Middlewares
     // ========================================
-    insertMiddleware(data: z.infer<typeof MiddlewareSchema>): void {
+    async insertMiddleware(data: z.infer<typeof MiddlewareSchema>): Promise<void> {
         const stmt = this.db.query(`
             INSERT INTO middlewares (id, name, description)
             VALUES (?1, ?2, ?3)
@@ -373,18 +322,18 @@ export class AgentStorage extends BaseStorage {
         stmt.run(data.id, data.name, data.description);
     }
 
-    getMiddleware(id: string): MiddlewareRow | undefined {
+    async getMiddleware(id: string): Promise<MiddlewareRow | undefined> {
         const stmt = this.db.query('SELECT * FROM middlewares WHERE id = ?1');
         const result = stmt.get(id) as MiddlewareRow | null;
         return result ?? undefined;
     }
 
-    getAllMiddlewares(): MiddlewareRow[] {
+    async getAllMiddlewares(): Promise<MiddlewareRow[]> {
         const stmt = this.db.query('SELECT * FROM middlewares');
         return stmt.all() as MiddlewareRow[];
     }
 
-    updateMiddleware(data: z.infer<typeof MiddlewareSchema>): void {
+    async updateMiddleware(data: z.infer<typeof MiddlewareSchema>): Promise<void> {
         const stmt = this.db.query(`
             UPDATE middlewares SET name = ?1, description = ?2
             WHERE id = ?3
@@ -392,7 +341,7 @@ export class AgentStorage extends BaseStorage {
         stmt.run(data.name, data.description, data.id);
     }
 
-    deleteMiddleware(id: string): void {
+    async deleteMiddleware(id: string): Promise<void> {
         const stmt = this.db.query('DELETE FROM middlewares WHERE id = ?1');
         stmt.run(id);
     }
@@ -400,7 +349,7 @@ export class AgentStorage extends BaseStorage {
     // ========================================
     // Agents
     // ========================================
-    insertAgent(data: z.infer<typeof AgentSchema>): void {
+    async insertAgent(data: z.infer<typeof AgentSchema>): Promise<void> {
         const insertAgent = this.db.query(`
             INSERT INTO agents (id, name, description, system_prompt_id, model_id)
             VALUES (?1, ?2, ?3, ?4, ?5)
@@ -438,9 +387,13 @@ export class AgentStorage extends BaseStorage {
         }
     }
 
-    getAgent(
-        id: string,
-    ): (AgentRow & { tools: Record<string, boolean | any>; middlewares: Record<string, boolean | any> }) | undefined {
+    async getAgent(id: string): Promise<
+        | (AgentRow & {
+              tools: Record<string, boolean | any>;
+              middlewares: Record<string, boolean | any>;
+          })
+        | undefined
+    > {
         const agentRow = this.db.query('SELECT * FROM agents WHERE id = ?1').get(id) as AgentRow | null;
         if (!agentRow) return undefined;
 
@@ -473,10 +426,12 @@ export class AgentStorage extends BaseStorage {
         return { ...agentRow, tools, middlewares };
     }
 
-    getAllAgents(): (AgentRow & {
-        tools: Record<string, boolean | any>;
-        middlewares: Record<string, boolean | any>;
-    })[] {
+    async getAllAgents(): Promise<
+        (AgentRow & {
+            tools: Record<string, boolean | any>;
+            middlewares: Record<string, boolean | any>;
+        })[]
+    > {
         const agentRows = this.db.query('SELECT * FROM agents').all() as AgentRow[];
         return agentRows.map((row) => {
             const tools: Record<string, boolean | any> = {};
@@ -507,7 +462,7 @@ export class AgentStorage extends BaseStorage {
         });
     }
 
-    updateAgent(data: z.infer<typeof AgentSchema>): void {
+    async updateAgent(data: z.infer<typeof AgentSchema>): Promise<void> {
         const updateAgent = this.db.query(`
             UPDATE agents SET name = ?1, description = ?2, system_prompt_id = ?3, model_id = ?4
             WHERE id = ?5
@@ -547,7 +502,7 @@ export class AgentStorage extends BaseStorage {
         }
     }
 
-    deleteAgent(id: string): void {
+    async deleteAgent(id: string): Promise<void> {
         const stmt = this.db.query('DELETE FROM agents WHERE id = ?1');
         stmt.run(id);
     }
@@ -555,7 +510,7 @@ export class AgentStorage extends BaseStorage {
     // ========================================
     // Query Helpers
     // ========================================
-    getAgentWithDependencies(id: string):
+    async getAgentWithDependencies(id: string): Promise<
         | {
               agent: AgentRow;
               model: ModelRow;
@@ -563,14 +518,15 @@ export class AgentStorage extends BaseStorage {
               tools: (ToolRow & { enabled: boolean; customParams: any })[];
               middlewares: (MiddlewareRow & { enabled: boolean; customParams: any })[];
           }
-        | undefined {
+        | undefined
+    > {
         const agent = this.db.query('SELECT * FROM agents WHERE id = ?1').get(id) as AgentRow | undefined;
         if (!agent) return undefined;
 
-        const model = this.getModel(agent.model_id);
+        const model = await this.getModel(agent.model_id);
         if (!model) throw new Error(`Model ${agent.model_id} not found`);
 
-        const systemPrompt = this.getPrompt(agent.system_prompt_id);
+        const systemPrompt = await this.getPrompt(agent.system_prompt_id);
         if (!systemPrompt) throw new Error(`Prompt ${agent.system_prompt_id} not found`);
 
         const tools: (ToolRow & { enabled: boolean; customParams: any })[] = [];
@@ -615,8 +571,10 @@ export class AgentStorage extends BaseStorage {
     // ========================================
     // Cleanup
     // ========================================
-    close(): void {
-        this.db.close();
+    close(): Promise<void> {
+        return Promise.resolve().then(() => {
+            this.db.close();
+        });
     }
 
     getDb(): Database {
