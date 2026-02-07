@@ -127,12 +127,32 @@ const ApprovalContentComponent: React.FC<{
   );
 };
 
+const TerminalHeader = ({ tool }: { tool: ToolRenderData<Record<string, never>, any> }) => {
+  const input = tool.getInputRepaired();
+  const command = input?.command || '';
+  // 截取命令的前50个字符，避免太长
+  const displayCommand = command.length > 50 ? command.substring(0, 50) + '...' : command;
+  return (
+    <Box paddingX={1}>
+      <Text color="magenta">Run </Text>
+      <Text dimColor>(</Text>
+      <Text color="magenta">{displayCommand}</Text>
+      <Text dimColor>)</Text>
+    </Box>
+  );
+};
+
 export const terminal = createUITool({
   name: 'terminal',
   description: '',
   parameters: {},
   handler: ToolManager.waitForUIDone,
   render(tool) {
-    return <ApprovalContentComponent tool={tool} />;
+    return (
+      <Box flexDirection="column">
+        <TerminalHeader tool={tool} />
+        <ApprovalContentComponent tool={tool} />
+      </Box>
+    );
   },
 });

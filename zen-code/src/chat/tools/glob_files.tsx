@@ -20,7 +20,10 @@ export const glob_files = createUITool({
         return (
             <Box flexDirection="column" paddingX={1}>
                 <Text>
-                    <Link path={input.pattern} color="blue" />
+                    <Text color="cyan">Glob </Text>
+                    <Text dimColor>(</Text>
+                    <Link path={input.pattern} color="cyan" />
+                    <Text dimColor>)</Text>
                     <Text color="gray" dimColor>
                         {' '}({count} files)
                     </Text>

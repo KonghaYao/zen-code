@@ -5,6 +5,7 @@ import { getThinkingContent, getTextContent } from '@langgraph-js/sdk';
 import { useSettings } from '@codegraph/union-client';
 import Markdown from './Markdown';
 import { getColor } from '@codegraph/union-client';
+import { LimitedOutput } from './LimitedOutput';
 
 interface MessageAIProps {
     message: RenderMessage;
@@ -29,10 +30,7 @@ const MessageAI: React.FC<MessageAIProps> = ({ message, messageNumber }) => {
             </Box>
             {/* 渲染 thinking 内容 */}
             {thinkingContent && (
-                <Reasoning
-                    thinking={thinkingContent}
-                    hasContent={rawTextContents.trim().length > 0}
-                ></Reasoning>
+                <Reasoning thinking={thinkingContent} visible={rawTextContents.trim().length === 0}></Reasoning>
             )}
             {/* <Text>{JSON.stringify(message.content)}</Text> */}
             <Markdown>{rawTextContents}</Markdown>
@@ -42,14 +40,11 @@ const MessageAI: React.FC<MessageAIProps> = ({ message, messageNumber }) => {
 
 interface ReasoningProps {
     thinking: string;
-    hasContent: boolean;
+    visible: boolean;
 }
 
-const Reasoning: React.FC<ReasoningProps> = ({ thinking, hasContent }) => {
-
+const Reasoning: React.FC<ReasoningProps> = ({ thinking, visible }) => {
     const lines = thinking.split('\n');
-    // 无正文：显示最后 3 行
-    const displayLines = lines.slice(-1);
 
     return (
         <Box flexDirection="column" marginBottom={1}>
@@ -58,13 +53,7 @@ const Reasoning: React.FC<ReasoningProps> = ({ thinking, hasContent }) => {
                     Think {lines.length} rows
                 </Text>
             </Box>
-            <Box paddingLeft={2} flexDirection="column">
-                {displayLines.map((line, i) => (
-                    <Text key={i} dimColor>
-                        {line}
-                    </Text>
-                ))}
-            </Box>
+            {visible && <LimitedOutput content={thinking} maxLines={3}></LimitedOutput>}
         </Box>
     );
 };

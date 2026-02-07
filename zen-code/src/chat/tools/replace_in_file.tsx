@@ -37,7 +37,10 @@ export const replace_in_file = createUITool({
         return (
             <Box flexDirection="column" paddingX={1}>
                 <Box>
-                    <Link path={input.file_path} color="white" />
+                    <Text color="yellow">Edit </Text>
+                    <Text dimColor>(</Text>
+                    <Link path={input.file_path} color="yellow" />
+                    <Text dimColor>)</Text>
                     {hasDiff && (
                         <>
                             <Text color="gray"> (</Text>
@@ -50,7 +53,7 @@ export const replace_in_file = createUITool({
                 </Box>
 
                 {output && output.startsWith('Error:') && (
-                    <Box marginTop={0}>
+                    <Box marginTop={0} marginLeft={1} marginBottom={1}>
                         <Text color="red">{output}</Text>
                     </Box>
                 )}

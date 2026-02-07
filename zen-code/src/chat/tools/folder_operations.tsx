@@ -1,7 +1,7 @@
-
 import { Box, Text } from 'ink';
 import { createUITool } from '@langgraph-js/sdk';
 import { folder_tool as folderToolBackend } from '@codegraph/agent/src/tools/filesystem_tools/folder_tool';
+import Link from '../components/Link';
 
 const folderOperationSchema = folderToolBackend.schema;
 
@@ -42,7 +42,12 @@ export const folder_operations = createUITool({
                 );
             }
             // Highlight success/error messages
-            if (line.includes('✓') || line.includes('successfully') || line.includes('created') || line.includes('deleted')) {
+            if (
+                line.includes('✓') ||
+                line.includes('successfully') ||
+                line.includes('created') ||
+                line.includes('deleted')
+            ) {
                 return (
                     <Text key={idx} color="green">
                         {line}
@@ -71,15 +76,17 @@ export const folder_operations = createUITool({
             <Box flexDirection="column" paddingX={1}>
                 <Box>
                     <Text bold color={operationColor}>
-                        folder_operations
+                        {input.operation}Folder
                     </Text>
-                    <Text color="gray"> ({input.operation})</Text>
+                    <Text dimColor> (</Text>
+                    <Link path={input.folder_path} color={operationColor} />
+                    <Text dimColor>)</Text>
                 </Box>
-                <Box flexDirection="column">
+                {/* <Box flexDirection="column">
                     {formattedOutput.map((line, idx) => (
                         <Box key={idx}>{line}</Box>
                     ))}
-                </Box>
+                </Box> */}
             </Box>
         );
     },

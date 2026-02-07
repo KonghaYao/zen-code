@@ -19,14 +19,14 @@ export const LimitedOutput = ({
     maxLines = 10,
     borderColor = 'cyan',
     borderStyle = 'single',
-    marginTop = 1,
+    marginTop = 0,
     paddingX = 0,
     showOmittedInfo = true,
 }: LimitedOutputProps) => {
     if (!content) return null;
 
-    const { width } = useWindowSize()
-    const lines = content.split('\n').map(i => i.slice(0, width - 10));
+    const { width } = useWindowSize();
+    const lines = content.split('\n').map((i) => i.slice(0, width - 10));
     const omittedCount = Math.max(0, lines.length - maxLines);
     const lastLines = lines.slice(-maxLines).join('\n');
     return (
