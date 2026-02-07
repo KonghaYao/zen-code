@@ -14,6 +14,7 @@ import { MemoryStorage } from '../standard-agent/storage/memory.js';
 import { AgentSchema } from '../standard-agent/schemas.js';
 import { z } from 'zod';
 import { createToolRegistry } from './tools.js';
+import { createMiddlewareRegistry } from './middlewares.js';
 
 export interface SubAgentConfig extends z.infer<typeof AgentSchema> {}
 
@@ -76,38 +77,11 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
         content: 'You are a file navigation specialist. Help users find files and code patterns.',
     });
 
+    // Register tools into the package
     await createToolRegistry(pkg);
 
-    // Default Middlewares
-    await pkg.addMiddleware({
-        id: 'middleware/agents_md',
-        name: 'agents_md',
-        description: 'Inject agent documentation',
-    });
-
-    await pkg.addMiddleware({
-        id: 'middleware/skills',
-        name: 'skills',
-        description: 'Progressive skills disclosure',
-    });
-
-    await pkg.addMiddleware({
-        id: 'middleware/memories',
-        name: 'memories',
-        description: 'Knowledge persistence',
-    });
-
-    await pkg.addMiddleware({
-        id: 'middleware/mcp',
-        name: 'mcp',
-        description: 'Model Context Protocol integration',
-    });
-
-    await pkg.addMiddleware({
-        id: 'middleware/subagents',
-        name: 'subagents',
-        description: 'Task delegation to specialized agents',
-    });
+    // Register middleware implementations into the package registry
+    await createMiddlewareRegistry(pkg);
 
     // Default SubAgents
     await pkg.addAgent({
@@ -128,11 +102,14 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
             TodoWrite: true,
         },
         middleware: {
-            'middleware/agents_md': true,
-            'middleware/skills': true,
-            'middleware/memories': true,
-            'middleware/mcp': true,
-            'middleware/subagents': true,
+            agents_md: true,
+            skills: {
+                projectMemoriesDir: './.claude/skills',
+            },
+            memories: {
+                projectMemoriesDir: './.claude/memories',
+            },
+            subagents: true,
         },
     });
 

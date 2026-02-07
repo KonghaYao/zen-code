@@ -1,3 +1,4 @@
+import { AgentMiddleware } from 'langchain';
 import { z } from 'zod';
 
 // ============ Implementation Interfaces ============
@@ -26,5 +27,5 @@ export interface MiddlewareImplementation<Context = unknown, Result = unknown> {
     /** Optional Zod schema for parameter validation */
     readonly paramsSchema?: z.ZodType<Context>;
     /** Execute the middleware with context */
-    execute(context: Context): Promise<Result> | Result;
+    execute(context: Context): Promise<AgentMiddleware> | AgentMiddleware;
 }

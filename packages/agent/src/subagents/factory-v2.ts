@@ -6,79 +6,20 @@
  */
 
 import { initChatModel } from '../utils/initChatModel.js';
-import { AgentMiddleware, createAgent, DynamicStructuredTool, DynamicTool, Runtime, Tool, tool } from 'langchain';
+import { AgentMiddleware, createAgent, DynamicStructuredTool, Runtime, Tool, tool } from 'langchain';
 import { CodeState, CodeStateType } from '../state.js';
-import { AgentsMdMiddleware } from '../middlewares/agentsMD.js';
-import { SkillsMiddleware } from '../middlewares/skills.js';
-import { MemoriesMiddleware } from '../middlewares/memories.js';
-import { SubAgentsMiddleware } from '../middlewares/subagents.js';
-import { ask_user_with_options, ask_user_with_options_config, humanInTheLoopMiddleware } from '@langgraph-js/auk';
+import { ask_user_with_options_config, humanInTheLoopMiddleware } from '@langgraph-js/auk';
 import { anthropicPromptCachingMiddleware } from '../middlewares/anthropicCache.js';
 import { CommandSystemMiddleware } from '../middlewares/commandSystem.js';
-import { bash_tools } from '../tools/bash_tools/index.js';
-import {
-    glob_tool,
-    grep_tool,
-    read_tool,
-    write_tool,
-    replace_tool,
-    folder_tool,
-} from '../tools/filesystem_tools/index.js';
-import { CORE_SYSTEM_PROMPT, getEnvInfo } from '../prompts/coding.js';
-import { todo_write_tool, add_task_tool, commit_task_tool } from '../tools/task_tools/index.js';
+import { glob_tool, read_tool } from '../tools/filesystem_tools/index.js';
+import { getEnvInfo } from '../prompts/coding.js';
+import { add_task_tool, commit_task_tool } from '../tools/task_tools/index.js';
 import { MCPManager } from '../mcp/MCPManager.js';
 import { AgentPackage } from '../standard-agent/package.js';
-import { MemoryStorage } from '../standard-agent/storage/memory.js';
-import { ToolRegistry, MiddlewareRegistry } from '../standard-agent/registry.js';
-import type { ToolImplementation, MiddlewareImplementation } from '../standard-agent/types.js';
-import { fromLangChainTool } from '../standard-agent/langchain.js';
-import { DynamicStructuredToolInput } from '@langchain/core/tools';
 
 // ============================================
-// Runtime Tool Registry
+// Runtime Middleware Registry
 // ============================================
-
-/**
- * Create a runtime middleware registry
- */
-export function createMiddlewareRegistry(): MiddlewareRegistry {
-    const registry = new MiddlewareRegistry();
-
-    // Middleware implementations are created per-agent in createStandardAgent
-    // This registry only stores schemas for validation
-
-    registry.registerSchema({
-        id: 'middleware/agents_md',
-        name: 'agents_md',
-        description: 'Inject agent documentation',
-    });
-
-    registry.registerSchema({
-        id: 'middleware/skills',
-        name: 'skills',
-        description: 'Progressive skills disclosure',
-    });
-
-    registry.registerSchema({
-        id: 'middleware/memories',
-        name: 'memories',
-        description: 'Knowledge persistence',
-    });
-
-    registry.registerSchema({
-        id: 'middleware/mcp',
-        name: 'mcp',
-        description: 'Model Context Protocol integration',
-    });
-
-    registry.registerSchema({
-        id: 'middleware/subagents',
-        name: 'subagents',
-        description: 'Task delegation to specialized agents',
-    });
-
-    return registry;
-}
 
 // ============================================
 // Agent Factory
@@ -87,8 +28,8 @@ export function createMiddlewareRegistry(): MiddlewareRegistry {
 /**
  * Create a standard agent from AgentPackage configuration (V2)
  *
- * Overload 1: From AgentConfig (V1 compatible)
- * @param config - Agent configuration object
+ * @param agentId - Agent ID from package
+ * @param pkg - AgentPackage containing configuration
  * @param state - Current code state
  * @param runtime - LangGraph runtime
  *
@@ -124,19 +65,18 @@ export async function createStandardAgentV2(
         enableThinking: modelConfig.enable_thinking,
     });
 
-    // Create runtime tool registry
-    const toolRegistry = pkg.tools;
-
     // Filter tools based on agent configuration
     const tools: DynamicStructuredTool[] = [];
+    const toolRegistry = pkg.tools;
+
     for (const [toolId, params] of Object.entries(agentConfig.tools)) {
         const toolImpl = toolRegistry.getImplementation(toolId);
         if (!toolImpl) {
-            console.warn(toolId + ' is not found');
-            break;
+            console.warn(`Tool ${toolId} not found in registry`);
+            continue;
         }
         if (!toolImpl.name || !params) {
-            break;
+            continue;
         }
         tools.push(
             tool(
@@ -150,6 +90,7 @@ export async function createStandardAgentV2(
             ) as any as DynamicStructuredTool,
         );
     }
+
     // Add task tools based on state
     if (state.is_in_task) {
         tools.push(commit_task_tool);
@@ -159,45 +100,20 @@ export async function createStandardAgentV2(
 
     // Build middleware chain
     const middleware: AgentMiddleware[] = [];
+    for (const [middlewareId, params] of Object.entries(agentConfig.middleware)) {
+        const subagentsImpl = pkg.middlewares.getImplementation(middlewareId);
+        if (!params) {
+            break;
+        }
 
-    // SubAgents middleware (must be first for delegation)
-    if (agentConfig.middleware['middleware/subagents']) {
-        const subagents = new SubAgentsMiddleware();
-        middleware.push(subagents);
-    }
-
-    // Memories middleware
-    if (agentConfig.middleware['middleware/memories']) {
-        middleware.push(
-            new MemoriesMiddleware({
-                projectMemoriesDir: './.claude/memories',
-            }),
-        );
-    }
-
-    // Skills middleware
-    if (agentConfig.middleware['middleware/skills']) {
-        middleware.push(
-            new SkillsMiddleware({
-                projectSkillsDir: './.claude/skills',
-            }),
-        );
-    }
-
-    // Agents MD middleware
-    if (agentConfig.middleware['middleware/agents_md']) {
-        middleware.push(new AgentsMdMiddleware());
+        middleware.push(await subagentsImpl!.execute(params.customParams));
     }
 
     // Command System middleware (always enabled for tool discovery)
     const commandSystem = new CommandSystemMiddleware();
     const commandTools = [read_tool, glob_tool];
-
-    // Add MCP tools to command system
-    if (agentConfig.middleware['middleware/mcp']) {
-        const mcpTools = await MCPManager.getInstance().getAllTools();
-        commandTools.push(...(mcpTools as any));
-    }
+    const mcpTools = await MCPManager.getInstance().getAllTools();
+    commandTools.push(...(mcpTools as any));
 
     commandSystem.registerTools(commandTools);
     middleware.push(commandSystem);

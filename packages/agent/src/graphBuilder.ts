@@ -14,8 +14,6 @@ import { loadDefaultConfigs } from './subagents/loader.js';
 import { createStandardAgentV2, getAvailableAgentIds } from './subagents/factory-v2.js';
 import { AgentPackage } from './standard-agent/package.js';
 
-let agentPackage: AgentPackage | null = null;
-
 const switchBranch = {
     smart_memory: async (state: CodeStateType) => {
         const model = await initChatModel(state.main_model, {
