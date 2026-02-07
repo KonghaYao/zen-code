@@ -12,7 +12,7 @@ import { initChatModel } from './utils/initChatModel.js';
 import { analyzeAndSaveMemories } from './memories/analyze.js';
 import { loadDefaultConfigs } from './subagents/loader.js';
 import { createStandardAgentV2, getAvailableAgentIds } from './subagents/factory-v2.js';
-import { AgentPackage } from './standard-agent/package.js';
+import { AgentPackage } from '@langgraph-js/standard-agent';
 
 const switchBranch = {
     smart_memory: async (state: CodeStateType) => {

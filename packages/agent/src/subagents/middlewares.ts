@@ -1,4 +1,4 @@
-import { AgentPackage } from '../standard-agent/index.js';
+import { AgentPackage } from '@langgraph-js/standard-agent';
 
 /**
  * Register middleware implementations into the registry

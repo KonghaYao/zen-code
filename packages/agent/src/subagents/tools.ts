@@ -10,8 +10,8 @@ import {
     folder_tool,
 } from '../tools/filesystem_tools/index.js';
 import { todo_write_tool } from '../tools/task_tools/index.js';
-import { AgentPackage } from '../standard-agent/package.js';
-import { fromLangChainTool } from '../standard-agent/langchain.js';
+import { AgentPackage, fromLangChainTool } from '@langgraph-js/standard-agent';
+
 // All available tools
 const ALL_TOOLS = [
     ask_user_with_options,

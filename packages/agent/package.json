@@ -5,13 +5,11 @@
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
-        "test": "bun test",
-        "test:standard": "vitest run --config vitest.standard-agent.config.ts",
-        "test:standard:watch": "vitest watch --config vitest.standard-agent.config.ts",
-        "test:standard:coverage": "vitest run --coverage --config vitest.standard-agent.config.ts"
+        "test": "bun test"
     },
     "dependencies": {
         "@codegraph/config": "workspace:*",
+        "@langgraph-js/standard-agent": "workspace:*",
         "@langchain/anthropic": "^1.3.15",
         "@langchain/core": "^1.1.15",
         "@langchain/langgraph": "^1.1.0",

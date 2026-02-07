@@ -15,7 +15,7 @@ import { glob_tool, read_tool } from '../tools/filesystem_tools/index.js';
 import { getEnvInfo } from '../prompts/coding.js';
 import { add_task_tool, commit_task_tool } from '../tools/task_tools/index.js';
 import { MCPManager } from '../mcp/MCPManager.js';
-import { AgentPackage } from '../standard-agent/package.js';
+import { AgentPackage } from '@langgraph-js/standard-agent';
 
 // ============================================
 // Runtime Middleware Registry

@@ -9,9 +9,7 @@
  * Uses standard-agent's AgentPackage for configuration management.
  */
 
-import { AgentPackage } from '../standard-agent/package.js';
-import { MemoryStorage } from '../standard-agent/storage/memory.js';
-import { AgentSchema } from '../standard-agent/schemas.js';
+import { AgentPackage, MemoryStorage, AgentSchema } from '@langgraph-js/standard-agent';
 import { z } from 'zod';
 import { createToolRegistry } from './tools.js';
 import { createMiddlewareRegistry } from './middlewares.js';

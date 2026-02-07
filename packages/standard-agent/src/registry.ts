@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ToolSchema, MiddlewareSchema } from './schemas.js';
 import type { ToolImplementation, MiddlewareImplementation } from './types.js';
+import { AgentMiddleware } from 'langchain';
 
 /**
  * Tool Registry - separates schema from implementation
@@ -117,7 +118,7 @@ export class MiddlewareRegistry {
         return Array.from(this._implementations.values());
     }
 
-    async execute<Context, Result>(id: string, context: unknown): Promise<Result> {
+    async execute<Context, Result>(id: string, context: unknown): Promise<AgentMiddleware> {
         const impl = this._implementations.get(id) as MiddlewareImplementation<Context, Result> | undefined;
         if (!impl) {
             throw new Error(`Middleware implementation not found: ${id}`);
