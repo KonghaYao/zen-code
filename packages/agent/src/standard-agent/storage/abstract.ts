@@ -20,7 +20,7 @@
  */
 
 import { z } from 'zod';
-import { ModelSchema, PromptSchema, ToolSchema, MiddlewareSchema, AgentSchema } from '../index.js';
+import { ModelSchema, PromptSchema, ToolSchema, MiddlewareSchema, AgentSchema } from '../schemas.js';
 
 // ========================================
 // Shared Types
@@ -54,6 +54,7 @@ export interface ToolRow {
     id: string;
     name: string;
     description: string;
+    parameters: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -62,6 +63,7 @@ export interface MiddlewareRow {
     id: string;
     name: string;
     description: string;
+    parameters: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -94,8 +96,7 @@ export interface AgentWithRelations {
     agent: AgentRow;
     model: ModelRow;
     systemPrompt: PromptRow;
-    tools: (ToolRow & { enabled: boolean; customParams: any })[];
-    middlewares: (MiddlewareRow & { enabled: boolean; customParams: any })[];
+    // tools and middlewares are managed by Registry at runtime
 }
 
 // ========================================

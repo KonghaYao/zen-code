@@ -22,28 +22,18 @@ const switchBranch = {
             streamUsage: true,
             enableThinking: state.enable_thinking ?? true,
         });
-        const summaryContent = await analyzeAndSaveMemories(
-            model,
-            getBufferMessage(state.messages)
-        );
+        const summaryContent = await analyzeAndSaveMemories(model, getBufferMessage(state.messages));
         return {
             switch_command: '',
-            messages: [
-                new RemoveMessage({ id: REMOVE_ALL_MESSAGES }),
-                new AIMessage(summaryContent),
-            ],
+            messages: [new RemoveMessage({ id: REMOVE_ALL_MESSAGES }), new AIMessage(summaryContent)],
         };
     },
 } as const;
 
-async function invokeAgent(
-    config: AgentConfig,
-    state: CodeStateType,
-    runtime: Runtime
-) {
+async function invokeAgent(config: AgentConfig, state: CodeStateType, runtime: Runtime) {
     const agent = await createStandardAgent(config, state, runtime);
     /** @ts-ignore 这个类型是 langchain 的问题 */
-    const response = await agent.invoke(state, { recursionLimit: 200 });
+    const response = await agent.invoke(state, { recursionLimit: 500 });
     return {
         switch_command: '',
         task_store: response.task_store,
@@ -69,9 +59,7 @@ export function createCodeGraph() {
             const config = configs[agentId];
 
             if (!config) {
-                throw new Error(
-                    `Unknown agent: ${agentId}. Available: ${Object.keys(configs).join(', ')}`
-                );
+                throw new Error(`Unknown agent: ${agentId}. Available: ${Object.keys(configs).join(', ')}`);
             }
 
             return invokeAgent(config, state, runtime);

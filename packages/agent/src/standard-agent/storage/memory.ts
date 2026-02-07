@@ -28,7 +28,7 @@ import { ModelSchema, PromptSchema, ToolSchema, MiddlewareSchema, AgentSchema } 
 
 export class MemoryStorage extends BaseStorage {
     initialize?(): Promise<void> | void {
-        throw new Error('Method not implemented.');
+        // No-op: in-memory storage doesn't need initialization
     }
     private models: Map<string, ModelRow> = new Map();
     private prompts: Map<string, PromptRow> = new Map();
@@ -295,13 +295,7 @@ export class MemoryStorage extends BaseStorage {
 
     deleteTool(id: string): Promise<void> {
         return Promise.resolve().then(() => {
-            // Remove from agent_tools references
-            for (const tools of this.agentTools.values()) {
-                const index = tools.findIndex((t) => t.tool_id === id);
-                if (index !== -1) {
-                    tools.splice(index, 1);
-                }
-            }
+            // Do NOT remove from agent_tools - let validator detect orphaned references
             this.tools.delete(id);
         });
     }
@@ -355,13 +349,7 @@ export class MemoryStorage extends BaseStorage {
 
     deleteMiddleware(id: string): Promise<void> {
         return Promise.resolve().then(() => {
-            // Remove from agent_middlewares references
-            for (const mids of this.agentMiddlewares.values()) {
-                const index = mids.findIndex((m) => m.middleware_id === id);
-                if (index !== -1) {
-                    mids.splice(index, 1);
-                }
-            }
+            // Do NOT remove from agent_middlewares - let validator detect orphaned references
             this.middlewares.delete(id);
         });
     }
@@ -577,28 +565,6 @@ export class MemoryStorage extends BaseStorage {
         const systemPrompt = this.prompts.get(agent.system_prompt_id);
         if (!systemPrompt) throw new Error(`Prompt ${agent.system_prompt_id} not found`);
 
-        const toolRows = this.agentTools.get(id) || [];
-        const tools: (ToolRow & { enabled: boolean; customParams: any })[] = toolRows.map((row) => {
-            const tool = this.tools.get(row.tool_id);
-            if (!tool) throw new Error(`Tool ${row.tool_id} not found`);
-            return {
-                ...tool,
-                enabled: this.intToBool(row.enabled),
-                customParams: row.custom_params ? this.safeParse(row.custom_params) : undefined,
-            };
-        });
-
-        const middlewareRows = this.agentMiddlewares.get(id) || [];
-        const middlewares: (MiddlewareRow & { enabled: boolean; customParams: any })[] = middlewareRows.map((row) => {
-            const middleware = this.middlewares.get(row.middleware_id);
-            if (!middleware) throw new Error(`Middleware ${row.middleware_id} not found`);
-            return {
-                ...middleware,
-                enabled: this.intToBool(row.enabled),
-                customParams: row.custom_params ? this.safeParse(row.custom_params) : undefined,
-            };
-        });
-
-        return { agent, model, systemPrompt, tools, middlewares };
+        return { agent, model, systemPrompt };
     }
 }

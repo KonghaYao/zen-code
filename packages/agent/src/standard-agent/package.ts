@@ -1,176 +1,154 @@
 import { z } from 'zod';
-import { Model, Prompt, Tool, Middleware } from './entity.js';
 import { ToolRegistry, MiddlewareRegistry } from './registry.js';
-import { Agent } from './agent.js';
-import { AgentPackageSchema, AgentSchema, MiddlewareSchema, ModelSchema, PromptSchema, ToolSchema } from './index.js';
+import { AgentRepository } from './repository.js';
+import { AgentValidator } from './validator.js';
+import { AgentSerializer } from './serializer.js';
+import { AgentPackageSchema, ToolSchema, MiddlewareSchema, ModelSchema, PromptSchema, AgentSchema } from './schemas.js';
+import type { IStorage, ModelRow, ToolRow, MiddlewareRow } from './storage/abstract.js';
 
-// ============ Agent Package ============
-export interface AgentPackageOptions {
-    models?: Array<z.infer<typeof AgentPackageSchema.shape.models.element>>;
-    prompts?: Array<z.infer<typeof AgentPackageSchema.shape.prompts.element>>;
-    tools?: Array<z.infer<typeof ToolSchema>>;
-    middlewares?: Array<z.infer<typeof MiddlewareSchema>>;
-    agents?: Array<z.infer<typeof AgentPackageSchema.shape.agents.element>>;
-}
-
+/**
+ * Agent Package
+ *
+ * Coordinates repository, validator, serializer, and runtime registries
+ */
 export class AgentPackage {
-    private _models: Map<string, Model> = new Map();
-    private _prompts: Map<string, Prompt> = new Map();
-    private _tools: Map<string, Tool> = new Map();
-    private _middlewares: Map<string, Middleware> = new Map();
-    private _agents: Map<string, Agent> = new Map();
-    // Registries for implementations
+    readonly storage: IStorage;
+    readonly repository: AgentRepository;
+    readonly validator: AgentValidator;
+    readonly serializer: AgentSerializer;
+
+    // Registries for runtime implementations (not persisted)
     readonly tools = new ToolRegistry();
     readonly middlewares = new MiddlewareRegistry();
 
-    constructor(options?: AgentPackageOptions) {
-        if (options?.models) options.models.forEach((m) => this._models.set(m.id, new Model(m)));
-        if (options?.prompts) options.prompts.forEach((p) => this._prompts.set(p.id, new Prompt(p)));
-        if (options?.tools) options.tools.forEach((t) => this._tools.set(t.id, new Tool(t)));
-        if (options?.middlewares) options.middlewares.forEach((m) => this._middlewares.set(m.id, new Middleware(m)));
-        if (options?.agents) options.agents.forEach((a) => this._agents.set(a.id, new Agent(a)));
+    // Proxy methods (initialized in constructor)
+    getModel!: AgentRepository['getModel'];
+    getPrompt!: AgentRepository['getPrompt'];
+    getPromptByName!: AgentRepository['getPromptByName'];
+    getTool!: AgentRepository['getTool'];
+    getMiddleware!: AgentRepository['getMiddleware'];
+    getAgent!: AgentRepository['getAgent'];
+
+    listModels!: AgentRepository['listModels'];
+    listPrompts!: AgentRepository['listPrompts'];
+    listTools!: AgentRepository['listTools'];
+    listMiddlewares!: AgentRepository['listMiddlewares'];
+    listAgents!: AgentRepository['listAgents'];
+
+    validateAgent!: AgentValidator['validateAgent'];
+    validateAll!: AgentValidator['validateAll'];
+
+    toJSON!: AgentSerializer['toJSON'];
+
+    constructor(storage: IStorage) {
+        this.storage = storage;
+        this.repository = new AgentRepository(storage);
+        this.validator = new AgentValidator(storage);
+        this.serializer = new AgentSerializer(storage);
+
+        // Bind proxy methods after initialization
+        this.getModel = this.repository.getModel.bind(this.repository);
+        this.getPrompt = this.repository.getPrompt.bind(this.repository);
+        this.getPromptByName = this.repository.getPromptByName.bind(this.repository);
+        this.getTool = this.repository.getTool.bind(this.repository);
+        this.getMiddleware = this.repository.getMiddleware.bind(this.repository);
+        this.getAgent = this.repository.getAgent.bind(this.repository);
+
+        this.listModels = this.repository.listModels.bind(this.repository);
+        this.listPrompts = this.repository.listPrompts.bind(this.repository);
+        this.listTools = this.repository.listTools.bind(this.repository);
+        this.listMiddlewares = this.repository.listMiddlewares.bind(this.repository);
+        this.listAgents = this.repository.listAgents.bind(this.repository);
+
+        this.validateAgent = this.validator.validateAgent.bind(this.validator);
+        this.validateAll = this.validator.validateAll.bind(this.validator);
+
+        this.toJSON = this.serializer.toJSON.bind(this.serializer);
     }
 
-    // Resource Management
-    addModel(data: z.infer<typeof ModelSchema>): void {
-        this._models.set(data.id, new Model(data));
+    // ========================================
+    // Delegated CRUD Operations
+    // ========================================
+
+    async addModel(data: z.infer<typeof ModelSchema>): Promise<void> {
+        await this.repository.addModel(data);
+        // Register in tool registry for runtime discovery
+        this.tools.registerSchema({
+            id: data.id,
+            name: data.model_name,
+            description: `Model: ${data.model_provider}/${data.model_name}`,
+        });
     }
 
-    addPrompt(data: z.infer<typeof PromptSchema>): void {
-        this._prompts.set(data.id, new Prompt(data));
+    async addPrompt(data: z.infer<typeof import('./index.js').PromptSchema>): Promise<void> {
+        await this.repository.addPrompt(data);
     }
 
-    addTool(data: z.infer<typeof ToolSchema>): void {
-        const tool = new Tool(data);
-        this._tools.set(data.id, tool);
-        // Register schema in registry
+    async addTool(data: z.infer<typeof ToolSchema>): Promise<void> {
+        await this.repository.addTool(data);
+        // Register in registry for runtime discovery
         this.tools.registerSchema(data);
     }
 
-    addMiddleware(data: z.infer<typeof MiddlewareSchema>): void {
-        const middleware = new Middleware(data);
-        this._middlewares.set(data.id, middleware);
-        // Register schema in registry
+    async addMiddleware(data: z.infer<typeof MiddlewareSchema>): Promise<void> {
+        await this.repository.addMiddleware(data);
+        // Register in registry for runtime discovery
         this.middlewares.registerSchema(data);
     }
 
-    addAgent(data: z.infer<typeof AgentSchema>): void {
-        this._agents.set(data.id, new Agent(data));
+    async addAgent(data: z.infer<typeof AgentSchema>): Promise<void> {
+        await this.repository.addAgent(data);
     }
 
-    // Resource Access
-    getModel(id: string): Model | undefined {
-        return this._models.get(id);
+    // ========================================
+    // Factory Methods
+    // ========================================
+
+    /**
+     * Create AgentPackage from storage and load runtime registries
+     */
+    static async fromStorage(storage: IStorage): Promise<AgentPackage> {
+        const pkg = new AgentPackage(storage);
+
+        // Load and register tools (for runtime discovery)
+        const tools = await storage.getAllTools();
+        tools.forEach((t: ToolRow) => {
+            pkg.tools.registerSchema({
+                id: t.id,
+                name: t.name,
+                description: t.description,
+            });
+        });
+
+        // Load and register middlewares (for runtime discovery)
+        const middlewares = await storage.getAllMiddlewares();
+        middlewares.forEach((m: MiddlewareRow) => {
+            pkg.middlewares.registerSchema({
+                id: m.id,
+                name: m.name,
+                description: m.description,
+            });
+        });
+
+        // Load and register models (for runtime discovery)
+        const models = await storage.getAllModels();
+        models.forEach((m: ModelRow) => {
+            pkg.tools.registerSchema({
+                id: m.id,
+                name: m.model_name,
+                description: `Model: ${m.model_provider}/${m.model_name}`,
+            });
+        });
+
+        return pkg;
     }
 
-    getPrompt(id: string): Prompt | undefined {
-        return this._prompts.get(id);
-    }
-
-    getTool(id: string): Tool | undefined {
-        return this._tools.get(id);
-    }
-
-    getMiddleware(id: string): Middleware | undefined {
-        return this._middlewares.get(id);
-    }
-
-    getAgent(id: string): Agent | undefined {
-        return this._agents.get(id);
-    }
-
-    // List Resources
-    listModels(): Model[] {
-        return Array.from(this._models.values());
-    }
-
-    listPrompts(): Prompt[] {
-        return Array.from(this._prompts.values());
-    }
-
-    listTools(): Tool[] {
-        return Array.from(this._tools.values());
-    }
-
-    listMiddlewares(): Middleware[] {
-        return Array.from(this._middlewares.values());
-    }
-
-    listAgents(): Agent[] {
-        return Array.from(this._agents.values());
-    }
-
-    // Validation
-    validateAgent(agentId: string): { valid: boolean; errors: string[] } {
-        const errors: string[] = [];
-        const agent = this._agents.get(agentId);
-
-        if (!agent) {
-            errors.push(`Agent ${agentId} not found`);
-            return { valid: false, errors };
-        }
-
-        // Check model reference
-        if (!this._models.has(agent.modelId)) {
-            errors.push(`Model ${agent.modelId} not found`);
-        }
-
-        // Check system prompt reference
-        if (!this._prompts.has(agent.systemPromptId)) {
-            errors.push(`Prompt ${agent.systemPromptId} not found`);
-        }
-
-        // Check tool references
-        for (const toolId of Object.keys(agent.tools)) {
-            if (!this._tools.has(toolId)) {
-                errors.push(`Tool ${toolId} not found`);
-            }
-        }
-
-        // Check middleware references
-        for (const midId of Object.keys(agent.middleware)) {
-            if (!this._middlewares.has(midId)) {
-                errors.push(`Middleware ${midId} not found`);
-            }
-        }
-
-        return { valid: errors.length === 0, errors };
-    }
-
-    validateAll(): Map<string, { valid: boolean; errors: string[] }> {
-        const results = new Map<string, { valid: boolean; errors: string[] }>();
-        for (const agentId of this._agents.keys()) {
-            results.set(agentId, this.validateAgent(agentId));
-        }
-        return results;
-    }
-
-    // Serialization
-    toJSON(): z.infer<typeof AgentPackageSchema> {
-        return {
-            models: Array.from(this._models.values()).map((m) => m.toJSON()),
-            prompts: Array.from(this._prompts.values()).map((p) => p.toJSON()),
-            agents: Array.from(this._agents.values()).map((a) => a.toJSON()),
-        };
-    }
-
-    static fromJSON(data: z.infer<typeof AgentPackageSchema>): AgentPackage {
-        const result = AgentPackageSchema.safeParse(data);
-        if (!result.success) {
-            throw new Error(`Invalid AgentPackage data: ${result.error.message}`);
-        }
-
-        const pkg = new AgentPackage();
-
-        // Add resources in dependency order
-        result.data.models.forEach((m) => pkg.addModel(m));
-        result.data.prompts.forEach((p) => pkg.addPrompt(p));
-
-        // Agents can reference tools and middleware, need to add them if present
-        // Note: Tool and Middleware are not directly in AgentPackageSchema
-        // but they may be loaded from elsewhere
-        result.data.agents.forEach((a) => pkg.addAgent(a));
-
+    /**
+     * Load data from JSON into storage
+     */
+    static async loadFromJSON(storage: IStorage, data: z.infer<typeof AgentPackageSchema>): Promise<AgentPackage> {
+        const pkg = new AgentPackage(storage);
+        await pkg.serializer.fromJSON(data);
         return pkg;
     }
 }

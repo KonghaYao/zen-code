@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AgentSchema } from './index.js';
+import { AgentSchema } from './schemas.js';
 
 // ============ Agent Configuration ============
 export interface ToolConfig {
@@ -12,7 +12,7 @@ export interface MiddlewareConfig {
     customParams?: unknown;
 }
 
-export class Agent {
+export class StandardAgent {
     private _data: z.infer<typeof AgentSchema>;
 
     constructor(data: z.infer<typeof AgentSchema>) {

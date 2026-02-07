@@ -32,9 +32,6 @@ import {
 // SQLite Storage Implementation
 // ========================================
 export class AgentStorage extends BaseStorage {
-    initialize?(): Promise<void> | void {
-        throw new Error('Method not implemented.');
-    }
     private db: Database;
 
     constructor(dbPath: string) {

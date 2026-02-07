@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { ToolSchema, MiddlewareSchema } from './index.js';
-import type { ToolImplementation, MiddlewareImplementation } from './index.js';
+import { ToolSchema, MiddlewareSchema } from './schemas.js';
+import type { ToolImplementation, MiddlewareImplementation } from './types.js';
 
 /**
  * Tool Registry - separates schema from implementation
