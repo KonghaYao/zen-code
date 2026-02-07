@@ -3,7 +3,7 @@ import { ToolRegistry, MiddlewareRegistry } from './registry.js';
 import { AgentRepository } from './repository.js';
 import { AgentValidator } from './validator.js';
 import { AgentSerializer } from './serializer.js';
-import { AgentPackageSchema, ToolSchema, MiddlewareSchema, ModelSchema, PromptSchema, AgentSchema } from './schemas.js';
+import { AgentPackageSchema, ToolSchema, MiddlewareSchema, ModelSchema, AgentSchema } from './schemas.js';
 import type { IStorage, ModelRow, ToolRow, MiddlewareRow } from './storage/abstract.js';
 
 /**

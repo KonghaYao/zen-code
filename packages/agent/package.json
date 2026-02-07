@@ -5,7 +5,10 @@
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
-        "test": "bun test"
+        "test": "bun test",
+        "test:standard": "vitest run --config vitest.standard-agent.config.ts",
+        "test:standard:watch": "vitest watch --config vitest.standard-agent.config.ts",
+        "test:standard:coverage": "vitest run --coverage --config vitest.standard-agent.config.ts"
     },
     "dependencies": {
         "@codegraph/config": "workspace:*",

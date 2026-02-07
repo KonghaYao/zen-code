@@ -222,7 +222,7 @@ const valid = AgentSchema.parse(data); // 验证并返回类型化数据
 
 ## 存储层
 
-存储层提供持久化能力，支持多种后端（内存、SQLite、PostgreSQL）。
+存储层提供持久化能力。当前提供内存存储实现，可通过实现 `IStorage` 接口扩展其他后端。
 
 ### 使用内存存储
 
@@ -341,9 +341,9 @@ AgentPackage (协调层)
     ├── ToolRegistry (运行时工具注册)
     └── MiddlewareRegistry (运行时中间件注册)
           ↓
-    IStorage (持久化层)
+    IStorage (持久化层接口)
           ↓
-    MemoryStorage / SQLite / Postgres
+    MemoryStorage (内存实现)
 ```
 
 ### 职责分离
@@ -361,3 +361,33 @@ AgentPackage (协调层)
 2. **避免贫血模型**: 删除 Entity 层，直接使用 Schema 类型
 3. **单一职责**: 每个类只负责一件事
 4. **类型安全**: Zod Schema 验证所有数据流
+
+## 测试
+
+项目包含完整的单元测试覆盖：
+
+```bash
+# 运行所有测试
+npx vitest run --config vitest.standard-agent.config.ts
+
+# 运行特定测试文件
+npx vitest run src/standard-agent/__tests__/package.test.ts
+
+# 查看测试覆盖率
+npx vitest run --coverage --config vitest.standard-agent.config.ts
+```
+
+**测试文件：**
+- `memory-storage.test.ts` - MemoryStorage 完整测试（29 个测试）
+- `repository.test.ts` - AgentRepository CRUD 测试（22 个测试）
+- `validator.test.ts` - AgentValidator 验证逻辑测试（8 个测试）
+- `serializer.test.ts` - AgentSerializer 序列化测试（12 个测试）
+- `package.test.ts` - AgentPackage 集成测试（21 个测试）
+
+**覆盖的关键场景：**
+- 资源的 CRUD 操作
+- 外键约束和关联关系
+- Agent 依赖验证
+- JSON 序列化和反序列化
+- 事务回滚机制
+- 错误处理和边界情况

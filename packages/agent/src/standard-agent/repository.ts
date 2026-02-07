@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ModelSchema, PromptSchema, ToolSchema, MiddlewareSchema, AgentSchema } from './schemas.js';
 import { StandardAgent } from './agent.js';
-import type { IStorage, ModelRow, PromptRow, ToolRow, MiddlewareRow, AgentRow } from './storage/abstract.js';
+import type { IStorage, ModelRow, PromptRow } from './storage/abstract.js';
 
 /**
  * Agent Repository

@@ -261,6 +261,7 @@ export class MemoryStorage extends BaseStorage {
                 description: data.description,
                 created_at: this.now(),
                 updated_at: this.now(),
+                parameters: null,
             };
 
             this.tools.set(data.id, row);
@@ -315,6 +316,7 @@ export class MemoryStorage extends BaseStorage {
                 description: data.description,
                 created_at: this.now(),
                 updated_at: this.now(),
+                parameters: null,
             };
 
             this.middlewares.set(data.id, row);
