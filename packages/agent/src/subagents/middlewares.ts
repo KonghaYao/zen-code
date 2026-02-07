@@ -22,6 +22,7 @@ export async function createMiddlewareRegistry(pkg: AgentPackage) {
         name: 'memories',
         description: 'Knowledge persistence',
         execute: async (context: { memoriesDir?: string; assistantId?: string; projectMemoriesDir?: string }) => {
+            context.projectMemoriesDir = context.projectMemoriesDir || './.claude/memories';
             const { MemoriesMiddleware } = await import('../middlewares/memories.js');
             return new MemoriesMiddleware(context);
         },
@@ -34,6 +35,7 @@ export async function createMiddlewareRegistry(pkg: AgentPackage) {
         name: 'skills',
         description: 'Progressive skills disclosure',
         execute: async (context: { skillsDir?: string; assistantId?: string; projectSkillsDir?: string }) => {
+            context.projectSkillsDir = context.projectSkillsDir || './.claude/skills';
             const { SkillsMiddleware } = await import('../middlewares/skills.js');
             return new SkillsMiddleware(context);
         },

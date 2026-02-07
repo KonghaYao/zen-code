@@ -5,15 +5,20 @@
 ## 核心概念
 
 -   **Agent**: 代理配置，包含名称、描述、系统提示、工具和中间件
--   **ToolRegistry**: 工具注册表，管理工具的 Schema 和实现
--   **MiddlewareRegistry**: 中间件注册表，管理中间件的 Schema 和实现
--   **AgentRepository**: 简化的 CRUD 接口，直接返回类型化数据
+-   **ToolRegistry**: 工具注册表，管理工具的 Schema 和实现（支持运行时发现）
+-   **MiddlewareRegistry**: 中间件注册表，管理中间件的 Schema 和实现（支持运行时发现）
+-   **AgentRepository**: 简化的 CRUD 接口，返回 `StandardAgent` 实例
 -   **AgentValidator**: Agent 依赖验证器
 -   **AgentSerializer**: JSON 导入导出工具
+-   **AgentPackage**: 协调层，包装 Storage 并提供统一的 API
+-   **createStandardAgentV2**: Factory 函数，从 AgentPackage 创建 LangChain Agent
+-   **StandardAgent**: Agent 配置的包装类，提供标准化属性访问
 
 ## 基本使用
 
-### 创建 Agent
+### 使用 StandardAgent 类
+
+`StandardAgent` 是 Agent 配置的包装类，提供标准化的属性访问。
 
 ```typescript
 import { StandardAgent } from './agent.js';
@@ -32,6 +37,35 @@ const agent = new StandardAgent({
         'middleware/logger': true,
     },
 });
+
+// 访问属性
+console.log(agent.id);              // 'agent-1'
+console.log(agent.name);            // 'Code Assistant'
+console.log(agent.systemPromptId);  // 'prompt-1'
+console.log(agent.modelId);         // 'model-1'
+
+// 获取工具配置（标准化格式）
+console.log(agent.tools);
+// {
+//   'tools/read_file': { enabled: true },
+//   'tools/write_file': { enabled: true, customParams: { encoding: 'utf-8' } }
+// }
+
+// 获取中间件配置
+console.log(agent.middleware);
+// {
+//   'middleware/logger': { enabled: true }
+// }
+
+// 获取单个配置
+const toolConfig = agent.getToolConfig('tools/read_file');
+// { enabled: true }
+
+const middlewareConfig = agent.getMiddlewareConfig('middleware/logger');
+// { enabled: true }
+
+// 导出为 JSON
+const json = agent.toJSON();
 ```
 
 ### 使用 AgentPackage
@@ -46,9 +80,9 @@ const storage = new MemoryStorage();
 const pkg = new AgentPackage(storage);
 
 // 所有操作都是异步的
-await pkg.addModel({ 
-    id: 'model-1', 
-    model_name: 'gpt-4', 
+await pkg.addModel({
+    id: 'model-1',
+    model_name: 'gpt-4',
     model_provider: 'openai',
     stream_usage: true,
     enable_thinking: false,
@@ -60,19 +94,25 @@ await pkg.addModel({
 });
 
 await pkg.addPrompt({ id: 'prompt-1', name: 'default', content: 'You are helpful.' });
-await pkg.addAgent({ 
-    id: 'agent-1', 
-    name: 'Assistant', 
-    description: 'Helpful', 
-    system_prompt: 'prompt-1', 
-    model: 'model-1', 
-    tools: {}, 
-    middleware: {} 
+await pkg.addAgent({
+    id: 'agent-1',
+    name: 'Assistant',
+    description: 'Helpful',
+    system_prompt: 'prompt-1',
+    model: 'model-1',
+    tools: {},
+    middleware: {}
 });
 
-// 获取资源（异步）
+// 获取资源（异步）- 返回 StandardAgent 实例
 const agent = await pkg.getAgent('agent-1');
+console.log(agent instanceof StandardAgent);  // true
+console.log(agent.name);  // 'Assistant'
+
 const allAgents = await pkg.listAgents();
+allAgents.forEach(agent => {
+    console.log(agent.id, agent.name);  // 每个 agent 都是 StandardAgent 实例
+});
 
 // 验证 Agent 依赖
 const validation = await pkg.validateAgent('agent-1');
@@ -146,17 +186,37 @@ const pkg2 = await AgentPackage.loadFromJSON(storage, data);
 
 ## 数据结构
 
-### Agent 配置
+### Agent 配置 (Schema)
 
 ```typescript
-interface AgentConfig {
+{
     id: string;
     name: string;
     description: string;
     system_prompt: string; // Prompt ID
     model: string; // Model ID
-    tools: Record<string, boolean | any>;
+    tools: Record<string, boolean | any>;  // true 或自定义参数
     middleware: Record<string, boolean | any>;
+}
+```
+
+### StandardAgent 标准化配置
+
+```typescript
+{
+    id: string;
+    name: string;
+    description: string;
+    systemPromptId: string;
+    modelId: string;
+    tools: Record<string, {
+        enabled: boolean;
+        customParams?: any;
+    }>;
+    middleware: Record<string, {
+        enabled: boolean;
+        customParams?: any;
+    }>;
 }
 ```
 
@@ -290,8 +350,13 @@ const pkg = new AgentPackage(storage);
 const pkg = await AgentPackage.fromStorage(storage);
 
 // 使用 pkg（所有操作都是异步的）
-const agent = await pkg.getAgent('agent-1');
-const allAgents = await pkg.listAgents();
+const agent = await pkg.getAgent('agent-1');  // 返回 StandardAgent 实例
+const allAgents = await pkg.listAgents();    // 返回 StandardAgent[]
+
+// 访问 StandardAgent 属性
+console.log(agent.name);
+console.log(agent.tools);
+console.log(agent.getToolConfig('tool-id'));
 
 // 验证
 const validation = await pkg.validateAgent('agent-1');
@@ -307,6 +372,7 @@ const json = await pkg.toJSON();
   - **AgentSerializer**: JSON 导入导出
   - **ToolRegistry/MiddlewareRegistry**: 运行时工具发现（不持久化）
 - 所有 CRUD 操作委托给 Repository
+- `getAgent()` 和 `listAgents()` 返回 `StandardAgent` 实例，提供标准化 API
 - 存储层只负责持久化，Registry 负责运行时实现
 
 ### 自定义存储
@@ -335,7 +401,7 @@ const storage = new CustomStorage();
 
 ```
 AgentPackage (协调层)
-    ├── AgentRepository (CRUD 层)
+    ├── AgentRepository (CRUD 层) → 返回 StandardAgent 实例
     ├── AgentValidator (验证层)
     ├── AgentSerializer (序列化层)
     ├── ToolRegistry (运行时工具注册)
@@ -346,11 +412,36 @@ AgentPackage (协调层)
     MemoryStorage (内存实现)
 ```
 
+### StandardAgent 类设计
+
+`StandardAgent` 是 Agent 配置的包装类，提供：
+
+- **标准化属性访问**: `id`, `name`, `description`, `systemPromptId`, `modelId`
+- **标准化配置**: `tools` 和 `middleware` getter 返回统一格式 `{ enabled, customParams }`
+- **便捷方法**: `getToolConfig()` 和 `getMiddlewareConfig()` 获取单个配置
+- **JSON 导出**: `toJSON()` 返回原始 Schema 格式
+
+```typescript
+// 原始格式（Schema）
+{
+    tools: { 'tool-1': true, 'tool-2': { encoding: 'utf-8' } }
+}
+
+// 标准化格式（StandardAgent）
+{
+    tools: {
+        'tool-1': { enabled: true },
+        'tool-2': { enabled: true, customParams: { encoding: 'utf-8' } }
+    }
+}
+```
+
 ### 职责分离
 
 - **Storage**: 只负责数据持久化（Schema 引用关系）
 - **Registry**: 只负责运行时实现（execute 函数）
-- **Repository**: 简化的 CRUD 接口，返回 Schema 类型
+- **Repository**: 简化的 CRUD 接口，返回 `StandardAgent` 实例
+- **StandardAgent**: Agent 配置包装，提供标准化 API
 - **Validator**: Agent 依赖完整性检查
 - **Serializer**: JSON 导入导出
 - **Package**: 协调上述所有组件
@@ -358,9 +449,114 @@ AgentPackage (协调层)
 ### 设计理念
 
 1. **Schema 与实现分离**: Storage 存储配置，Registry 管理实现
-2. **避免贫血模型**: 删除 Entity 层，直接使用 Schema 类型
-3. **单一职责**: 每个类只负责一件事
-4. **类型安全**: Zod Schema 验证所有数据流
+2. **包装而非贫血**: StandardAgent 提供丰富的 API，不只是数据容器
+3. **标准化访问**: 通过 getter 和方法提供一致的配置访问方式
+4. **单一职责**: 每个类只负责一件事
+5. **类型安全**: Zod Schema 验证所有数据流
+
+## 使用 Factory V2 创建 LangChain Agent
+
+`createStandardAgentV2` 是将 AgentPackage 配置转换为可执行 LangChain Agent 的工厂函数。
+
+### 基本用法
+
+```typescript
+import { createStandardAgentV2 } from '../subagents/factory-v2.js';
+import { AgentPackage } from './package.js';
+import { MemoryStorage } from './storage/memory.js';
+
+const storage = new MemoryStorage();
+const pkg = new AgentPackage(storage);
+
+// 假设已配置好 agent-1
+const agent = await createStandardAgentV2(
+    'agent-1',
+    pkg,
+    state,  // CodeStateType
+    runtime // Runtime
+);
+```
+
+### Factory V2 工作流程
+
+1. **加载配置**: 从 AgentPackage 获取 `StandardAgent` 实例
+2. **验证**: 使用 AgentValidator 验证依赖完整性
+3. **初始化模型**: 根据 ModelConfig 初始化 LangChain ChatModel
+4. **构建工具链**:
+   - 从 `StandardAgent.tools` 过滤工具
+   - 根据状态添加任务工具（add_task 或 commit_task）
+   - 注册到 ToolRegistry
+5. **构建中间件链**:
+   - 从 `StandardAgent.middleware` 加载中间件
+   - 自动添加 CommandSystemMiddleware（始终启用）
+   - 添加 HumanInTheLoopMiddleware（根据 YOLO_MODE）
+   - 添加 AnthropicPromptCachingMiddleware（如果使用 Anthropic）
+6. **加载系统提示**: 合并 Prompt 内容和环境信息
+7. **创建 Agent**: 调用 LangChain 的 `createAgent` 函数
+
+### 工具过滤逻辑
+
+```typescript
+// factory-v2.ts 中的工具过滤
+const tools: DynamicStructuredTool[] = [];
+const toolRegistry = pkg.tools;
+
+for (const [toolId, params] of Object.entries(agentConfig.tools)) {
+    const toolImpl = toolRegistry.getImplementation(toolId);
+    if (!toolImpl) {
+        console.warn(`Tool ${toolId} not found in registry`);
+        continue;
+    }
+    if (!toolImpl.name || !params) {
+        continue;
+    }
+    tools.push(
+        tool(
+            toolImpl.execute,
+            {
+                name: toolImpl.name,
+                description: toolImpl.description,
+                schema: toolImpl.paramsSchema?.toJSONSchema() || toolImpl.paramsSchema,
+            },
+        ) as any as DynamicStructuredTool,
+    );
+}
+```
+
+**注意**: `agentConfig.tools` 来自 StandardAgent 的 getter，已经标准化为 `{ [toolId]: { enabled, customParams } }` 格式。
+
+### 中间件处理
+
+```typescript
+// CommandSystem 始终启用，用于工具发现
+const commandSystem = new CommandSystemMiddleware();
+const commandTools = [read_tool, glob_tool];
+const mcpTools = await MCPManager.getInstance().getAllTools();
+commandTools.push(...(mcpTools as any));
+commandSystem.registerTools(commandTools);
+middleware.push(commandSystem);
+
+// HumanInTheLoop 根据环境变量决定
+if (process.env.YOLO_MODE !== 'true') {
+    middleware.push(
+        humanInTheLoopMiddleware({
+            interruptOn: {
+                ...ask_user_with_options_config.interruptOn,
+                terminal: { allowedDecisions: ['approve', 'reject', 'edit'] },
+            },
+        }),
+    );
+}
+```
+
+### 获取可用 Agent ID
+
+```typescript
+import { getAvailableAgentIds } from '../subagents/factory-v2.js';
+
+const agentIds = await getAvailableAgentIds(pkg);
+console.log('Available agents:', agentIds);
+```
 
 ## 测试
 

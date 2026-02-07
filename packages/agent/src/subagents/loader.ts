@@ -28,7 +28,7 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
 
     // Default Model
     await pkg.addModel({
-        id: 'models/qwen-plus',
+        id: 'glm-4.7',
         model_name: 'glm-4.7',
         model_provider: process.env.MODEL_PROVIDER || 'openai',
         stream_usage: true,
@@ -47,36 +47,6 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
         content: 'You are a helpful AI assistant specialized in coding tasks.',
     });
 
-    await pkg.addPrompt({
-        id: 'prompts/planner',
-        name: 'planner',
-        content: 'You are a task planning specialist. Break down complex tasks into actionable steps.',
-    });
-
-    await pkg.addPrompt({
-        id: 'prompts/reviewer',
-        name: 'reviewer',
-        content: 'You are a code review specialist. Analyze code quality, security, and best practices.',
-    });
-
-    await pkg.addPrompt({
-        id: 'prompts/debugger',
-        name: 'debugger',
-        content: 'You are a debugging specialist. Help identify and fix code issues.',
-    });
-
-    await pkg.addPrompt({
-        id: 'prompts/refactor',
-        name: 'refactor',
-        content: 'You are a refactoring specialist. Improve code structure and maintainability.',
-    });
-
-    await pkg.addPrompt({
-        id: 'prompts/finder',
-        name: 'finder',
-        content: 'You are a file navigation specialist. Help users find files and code patterns.',
-    });
-
     // Register tools into the package
     await createToolRegistry(pkg);
 
@@ -89,7 +59,7 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
         name: 'Jarvis',
         description: '全功能代码助手',
         system_prompt: 'prompts/default',
-        model: 'models/qwen-plus',
+        model: 'glm-4.7',
         tools: {
             read_file: true,
             write_file: true,
@@ -103,12 +73,8 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
         },
         middleware: {
             agents_md: true,
-            skills: {
-                projectMemoriesDir: './.claude/skills',
-            },
-            memories: {
-                projectMemoriesDir: './.claude/memories',
-            },
+            skills: true,
+            memories: true,
             subagents: true,
         },
     });

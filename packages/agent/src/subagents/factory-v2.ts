@@ -53,16 +53,13 @@ export async function createStandardAgentV2(
     }
 
     // Load model configuration
-    const modelConfig = await pkg.getModel(agentConfig.modelId);
-    if (!modelConfig) {
-        throw new Error(`Model not found: ${agentConfig.modelId}`);
-    }
+    // const modelConfig = await pkg.getModel(state.main_model || agentConfig.modelId);
 
     // Initialize model
-    const model = await initChatModel(modelConfig.model_name, {
-        modelProvider: modelConfig.model_provider,
-        streamUsage: modelConfig.stream_usage,
-        enableThinking: modelConfig.enable_thinking,
+    const model = await initChatModel(state.main_model, {
+        modelProvider: process.env.MODEL_PROVIDER,
+        streamUsage: true,
+        enableThinking: state.enable_thinking,
     });
 
     // Filter tools based on agent configuration
@@ -106,7 +103,7 @@ export async function createStandardAgentV2(
             break;
         }
 
-        middleware.push(await subagentsImpl!.execute(params.customParams));
+        middleware.push(await subagentsImpl!.execute(params.customParams || {}));
     }
 
     // Command System middleware (always enabled for tool discovery)
@@ -136,7 +133,7 @@ export async function createStandardAgentV2(
     );
 
     // Anthropic prompt caching (if using Anthropic)
-    if (modelConfig.model_provider === 'anthropic') {
+    if (process.env.MODEL_PROVIDER) {
         middleware.push(anthropicPromptCachingMiddleware());
     }
 
