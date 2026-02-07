@@ -16,12 +16,18 @@ import { ask_user_with_options, ask_user_with_options_config, humanInTheLoopMidd
 import { anthropicPromptCachingMiddleware } from '../middlewares/anthropicCache.js';
 import { CommandSystemMiddleware } from '../middlewares/commandSystem.js';
 import { bash_tools } from '../tools/bash_tools/index.js';
-import { glob_tool, grep_tool, read_tool, write_tool, replace_tool, folder_tool } from '../tools/filesystem_tools/index.js';
+import {
+    glob_tool,
+    grep_tool,
+    read_tool,
+    write_tool,
+    replace_tool,
+    folder_tool,
+} from '../tools/filesystem_tools/index.js';
 import { CORE_SYSTEM_PROMPT, getEnvInfo } from '../prompts/coding.js';
 import type { AgentConfig } from './config.js';
 import { todo_write_tool, add_task_tool, commit_task_tool } from '../tools/task_tools/index.js';
 import { MCPManager } from '../mcp/MCPManager.js';
-
 
 // All available tools
 const ALL_TOOLS = [
@@ -58,18 +64,17 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
     let tools = config.tools.includes('all')
         ? [...ALL_TOOLS]
         : config.tools
-            .map((name) => TOOL_MAP.get(name))
-            .filter((t): t is (typeof ALL_TOOLS)[number] => t !== undefined);
+              .map((name) => TOOL_MAP.get(name))
+              .filter((t): t is (typeof ALL_TOOLS)[number] => t !== undefined);
 
     // Build middleware chain based on config
 
     const middleware: AgentMiddleware[] = [];
 
-
     if (state.is_in_task) {
-        tools.push(commit_task_tool as any)
+        tools.push(commit_task_tool as any);
     } else {
-        tools.push(add_task_tool as any)
+        tools.push(add_task_tool as any);
     }
     // 注册工具到 CommandSystem
     if (config.middleware.subagents) {
@@ -98,23 +103,23 @@ export async function createStandardAgent(config: AgentConfig, state: CodeStateT
     }
 
     const commandSystem = new CommandSystemMiddleware();
-    const commandTools = [read_tool, glob_tool]
+    const commandTools = [read_tool, glob_tool];
     // Add MCP tools if enabled
     if (config.middleware.mcp) {
         const mcpTools = await MCPManager.getInstance().getAllTools();
         /** @ts-ignore */
-        commandTools.push(...mcpTools)
+        commandTools.push(...mcpTools);
     }
     commandSystem.registerTools(commandTools);
     middleware.push(commandSystem);
 
     const interruptOn = {
         ...ask_user_with_options_config.interruptOn,
-    }
+    };
     if (process.env.YOLO_MODE !== 'true') {
         Object.assign(interruptOn, {
             terminal: { allowedDecisions: ['approve', 'reject', 'edit'] },
-        })
+        });
     }
     middleware.push(
         humanInTheLoopMiddleware({

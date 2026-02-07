@@ -17,6 +17,16 @@ export { getBufferMessage } from './utils/getBufferMessage.js';
 export * from './middlewares/index.js';
 
 
-// Subagents
+// Subagents - V2 API (standard-agent based)
+export { loadSubAgentConfigs, exportSubAgentConfigs } from './subagents/loader.js';
+export { createStandardAgentV2, getAvailableAgentIds, createToolRegistry, createMiddlewareRegistry } from './subagents/factory-v2.js';
+
+// Subagents - V1 API (legacy, kept for compatibility)
 export * from './subagents/config.js';
 export * from './subagents/factory.js';
+
+// Standard Agent System
+export { AgentPackage } from './standard-agent/package.js';
+export { ToolRegistry, MiddlewareRegistry } from './standard-agent/registry.js';
+export * from './standard-agent/schemas.js';
+export * from './standard-agent/types.js';
