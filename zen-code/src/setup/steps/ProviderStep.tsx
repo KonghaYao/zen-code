@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Box, Text } from 'ink';
-import { MultiSelectPro, MultiSelectOption } from '../../chat/components/input/MultiSelect';
+import { MultiSelectPro, MultiSelectOption } from 'ink-pro';
 import { AIProvider } from '../types';
 
 const PROVIDER_OPTIONS: MultiSelectOption[] = [

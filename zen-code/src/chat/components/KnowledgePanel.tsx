@@ -5,10 +5,10 @@
 import React, { useState } from 'react';
 import { Box, Text } from 'ink';
 import { join } from 'path';
-import { UniversalPanel } from './Panel/UniversalPanel';
-import { PanelConfig, PanelContext } from './Panel/types';
+import { UniversalPanel } from 'ink-pro';
+import { PanelConfig, PanelContext } from 'ink-pro';
 import { listMemories, type MemoryMetadata } from '@codegraph/agent/src/memories/load';
-import { listSkills, type SkillMetadata } from '@codegraph/agent/src/skills/load';
+import { listSkills, type SkillMetadata } from '@langgraph-js/standard-agent';
 import { cleanPath } from '@codegraph/union-client';
 
 interface KnowledgePanelProps {

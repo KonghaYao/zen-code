@@ -1,6 +1,7 @@
-import { Box, Text, useFocusManager, useInput } from 'ink';
+import { Box, Text, useFocusManager } from 'ink';
 import { useState } from 'react';
-import { MultiSelectPro } from '../../components/input/MultiSelect';
+import { useInput } from 'ink-pro';
+import { MultiSelectPro } from 'ink-pro';
 import { EnhancedTextInput } from '../../components/input/EnhancedTextInput';
 
 // Color scheme for terminal actions

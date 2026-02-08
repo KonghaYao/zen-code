@@ -20,7 +20,7 @@ export interface ToolImplementation<Params = unknown, Result = unknown> {
  * Middleware implementation interface
  * Pure schema + execution logic
  */
-export interface MiddlewareImplementation<Context = unknown, Result = unknown> {
+export interface MiddlewareImplementation<Context = unknown> {
     readonly id: string;
     readonly name: string;
     readonly description: string;

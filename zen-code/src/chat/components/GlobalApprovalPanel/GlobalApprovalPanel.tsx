@@ -4,7 +4,7 @@ import { Tabs, TabItem } from '../input/Tabs';
 import { ApprovalItem } from './ApprovalItem';
 import { useApproval } from '@codegraph/union-client';
 import { ApprovalRequest, ApprovalStatus } from '@codegraph/union-client';
-import useInput from '../../../utils/use-input';
+import { useInput } from 'ink-pro';
 
 interface GlobalApprovalPanelProps {
     /** 允许的审批决策 */
@@ -42,14 +42,10 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
             showHeader = true,
             compact = false,
         }: GlobalApprovalPanelProps,
-        ref
+        ref,
     ) => {
         // 使用 ApprovalContext 获取共享状态
-        const {
-            requests,
-            updateApprovalRequest,
-            executeApproved,
-        } = useApproval();
+        const { requests, updateApprovalRequest, executeApproved } = useApproval();
 
         // 本地状态：当前激活的 tab
         const [activeTab, setActiveTab] = useState<string | null>(null);
@@ -60,7 +56,7 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
             () => ({
                 getRequests: () => requests,
             }),
-            [requests]
+            [requests],
         );
 
         // 显示所有暂存的请求（所有状态）
@@ -71,7 +67,7 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
             if (pendingRequests.length > 0 && !activeTab) {
                 // 第一次初始化
                 setActiveTab(pendingRequests[0].id);
-            } else if (activeTab && !pendingRequests.find(r => r.id === activeTab)) {
+            } else if (activeTab && !pendingRequests.find((r) => r.id === activeTab)) {
                 // 如果当前激活的 tab 不在 pending 列表中，切换到第一个
                 setActiveTab(pendingRequests.length > 0 ? pendingRequests[0].id : null);
             }
@@ -88,30 +84,27 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
         }, [requests]);
 
         // Tab 切换处理
-        const handleTabChange = useCallback(
-            (index: number, item: TabItem) => {
-                setActiveTab(item.id);
-            },
-            []
-        );
+        const handleTabChange = useCallback((index: number, item: TabItem) => {
+            setActiveTab(item.id);
+        }, []);
 
         // 跳转到下一个 Pending 请求
         const nextTab = useCallback(
             (currentRequestId: string) => {
-                const currentIndex = requests.findIndex(r => r.id === currentRequestId);
-                const nextPending = requests.slice(currentIndex + 1).find(r => r.status === ApprovalStatus.Pending);
+                const currentIndex = requests.findIndex((r) => r.id === currentRequestId);
+                const nextPending = requests.slice(currentIndex + 1).find((r) => r.status === ApprovalStatus.Pending);
 
                 if (nextPending) {
                     setActiveTab(nextPending.id);
                 } else {
                     // 如果后面没有 Pending 的，从前面找
-                    const firstPending = requests.find(r => r.status === ApprovalStatus.Pending);
+                    const firstPending = requests.find((r) => r.status === ApprovalStatus.Pending);
                     if (firstPending) {
                         setActiveTab(firstPending.id);
                     }
                 }
             },
-            [requests]
+            [requests],
         );
 
         // 审批操作处理 - 只暂存状态，不立即执行
@@ -120,7 +113,7 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
                 updateApprovalRequest(requestId, { status: ApprovalStatus.Approved });
                 nextTab(requestId);
             },
-            [updateApprovalRequest, nextTab]
+            [updateApprovalRequest, nextTab],
         );
 
         const handleEdit = useCallback(
@@ -131,7 +124,7 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
                 });
                 nextTab(requestId);
             },
-            [updateApprovalRequest, nextTab]
+            [updateApprovalRequest, nextTab],
         );
 
         const handleReject = useCallback(
@@ -140,7 +133,7 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
                 updateApprovalRequest(requestId, { status: ApprovalStatus.Rejected });
                 nextTab(requestId);
             },
-            [updateApprovalRequest, nextTab]
+            [updateApprovalRequest, nextTab],
         );
 
         useInput(
@@ -150,9 +143,8 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
                     executeApproved();
                 }
             },
-            { isActive: true }
+            { isActive: true },
         );
-
 
         // 生成 Tab items
         const tabItems: TabItem[] = pendingRequests.map((request, index) => {
@@ -181,7 +173,6 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
             };
         });
 
-
         return (
             <Box flexDirection="column" paddingY={compact ? 0 : 1}>
                 {/* 统计信息 */}
@@ -203,7 +194,7 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
                     <Tabs
                         key={activeTab}
                         items={tabItems}
-                        defaultIndex={tabItems.findIndex(item => item.id === activeTab)}
+                        defaultIndex={tabItems.findIndex((item) => item.id === activeTab)}
                         onChange={handleTabChange}
                         autoFocus={false}
                         variant="line"
@@ -228,5 +219,5 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
                 )}
             </Box>
         );
-    }
+    },
 );

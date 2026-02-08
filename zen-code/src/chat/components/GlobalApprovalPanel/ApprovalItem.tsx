@@ -1,6 +1,6 @@
-import { Box, Text, useFocusManager, useInput } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import { useState } from 'react';
-import { MultiSelectPro } from '../input/MultiSelect';
+import { MultiSelectPro } from 'ink-pro';
 import { EnhancedTextInput } from '../input/EnhancedTextInput';
 import { ApprovalRequest, ApprovalStatus } from '@codegraph/union-client';
 
@@ -56,7 +56,7 @@ export const ApprovalItem = ({
                 handleEditCancel();
             }
         },
-        { isActive: isEditing }
+        { isActive: isEditing },
     );
 
     const handleEditSubmit = () => {

@@ -85,7 +85,7 @@ export class MiddlewareRegistry {
         this._schemas.set(result.data.id, result.data);
     }
 
-    registerImplementation<Context, Result>(impl: MiddlewareImplementation<Context, Result>): void {
+    registerImplementation<Context>(impl: MiddlewareImplementation<Context>): void {
         this._implementations.set(impl.id, impl);
 
         // Auto-register schema if not present
@@ -102,8 +102,8 @@ export class MiddlewareRegistry {
         return this._schemas.get(id);
     }
 
-    getImplementation<Context, Result>(id: string): MiddlewareImplementation<Context, Result> | undefined {
-        return this._implementations.get(id) as MiddlewareImplementation<Context, Result> | undefined;
+    getImplementation<Context>(id: string): MiddlewareImplementation<Context> | undefined {
+        return this._implementations.get(id) as MiddlewareImplementation<Context> | undefined;
     }
 
     hasImplementation(id: string): boolean {
@@ -118,8 +118,8 @@ export class MiddlewareRegistry {
         return Array.from(this._implementations.values());
     }
 
-    async execute<Context, Result>(id: string, context: unknown): Promise<AgentMiddleware> {
-        const impl = this._implementations.get(id) as MiddlewareImplementation<Context, Result> | undefined;
+    async execute<Context>(id: string, context: unknown): Promise<AgentMiddleware> {
+        const impl = this._implementations.get(id) as MiddlewareImplementation<Context> | undefined;
         if (!impl) {
             throw new Error(`Middleware implementation not found: ${id}`);
         }

@@ -5,7 +5,7 @@ import { getThinkingContent, getTextContent } from '@langgraph-js/sdk';
 import { useSettings } from '@codegraph/union-client';
 import Markdown from './Markdown';
 import { getColor } from '@codegraph/union-client';
-import { LimitedOutput } from './LimitedOutput';
+import { LimitedOutput } from 'ink-pro';
 
 interface MessageAIProps {
     message: RenderMessage;

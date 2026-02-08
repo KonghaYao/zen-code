@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
-import Shimmer from '../../chat/components/Shimmer';
+import { Shimmer } from 'ink-pro';
 
 interface WelcomeStepProps {
     onNext: () => void;
@@ -55,7 +55,9 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onNext, onExit }) => {
 ╚══════╝╚══════╝╚═╝  ╚═══╝`
                             .split('\n')
                             .map((line) => {
-                                return <Shimmer key={line} interval={40} text={line} globalIndex={globalShimmerIndex} />;
+                                return (
+                                    <Shimmer key={line} interval={40} text={line} globalIndex={globalShimmerIndex} />
+                                );
                             })}
                     </Box>
 

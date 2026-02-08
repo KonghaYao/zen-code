@@ -5,9 +5,9 @@
 
 import React, { useCallback, useState } from 'react';
 import { Box, Text, Spacer } from 'ink';
-import { UniversalPanel } from './Panel/UniversalPanel';
-import { SelectItem } from './Panel/SelectItem';
-import { PanelConfig, PanelContext } from './Panel/types';
+import { UniversalPanel } from 'ink-pro';
+import { SelectItem } from 'ink-pro';
+import { PanelConfig } from 'ink-pro';
 import { TaskNode } from '@codegraph/config';
 import TaskPreviewPanel from './TaskPreviewPanel';
 
@@ -66,7 +66,7 @@ const TaskPanel: React.FC<TaskPanelProps> = ({ onClose, onExecuteTask }) => {
 
             if (success) {
                 // 触发刷新
-                setRefreshTrigger(prev => prev + 1);
+                setRefreshTrigger((prev) => prev + 1);
             } else {
                 console.error(`Failed to delete task: ${task.id}`);
             }
@@ -129,7 +129,7 @@ const TaskPanel: React.FC<TaskPanelProps> = ({ onClose, onExecuteTask }) => {
             return (
                 <SelectItem key={task.id} isSelected={isSelected}>
                     <Box>
-                        <Text color='cyan' dimColor={statusInfo === STATUS_CONFIG.complete}>
+                        <Text color="cyan" dimColor={statusInfo === STATUS_CONFIG.complete}>
                             {statusInfo.emoji} {index + 1}. {task.title}
                         </Text>
                         <Spacer />
@@ -155,13 +155,14 @@ const TaskPanel: React.FC<TaskPanelProps> = ({ onClose, onExecuteTask }) => {
 
         showCount: true,
 
-
         // 状态信息
         statusInfo: (filteredTasks: TaskNode[]) => {
-            const runningCount = filteredTasks.filter(t => t.status === 'running').length;
-            const completeCount = filteredTasks.filter(t => t.status === 'complete').length;
-            const errorCount = filteredTasks.filter(t => t.status === 'error').length;
-            const canExecuteCount = filteredTasks.filter(t => t.status === 'pickup' || t.status === 'error' || t.status === 'feedback').length;
+            const runningCount = filteredTasks.filter((t) => t.status === 'running').length;
+            const completeCount = filteredTasks.filter((t) => t.status === 'complete').length;
+            const errorCount = filteredTasks.filter((t) => t.status === 'error').length;
+            const canExecuteCount = filteredTasks.filter(
+                (t) => t.status === 'pickup' || t.status === 'error' || t.status === 'feedback',
+            ).length;
 
             return (
                 <Text color="gray">
@@ -173,18 +174,20 @@ const TaskPanel: React.FC<TaskPanelProps> = ({ onClose, onExecuteTask }) => {
         },
     };
 
-    return <>
-        {
-            previewTask ?
+    return (
+        <>
+            {previewTask ? (
                 <TaskPreviewPanel
                     task={previewTask}
                     onClose={handleClosePreview}
                     onExecuteTask={onExecuteTask}
                     onDelete={handleDeleteTask}
-                /> :
+                />
+            ) : (
                 <UniversalPanel config={panelConfig} onClose={onClose} />
-        }
-    </>
+            )}
+        </>
+    );
 };
 
 export default TaskPanel;

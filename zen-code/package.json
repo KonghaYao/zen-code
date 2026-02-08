@@ -1,6 +1,6 @@
 {
     "name": "zen-code",
-    "version": "3.0.5",
+    "version": "4.0.0",
     "description": "",
     "main": "./dist/cli.mjs",
     "bin": "./dist/cli.mjs",
@@ -20,6 +20,7 @@
     "license": "Apache-2.0",
     "packageManager": "pnpm@10.6.2",
     "dependencies": {
+        "@langgraph-js/standard-agent": "workspace:*",
         "@anthropic-ai/sdk": "^0.71.2",
         "@langchain/anthropic": "1.3.10",
         "@langchain/core": "1.1.15",
@@ -48,6 +49,7 @@
     "devDependencies": {
         "@codegraph/agent": "workspace:*",
         "@codegraph/config": "workspace:*",
+        "ink-pro": "workspace:*",
         "@codegraph/union-client": "workspace:*",
         "@inkjs/ui": "^2.0.0",
         "@langchain/mcp-adapters": "^1.1.1",

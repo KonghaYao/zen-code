@@ -2,7 +2,7 @@ import { Text } from 'ink';
 import { render } from 'ink';
 import { useState } from 'react';
 
-import { useInput } from './utils/use-input';
+import { useInput } from 'ink-pro';
 render(<App />);
 
 function App() {
