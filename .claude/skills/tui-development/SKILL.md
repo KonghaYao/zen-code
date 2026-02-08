@@ -1,0 +1,816 @@
+---
+name: tui-development
+description: "Guide for building TUI (Terminal UI) applications using React and Ink.js. Covers fundamental patterns, component architecture, input handling, and best practices for terminal-based interfaces."
+---
+
+# TUI Development with React + Ink.js
+
+## Overview
+
+This skill provides comprehensive guidance for building modern TUI (Terminal User Interface) applications using React and Ink.js. It covers fundamental patterns, component architecture, input handling, performance optimization, and best practices for creating efficient terminal-based interfaces.
+
+## Technology Stack
+
+```typescript
+// Core Dependencies
+{
+  "ink": "^6.6.0",              // React renderer for TUI
+  "react": "^19.2.3",           // React for components
+  "@inkjs/ui": "^2.0.0",        // Optional: Pre-built UI components
+  "ink-spinner": "^5.0.0",     // Spinner components
+  "@vitejs/plugin-react": "^5.1.2",  // Vite + React
+  "vite": "^7.3.1"              // Build tool
+}
+```
+
+## Core Concepts
+
+### 1. Application Structure
+
+#### Basic Application Setup
+
+```tsx
+// app.tsx
+import React from 'react';
+import { render } from 'ink';
+
+const App: React.FC = () => {
+  return (
+    <Box flexDirection="column">
+      <Text>Hello, TUI!</Text>
+    </Box>
+  );
+};
+
+render(<App />);
+```
+
+#### Layered Architecture Pattern
+
+```
+CLI Entry (cli.ts)
+    ↓
+Application Container (app.tsx)
+    ↓
+Component Layer (components/)
+    ├── Lists/Tables
+    ├── Forms/Inputs
+    ├── Status Indicators
+    └── Navigation
+    ↓
+Context Layer (context/)
+    ├── ThemeContext
+    ├── State Management
+    └── Global State
+    ↓
+Utilities Layer (hooks/, utils/)
+    ├── Custom Hooks
+    ├── Helpers
+    └── Constants
+```
+
+### 2. Layout and Styling
+
+#### Flexbox Layout System
+
+Ink uses Flexbox for layout:
+
+```tsx
+import { Box, Text } from 'ink';
+
+// Vertical layout
+<Box flexDirection="column">
+  <Text>Item 1</Text>
+  <Text>Item 2</Text>
+  <Text>Item 3</Text>
+</Box>
+
+// Horizontal layout
+<Box flexDirection="row">
+  <Text>Left</Text>
+  <Text>Right</Text>
+</Box>
+
+// Advanced layout with spacing
+<Box flexDirection="column" padding={2} gap={1}>
+  <Text>Title</Text>
+  <Box paddingLeft={2}>
+    <Text>Indented content</Text>
+  </Box>
+</Box>
+```
+
+#### Borders and Styling
+
+```tsx
+import { Box, Text } from 'ink';
+
+<Box
+  borderStyle="single"
+  borderColor="cyan"
+  paddingX={1}
+  paddingY={1}
+>
+  <Text>Bordered content</Text>
+</Box>
+```
+
+### 3. Input Handling
+
+#### Basic Text Input
+
+```tsx
+import { TextInput } from 'ink-text-input';
+import { useState } from 'react';
+
+const MyInput: React.FC = () => {
+  const [value, setValue] = useState('');
+
+  return (
+    <Box>
+      <Text>Enter text: </Text>
+      <TextInput
+        value={value}
+        onChange={setValue}
+        placeholder="Type here..."
+      />
+    </Box>
+  );
+};
+```
+
+#### Keyboard Input Handling
+
+```tsx
+import { useInput } from 'ink';
+import { useState, useEffect } from 'react';
+
+const KeyboardHandler: React.FC = () => {
+  const [keyPressed, setKeyPressed] = useState('');
+
+  useInput((input, key) => {
+    if (key.ctrl && input === 'c') {
+      process.exit();
+    }
+
+    if (key.return) {
+      console.log('Enter pressed');
+    }
+
+    if (key.leftArrow) {
+      setKeyPressed('Left Arrow');
+    }
+
+    if (key.tab) {
+      console.log('Tab pressed');
+    }
+
+    if (input) {
+      setKeyPressed(`Key: ${input}`);
+    }
+  });
+
+  return <Text>Last key: {keyPressed}</Text>;
+};
+```
+
+### 4. Lists and Virtual Scrolling
+
+#### Static Lists
+
+```tsx
+import { Box, Text } from 'ink';
+
+const SimpleList: React.FC<{ items: string[] }> = ({ items }) => {
+  return (
+    <Box flexDirection="column">
+      {items.map((item, index) => (
+        <Text key={index}>{index + 1}. {item}</Text>
+      ))}
+    </Box>
+  );
+};
+```
+
+#### Virtual Scrolling Pattern
+
+For long lists, implement virtual scrolling to improve performance:
+
+```tsx
+import { Box, Text } from 'ink';
+import { useState, useMemo } from 'react';
+
+const VirtualList: React.FC<{ items: string[]; visibleCount: number }> = ({
+  items,
+  visibleCount,
+}) => {
+  const [startIndex, setStartIndex] = useState(0);
+
+  // Calculate visible items
+  const visibleItems = useMemo(() => {
+    return items.slice(startIndex, startIndex + visibleCount);
+  }, [items, startIndex, visibleCount]);
+
+  const scrollDown = () => {
+    if (startIndex + visibleCount < items.length) {
+      setStartIndex(prev => prev + 1);
+    }
+  };
+
+  const scrollUp = () => {
+    if (startIndex > 0) {
+      setStartIndex(prev => prev - 1);
+    }
+  };
+
+  useInput((input, key) => {
+    if (key.downArrow) scrollDown();
+    if (key.upArrow) scrollUp();
+  });
+
+  return (
+    <Box flexDirection="column">
+      <Text>Showing {visibleItems.length} of {items.length} items</Text>
+      {visibleItems.map((item, index) => (
+        <Text key={startIndex + index}>{item}</Text>
+      ))}
+      <Text>Use ↑↓ to scroll</Text>
+    </Box>
+  );
+};
+```
+
+#### Using Static for Performance
+
+The `Static` component prevents re-renders for historical content:
+
+```tsx
+import { Box, Text, Static } from 'ink';
+import { useState, useEffect } from 'react';
+
+const LogViewer: React.FC = () => {
+  const [logs, setLogs] = useState<string[]>([]);
+  const [currentLog, setCurrentLog] = useState('');
+
+  useEffect(() => {
+    // Simulate adding logs
+    const interval = setInterval(() => {
+      const newLog = `Log ${logs.length + 1} at ${new Date().toLocaleTimeString()}`;
+      setLogs(prev => [...prev, currentLog]);
+      setCurrentLog(newLog);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [logs, currentLog]);
+
+  return (
+    <Box flexDirection="column">
+      <Box borderStyle="double" padding={1}>
+        <Text>Current: {currentLog}</Text>
+      </Box>
+
+      <Static items={logs}>
+        {(log, index) => (
+          <Text key={index} dimColor>
+            {log}
+          </Text>
+        )}
+      </Static>
+    </Box>
+  );
+};
+```
+
+### 5. State Management
+
+#### Using Context API
+
+```tsx
+// context.tsx
+import { createContext, useContext, useState, ReactNode } from 'react';
+
+interface AppState {
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
+}
+
+const AppContext = createContext<AppState | undefined>(undefined);
+
+export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  return (
+    <AppContext.Provider value={{ theme, toggleTheme }}>
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+export const useAppState = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useAppState must be used within AppProvider');
+  }
+  return context;
+};
+```
+
+#### Using the Context
+
+```tsx
+import { useAppState } from './context';
+import { Text } from 'ink';
+
+const ThemedText: React.FC = () => {
+  const { theme, toggleTheme } = useAppState();
+
+  return (
+    <Text color={theme === 'light' ? 'black' : 'white'}>
+      Current theme: {theme} (Press any key to toggle)
+    </Text>
+  );
+};
+```
+
+### 6. Focus Management
+
+#### Using Ink's Focus System
+
+```tsx
+import { useFocus, useFocusManager, Box, Text } from 'ink';
+import { useEffect } from 'react';
+
+const FocusableItem: React.FC<{ id: string; label: string }> = ({ id, label }) => {
+  const { isFocused } = useFocus({ id });
+
+  return (
+    <Text color={isFocused ? 'cyan' : 'gray'}>
+      {isFocused ? '> ' : '  '}{label}
+    </Text>
+  );
+};
+
+const FocusManager: React.FC = () => {
+  const focusManager = useFocusManager();
+
+  useInput((input, key) => {
+    if (key.downArrow) {
+      focusManager.focusNext();
+    }
+    if (key.upArrow) {
+      focusManager.focusPrevious();
+    }
+  });
+
+  return (
+    <Box flexDirection="column">
+      <FocusableItem id="item1" label="Item 1" />
+      <FocusableItem id="item2" label="Item 2" />
+      <FocusableItem id="item3" label="Item 3" />
+      <Text dimColor>Use ↑↓ to navigate</Text>
+    </Box>
+  );
+};
+```
+
+## Advanced Patterns
+
+### 1. Multi-Line Text Input
+
+For implementing multi-line text input:
+
+```tsx
+import { Box, Text, useFocus } from 'ink';
+import { useState, useCallback, useMemo } from 'react';
+
+const MultiLineInput: React.FC<{ value: string; onChange: (value: string) => void }> = ({
+  value,
+  onChange,
+}) => {
+  const { isFocused } = useFocus({ autoFocus: true });
+  const lines = value.split('\n');
+  const [cursorLine, setCursorLine] = useState(0);
+
+  const handleKeyPress = useCallback((input: string, key: any) => {
+    if (!isFocused) return;
+
+    if (key.return) {
+      // Insert newline
+      const newLines = [...lines];
+      newLines[cursorLine] = newLines[cursorLine].slice(0); // At cursor
+      newLines.splice(cursorLine + 1, 0, '');
+      onChange(newLines.join('\n'));
+      setCursorLine(cursorLine + 1);
+    }
+
+    if (key.upArrow && cursorLine > 0) {
+      setCursorLine(cursorLine - 1);
+    }
+
+    if (key.downArrow && cursorLine < lines.length - 1) {
+      setCursorLine(cursorLine + 1);
+    }
+  }, [isFocused, lines, cursorLine, onChange]);
+
+  useInput(handleKeyPress);
+
+  return (
+    <Box flexDirection="column">
+      {lines.map((line, index) => (
+        <Text key={index}>
+          {cursorLine === index && isFocused ? '> ' : '  '}{line}
+        </Text>
+      ))}
+    </Box>
+  );
+};
+```
+
+### 2. Command System Pattern
+
+Registry pattern for managing commands:
+
+```typescript
+// types.ts
+export interface Command {
+  name: string;
+  description: string;
+  execute: (args: string[]) => Promise<void>;
+}
+
+export interface CommandContext {
+  executeCommand: (input: string) => Promise<boolean>;
+}
+```
+
+```typescript
+// registry.ts
+export class CommandRegistry {
+  private commands = new Map<string, Command>();
+
+  register(command: Command): void {
+    this.commands.set(command.name, command);
+  }
+
+  getCommand(name: string): Command | undefined {
+    return this.commands.get(name);
+  }
+
+  async execute(input: string): Promise<boolean> {
+    if (!input.startsWith('/')) return false;
+
+    const [, commandName, ...args] = input.split(' ');
+    const command = this.getCommand(commandName);
+
+    if (command) {
+      await command.execute(args);
+      return true;
+    }
+
+    return false;
+  }
+}
+```
+
+### 3. Progress Indicators
+
+```tsx
+import { Box, Text } from 'ink';
+import Spinner from 'ink-spinner';
+
+const ProgressIndicator: React.FC<{ message: string; isLoading: boolean }> = ({
+  message,
+  isLoading,
+}) => {
+  return (
+    <Box>
+      {isLoading ? (
+        <>
+          <Text color="green">
+            <Spinner type="dots" /> Loading...
+          </Text>
+        </>
+      ) : (
+        <Text color="green">✓ Done</Text>
+      )}
+      <Text> {message}</Text>
+    </Box>
+  );
+};
+```
+
+### 4. Async Data Loading
+
+```tsx
+import { Box, Text } from 'ink';
+import { useState, useEffect } from 'react';
+
+const DataLoader: React.FC<{ fetchData: () => Promise<string[]> }> = ({ fetchData }) => {
+  const [data, setData] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const result = await fetchData();
+        setData(result);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [fetchData]);
+
+  if (loading) return <Text>Loading...</Text>;
+  if (error) return <Text color="red">Error: {error}</Text>;
+
+  return (
+    <Box flexDirection="column">
+      {data.map((item, index) => (
+        <Text key={index}>{item}</Text>
+      ))}
+    </Box>
+  );
+};
+```
+
+## Best Practices
+
+### 1. Performance
+
+- **Use `Static` for historical content**: Prevent unnecessary re-renders of lists and logs
+- **Implement virtual scrolling**: For long lists, only render visible items
+- **Memoize expensive calculations**: Use `useMemo` and `useCallback`
+- **Debounce user input**: For search/filter operations
+- **Lazy load data**: Load data only when needed
+
+```tsx
+// Bad: Re-renders on every state change
+const List = ({ items }: { items: string[] }) => (
+  <Box flexDirection="column">
+    {items.map(item => <Text>{item}</Text>)}
+  </Box>
+);
+
+// Good: Memoized
+const List = React.memo(({ items }: { items: string[] }) => (
+  <Box flexDirection="column">
+    {items.map((item, index) => <Text key={index}>{item}</Text>)}
+  </Box>
+));
+```
+
+### 2. User Experience
+
+- **Provide clear feedback**: Show loading states, success messages, and errors
+- **Support keyboard shortcuts**: Common operations should have keyboard shortcuts
+- **Auto-focus input fields**: Guide users to the right place
+- **Show help text**: Display available shortcuts and commands
+- **Handle common key bindings**: Use standard keys like Ctrl+C for exit, Tab for navigation
+
+### 3. Code Organization
+
+- **Separate concerns**: Logic hooks vs UI components
+- **Use TypeScript**: For type safety and better IDE support
+- **Define clear interfaces**: For all components and props
+- **Group related files**: Organize by feature (components/, hooks/, context/)
+- **Export types**: Make them reusable across your application
+
+### 4. Error Handling
+
+- **Validate inputs**: Before processing user input
+- **Show user-friendly errors**: Instead of raw error messages
+- **Implement retry mechanisms**: For failed async operations
+- **Log errors**: For debugging purposes
+
+```tsx
+const SafeComponent: React.FC = () => {
+  const [error, setError] = useState<string | null>(null);
+
+  const handleError = (err: unknown) => {
+    const message = err instanceof Error ? err.message : 'An error occurred';
+    setError(message);
+    // Log to console or error tracking service
+    console.error('Component error:', err);
+  };
+
+  if (error) {
+    return <Text color="red">Error: {error}</Text>;
+  }
+
+  return <Text>Content</Text>;
+};
+```
+
+### 5. Accessibility
+
+- **Use clear labels**: For all interactive elements
+- **Provide keyboard navigation**: For all UI elements
+- **Use semantic colors**: Consistent meaning for colors (e.g., red for errors)
+- **Support screen readers**: Use appropriate text representations
+
+## Common Patterns
+
+### Pattern 1: Controlled Components
+
+```tsx
+const ControlledInput: React.FC = () => {
+  const [value, setValue] = useState('');
+
+  return (
+    <Box>
+      <Text>Input: </Text>
+      <TextInput
+        value={value}
+        onChange={setValue}
+        onSubmit={() => console.log('Submitted:', value)}
+      />
+    </Box>
+  );
+};
+```
+
+### Pattern 2: Menu System
+
+```tsx
+const Menu: React.FC<{ items: { label: string; action: () => void }[] }> = ({
+  items,
+}) => {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  useInput((input, key) => {
+    if (key.downArrow) {
+      setSelectedIndex(prev => Math.min(prev + 1, items.length - 1));
+    }
+    if (key.upArrow) {
+      setSelectedIndex(prev => Math.max(prev - 1, 0));
+    }
+    if (key.return) {
+      items[selectedIndex].action();
+    }
+  });
+
+  return (
+    <Box flexDirection="column">
+      {items.map((item, index) => (
+        <Text
+          key={index}
+          color={index === selectedIndex ? 'cyan' : 'white'}
+        >
+          {index === selectedIndex ? '> ' : '  '}{item.label}
+        </Text>
+      ))}
+    </Box>
+  );
+};
+```
+
+### Pattern 3: Pagination
+
+```tsx
+const PaginatedList: React.FC<{ items: string[]; pageSize: number }> = ({
+  items,
+  pageSize,
+}) => {
+  const [currentPage, setCurrentPage] = useState(0);
+  const totalPages = Math.ceil(items.length / pageSize);
+
+  const startIdx = currentPage * pageSize;
+  const visibleItems = items.slice(startIdx, startIdx + pageSize);
+
+  useInput((input, key) => {
+    if (key.rightArrow && currentPage < totalPages - 1) {
+      setCurrentPage(prev => prev + 1);
+    }
+    if (key.leftArrow && currentPage > 0) {
+      setCurrentPage(prev => prev - 1);
+    }
+  });
+
+  return (
+    <Box flexDirection="column">
+      {visibleItems.map((item, index) => (
+        <Text key={startIdx + index}>{item}</Text>
+      ))}
+      <Text dimColor>
+        Page {currentPage + 1} of {totalPages}
+      </Text>
+    </Box>
+  );
+};
+```
+
+### Pattern 4: Confirmation Dialog
+
+```tsx
+interface ConfirmationDialogProps {
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
+  message,
+  onConfirm,
+  onCancel,
+}) => {
+  const [choice, setChoice] = useState<'yes' | 'no' | null>(null);
+
+  useInput((input, key) => {
+    if (input === 'y' || input === 'Y') {
+      setChoice('yes');
+    }
+    if (input === 'n' || input === 'N') {
+      setChoice('no');
+    }
+  });
+
+  useEffect(() => {
+    if (choice === 'yes') onConfirm();
+    if (choice === 'no') onCancel();
+  }, [choice, onConfirm, onCancel]);
+
+  return (
+    <Box borderStyle="single" padding={1}>
+      <Text>{message}</Text>
+      <Text>Confirm? [Y/n]</Text>
+    </Box>
+  );
+};
+```
+
+## Testing
+
+### Unit Testing with Vitest
+
+```tsx
+import { render } from '@testing-library/react';
+import { MyComponent } from './MyComponent';
+
+describe('MyComponent', () => {
+  it('renders correctly', () => {
+    const { container } = render(<MyComponent />);
+    expect(container).toBeDefined();
+  });
+
+  it('displays correct text', () => {
+    const { getByText } = render(<MyComponent label="Hello" />);
+    const element = getByText('Hello');
+    expect(element).toBeDefined();
+  });
+});
+```
+
+### Integration Testing
+
+```tsx
+import { render } from '@testing-library/react';
+import { App } from './App';
+
+describe('App Integration', () => {
+  it('handles user input', async () => {
+    const { getByText } = render(<App />);
+    // Test user interactions
+  });
+});
+```
+
+## Troubleshooting
+
+### Issue: Component not re-rendering
+
+**Solution:** Check if you're using `Static` incorrectly. Only use `Static` for content that doesn't change.
+
+### Issue: Input not being captured
+
+**Solution:** Ensure your component is focused using `useFocus` or `autoFocus`.
+
+### Issue: Performance problems with long lists
+
+**Solution:** Implement virtual scrolling or use `Static` for historical items.
+
+### Issue: Layout looks incorrect
+
+**Solution:** Check your Flexbox properties and ensure proper use of `flexDirection`, `flexGrow`, etc.
+
+### Issue: Colors not displaying
+
+**Solution:** Ensure your terminal supports colors. Test with a simple colored Text component.
+
+## Resources
+
+- [Ink.js Documentation](https://github.com/vadimdemedes/ink)
+- [React 19 Documentation](https://react.dev/)
+- [Vite Documentation](https://vitejs.dev/)
+- [Ink Text Input](https://github.com/vadimdemedes/ink-text-input)
+- [Testing Library for Ink](https://github.com/vadimdemedes/ink-testing-library)
