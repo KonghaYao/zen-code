@@ -8,7 +8,6 @@
 // Graph
 export { createCodeGraph, graph } from './graphBuilder.js';
 
-
 // Utils
 export { initChatModel } from './utils/initChatModel.js';
 export { getBufferMessage } from './utils/getBufferMessage.js';
@@ -16,7 +15,12 @@ export { getBufferMessage } from './utils/getBufferMessage.js';
 // Middlewares - 导出迁移的中间件
 export * from './middlewares/index.js';
 
+// Subagents - V2 API (standard-agent based)
 
-// Subagents
+export { createStandardAgentV2, getAvailableAgentIds } from './subagents/factory-v2.js';
+
+// Subagents - V1 API (legacy, kept for compatibility)
 export * from './subagents/config.js';
-export * from './subagents/factory.js';
+
+// Standard Agent System - re-export from @langgraph-js/standard-agent
+export { AgentPackage, ToolRegistry, MiddlewareRegistry } from '@langgraph-js/standard-agent';

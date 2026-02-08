@@ -201,12 +201,37 @@ export function anthropicPromptCachingMiddleware(middlewareOptions?: PromptCachi
 
             const NewMessageConstructor = Object.getPrototypeOf(lastMessage).constructor;
             if (Array.isArray(lastMessage.content)) {
+                const lastContent = lastMessage.content.at(-1);
+                
+                if (!lastContent) {
+                    return handler(request);
+                }
+                
+                // Skip caching if the last content block is a text block with empty content
+                if (
+                    typeof lastContent === 'object' && 
+                    'type' in lastContent && 
+                    lastContent.type === 'text' && 
+                    'text' in lastContent
+                ) {
+                    const textContent = lastContent.text;
+                    // Check if text is empty string, empty object, or null/undefined
+                    const isEmpty = 
+                        textContent === '' || 
+                        textContent == null ||
+                        (typeof textContent === 'object' && Object.keys(textContent).length === 0);
+                    
+                    if (isEmpty) {
+                        return handler(request);
+                    }
+                }
+                
                 const newMessage = new NewMessageConstructor({
                     ...lastMessage,
                     content: [
                         ...lastMessage.content.slice(0, -1),
                         {
-                            ...lastMessage.content.at(-1),
+                            ...lastContent,
                             cache_control: {
                                 type: 'ephemeral',
                                 ttl,
@@ -219,6 +244,11 @@ export function anthropicPromptCachingMiddleware(middlewareOptions?: PromptCachi
                     messages: [...request.messages.slice(0, -1), newMessage],
                 });
             } else if (typeof lastMessage.content === 'string') {
+                // Skip caching if content is empty
+                if (!lastMessage.content || lastMessage.content.trim() === '') {
+                    return handler(request);
+                }
+                
                 const newMessage = new NewMessageConstructor({
                     ...lastMessage,
                     content: [

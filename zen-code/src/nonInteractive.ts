@@ -4,8 +4,6 @@ import { getConfig, initDb } from './chat/store/index.js';
 
 // 使用新的 @codegraph/agent 包
 
-
-
 /**
  * 从 stdin 读取全部内容
  */
@@ -66,12 +64,12 @@ export async function runNonInteractive(prompt?: string, useStdin: boolean = fal
         const initialState = {
             messages: [new HumanMessage(finalPrompt)],
             main_model: config.main_model,
-            enable_thinking: config.enable_thinking
+            enable_thinking: config.enable_thinking,
         };
 
         // 调用 Graph
         const result = await graph.invoke(initialState, {
-            recursionLimit: 200,
+            recursionLimit: 500,
         });
 
         // 输出结果
@@ -88,4 +86,3 @@ export async function runNonInteractive(prompt?: string, useStdin: boolean = fal
         throw error;
     }
 }
-

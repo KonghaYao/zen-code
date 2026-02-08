@@ -46,7 +46,7 @@ export default defineConfig({
                 'openai',
                 'langchain',
                 'node-notifier',
-                'micromatch'
+                'micromatch',
             ],
         }),
         react(),
@@ -62,11 +62,11 @@ export default defineConfig({
         emptyOutDir: true,
         lib: {
             entry: {
-                'cli': './src/cli.ts',
+                cli: './src/cli.ts',
                 'zen-code': './src/app.tsx',
                 'zen-init': './src/zen-init.tsx',
                 'zen-keyboard': './src/zen-keyboard.tsx',
-                'nonInteractive': './src/nonInteractive.ts',
+                nonInteractive: './src/nonInteractive.ts',
             },
             formats: ['es'],
         },

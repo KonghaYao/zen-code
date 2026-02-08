@@ -1,0 +1,77 @@
+import { z } from 'zod';
+import { AgentSchema } from './schemas.js';
+
+// ============ Agent Configuration ============
+export interface ToolConfig {
+    enabled: boolean;
+    customParams?: unknown;
+}
+
+export interface MiddlewareConfig {
+    enabled: boolean;
+    customParams?: unknown;
+}
+
+export class StandardAgent {
+    private _data: z.infer<typeof AgentSchema>;
+
+    constructor(data: z.infer<typeof AgentSchema>) {
+        const result = AgentSchema.safeParse(data);
+        if (!result.success) {
+            throw new Error(`Invalid Agent data: ${result.error.message}`);
+        }
+        this._data = result.data;
+    }
+
+    get id(): string {
+        return this._data.id;
+    }
+
+    get name(): string {
+        return this._data.name;
+    }
+
+    get description(): string {
+        return this._data.description;
+    }
+
+    get systemPromptId(): string {
+        return this._data.system_prompt;
+    }
+
+    get modelId(): string {
+        return this._data.model;
+    }
+
+    get tools(): Record<string, ToolConfig> {
+        const config: Record<string, ToolConfig> = {};
+        for (const [toolId, value] of Object.entries(this._data.tools)) {
+            config[toolId] = typeof value === 'boolean' ? { enabled: value } : { enabled: true, customParams: value };
+        }
+        return config;
+    }
+
+    get middleware(): Record<string, MiddlewareConfig> {
+        const config: Record<string, MiddlewareConfig> = {};
+        for (const [midId, value] of Object.entries(this._data.middleware)) {
+            config[midId] = typeof value === 'boolean' ? { enabled: value } : { enabled: true, customParams: value };
+        }
+        return config;
+    }
+
+    getToolConfig(toolId: string): ToolConfig | undefined {
+        const value = this._data.tools[toolId];
+        if (value === undefined) return undefined;
+        return typeof value === 'boolean' ? { enabled: value } : { enabled: true, customParams: value };
+    }
+
+    getMiddlewareConfig(midId: string): MiddlewareConfig | undefined {
+        const value = this._data.middleware[midId];
+        if (value === undefined) return undefined;
+        return typeof value === 'boolean' ? { enabled: value } : { enabled: true, customParams: value };
+    }
+
+    toJSON(): z.infer<typeof AgentSchema> {
+        return JSON.parse(JSON.stringify(this._data));
+    }
+}

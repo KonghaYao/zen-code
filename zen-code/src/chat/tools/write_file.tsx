@@ -23,13 +23,16 @@ export const write_file = createUITool({
 
         return (
             <Box flexDirection="column" paddingX={1}>
-                <Box flexDirection="column">
-                    <Link path={input.file_path} color="white" />
-                    <Text color="gray"> ({lineCount} lines)</Text>
+                <Box>
+                    <Text color="green">Write </Text>
+                    <Text dimColor>(</Text>
+                    <Link path={input.file_path} color="green" />
+                    <Text dimColor>)</Text>
+                    <Text dimColor> ({lineCount} lines)</Text>
                 </Box>
 
                 {output && output.startsWith('Error:') && (
-                    <Box marginTop={0}>
+                    <Box marginTop={0} marginLeft={1} marginBottom={1}>
                         <Text color="red">{output}</Text>
                     </Box>
                 )}

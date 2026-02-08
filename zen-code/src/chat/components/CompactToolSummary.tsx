@@ -8,10 +8,7 @@ interface CompactToolSummaryProps {
     messageNumber: number;
 }
 
-export const CompactToolSummary: React.FC<CompactToolSummaryProps> = ({
-    toolMessages,
-    messageNumber,
-}) => {
+export const CompactToolSummary: React.FC<CompactToolSummaryProps> = ({ toolMessages, messageNumber }) => {
     // 统计工具状态
     const stats = toolMessages.reduce((acc, msg) => {
         /** @ts-ignore */
@@ -33,16 +30,8 @@ export const CompactToolSummary: React.FC<CompactToolSummaryProps> = ({
 
     // 按调用次数排序
     const toolEntries = Object.entries(toolCounts).sort((a, b) => b[1] - a[1]);
-
-    // 颜色池
-    const colors = ['cyan', 'green', 'yellow', 'blue', 'magenta', 'red'];
-
     return (
-        <Box
-            key={`tool-summary-${messageNumber}`}
-            flexDirection="column"
-            paddingY={1}
-        >
+        <Box key={`tool-summary-${messageNumber}`} flexDirection="column" paddingY={1}>
             {/* 第一行：成功/失败状态 */}
             <Box gap={1}>
                 <Text color={getColor('indigo')} bold>
@@ -50,16 +39,19 @@ export const CompactToolSummary: React.FC<CompactToolSummaryProps> = ({
                 </Text>
                 {successfulCount > 0 && (
                     <Text color="green" bold>
-                        {' '}{successfulCount}
+                        {' '}
+                        {successfulCount}
                     </Text>
                 )}
                 {errorCount > 0 && (
                     <Text color="red" bold>
-                        {' '}{errorCount}
+                        {' '}
+                        {errorCount}
                     </Text>
                 )}
                 <Text color={getColor('indigo')} bold>
-                    {' '}tools
+                    {' '}
+                    tools
                 </Text>
             </Box>
 
@@ -68,13 +60,12 @@ export const CompactToolSummary: React.FC<CompactToolSummaryProps> = ({
                 {toolEntries.map(([name, count], index) => (
                     <React.Fragment key={name}>
                         {index > 0 && <Text dimColor>, </Text>}
-                        <Text color={getColor(colors[index % colors.length] as any)} dimColor>
+                        <Text dimColor>
                             {name}({count})
                         </Text>
                     </React.Fragment>
                 ))}
             </Box>
-
         </Box>
     );
 };

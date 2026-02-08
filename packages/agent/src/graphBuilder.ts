@@ -1,6 +1,6 @@
 /**
- * Graph Builder
- * 从 agents/code/graph.ts 迁移并重构
+ * Graph Builder V2
+ * 使用 standard-agent 的 AgentPackage 系统构建动态代理图
  */
 
 import { Runtime } from 'langchain';
@@ -10,10 +10,9 @@ import { REMOVE_ALL_MESSAGES, START, StateGraph } from '@langchain/langgraph';
 import { AIMessage, RemoveMessage } from '@langchain/core/messages';
 import { initChatModel } from './utils/initChatModel.js';
 import { analyzeAndSaveMemories } from './memories/analyze.js';
-import { loadAgentsList, getDefaultAgentId, type AgentConfig } from './subagents/config.js';
-import { createStandardAgent } from './subagents/factory.js';
-
-let agentConfigs: Record<string, AgentConfig> | null = null;
+import { loadDefaultConfigs } from './subagents/loader.js';
+import { createStandardAgentV2, getAvailableAgentIds } from './subagents/factory-v2.js';
+import { AgentPackage } from '@langgraph-js/standard-agent';
 
 const switchBranch = {
     smart_memory: async (state: CodeStateType) => {
@@ -22,28 +21,18 @@ const switchBranch = {
             streamUsage: true,
             enableThinking: state.enable_thinking ?? true,
         });
-        const summaryContent = await analyzeAndSaveMemories(
-            model,
-            getBufferMessage(state.messages)
-        );
+        const summaryContent = await analyzeAndSaveMemories(model, getBufferMessage(state.messages));
         return {
             switch_command: '',
-            messages: [
-                new RemoveMessage({ id: REMOVE_ALL_MESSAGES }),
-                new AIMessage(summaryContent),
-            ],
+            messages: [new RemoveMessage({ id: REMOVE_ALL_MESSAGES }), new AIMessage(summaryContent)],
         };
     },
 } as const;
 
-async function invokeAgent(
-    config: AgentConfig,
-    state: CodeStateType,
-    runtime: Runtime
-) {
-    const agent = await createStandardAgent(config, state, runtime);
+async function invokeAgent(agentId: string, pkg: AgentPackage, state: CodeStateType, runtime: Runtime) {
+    const agent = await createStandardAgentV2(agentId, pkg, state, runtime);
     /** @ts-ignore 这个类型是 langchain 的问题 */
-    const response = await agent.invoke(state, { recursionLimit: 200 });
+    const response = await agent.invoke(state, { recursionLimit: 500 });
     return {
         switch_command: '',
         task_store: response.task_store,
@@ -52,8 +41,8 @@ async function invokeAgent(
 }
 
 /**
- * 创建 Code Graph
- * 这是主要的导出函数，用于创建 LangGraph 实例
+ * 创建 Code Graph V2
+ * 使用 AgentPackage 系统动态加载和路由代理
  */
 export function createCodeGraph() {
     return new StateGraph(CodeState)
@@ -62,19 +51,22 @@ export function createCodeGraph() {
 
             if (cmd === 'smart_memory') return switchBranch.smart_memory(state);
 
-            const configs = agentConfigs || (await loadAgentsList());
-            agentConfigs ??= configs;
+            // Load agent package (cached after first load)
+            const pkg = await loadDefaultConfigs();
 
-            const agentId = cmd || getDefaultAgentId();
-            const config = configs[agentId];
+            // Determine agent ID (from command or default)
+            const availableAgents = await getAvailableAgentIds(pkg);
+            const agentId = cmd ? `agents/${cmd}` : 'agents/default';
 
-            if (!config) {
+            if (!availableAgents.includes(agentId)) {
                 throw new Error(
-                    `Unknown agent: ${agentId}. Available: ${Object.keys(configs).join(', ')}`
+                    `Unknown agent: ${cmd || 'default'}. Available: ${availableAgents
+                        .map((id) => id.split('/').pop())
+                        .join(', ')}`,
                 );
             }
 
-            return invokeAgent(config, state, runtime);
+            return invokeAgent(agentId, pkg, state, runtime);
         })
         .addEdge(START, 'graph')
         .compile();
