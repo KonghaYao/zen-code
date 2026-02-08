@@ -1,206 +1,69 @@
 ---
 name: langgraph-development
-description: Guide for building LangChain/LangGraph projects in TypeScript. Covers modern @langgraph-js/* packages, StateGraph, AgentMiddleware, createAgent, tool development, AgentPackage configuration, and monorepo patterns. Use when creating new agents, implementing tools, designing workflows, or setting up LangGraph infrastructure in TypeScript monorepos.
+description:
+    Guide for building agents with LangChain/LangGraph in TypeScript. Covers createAgent, tools, and agent patterns. Use
+    when creating agents, implementing tools, or setting up agent infrastructure.
 ---
 
-# LangGraph Development Guide
+# LangGraph Agent Development Guide
 
-## Overview
+This guide covers building AI agents with LangChain/LangGraph, focusing on agent abstraction.
 
-This skill provides comprehensive guidance for building modern LangChain/LangGraph applications using TypeScript, with specific patterns and practices from the CodeGraph project.
+## Core Concepts
 
-## Core Architecture
-
-### LangGraph State Management
+### State Management
 
 ```typescript
-import { AgentState, createState } from '@langgraph-js/pro';
-import { MessagesAnnotation } from '@langchain/langgraph';
+import { createDefaultAnnotation, createState } from '@langgraph-js/pro';
+import { MessagesAnnotation, Annotation } from '@langchain/langgraph';
+import { z } from 'zod';
 
-// Create custom state with annotations
-export const MyState = AgentState.extend({
-  my_field: z.string().default('value'),
+// Create agent state with annotations
+export const MyState = createState().build({
+    my_field: createDefaultAnnotation(() => 'value'),
+    counter: createDefaultAnnotation(() => 0),
+    data: createDefaultAnnotation(() => ({ nested: true })),
 });
 
-// Alternative: Using createState with annotations
-export const MyAnnotation = createState(MessagesAnnotation).build({
-  my_field: createDefaultAnnotation(() => 'value')
+// Use MessagesAnnotation as base for message handling
+export const MessageState = createState(MessagesAnnotation).build({
+    my_field: createDefaultAnnotation(() => 'value'),
 });
 
-export type MyStateType = typeof MyAnnotation.State;
-```
+// Custom reducer for merge behavior
+export const ComplexState = createState().build({
+    task_store: Annotation({
+        reducer: (a, b: any) => ({ ...a, ...b }),
+        default: () => ({}),
+    }),
+});
 
-### Building Graphs
+// Optional validation schema
+export const MyStateSchema = z.object({
+    my_field: z.string().optional(),
+    counter: z.number().optional(),
+});
 
-```typescript
-import { StateGraph, START } from '@langchain/langgraph';
-
-export function createMyGraph() {
-  return new StateGraph(MyState)
-    .addNode('process', async (state, runtime) => {
-      // Node logic
-      return { output: 'result' };
-    })
-    .addEdge(START, 'process')
-    .compile();
-}
-```
-
-### Switch Branch Routing
-
-```typescript
-const switchBranch = {
-  mode_a: async (state) => ({ mode: 'a' }),
-  mode_b: async (state) => ({ mode: 'b' }),
-} as const;
-
-// In graph node
-if (state.switch_command === 'mode_a') {
-  return switchBranch.mode_a(state);
-}
+export type MyStateType = typeof MyState.State;
 ```
 
 ## Agent Creation
 
-### createAgent Pattern
+### Basic Agent
 
 ```typescript
-import { createAgent, AgentMiddleware, tool } from 'langchain';
+import { createAgent } from 'langchain';
+import { tool } from '@langchain/core/tools';
 
-export function createMyAgent() {
-  return createAgent({
+const model = await initChatModel('gpt-4');
+
+const agent = createAgent({
     name: 'MyAgent',
-    model: await initChatModel('gpt-4'),
+    model,
     systemPrompt: 'You are a helpful assistant',
-    tools: [myTool],
+    tools: [myTool1, myTool2],
     stateSchema: MyState,
-    middleware: [myMiddleware],
-  });
-}
-```
-
-### AgentMiddleware Implementation
-
-```typescript
-export class MyMiddleware implements AgentMiddleware {
-  name = 'MyMiddleware';
-  stateSchema = undefined;
-  contextSchema = undefined;
-  tools = [];
-
-  async wrapModelCall(request, handler) {
-    // Modify request before model call
-    return await handler(modifiedRequest);
-  }
-}
-```
-
-## Tool Development
-
-### Standard Tool Creation
-
-```typescript
-import { tool } from '@langchain/core/tools';
-import { z } from 'zod';
-
-export const myTool = tool(
-  async ({ param1, param2 }) => {
-    // Tool implementation
-    return 'result';
-  },
-  {
-    name: 'my_tool',
-    description: 'Tool description',
-    schema: z.object({
-      param1: z.string(),
-      param2: z.number().optional(),
-    }),
-  },
-);
-```
-
-### Tool Adapter Pattern (for LangChain Tools)
-
-```typescript
-// From standard-agent package
-import { fromLangChainTool } from '@langgraph-js/standard-agent';
-
-export const standardTool = fromLangChainTool(
-  async (input) => {
-    // Implementation
-    return result;
-  },
-  {
-    name: 'tool_name',
-    description: 'Tool description',
-    schema: z.object({ param: z.string() }),
-  },
-);
-```
-
-## AgentPackage System
-
-The AgentPackage system provides unified configuration for agents:
-
-```typescript
-import { AgentPackage } from '@langgraph-js/standard-agent';
-
-// Load package
-const pkg = await loadDefaultConfigs();
-
-// Get agent configuration
-const agentConfig = await pkg.getAgent('agents/default');
-
-// Get prompt configuration
-const promptConfig = await pkg.getPrompt(agentConfig.systemPromptId);
-
-// Get tool implementation
-const toolImpl = pkg.tools.getImplementation('tool_id');
-
-// Validate agent
-const validation = await pkg.validateAgent('agents/default');
-```
-
-### StandardAgent Class
-
-```typescript
-import { StandardAgent } from '@langgraph-js/standard-agent';
-
-const agent = new StandardAgent(agentConfig);
-
-agent.id;           // Agent ID
-agent.name;         // Agent name
-agent.tools;        // Tool configuration map
-agent.middleware;   // Middleware configuration map
-agent.getToolConfig('tool_id');      // Get specific tool config
-agent.getMiddlewareConfig('mid_id'); // Get specific middleware config
-```
-
-## Monorepo Patterns
-
-### Package Structure
-
-```
-code-graph/
-├── packages/
-│   ├── agent/           # LangGraph agent implementation
-│   ├── standard-agent/  # AgentPackage system
-│   └── config/          # Storage and configuration
-├── zen-code/            # TUI application
-└── pnpm-workspace.yaml
-```
-
-### Import Patterns
-
-```typescript
-// From local packages
-import { createAgent } from 'langchain';  // Re-exported
-import { AgentPackage } from '@langgraph-js/standard-agent';
-import { TaskStoreManager } from '@codegraph/config';
-
-// From langchain packages
-import { tool } from '@langchain/core/tools';
-import { StateGraph } from '@langchain/langgraph';
+});
 ```
 
 ## Model Initialization
@@ -209,327 +72,345 @@ import { StateGraph } from '@langchain/langgraph';
 import { ChatOpenAI } from '@langgraph-js/pro';
 import { ChatAnthropic } from '@langchain/anthropic';
 
-interface InitChatModelOptions {
-  modelProvider?: 'openai' | 'anthropic';
-  streamUsage?: boolean;
-  enableThinking?: boolean;
+interface InitModelOptions {
+    streamUsage?: boolean;
+    enableThinking?: boolean;
 }
 
-export async function initChatModel(model: string, options: InitChatModelOptions = {}) {
-  const { modelProvider, enableThinking = true } = options;
+export async function initChatModel(model: string, options: InitModelOptions = {}) {
+    const { streamUsage = true, enableThinking = true } = options;
 
-  if (modelProvider === 'anthropic') {
-    return new ChatAnthropic({
-      model,
-      streamUsage: true,
-      streaming: true,
-      thinking: enableThinking ? {
-        budget_tokens: 1024,
-        type: 'enabled',
-      } : undefined,
-    });
-  } else {
-    return new ChatOpenAI({
-      model,
-      streamUsage: true,
-      modelKwargs: enableThinking ? {
-        thinking: { type: 'enabled' },
-      } : undefined,
-    });
-  }
+    if (model.includes('claude')) {
+        return new ChatAnthropic({
+            model,
+            streamUsage,
+            streaming: true,
+            thinking: enableThinking
+                ? {
+                      budget_tokens: 1024,
+                      type: 'enabled',
+                  }
+                : undefined,
+        });
+    } else {
+        return new ChatOpenAI({
+            model,
+            streamUsage,
+            modelKwargs: enableThinking
+                ? {
+                      thinking: { type: 'enabled' },
+                  }
+                : undefined,
+        });
+    }
 }
 ```
 
-## Testing Patterns
+## Tool Development
+
+### Basic Tool
 
 ```typescript
-import { describe, it, expect, vi } from 'vitest';
+import { tool } from 'langchain';
+import { z } from 'zod';
 
-describe('MyGraph', () => {
-  it('should process state correctly', async () => {
-    const graph = createMyGraph();
-    const result = await graph.invoke({ input: 'test' });
-    expect(result).toBeDefined();
-  });
+export const myTool = tool(
+    async ({ param1, param2 }) => {
+        // Tool implementation
+        return 'result';
+    },
+    {
+        name: 'my_tool',
+        description: 'Tool description',
+        schema: z.object({
+            param1: z.string(),
+            param2: z.number().optional(),
+        }),
+    },
+);
+```
+
+### Tool with Error Handling
+
+```typescript
+export const fetchDataTool = tool(
+    async ({ url }) => {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            return { error: error.message };
+        }
+    },
+    {
+        name: 'fetch_data',
+        description: 'Fetch data from URL',
+        schema: z.object({
+            url: z.string().url(),
+        }),
+    },
+);
+```
+
+## Middleware
+
+For comprehensive middleware patterns including request/response interception, prompt enhancement, Anthropic prompt
+caching, and human-in-the-loop, see:
+
+**[middleware.md](./middleware.md)**
+
+## Configuration-Driven Agents
+
+For a powerful configuration-driven agent system with tool registry, middleware configuration, and storage backends,
+see:
+
+**[standard-agent.md](./standard-agent.md)**
+
+The `@langgraph-js/standard-agent` package provides:
+
+-   AgentPackage for centralized configuration
+-   Tool and middleware registries
+-   Pluggable storage backends (memory, file system)
+-   Multi-agent management
+-   Configuration validation
+
+## Agent Invocation
+
+### Basic Invocation
+
+```typescript
+const result = await agent.invoke({
+    messages: [new HumanMessage('Hello, how are you?')],
+});
+```
+
+### Streaming
+
+```typescript
+async function* streamAgent() {
+    const stream = await agent.stream({
+        messages: [{ role: 'user', content: 'Hello' }],
+    });
+
+    for await (const chunk of stream) {
+        yield chunk;
+    }
+}
+
+// Usage
+for await (const chunk of streamAgent()) {
+    console.log(chunk);
+}
+```
+
+### With Config
+
+```typescript
+const result = await agent.invoke(
+    { messages: [new HumanMessage('Hello')] },
+    {
+        configurable: {
+            runtime_context: {
+                userId: '123',
+            },
+        },
+    },
+);
+```
+
+### With Recursion Limit
+
+```typescript
+const result = await agent.invoke({ messages: [new HumanMessage('Hello')] }, { recursionLimit: 100 });
+```
+
+## Testing
+
+### Testing Agents
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { FakeListChatModel } from '@langchain/core/utils/testing';
+
+describe('MyAgent', () => {
+    it('should respond to messages', async () => {
+        const fakeModel = new FakeListChatModel({
+            responses: ['Hello! How can I help you?'],
+        });
+
+        const agent = createAgent({
+            name: 'TestAgent',
+            model: fakeModel,
+            tools: [myTool],
+            stateSchema: MyState,
+        });
+
+        const result = await agent.invoke({ messages: [] });
+        expect(result.messages.length).toBeGreaterThan(0);
+    });
+});
+```
+
+### Testing Tools
+
+```typescript
+describe('myTool', () => {
+    it('should return correct result', async () => {
+        const result = await myTool.invoke({
+            param1: 'test',
+            param2: 42,
+        });
+        expect(result).toBe('result');
+    });
 });
 ```
 
 ## Common Patterns
 
-### Human-in-the-Loop Middleware
+### Multi-Agent System
 
 ```typescript
-import { humanInTheLoopMiddleware } from '@langgraph-js/auk';
+// Create specialized agents
+const coderAgent = createAgent({
+    name: 'Coder',
+    model,
+    systemPrompt: 'You are an expert software engineer',
+    tools: [searchTool, codeEditTool],
+    stateSchema: MyState,
+});
 
-middleware.push(humanInTheLoopMiddleware({
-  interruptOn: {
-    terminal: { allowedDecisions: ['approve', 'reject', 'edit'] },
-  },
-}));
+const reviewerAgent = createAgent({
+    name: 'Reviewer',
+    model,
+    systemPrompt: 'You review code for bugs and best practices',
+    tools: [readTool, analysisTool],
+    stateSchema: MyState,
+});
+
+// Use based on task
+const result = await coderAgent.invoke({
+    messages: [new HumanMessage('Write code for X')],
+});
 ```
 
-### Dynamic Tool Registration
+### Tool Selection Based on State
 
 ```typescript
-// Filter tools based on agent configuration
-const tools: DynamicStructuredTool[] = [];
-for (const [toolId, params] of Object.entries(agentConfig.tools)) {
-  const toolImpl = toolRegistry.getImplementation(toolId);
-  if (toolImpl && params) {
-    tools.push(tool(toolImpl.execute, {
-      name: toolImpl.name,
-      description: toolImpl.description,
-      schema: toolImpl.paramsSchema?.toJSONSchema(),
-    }) as any);
-  }
-}
+const tools = state.is_in_task ? [commitTaskTool] : [addTaskTool, searchTool, analysisTool];
+
+const agent = createAgent({
+    name: 'DynamicAgent',
+    model,
+    systemPrompt: 'You are a helpful assistant',
+    tools,
+    stateSchema: MyState,
+});
 ```
 
-### System Prompt Enhancement
+### Error Recovery
 
 ```typescript
-// Add environment info to system prompt
-const systemPrompt = basePrompt + `\n\n${await getEnvInfo(state)}`;
-
-// Add middleware-specific content
-const modifiedSystemMessage = new SystemMessage(basePrompt + middlewareSection);
-```
-
-## Dependencies
-
-### Required Packages
-
-```json
-{
-  "@langchain/core": "^1.1.15",
-  "@langchain/langgraph": "^1.1.0",
-  "@langchain/openai": "^1.2.2",
-  "@langchain/anthropic": "^1.3.15",
-  "@langgraph-js/pro": "latest",
-  "@langgraph-js/standard-agent": "workspace:*",
-  "@langgraph-js/pure-graph": "^2.10.0",
-  "zod": "^4"
-}
-```
-
-### Development Dependencies
-
-```json
-{
-  "typescript": "^5.9.3",
-  "vitest": "^4.0.18"
-}
+const result = await agent
+    .invoke(
+        { messages: [new HumanMessage('Do something')] },
+        {
+            signal: AbortSignal.timeout(30000), // 30s timeout
+        },
+    )
+    .catch((error) => {
+        console.error('Agent failed:', error);
+        return { messages: [new AIMessage('Sorry, something went wrong.')] };
+    });
 ```
 
 ## File Organization
 
-### Agent Package Structure
+### Recommended Structure
 
 ```
-packages/agent/src/
+src/
+├── agents/
+│   ├── index.ts          # Agent factory functions
+│   ├── coder.ts          # Coding agent
+│   └── reviewer.ts       # Review agent
+├── tools/
+│   ├── index.ts          # Export all tools
+│   ├── search.ts
+│   └── code.ts
+├── middlewares/
+│   ├── index.ts
+│   ├── logging.ts
+│   └── cache.ts
 ├── state.ts              # State definitions
-├── graphBuilder.ts       # Graph construction
-├── initChatModel.ts      # Model initialization
-├── tools/                # Tool implementations
-│   ├── filesystem_tools/
-│   ├── bash_tools/
-│   └── task_tools/
-├── middlewares/          # Middleware implementations
-│   ├── skills.ts
-│   ├── memories.ts
-│   └── commandSystem.ts
-└── subagents/            # Subagent configuration
-    ├── config.ts
-    └── factory-v2.ts
-```
-
-### Standard Agent Package Structure
-
-```
-packages/standard-agent/src/
-├── index.ts              # Main exports
-├── agent.ts              # StandardAgent class
-├── package.ts            # AgentPackage class
-├── registry.ts           # Tool/middleware registry
-├── schemas.ts            # Zod validation schemas
-├── repository.ts         # Storage abstraction
-├── validator.ts          # Configuration validation
-└── langchain.ts          # Tool adapter
-```
-
-## Key Concepts
-
-### 1. Progressive Middleware Chain
-
-Middleware is executed in order, each can modify requests/responses:
-
-```
-Request → Middleware1 → Middleware2 → Model → Middleware2 → Middleware1 → Response
-```
-
-### 2. Tool Registry Pattern
-
-Tools are registered globally and filtered per agent:
-
-```typescript
-// Register tools globally
-toolRegistry.registerImplementation(myTool);
-
-// Filter by agent config
-const tools = agentConfig.tools
-  .filter((id) => toolRegistry.hasImplementation(id))
-  .map((id) => toolRegistry.getImplementation(id));
-```
-
-### 3. Two-Level Task Architecture
-
-Tasks are organized in fixed 2-level hierarchy:
-
-```
-Root Task
-├── Task Group A (parallel)  # Different agents work in parallel
-│   ├── Task 1
-│   └── Task 2
-└── Task Group B (serial)    # Sequential tasks within group
-    └── Task 3
-```
-
-### 4. State Annotation System
-
-Use `createDefaultAnnotation` for default values:
-
-```typescript
-export const MyAnnotation = createState().build({
-  field1: createDefaultAnnotation(() => 'default'),
-  field2: createDefaultAnnotation(() => 0),
-  field3: createDefaultAnnotation(() => ({ nested: true })),
-});
+└── models.ts             # Model initialization
 ```
 
 ## Best Practices
 
-1. **Type Safety**: Use Zod schemas for all tool inputs and state fields
-2. **Async Initialization**: All model and package initialization should be async
-3. **Error Handling**: Wrap async operations in try-catch with meaningful error messages
-4. **Middleware Composition**: Build reusable middleware that can be combined
-5. **Tool Granularity**: Keep tools focused and single-purpose
-6. **State Immutability**: Always return new state objects, don't mutate
-7. **Progressive Disclosure**: Only load full skill/content when needed
-8. **Testing**: Test graph nodes and middleware independently
-9. **Documentation**: Add JSDoc comments for complex functions
-10. **Consistency**: Follow naming conventions from the codebase
+1. **Use createState().build()**: Create state with annotations
+2. **createDefaultAnnotation**: Always use for default values
+3. **Async Initialization**: Always await model initialization
+4. **Error Handling**: Wrap agent calls in try/catch
+5. **Tool Focus**: Keep tools single-purpose and well-named
+6. **Testing**: Test agents and tools independently
+7. **Streaming**: Support streaming for better UX
+8. **Documentation**: Add JSDoc for complex functions
+9. **Configuration**: Use AgentPackage for complex systems
 
-## Common Issues and Solutions
+## Common Issues
 
-### Issue: Type errors with tool()
-
-```typescript
-// Use type assertion when needed
-tools.push(tool(...) as any as DynamicStructuredTool);
-```
-
-### Issue: Middleware order matters
+### Type errors with tools
 
 ```typescript
-// Middleware is executed in reverse order on response
-middleware.push(promptCachingMiddleware);  // Runs first on response
-middleware.push(humanInTheLoopMiddleware); // Runs second on response
+// Use type assertion
+const tools = [myTool1 as any, myTool2 as any];
 ```
 
-### Issue: Dynamic tools in agent config
+### Agent not responding
 
 ```typescript
-// Convert to correct LangGraph tool format
-for (const [toolId, params] of Object.entries(agentConfig.tools)) {
-  const impl = toolRegistry.getImplementation(toolId);
-  if (impl && params) {
-    tools.push(tool(impl.execute, {
-      name: impl.name,
-      description: impl.description,
-      schema: impl.paramsSchema?.toJSONSchema(),
-    }) as any as DynamicStructuredTool);
-  }
-}
+// Check if tools are properly registered
+console.log('Available tools:', tools.map(t => t.name));
+
+// Try with simpler model
+const debugModel = await initChatModel('gpt-4o-mini');
+const debugAgent = createAgent({ ... });
 ```
 
-### Issue: State updates not persisting
+### State not updating
 
 ```typescript
-// Always return new state object from nodes
-return { ...state, field: newValue };  // ✅ Correct
-state.field = newValue;                 // ❌ Won't work
-return state;
+// Ensure state has proper annotations
+const MyState = createState().build({
+    my_field: createDefaultAnnotation(() => 'default'),
+});
+
+// Check state type matches
+const agent = createAgent({
+    stateSchema: MyState, // Not typeof MyState
+});
 ```
 
-## Integration Examples
+## Installation
 
-### Full Agent Creation with AgentPackage
+### Core Dependencies
 
-```typescript
-export async function createStandardAgentV2(
-  agentId: string,
-  pkg: AgentPackage,
-  state: CodeStateType,
-  runtime: Runtime,
-) {
-  // Load and validate config
-  const agentConfig = await pkg.getAgent(agentId);
-  const validation = await pkg.validateAgent(agentId);
-  if (!validation.valid) {
-    throw new Error(`Invalid agent: ${validation.errors.join(', ')}`);
-  }
-
-  // Initialize model
-  const model = await initChatModel(state.main_model, {
-    modelProvider: process.env.MODEL_PROVIDER,
-    enableThinking: state.enable_thinking,
-  });
-
-  // Build tools
-  const tools: DynamicStructuredTool[] = [];
-  for (const [toolId, params] of Object.entries(agentConfig.tools)) {
-    const toolImpl = pkg.tools.getImplementation(toolId);
-    if (toolImpl && params) {
-      tools.push(tool(toolImpl.execute, {
-        name: toolImpl.name,
-        description: toolImpl.description,
-        schema: toolImpl.paramsSchema?.toJSONSchema(),
-      }) as any as DynamicStructuredTool);
-    }
-  }
-
-  // Build middleware
-  const middleware: AgentMiddleware[] = [];
-  for (const [midId, params] of Object.entries(agentConfig.middleware)) {
-    const impl = pkg.middlewares.getImplementation(midId);
-    if (impl && params) {
-      middleware.push(await impl.execute(params.customParams || {}));
-    }
-  }
-
-  // Load prompt
-  const promptConfig = await pkg.getPrompt(agentConfig.systemPromptId);
-  const systemPrompt = promptConfig.content + `\n\n${await getEnvInfo(state)}`;
-
-  // Create agent
-  return createAgent({
-    name: agentConfig.name,
-    model,
-    systemPrompt,
-    tools,
-    stateSchema: CodeState,
-    middleware,
-  });
-}
+```bash
+npm install langchain @langchain/core @langchain/langgraph @langchain/openai @langchain/anthropic @langgraph-js/pro zod
 ```
 
-## References
+### Development Dependencies
 
-For more details on specific components, see:
+```bash
+npm install --save-dev typescript vitest
+```
 
-- `packages/agent/src/state.ts` - State management patterns
-- `packages/agent/src/graphBuilder.ts` - Graph construction examples
-- `packages/agent/src/subagents/factory-v2.ts` - Agent creation with AgentPackage
-- `packages/standard-agent/src/` - AgentPackage system implementation
-- `packages/agent/src/middlewares/` - Middleware examples
-- `packages/agent/src/tools/` - Tool implementations
+## Resources
+
+-   [LangChain TypeScript](https://js.langchain.com/)
+-   [@langgraph-js](https://open-langgraph-server.agent-aura.top/docs/getting-started/overview)
+-   [Middleware Guide](./middleware.md) - Comprehensive middleware patterns
+-   [Standard Agent System](./standard-agent.md) - Configuration-driven agents

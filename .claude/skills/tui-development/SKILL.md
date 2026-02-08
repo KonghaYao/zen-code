@@ -29,13 +29,13 @@ npm install -D vite @vitejs/plugin-react typescript
 
 ### Core Dependencies
 
-- **ink** (^6.6.0) - React renderer for TUI
-- **react** (^19.2.3) - React for components
-- **ink-spinner** (^5.0.0) - Spinner components
-- **ink-pro** (*) - Advanced TUI components (CodeGraph)
-- **vite** (^7.3.1) - Build tool
-- **@vitejs/plugin-react** (^5.1.2) - Vite + React plugin
-- **typescript** - TypeScript support
+-   **ink** (^6.6.0) - React renderer for TUI
+-   **react** (^19.2.3) - React for components
+-   **ink-spinner** (^5.0.0) - Spinner components
+-   **ink-pro** (\*) - Advanced TUI components (CodeGraph)
+-   **vite** (^7.3.1) - Build tool
+-   **@vitejs/plugin-react** (^5.1.2) - Vite + React plugin
+-   **typescript** - TypeScript support
 
 ## ink-pro Components
 
@@ -60,15 +60,16 @@ import { MultiLineTextInput } from 'ink-pro';
     placeholder="Type something..."
     onSubmit={(v) => console.log(v)}
     maxVisibleLines={10}
-/>
+/>;
 ```
 
 **Keyboard shortcuts:**
-- Arrow keys for cursor movement
-- Ctrl/Cmd + ←→ or Alt + ←→ for word navigation
-- Home/End or Ctrl+A/E for line boundaries
-- Ctrl/Cmd + Backspace/Delete for word deletion
-- Enter to submit, Ctrl/Cmd + Enter for newline
+
+-   Arrow keys for cursor movement
+-   Ctrl/Cmd + ←→ or Alt + ←→ for word navigation
+-   Home/End or Ctrl+A/E for line boundaries
+-   Ctrl/Cmd + Backspace/Delete for word deletion
+-   Enter to submit, Ctrl/Cmd + Enter for newline
 
 ### UniversalPanel
 
@@ -83,24 +84,21 @@ import { UniversalPanel } from 'ink-pro';
         title: 'Tasks',
         dataSource: async () => fetchTasks(),
         searchFields: ['title'],
-        filters: [
-            { id: 'pending', label: 'Pending', predicate: (t) => t.status === 'pending' },
-        ],
-        renderItem: (item, index, isSelected) => (
-            <Text color={isSelected ? 'green' : 'white'}>{item.title}</Text>
-        ),
+        filters: [{ id: 'pending', label: 'Pending', predicate: (t) => t.status === 'pending' }],
+        renderItem: (item, index, isSelected) => <Text color={isSelected ? 'green' : 'white'}>{item.title}</Text>,
         onSelect: (item) => console.log(item),
     }}
     onClose={onClose}
-/>
+/>;
 ```
 
 **Keyboard shortcuts:**
-- ↑↓ to navigate
-- Enter to select
-- `/` to enter search mode
-- Tab to cycle filters
-- ESC to close panel
+
+-   ↑↓ to navigate
+-   Enter to select
+-   `/` to enter search mode
+-   Tab to cycle filters
+-   ESC to close panel
 
 ### MultiSelectPro
 
@@ -117,7 +115,7 @@ import { MultiSelectPro } from 'ink-pro';
     values={values}
     onChange={setValues}
     onSubmit={(v) => console.log(v)}
-/>
+/>;
 ```
 
 ### Shimmer
@@ -127,7 +125,7 @@ Animated text highlight effect.
 ```tsx
 import { Shimmer } from 'ink-pro';
 
-<Shimmer text="Loading..." highlightColor="#00FFFF" baseColor="#003333" />
+<Shimmer text="Loading..." highlightColor="#00FFFF" baseColor="#003333" />;
 ```
 
 ### LimitedOutput
@@ -137,12 +135,7 @@ Display last N lines in a bordered box with omitted lines indicator.
 ```tsx
 import { LimitedOutput } from 'ink-pro';
 
-<LimitedOutput
-    content={longText}
-    maxLines={10}
-    borderColor="cyan"
-    showOmittedInfo
-/>
+<LimitedOutput content={longText} maxLines={10} borderColor="cyan" showOmittedInfo />;
 ```
 
 ### Hooks
@@ -267,14 +260,9 @@ import { Box, Text } from 'ink';
 ```tsx
 import { Box, Text } from 'ink';
 
-<Box
-    borderStyle="single"
-    borderColor="cyan"
-    paddingX={1}
-    paddingY={1}
->
+<Box borderStyle="single" borderColor="cyan" paddingX={1} paddingY={1}>
     <Text>Bordered content</Text>
-</Box>
+</Box>;
 ```
 
 ### 3. Input Handling
@@ -291,12 +279,7 @@ const MyInput: React.FC = () => {
     return (
         <Box>
             <Text>Enter text: </Text>
-            <MultiLineTextInput
-                value={value}
-                onChange={setValue}
-                placeholder="Type here..."
-                maxVisibleLines={1}
-            />
+            <MultiLineTextInput value={value} onChange={setValue} placeholder="Type here..." maxVisibleLines={1} />
         </Box>
     );
 };
@@ -348,7 +331,9 @@ const SimpleList: React.FC<{ items: string[] }> = ({ items }) => {
     return (
         <Box flexDirection="column">
             {items.map((item, index) => (
-                <Text key={index}>{index + 1}. {item}</Text>
+                <Text key={index}>
+                    {index + 1}. {item}
+                </Text>
             ))}
         </Box>
     );
@@ -363,10 +348,7 @@ For long lists, implement virtual scrolling to improve performance:
 import { Box, Text } from 'ink';
 import { useState, useMemo } from 'react';
 
-const VirtualList: React.FC<{ items: string[]; visibleCount: number }> = ({
-    items,
-    visibleCount,
-}) => {
+const VirtualList: React.FC<{ items: string[]; visibleCount: number }> = ({ items, visibleCount }) => {
     const [startIndex, setStartIndex] = useState(0);
 
     const visibleItems = useMemo(() => {
@@ -375,13 +357,13 @@ const VirtualList: React.FC<{ items: string[]; visibleCount: number }> = ({
 
     const scrollDown = () => {
         if (startIndex + visibleCount < items.length) {
-            setStartIndex(prev => prev + 1);
+            setStartIndex((prev) => prev + 1);
         }
     };
 
     const scrollUp = () => {
         if (startIndex > 0) {
-            setStartIndex(prev => prev - 1);
+            setStartIndex((prev) => prev - 1);
         }
     };
 
@@ -392,7 +374,9 @@ const VirtualList: React.FC<{ items: string[]; visibleCount: number }> = ({
 
     return (
         <Box flexDirection="column">
-            <Text>Showing {visibleItems.length} of {items.length} items</Text>
+            <Text>
+                Showing {visibleItems.length} of {items.length} items
+            </Text>
             {visibleItems.map((item, index) => (
                 <Text key={startIndex + index}>{item}</Text>
             ))}
@@ -417,7 +401,7 @@ const LogViewer: React.FC = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             const newLog = `Log ${logs.length + 1} at ${new Date().toLocaleTimeString()}`;
-            setLogs(prev => [...prev, currentLog]);
+            setLogs((prev) => [...prev, currentLog]);
             setCurrentLog(newLog);
         }, 2000);
 
@@ -461,14 +445,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
     const toggleTheme = () => {
-        setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+        setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
     };
 
-    return (
-        <AppContext.Provider value={{ theme, toggleTheme }}>
-            {children}
-        </AppContext.Provider>
-    );
+    return <AppContext.Provider value={{ theme, toggleTheme }}>{children}</AppContext.Provider>;
 };
 
 export const useAppState = () => {
@@ -489,11 +469,7 @@ import { Text } from 'ink';
 const ThemedText: React.FC = () => {
     const { theme, toggleTheme } = useAppState();
 
-    return (
-        <Text color={theme === 'light' ? 'black' : 'white'}>
-            Current theme: {theme} (Press any key to toggle)
-        </Text>
-    );
+    return <Text color={theme === 'light' ? 'black' : 'white'}>Current theme: {theme} (Press any key to toggle)</Text>;
 };
 ```
 
@@ -510,7 +486,8 @@ const FocusableItem: React.FC<{ id: string; label: string }> = ({ id, label }) =
 
     return (
         <Text color={isFocused ? 'cyan' : 'gray'}>
-            {isFocused ? '> ' : '  '}{label}
+            {isFocused ? '> ' : '  '}
+            {label}
         </Text>
     );
 };
@@ -538,220 +515,58 @@ const FocusManager: React.FC = () => {
 };
 ```
 
-## Advanced Patterns
-
-### 1. Multi-Line Text Input
-
-For implementing multi-line text input:
-
-```tsx
-import { Box, Text, useFocus } from 'ink';
-import { useState, useCallback, useMemo } from 'react';
-
-const MultiLineInput: React.FC<{ value: string; onChange: (value: string) => void }> = ({
-    value,
-    onChange,
-}) => {
-    const { isFocused } = useFocus({ autoFocus: true });
-    const lines = value.split('\n');
-    const [cursorLine, setCursorLine] = useState(0);
-
-    const handleKeyPress = useCallback((input: string, key: any) => {
-        if (!isFocused) return;
-
-        if (key.return) {
-            const newLines = [...lines];
-            newLines[cursorLine] = newLines[cursorLine].slice(0);
-            newLines.splice(cursorLine + 1, 0, '');
-            onChange(newLines.join('\n'));
-            setCursorLine(cursorLine + 1);
-        }
-
-        if (key.upArrow && cursorLine > 0) {
-            setCursorLine(cursorLine - 1);
-        }
-
-        if (key.downArrow && cursorLine < lines.length - 1) {
-            setCursorLine(cursorLine + 1);
-        }
-    }, [isFocused, lines, cursorLine, onChange]);
-
-    useInput(handleKeyPress);
-
-    return (
-        <Box flexDirection="column">
-            {lines.map((line, index) => (
-                <Text key={index}>
-                    {cursorLine === index && isFocused ? '> ' : '  '}{line}
-                </Text>
-            ))}
-        </Box>
-    );
-};
-```
-
-### 2. Command System Pattern
-
-Registry pattern for managing commands:
-
-```typescript
-// types.ts
-export interface Command {
-    name: string;
-    description: string;
-    execute: (args: string[]) => Promise<void>;
-}
-
-export interface CommandContext {
-    executeCommand: (input: string) => Promise<boolean>;
-}
-```
-
-```typescript
-// registry.ts
-export class CommandRegistry {
-    private commands = new Map<string, Command>();
-
-    register(command: Command): void {
-        this.commands.set(command.name, command);
-    }
-
-    getCommand(name: string): Command | undefined {
-        return this.commands.get(name);
-    }
-
-    async execute(input: string): Promise<boolean> {
-        if (!input.startsWith('/')) return false;
-
-        const [, commandName, ...args] = input.split(' ');
-        const command = this.getCommand(commandName);
-
-        if (command) {
-            await command.execute(args);
-            return true;
-        }
-
-        return false;
-    }
-}
-```
-
-### 3. Progress Indicators
-
-```tsx
-import { Box, Text } from 'ink';
-import Spinner from 'ink-spinner';
-
-const ProgressIndicator: React.FC<{ message: string; isLoading: boolean }> = ({
-    message,
-    isLoading,
-}) => {
-    return (
-        <Box>
-            {isLoading ? (
-                <>
-                    <Text color="green">
-                        <Spinner type="dots" /> Loading...
-                    </Text>
-                </>
-            ) : (
-                <Text color="green">✓ Done</Text>
-            )}
-            <Text> {message}</Text>
-        </Box>
-    );
-};
-```
-
-### 4. Async Data Loading
-
-```tsx
-import { Box, Text } from 'ink';
-import { useState, useEffect } from 'react';
-
-const DataLoader: React.FC<{ fetchData: () => Promise<string[]> }> = ({ fetchData }) => {
-    const [data, setData] = useState<string[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        const load = async () => {
-            try {
-                setLoading(true);
-                const result = await fetchData();
-                setData(result);
-                setError(null);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'Unknown error');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        load();
-    }, [fetchData]);
-
-    if (loading) return <Text>Loading...</Text>;
-    if (error) return <Text color="red">Error: {error}</Text>;
-
-    return (
-        <Box flexDirection="column">
-            {data.map((item, index) => (
-                <Text key={index}>{item}</Text>
-            ))}
-        </Box>
-    );
-};
-```
-
 ## Best Practices
 
 ### 1. Performance
 
-- **Use `Static` for historical content**: Prevent unnecessary re-renders of lists and logs
-- **Implement virtual scrolling**: For long lists, only render visible items
-- **Memoize expensive calculations**: Use `useMemo` and `useCallback`
-- **Debounce user input**: For search/filter operations
-- **Lazy load data**: Load data only when needed
+-   **Use `Static` for historical content**: Prevent unnecessary re-renders of lists and logs
+-   **Implement virtual scrolling**: For long lists, only render visible items
+-   **Memoize expensive calculations**: Use `useMemo` and `useCallback`
+-   **Debounce user input**: For search/filter operations
+-   **Lazy load data**: Load data only when needed
 
 ```tsx
 // Bad: Re-renders on every state change
 const List = ({ items }: { items: string[] }) => (
     <Box flexDirection="column">
-        {items.map(item => <Text>{item}</Text>)}
+        {items.map((item) => (
+            <Text>{item}</Text>
+        ))}
     </Box>
 );
 
 // Good: Memoized
 const List = React.memo(({ items }: { items: string[] }) => (
     <Box flexDirection="column">
-        {items.map((item, index) => <Text key={index}>{item}</Text>)}
+        {items.map((item, index) => (
+            <Text key={index}>{item}</Text>
+        ))}
     </Box>
 ));
 ```
 
 ### 2. User Experience
 
-- **Provide clear feedback**: Show loading states, success messages, and errors
-- **Support keyboard shortcuts**: Common operations should have keyboard shortcuts
-- **Auto-focus input fields**: Guide users to the right place
-- **Show help text**: Display available shortcuts and commands
-- **Handle common key bindings**: Use standard keys like Ctrl+C for exit, Tab for navigation
+-   **Provide clear feedback**: Show loading states, success messages, and errors
+-   **Support keyboard shortcuts**: Common operations should have keyboard shortcuts
+-   **Auto-focus input fields**: Guide users to right place
+-   **Show help text**: Display available shortcuts and commands
+-   **Handle common key bindings**: Use standard keys like Ctrl+C for exit, Tab for navigation
 
 ### 3. Code Organization
 
-- **Separate concerns**: Logic hooks vs UI components
-- **Use TypeScript**: For type safety and better IDE support
-- **Define clear interfaces**: For all components and props
-- **Group related files**: Organize by feature (components/, hooks/, context/)
-- **Export types**: Make them reusable across your application
+-   **Separate concerns**: Logic hooks vs UI components
+-   **Use TypeScript**: For type safety and better IDE support
+-   **Define clear interfaces**: For all components and props
+-   **Group related files**: Organize by feature (components/, hooks/, context/)
+-   **Export types**: Make them reusable across your application
 
 ### 4. Error Handling
 
-- **Validate inputs**: Before processing user input
-- **Show user-friendly errors**: Instead of raw error messages
-- **Implement retry mechanisms**: For failed async operations
-- **Log errors**: For debugging purposes
+-   **Validate inputs**: Before processing user input
+-   **Show user-friendly errors**: Instead of raw error messages
+-   **Implement retry mechanisms**: For failed async operations
+-   **Log errors**: For debugging purposes
 
 ```tsx
 const SafeComponent: React.FC = () => {
@@ -773,10 +588,10 @@ const SafeComponent: React.FC = () => {
 
 ### 5. Accessibility
 
-- **Use clear labels**: For all interactive elements
-- **Provide keyboard navigation**: For all UI elements
-- **Use semantic colors**: Consistent meaning for colors (e.g., red for errors)
-- **Support screen readers**: Use appropriate text representations
+-   **Use clear labels**: For all interactive elements
+-   **Provide keyboard navigation**: For all UI elements
+-   **Use semantic colors**: Consistent meaning for colors (e.g., red for errors)
+-   **Support screen readers**: Use appropriate text representations
 
 ## Common Patterns
 
@@ -805,17 +620,15 @@ const ControlledInput: React.FC = () => {
 ### Pattern 2: Menu System
 
 ```tsx
-const Menu: React.FC<{ items: { label: string; action: () => void }[] }> = ({
-    items,
-}) => {
+const Menu: React.FC<{ items: { label: string; action: () => void }[] }> = ({ items }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
 
     useInput((input, key) => {
         if (key.downArrow) {
-            setSelectedIndex(prev => Math.min(prev + 1, items.length - 1));
+            setSelectedIndex((prev) => Math.min(prev + 1, items.length - 1));
         }
         if (key.upArrow) {
-            setSelectedIndex(prev => Math.max(prev - 1, 0));
+            setSelectedIndex((prev) => Math.max(prev - 1, 0));
         }
         if (key.return) {
             items[selectedIndex].action();
@@ -825,11 +638,9 @@ const Menu: React.FC<{ items: { label: string; action: () => void }[] }> = ({
     return (
         <Box flexDirection="column">
             {items.map((item, index) => (
-                <Text
-                    key={index}
-                    color={index === selectedIndex ? 'cyan' : 'white'}
-                >
-                    {index === selectedIndex ? '> ' : '  '}{item.label}
+                <Text key={index} color={index === selectedIndex ? 'cyan' : 'white'}>
+                    {index === selectedIndex ? '> ' : '  '}
+                    {item.label}
                 </Text>
             ))}
         </Box>
@@ -840,10 +651,7 @@ const Menu: React.FC<{ items: { label: string; action: () => void }[] }> = ({
 ### Pattern 3: Pagination
 
 ```tsx
-const PaginatedList: React.FC<{ items: string[]; pageSize: number }> = ({
-    items,
-    pageSize,
-}) => {
+const PaginatedList: React.FC<{ items: string[]; pageSize: number }> = ({ items, pageSize }) => {
     const [currentPage, setCurrentPage] = useState(0);
     const totalPages = Math.ceil(items.length / pageSize);
 
@@ -852,10 +660,10 @@ const PaginatedList: React.FC<{ items: string[]; pageSize: number }> = ({
 
     useInput((input, key) => {
         if (key.rightArrow && currentPage < totalPages - 1) {
-            setCurrentPage(prev => prev + 1);
+            setCurrentPage((prev) => prev + 1);
         }
         if (key.leftArrow && currentPage > 0) {
-            setCurrentPage(prev => prev - 1);
+            setCurrentPage((prev) => prev - 1);
         }
     });
 
@@ -881,11 +689,7 @@ interface ConfirmationDialogProps {
     onCancel: () => void;
 }
 
-const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
-    message,
-    onConfirm,
-    onCancel,
-}) => {
+const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({ message, onConfirm, onCancel }) => {
     const [choice, setChoice] = useState<'yes' | 'no' | null>(null);
 
     useInput((input, key) => {
@@ -958,7 +762,8 @@ describe('App Integration', () => {
 
 ### Issue: Performance problems with long lists
 
-**Solution:** Implement virtual scrolling or use `Static` for historical items. Or use ink-pro's `UniversalPanel` which has built-in virtual scrolling.
+**Solution:** Implement virtual scrolling or use `Static` for historical items. Or use ink-pro's `UniversalPanel` which
+has built-in virtual scrolling.
 
 ### Issue: Layout looks incorrect
 
@@ -970,8 +775,8 @@ describe('App Integration', () => {
 
 ## Resources
 
-- [Ink.js Documentation](https://github.com/vadimdemedes/ink)
-- [React 19 Documentation](https://react.dev/)
-- [Vite Documentation](https://vitejs.dev/)
-- [Testing Library for Ink](https://github.com/vadimdemedes/ink-testing-library)
-- [ink-pro](../../packages/ink-pro/README.md) - CodeGraph's TUI component library
+-   [Ink.js Documentation](https://github.com/vadimdemedes/ink)
+-   [React 19 Documentation](https://react.dev/)
+-   [Vite Documentation](https://vitejs.dev/)
+-   [Testing Library for Ink](https://github.com/vadimdemedes/ink-testing-library)
+-   [ink-pro](https://www.npmjs.com/package/ink-pro) - CodeGraph's TUI component library
