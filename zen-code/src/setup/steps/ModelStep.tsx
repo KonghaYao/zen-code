@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text, useInput } from 'ink';
 import Spinner from 'ink-spinner';
-import { MultiSelectPro, MultiSelectOption } from '../../chat/components/input/MultiSelect';
+import { MultiSelectPro, MultiSelectOption } from 'ink-pro';
 import { AIProvider } from '../types';
 import { ModelConfig } from '@codegraph/agent/src/utils/get_allowed_models';
 
