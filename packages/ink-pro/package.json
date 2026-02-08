@@ -2,12 +2,35 @@
     "name": "ink-pro",
     "version": "1.0.0",
     "type": "module",
+    "description": "Advanced TUI components library for Ink.js - Production-ready multi-line text input, unified panel system, multi-select dropdowns, and cross-platform keyboard handling for building complex terminal applications with React",
     "main": "src/index.ts",
+    "exports": {
+        ".": {
+            "types": "./src/index.ts",
+            "import": "./src/index.ts"
+        }
+    },
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
-        "test": "vitest"
+        "test": "vitest",
+        "test:coverage": "vitest --coverage"
     },
+    "keywords": [
+        "ink",
+        "tui",
+        "terminal",
+        "cli",
+        "react",
+        "components",
+        "text-input",
+        "multi-line",
+        "panel",
+        "dropdown",
+        "multi-select",
+        "keyboard",
+        "cross-platform"
+    ],
     "peerDependencies": {
         "ink": "^6",
         "react": "^18||^19"
@@ -23,5 +46,16 @@
         "react": "^19",
         "typescript": "^5.9.3",
         "vitest": "^4.0.18"
-    }
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/yourusername/code-graph.git",
+        "directory": "packages/ink-pro"
+    },
+    "bugs": {
+        "url": "https://github.com/yourusername/code-graph/issues"
+    },
+    "homepage": "https://github.com/yourusername/code-graph/tree/main/packages/ink-pro",
+    "author": "",
+    "license": "MIT"
 }
