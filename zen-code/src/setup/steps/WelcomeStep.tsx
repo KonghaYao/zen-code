@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
-import Shimmer from 'ink-pro';
+import { Shimmer } from 'ink-pro';
 
 interface WelcomeStepProps {
     onNext: () => void;

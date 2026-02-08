@@ -5,7 +5,7 @@
 import React from 'react';
 import { Spacer, Text } from 'ink';
 import { UniversalPanel } from 'ink-pro';
-import { SelectItem } from 'ink-pro/src/components/Input/SelectItem';
+import { SelectItem } from 'ink-pro';
 import { PanelConfig } from 'ink-pro';
 import { useSettings } from '@codegraph/union-client';
 import { AgentConfig, loadAgentsList } from '@codegraph/agent/src/subagents/config.js';

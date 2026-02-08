@@ -1,26 +1,188 @@
 ---
 name: tui-development
-description: "Guide for building TUI (Terminal UI) applications using React and Ink.js. Covers fundamental patterns, component architecture, input handling, and best practices for terminal-based interfaces."
+description:
+    'Guide for building TUI (Terminal UI) applications using React and Ink.js. Covers fundamental patterns, component
+    architecture, input handling, and best practices for terminal-based interfaces.'
 ---
 
 # TUI Development with React + Ink.js
 
 ## Overview
 
-This skill provides comprehensive guidance for building modern TUI (Terminal User Interface) applications using React and Ink.js. It covers fundamental patterns, component architecture, input handling, performance optimization, and best practices for creating efficient terminal-based interfaces.
+This skill provides comprehensive guidance for building modern TUI (Terminal User Interface) applications using React
+and Ink.js. It covers fundamental patterns, component architecture, input handling, performance optimization, and best
+practices for creating efficient terminal-based interfaces.
 
 ## Technology Stack
 
-```typescript
-// Core Dependencies
-{
-  "ink": "^6.6.0",              // React renderer for TUI
-  "react": "^19.2.3",           // React for components
-  "@inkjs/ui": "^2.0.0",        // Optional: Pre-built UI components
-  "ink-spinner": "^5.0.0",     // Spinner components
-  "@vitejs/plugin-react": "^5.1.2",  // Vite + React
-  "vite": "^7.3.1"              // Build tool
-}
+### Installation
+
+```bash
+# Using pnpm (recommended)
+pnpm add ink react ink-spinner ink-pro
+pnpm add -D vite @vitejs/plugin-react typescript
+
+# Or using npm
+npm install ink react ink-spinner ink-pro
+npm install -D vite @vitejs/plugin-react typescript
+```
+
+### Core Dependencies
+
+- **ink** (^6.6.0) - React renderer for TUI
+- **react** (^19.2.3) - React for components
+- **ink-spinner** (^5.0.0) - Spinner components
+- **ink-pro** (*) - Advanced TUI components (CodeGraph)
+- **vite** (^7.3.1) - Build tool
+- **@vitejs/plugin-react** (^5.1.2) - Vite + React plugin
+- **typescript** - TypeScript support
+
+## ink-pro Components
+
+ink-pro is a component library built on Ink.js that provides production-ready components for building TUI applications.
+
+### Installation
+
+```bash
+pnpm add ink-pro
+```
+
+### MultiLineTextInput
+
+Multi-line text input with cursor navigation. Handles CJK, emoji, word movement, and virtual scrolling.
+
+```tsx
+import { MultiLineTextInput } from 'ink-pro';
+
+<MultiLineTextInput
+    value={value}
+    onChange={setValue}
+    placeholder="Type something..."
+    onSubmit={(v) => console.log(v)}
+    maxVisibleLines={10}
+/>
+```
+
+**Keyboard shortcuts:**
+- Arrow keys for cursor movement
+- Ctrl/Cmd + ←→ or Alt + ←→ for word navigation
+- Home/End or Ctrl+A/E for line boundaries
+- Ctrl/Cmd + Backspace/Delete for word deletion
+- Enter to submit, Ctrl/Cmd + Enter for newline
+
+### UniversalPanel
+
+List panel with search, filters, and keyboard navigation. Supports virtual scrolling and async data sources.
+
+```tsx
+import { UniversalPanel } from 'ink-pro';
+
+<UniversalPanel
+    config={{
+        id: 'tasks',
+        title: 'Tasks',
+        dataSource: async () => fetchTasks(),
+        searchFields: ['title'],
+        filters: [
+            { id: 'pending', label: 'Pending', predicate: (t) => t.status === 'pending' },
+        ],
+        renderItem: (item, index, isSelected) => (
+            <Text color={isSelected ? 'green' : 'white'}>{item.title}</Text>
+        ),
+        onSelect: (item) => console.log(item),
+    }}
+    onClose={onClose}
+/>
+```
+
+**Keyboard shortcuts:**
+- ↑↓ to navigate
+- Enter to select
+- `/` to enter search mode
+- Tab to cycle filters
+- ESC to close panel
+
+### MultiSelectPro
+
+Multi-select dropdown component.
+
+```tsx
+import { MultiSelectPro } from 'ink-pro';
+
+<MultiSelectPro
+    options={[
+        { label: 'Option 1', value: 'opt1' },
+        { label: 'Option 2', value: 'opt2' },
+    ]}
+    values={values}
+    onChange={setValues}
+    onSubmit={(v) => console.log(v)}
+/>
+```
+
+### Shimmer
+
+Animated text highlight effect.
+
+```tsx
+import { Shimmer } from 'ink-pro';
+
+<Shimmer text="Loading..." highlightColor="#00FFFF" baseColor="#003333" />
+```
+
+### LimitedOutput
+
+Display last N lines in a bordered box with omitted lines indicator.
+
+```tsx
+import { LimitedOutput } from 'ink-pro';
+
+<LimitedOutput
+    content={longText}
+    maxLines={10}
+    borderColor="cyan"
+    showOmittedInfo
+/>
+```
+
+### Hooks
+
+#### useMultiLineInput
+
+Logic hook for multi-line text editing. Manages cursor position, text manipulation, and coordinate conversion.
+
+```tsx
+import { useMultiLineInput } from 'ink-pro';
+
+const { cursor, insertText, deleteChar, moveCursor } = useMultiLineInput(initialValue);
+```
+
+#### Utilities
+
+##### parseKeypress
+
+Parse keyboard events across platforms (macOS/Linux/Windows).
+
+```tsx
+import { parseKeypress } from 'ink-pro';
+
+input.on('keypress', (str, key) => {
+    const result = parseKeypress(key);
+});
+```
+
+##### textInputUtils
+
+Text processing utilities for cursor position, display width, and scrolling calculations.
+
+```tsx
+import { textInputUtils } from 'ink-pro';
+
+// Convert cursor position to line/column
+const { line, column } = textInputUtils.cursorToLineColumn(text, cursorPos);
+
+// Calculate display width (handles CJK, emoji)
+const width = textInputUtils.getDisplayWidth(text);
 ```
 
 ## Core Concepts
@@ -35,11 +197,11 @@ import React from 'react';
 import { render } from 'ink';
 
 const App: React.FC = () => {
-  return (
-    <Box flexDirection="column">
-      <Text>Hello, TUI!</Text>
-    </Box>
-  );
+    return (
+        <Box flexDirection="column">
+            <Text>Hello, TUI!</Text>
+        </Box>
+    );
 };
 
 render(<App />);
@@ -80,23 +242,23 @@ import { Box, Text } from 'ink';
 
 // Vertical layout
 <Box flexDirection="column">
-  <Text>Item 1</Text>
-  <Text>Item 2</Text>
-  <Text>Item 3</Text>
+    <Text>Item 1</Text>
+    <Text>Item 2</Text>
+    <Text>Item 3</Text>
 </Box>
 
 // Horizontal layout
 <Box flexDirection="row">
-  <Text>Left</Text>
-  <Text>Right</Text>
+    <Text>Left</Text>
+    <Text>Right</Text>
 </Box>
 
 // Advanced layout with spacing
 <Box flexDirection="column" padding={2} gap={1}>
-  <Text>Title</Text>
-  <Box paddingLeft={2}>
-    <Text>Indented content</Text>
-  </Box>
+    <Text>Title</Text>
+    <Box paddingLeft={2}>
+        <Text>Indented content</Text>
+    </Box>
 </Box>
 ```
 
@@ -106,12 +268,12 @@ import { Box, Text } from 'ink';
 import { Box, Text } from 'ink';
 
 <Box
-  borderStyle="single"
-  borderColor="cyan"
-  paddingX={1}
-  paddingY={1}
+    borderStyle="single"
+    borderColor="cyan"
+    paddingX={1}
+    paddingY={1}
 >
-  <Text>Bordered content</Text>
+    <Text>Bordered content</Text>
 </Box>
 ```
 
@@ -120,57 +282,58 @@ import { Box, Text } from 'ink';
 #### Basic Text Input
 
 ```tsx
-import { TextInput } from 'ink-text-input';
+import { MultiLineTextInput } from 'ink-pro';
 import { useState } from 'react';
 
 const MyInput: React.FC = () => {
-  const [value, setValue] = useState('');
+    const [value, setValue] = useState('');
 
-  return (
-    <Box>
-      <Text>Enter text: </Text>
-      <TextInput
-        value={value}
-        onChange={setValue}
-        placeholder="Type here..."
-      />
-    </Box>
-  );
+    return (
+        <Box>
+            <Text>Enter text: </Text>
+            <MultiLineTextInput
+                value={value}
+                onChange={setValue}
+                placeholder="Type here..."
+                maxVisibleLines={1}
+            />
+        </Box>
+    );
 };
 ```
 
 #### Keyboard Input Handling
 
 ```tsx
-import { useInput } from 'ink';
+import { useInput } from 'ink-pro';
 import { useState, useEffect } from 'react';
 
 const KeyboardHandler: React.FC = () => {
-  const [keyPressed, setKeyPressed] = useState('');
+    const [keyPressed, setKeyPressed] = useState('');
 
-  useInput((input, key) => {
-    if (key.ctrl && input === 'c') {
-      process.exit();
-    }
+    useInput((input, key) => {
+        if (key.ctrl && input === 'c') {
+            process.exit();
+        }
 
-    if (key.return) {
-      console.log('Enter pressed');
-    }
+        if (key.return) {
+            console.log('Enter pressed');
+        }
 
-    if (key.leftArrow) {
-      setKeyPressed('Left Arrow');
-    }
+        if (key.leftArrow) {
+            setKeyPressed('Left Arrow');
+        }
 
-    if (key.tab) {
-      console.log('Tab pressed');
-    }
+        if (key.tab) {
+            console.log('Tab pressed');
+        }
 
-    if (input) {
-      setKeyPressed(`Key: ${input}`);
-    }
-  });
+        if (input) {
+            setKeyPressed(`Key: ${input}`);
+        }
+    });
 
-  return <Text>Last key: {keyPressed}</Text>;
+    return <Text>Last key: {keyPressed}</Text>;
 };
 ```
 
@@ -182,13 +345,13 @@ const KeyboardHandler: React.FC = () => {
 import { Box, Text } from 'ink';
 
 const SimpleList: React.FC<{ items: string[] }> = ({ items }) => {
-  return (
-    <Box flexDirection="column">
-      {items.map((item, index) => (
-        <Text key={index}>{index + 1}. {item}</Text>
-      ))}
-    </Box>
-  );
+    return (
+        <Box flexDirection="column">
+            {items.map((item, index) => (
+                <Text key={index}>{index + 1}. {item}</Text>
+            ))}
+        </Box>
+    );
 };
 ```
 
@@ -201,42 +364,41 @@ import { Box, Text } from 'ink';
 import { useState, useMemo } from 'react';
 
 const VirtualList: React.FC<{ items: string[]; visibleCount: number }> = ({
-  items,
-  visibleCount,
+    items,
+    visibleCount,
 }) => {
-  const [startIndex, setStartIndex] = useState(0);
+    const [startIndex, setStartIndex] = useState(0);
 
-  // Calculate visible items
-  const visibleItems = useMemo(() => {
-    return items.slice(startIndex, startIndex + visibleCount);
-  }, [items, startIndex, visibleCount]);
+    const visibleItems = useMemo(() => {
+        return items.slice(startIndex, startIndex + visibleCount);
+    }, [items, startIndex, visibleCount]);
 
-  const scrollDown = () => {
-    if (startIndex + visibleCount < items.length) {
-      setStartIndex(prev => prev + 1);
-    }
-  };
+    const scrollDown = () => {
+        if (startIndex + visibleCount < items.length) {
+            setStartIndex(prev => prev + 1);
+        }
+    };
 
-  const scrollUp = () => {
-    if (startIndex > 0) {
-      setStartIndex(prev => prev - 1);
-    }
-  };
+    const scrollUp = () => {
+        if (startIndex > 0) {
+            setStartIndex(prev => prev - 1);
+        }
+    };
 
-  useInput((input, key) => {
-    if (key.downArrow) scrollDown();
-    if (key.upArrow) scrollUp();
-  });
+    useInput((input, key) => {
+        if (key.downArrow) scrollDown();
+        if (key.upArrow) scrollUp();
+    });
 
-  return (
-    <Box flexDirection="column">
-      <Text>Showing {visibleItems.length} of {items.length} items</Text>
-      {visibleItems.map((item, index) => (
-        <Text key={startIndex + index}>{item}</Text>
-      ))}
-      <Text>Use ↑↓ to scroll</Text>
-    </Box>
-  );
+    return (
+        <Box flexDirection="column">
+            <Text>Showing {visibleItems.length} of {items.length} items</Text>
+            {visibleItems.map((item, index) => (
+                <Text key={startIndex + index}>{item}</Text>
+            ))}
+            <Text>Use ↑↓ to scroll</Text>
+        </Box>
+    );
 };
 ```
 
@@ -249,35 +411,34 @@ import { Box, Text, Static } from 'ink';
 import { useState, useEffect } from 'react';
 
 const LogViewer: React.FC = () => {
-  const [logs, setLogs] = useState<string[]>([]);
-  const [currentLog, setCurrentLog] = useState('');
+    const [logs, setLogs] = useState<string[]>([]);
+    const [currentLog, setCurrentLog] = useState('');
 
-  useEffect(() => {
-    // Simulate adding logs
-    const interval = setInterval(() => {
-      const newLog = `Log ${logs.length + 1} at ${new Date().toLocaleTimeString()}`;
-      setLogs(prev => [...prev, currentLog]);
-      setCurrentLog(newLog);
-    }, 2000);
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const newLog = `Log ${logs.length + 1} at ${new Date().toLocaleTimeString()}`;
+            setLogs(prev => [...prev, currentLog]);
+            setCurrentLog(newLog);
+        }, 2000);
 
-    return () => clearInterval(interval);
-  }, [logs, currentLog]);
+        return () => clearInterval(interval);
+    }, [logs, currentLog]);
 
-  return (
-    <Box flexDirection="column">
-      <Box borderStyle="double" padding={1}>
-        <Text>Current: {currentLog}</Text>
-      </Box>
+    return (
+        <Box flexDirection="column">
+            <Box borderStyle="double" padding={1}>
+                <Text>Current: {currentLog}</Text>
+            </Box>
 
-      <Static items={logs}>
-        {(log, index) => (
-          <Text key={index} dimColor>
-            {log}
-          </Text>
-        )}
-      </Static>
-    </Box>
-  );
+            <Static items={logs}>
+                {(log, index) => (
+                    <Text key={index} dimColor>
+                        {log}
+                    </Text>
+                )}
+            </Static>
+        </Box>
+    );
 };
 ```
 
@@ -290,32 +451,32 @@ const LogViewer: React.FC = () => {
 import { createContext, useContext, useState, ReactNode } from 'react';
 
 interface AppState {
-  theme: 'light' | 'dark';
-  toggleTheme: () => void;
+    theme: 'light' | 'dark';
+    toggleTheme: () => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+    const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
-  };
+    const toggleTheme = () => {
+        setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+    };
 
-  return (
-    <AppContext.Provider value={{ theme, toggleTheme }}>
-      {children}
-    </AppContext.Provider>
-  );
+    return (
+        <AppContext.Provider value={{ theme, toggleTheme }}>
+            {children}
+        </AppContext.Provider>
+    );
 };
 
 export const useAppState = () => {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useAppState must be used within AppProvider');
-  }
-  return context;
+    const context = useContext(AppContext);
+    if (!context) {
+        throw new Error('useAppState must be used within AppProvider');
+    }
+    return context;
 };
 ```
 
@@ -326,13 +487,13 @@ import { useAppState } from './context';
 import { Text } from 'ink';
 
 const ThemedText: React.FC = () => {
-  const { theme, toggleTheme } = useAppState();
+    const { theme, toggleTheme } = useAppState();
 
-  return (
-    <Text color={theme === 'light' ? 'black' : 'white'}>
-      Current theme: {theme} (Press any key to toggle)
-    </Text>
-  );
+    return (
+        <Text color={theme === 'light' ? 'black' : 'white'}>
+            Current theme: {theme} (Press any key to toggle)
+        </Text>
+    );
 };
 ```
 
@@ -345,35 +506,35 @@ import { useFocus, useFocusManager, Box, Text } from 'ink';
 import { useEffect } from 'react';
 
 const FocusableItem: React.FC<{ id: string; label: string }> = ({ id, label }) => {
-  const { isFocused } = useFocus({ id });
+    const { isFocused } = useFocus({ id });
 
-  return (
-    <Text color={isFocused ? 'cyan' : 'gray'}>
-      {isFocused ? '> ' : '  '}{label}
-    </Text>
-  );
+    return (
+        <Text color={isFocused ? 'cyan' : 'gray'}>
+            {isFocused ? '> ' : '  '}{label}
+        </Text>
+    );
 };
 
 const FocusManager: React.FC = () => {
-  const focusManager = useFocusManager();
+    const focusManager = useFocusManager();
 
-  useInput((input, key) => {
-    if (key.downArrow) {
-      focusManager.focusNext();
-    }
-    if (key.upArrow) {
-      focusManager.focusPrevious();
-    }
-  });
+    useInput((input, key) => {
+        if (key.downArrow) {
+            focusManager.focusNext();
+        }
+        if (key.upArrow) {
+            focusManager.focusPrevious();
+        }
+    });
 
-  return (
-    <Box flexDirection="column">
-      <FocusableItem id="item1" label="Item 1" />
-      <FocusableItem id="item2" label="Item 2" />
-      <FocusableItem id="item3" label="Item 3" />
-      <Text dimColor>Use ↑↓ to navigate</Text>
-    </Box>
-  );
+    return (
+        <Box flexDirection="column">
+            <FocusableItem id="item1" label="Item 1" />
+            <FocusableItem id="item2" label="Item 2" />
+            <FocusableItem id="item3" label="Item 3" />
+            <Text dimColor>Use ↑↓ to navigate</Text>
+        </Box>
+    );
 };
 ```
 
@@ -388,45 +549,44 @@ import { Box, Text, useFocus } from 'ink';
 import { useState, useCallback, useMemo } from 'react';
 
 const MultiLineInput: React.FC<{ value: string; onChange: (value: string) => void }> = ({
-  value,
-  onChange,
+    value,
+    onChange,
 }) => {
-  const { isFocused } = useFocus({ autoFocus: true });
-  const lines = value.split('\n');
-  const [cursorLine, setCursorLine] = useState(0);
+    const { isFocused } = useFocus({ autoFocus: true });
+    const lines = value.split('\n');
+    const [cursorLine, setCursorLine] = useState(0);
 
-  const handleKeyPress = useCallback((input: string, key: any) => {
-    if (!isFocused) return;
+    const handleKeyPress = useCallback((input: string, key: any) => {
+        if (!isFocused) return;
 
-    if (key.return) {
-      // Insert newline
-      const newLines = [...lines];
-      newLines[cursorLine] = newLines[cursorLine].slice(0); // At cursor
-      newLines.splice(cursorLine + 1, 0, '');
-      onChange(newLines.join('\n'));
-      setCursorLine(cursorLine + 1);
-    }
+        if (key.return) {
+            const newLines = [...lines];
+            newLines[cursorLine] = newLines[cursorLine].slice(0);
+            newLines.splice(cursorLine + 1, 0, '');
+            onChange(newLines.join('\n'));
+            setCursorLine(cursorLine + 1);
+        }
 
-    if (key.upArrow && cursorLine > 0) {
-      setCursorLine(cursorLine - 1);
-    }
+        if (key.upArrow && cursorLine > 0) {
+            setCursorLine(cursorLine - 1);
+        }
 
-    if (key.downArrow && cursorLine < lines.length - 1) {
-      setCursorLine(cursorLine + 1);
-    }
-  }, [isFocused, lines, cursorLine, onChange]);
+        if (key.downArrow && cursorLine < lines.length - 1) {
+            setCursorLine(cursorLine + 1);
+        }
+    }, [isFocused, lines, cursorLine, onChange]);
 
-  useInput(handleKeyPress);
+    useInput(handleKeyPress);
 
-  return (
-    <Box flexDirection="column">
-      {lines.map((line, index) => (
-        <Text key={index}>
-          {cursorLine === index && isFocused ? '> ' : '  '}{line}
-        </Text>
-      ))}
-    </Box>
-  );
+    return (
+        <Box flexDirection="column">
+            {lines.map((line, index) => (
+                <Text key={index}>
+                    {cursorLine === index && isFocused ? '> ' : '  '}{line}
+                </Text>
+            ))}
+        </Box>
+    );
 };
 ```
 
@@ -437,42 +597,42 @@ Registry pattern for managing commands:
 ```typescript
 // types.ts
 export interface Command {
-  name: string;
-  description: string;
-  execute: (args: string[]) => Promise<void>;
+    name: string;
+    description: string;
+    execute: (args: string[]) => Promise<void>;
 }
 
 export interface CommandContext {
-  executeCommand: (input: string) => Promise<boolean>;
+    executeCommand: (input: string) => Promise<boolean>;
 }
 ```
 
 ```typescript
 // registry.ts
 export class CommandRegistry {
-  private commands = new Map<string, Command>();
+    private commands = new Map<string, Command>();
 
-  register(command: Command): void {
-    this.commands.set(command.name, command);
-  }
-
-  getCommand(name: string): Command | undefined {
-    return this.commands.get(name);
-  }
-
-  async execute(input: string): Promise<boolean> {
-    if (!input.startsWith('/')) return false;
-
-    const [, commandName, ...args] = input.split(' ');
-    const command = this.getCommand(commandName);
-
-    if (command) {
-      await command.execute(args);
-      return true;
+    register(command: Command): void {
+        this.commands.set(command.name, command);
     }
 
-    return false;
-  }
+    getCommand(name: string): Command | undefined {
+        return this.commands.get(name);
+    }
+
+    async execute(input: string): Promise<boolean> {
+        if (!input.startsWith('/')) return false;
+
+        const [, commandName, ...args] = input.split(' ');
+        const command = this.getCommand(commandName);
+
+        if (command) {
+            await command.execute(args);
+            return true;
+        }
+
+        return false;
+    }
 }
 ```
 
@@ -483,23 +643,23 @@ import { Box, Text } from 'ink';
 import Spinner from 'ink-spinner';
 
 const ProgressIndicator: React.FC<{ message: string; isLoading: boolean }> = ({
-  message,
-  isLoading,
+    message,
+    isLoading,
 }) => {
-  return (
-    <Box>
-      {isLoading ? (
-        <>
-          <Text color="green">
-            <Spinner type="dots" /> Loading...
-          </Text>
-        </>
-      ) : (
-        <Text color="green">✓ Done</Text>
-      )}
-      <Text> {message}</Text>
-    </Box>
-  );
+    return (
+        <Box>
+            {isLoading ? (
+                <>
+                    <Text color="green">
+                        <Spinner type="dots" /> Loading...
+                    </Text>
+                </>
+            ) : (
+                <Text color="green">✓ Done</Text>
+            )}
+            <Text> {message}</Text>
+        </Box>
+    );
 };
 ```
 
@@ -510,37 +670,37 @@ import { Box, Text } from 'ink';
 import { useState, useEffect } from 'react';
 
 const DataLoader: React.FC<{ fetchData: () => Promise<string[]> }> = ({ fetchData }) => {
-  const [data, setData] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+    const [data, setData] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        const result = await fetchData();
-        setData(result);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
+    useEffect(() => {
+        const load = async () => {
+            try {
+                setLoading(true);
+                const result = await fetchData();
+                setData(result);
+                setError(null);
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Unknown error');
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    load();
-  }, [fetchData]);
+        load();
+    }, [fetchData]);
 
-  if (loading) return <Text>Loading...</Text>;
-  if (error) return <Text color="red">Error: {error}</Text>;
+    if (loading) return <Text>Loading...</Text>;
+    if (error) return <Text color="red">Error: {error}</Text>;
 
-  return (
-    <Box flexDirection="column">
-      {data.map((item, index) => (
-        <Text key={index}>{item}</Text>
-      ))}
-    </Box>
-  );
+    return (
+        <Box flexDirection="column">
+            {data.map((item, index) => (
+                <Text key={index}>{item}</Text>
+            ))}
+        </Box>
+    );
 };
 ```
 
@@ -557,16 +717,16 @@ const DataLoader: React.FC<{ fetchData: () => Promise<string[]> }> = ({ fetchDat
 ```tsx
 // Bad: Re-renders on every state change
 const List = ({ items }: { items: string[] }) => (
-  <Box flexDirection="column">
-    {items.map(item => <Text>{item}</Text>)}
-  </Box>
+    <Box flexDirection="column">
+        {items.map(item => <Text>{item}</Text>)}
+    </Box>
 );
 
 // Good: Memoized
 const List = React.memo(({ items }: { items: string[] }) => (
-  <Box flexDirection="column">
-    {items.map((item, index) => <Text key={index}>{item}</Text>)}
-  </Box>
+    <Box flexDirection="column">
+        {items.map((item, index) => <Text key={index}>{item}</Text>)}
+    </Box>
 ));
 ```
 
@@ -595,20 +755,19 @@ const List = React.memo(({ items }: { items: string[] }) => (
 
 ```tsx
 const SafeComponent: React.FC = () => {
-  const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-  const handleError = (err: unknown) => {
-    const message = err instanceof Error ? err.message : 'An error occurred';
-    setError(message);
-    // Log to console or error tracking service
-    console.error('Component error:', err);
-  };
+    const handleError = (err: unknown) => {
+        const message = err instanceof Error ? err.message : 'An error occurred';
+        setError(message);
+        console.error('Component error:', err);
+    };
 
-  if (error) {
-    return <Text color="red">Error: {error}</Text>;
-  }
+    if (error) {
+        return <Text color="red">Error: {error}</Text>;
+    }
 
-  return <Text>Content</Text>;
+    return <Text>Content</Text>;
 };
 ```
 
@@ -624,19 +783,22 @@ const SafeComponent: React.FC = () => {
 ### Pattern 1: Controlled Components
 
 ```tsx
-const ControlledInput: React.FC = () => {
-  const [value, setValue] = useState('');
+import { MultiLineTextInput } from 'ink-pro';
 
-  return (
-    <Box>
-      <Text>Input: </Text>
-      <TextInput
-        value={value}
-        onChange={setValue}
-        onSubmit={() => console.log('Submitted:', value)}
-      />
-    </Box>
-  );
+const ControlledInput: React.FC = () => {
+    const [value, setValue] = useState('');
+
+    return (
+        <Box>
+            <Text>Input: </Text>
+            <MultiLineTextInput
+                value={value}
+                onChange={setValue}
+                onSubmit={() => console.log('Submitted:', value)}
+                maxVisibleLines={1}
+            />
+        </Box>
+    );
 };
 ```
 
@@ -644,34 +806,34 @@ const ControlledInput: React.FC = () => {
 
 ```tsx
 const Menu: React.FC<{ items: { label: string; action: () => void }[] }> = ({
-  items,
+    items,
 }) => {
-  const [selectedIndex, setSelectedIndex] = useState(0);
+    const [selectedIndex, setSelectedIndex] = useState(0);
 
-  useInput((input, key) => {
-    if (key.downArrow) {
-      setSelectedIndex(prev => Math.min(prev + 1, items.length - 1));
-    }
-    if (key.upArrow) {
-      setSelectedIndex(prev => Math.max(prev - 1, 0));
-    }
-    if (key.return) {
-      items[selectedIndex].action();
-    }
-  });
+    useInput((input, key) => {
+        if (key.downArrow) {
+            setSelectedIndex(prev => Math.min(prev + 1, items.length - 1));
+        }
+        if (key.upArrow) {
+            setSelectedIndex(prev => Math.max(prev - 1, 0));
+        }
+        if (key.return) {
+            items[selectedIndex].action();
+        }
+    });
 
-  return (
-    <Box flexDirection="column">
-      {items.map((item, index) => (
-        <Text
-          key={index}
-          color={index === selectedIndex ? 'cyan' : 'white'}
-        >
-          {index === selectedIndex ? '> ' : '  '}{item.label}
-        </Text>
-      ))}
-    </Box>
-  );
+    return (
+        <Box flexDirection="column">
+            {items.map((item, index) => (
+                <Text
+                    key={index}
+                    color={index === selectedIndex ? 'cyan' : 'white'}
+                >
+                    {index === selectedIndex ? '> ' : '  '}{item.label}
+                </Text>
+            ))}
+        </Box>
+    );
 };
 ```
 
@@ -679,34 +841,34 @@ const Menu: React.FC<{ items: { label: string; action: () => void }[] }> = ({
 
 ```tsx
 const PaginatedList: React.FC<{ items: string[]; pageSize: number }> = ({
-  items,
-  pageSize,
+    items,
+    pageSize,
 }) => {
-  const [currentPage, setCurrentPage] = useState(0);
-  const totalPages = Math.ceil(items.length / pageSize);
+    const [currentPage, setCurrentPage] = useState(0);
+    const totalPages = Math.ceil(items.length / pageSize);
 
-  const startIdx = currentPage * pageSize;
-  const visibleItems = items.slice(startIdx, startIdx + pageSize);
+    const startIdx = currentPage * pageSize;
+    const visibleItems = items.slice(startIdx, startIdx + pageSize);
 
-  useInput((input, key) => {
-    if (key.rightArrow && currentPage < totalPages - 1) {
-      setCurrentPage(prev => prev + 1);
-    }
-    if (key.leftArrow && currentPage > 0) {
-      setCurrentPage(prev => prev - 1);
-    }
-  });
+    useInput((input, key) => {
+        if (key.rightArrow && currentPage < totalPages - 1) {
+            setCurrentPage(prev => prev + 1);
+        }
+        if (key.leftArrow && currentPage > 0) {
+            setCurrentPage(prev => prev - 1);
+        }
+    });
 
-  return (
-    <Box flexDirection="column">
-      {visibleItems.map((item, index) => (
-        <Text key={startIdx + index}>{item}</Text>
-      ))}
-      <Text dimColor>
-        Page {currentPage + 1} of {totalPages}
-      </Text>
-    </Box>
-  );
+    return (
+        <Box flexDirection="column">
+            {visibleItems.map((item, index) => (
+                <Text key={startIdx + index}>{item}</Text>
+            ))}
+            <Text dimColor>
+                Page {currentPage + 1} of {totalPages}
+            </Text>
+        </Box>
+    );
 };
 ```
 
@@ -714,38 +876,38 @@ const PaginatedList: React.FC<{ items: string[]; pageSize: number }> = ({
 
 ```tsx
 interface ConfirmationDialogProps {
-  message: string;
-  onConfirm: () => void;
-  onCancel: () => void;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
 }
 
 const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
-  message,
-  onConfirm,
-  onCancel,
+    message,
+    onConfirm,
+    onCancel,
 }) => {
-  const [choice, setChoice] = useState<'yes' | 'no' | null>(null);
+    const [choice, setChoice] = useState<'yes' | 'no' | null>(null);
 
-  useInput((input, key) => {
-    if (input === 'y' || input === 'Y') {
-      setChoice('yes');
-    }
-    if (input === 'n' || input === 'N') {
-      setChoice('no');
-    }
-  });
+    useInput((input, key) => {
+        if (input === 'y' || input === 'Y') {
+            setChoice('yes');
+        }
+        if (input === 'n' || input === 'N') {
+            setChoice('no');
+        }
+    });
 
-  useEffect(() => {
-    if (choice === 'yes') onConfirm();
-    if (choice === 'no') onCancel();
-  }, [choice, onConfirm, onCancel]);
+    useEffect(() => {
+        if (choice === 'yes') onConfirm();
+        if (choice === 'no') onCancel();
+    }, [choice, onConfirm, onCancel]);
 
-  return (
-    <Box borderStyle="single" padding={1}>
-      <Text>{message}</Text>
-      <Text>Confirm? [Y/n]</Text>
-    </Box>
-  );
+    return (
+        <Box borderStyle="single" padding={1}>
+            <Text>{message}</Text>
+            <Text>Confirm? [Y/n]</Text>
+        </Box>
+    );
 };
 ```
 
@@ -758,16 +920,16 @@ import { render } from '@testing-library/react';
 import { MyComponent } from './MyComponent';
 
 describe('MyComponent', () => {
-  it('renders correctly', () => {
-    const { container } = render(<MyComponent />);
-    expect(container).toBeDefined();
-  });
+    it('renders correctly', () => {
+        const { container } = render(<MyComponent />);
+        expect(container).toBeDefined();
+    });
 
-  it('displays correct text', () => {
-    const { getByText } = render(<MyComponent label="Hello" />);
-    const element = getByText('Hello');
-    expect(element).toBeDefined();
-  });
+    it('displays correct text', () => {
+        const { getByText } = render(<MyComponent label="Hello" />);
+        const element = getByText('Hello');
+        expect(element).toBeDefined();
+    });
 });
 ```
 
@@ -778,10 +940,9 @@ import { render } from '@testing-library/react';
 import { App } from './App';
 
 describe('App Integration', () => {
-  it('handles user input', async () => {
-    const { getByText } = render(<App />);
-    // Test user interactions
-  });
+    it('handles user input', async () => {
+        const { getByText } = render(<App />);
+    });
 });
 ```
 
@@ -797,7 +958,7 @@ describe('App Integration', () => {
 
 ### Issue: Performance problems with long lists
 
-**Solution:** Implement virtual scrolling or use `Static` for historical items.
+**Solution:** Implement virtual scrolling or use `Static` for historical items. Or use ink-pro's `UniversalPanel` which has built-in virtual scrolling.
 
 ### Issue: Layout looks incorrect
 
@@ -812,5 +973,5 @@ describe('App Integration', () => {
 - [Ink.js Documentation](https://github.com/vadimdemedes/ink)
 - [React 19 Documentation](https://react.dev/)
 - [Vite Documentation](https://vitejs.dev/)
-- [Ink Text Input](https://github.com/vadimdemedes/ink-text-input)
 - [Testing Library for Ink](https://github.com/vadimdemedes/ink-testing-library)
+- [ink-pro](../../packages/ink-pro/README.md) - CodeGraph's TUI component library

@@ -1,4 +1,4 @@
-import { Box, Text, useFocusManager, useInput } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import { useState } from 'react';
 import { MultiSelectPro } from 'ink-pro';
 import { EnhancedTextInput } from '../input/EnhancedTextInput';

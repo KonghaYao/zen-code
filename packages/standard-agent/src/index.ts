@@ -12,3 +12,4 @@ export * from './package.js';
 export * from './storage/abstract.js';
 export * from './storage/memory.js';
 export * from './langchain.js';
+export * from './middlewares/index.js';
