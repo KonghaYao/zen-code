@@ -4,9 +4,9 @@
 
 import React from 'react';
 import { Spacer, Text } from 'ink';
-import { UniversalPanel } from './Panel/UniversalPanel';
-import { SelectItem } from './Panel/SelectItem';
-import { PanelConfig, PanelContext } from './Panel/types';
+import { UniversalPanel } from 'ink-pro';
+import { SelectItem } from 'ink-pro';
+import { PanelConfig, PanelContext } from 'ink-pro';
 import { useChat } from '@langgraph-js/sdk/react';
 
 interface HistoryPanelProps {

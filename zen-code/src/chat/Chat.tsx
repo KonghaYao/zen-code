@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Text, useFocusManager } from 'ink';
-import Spinner from 'ink-spinner';
 import { MessagesBox } from './components/MessageBox';
 import { CompactMessagesBox } from './components/CompactMessagesBox';
 import HistoryPanel from './components/HistoryPanel';
@@ -12,14 +11,13 @@ import { useCommandHandler } from './context/CommandHandler';
 import { LangGraphFetch } from '@codegraph/agent/src/export';
 import WelcomeHeader from './components/WelcomeHeader';
 import DefaultTools from './tools/index';
-import Shimmer from './components/Shimmer';
 import { ChatInputBuffer } from './components/input/ChatInputBuffer';
 import { notify } from '../utils/notify';
 import KnowledgePanel from './components/KnowledgePanel';
 import ModelPanel from './components/ModelPanel';
 import AgentPanel from './components/AgentPanel';
 import StatusBar from './components/StatusBar';
-import { useInput } from '../utils/use-input';
+import { useInput } from 'ink-pro';
 import { ApprovalProvider } from '@codegraph/union-client';
 import TaskPanel from './components/TaskPanel';
 
@@ -28,16 +26,12 @@ import { useRalphLoop } from './hooks/useRalphLoop';
 import { get_allowed_models } from '@codegraph/agent/src/utils/get_allowed_models';
 import { configStore } from './store';
 import { TaskNode } from '@codegraph/config';
-import { toFile } from 'openai';
 
-interface ChatMessagesProps {
-
-}
+interface ChatMessagesProps {}
 
 const ChatMessages: React.FC<ChatMessagesProps> = () => {
     const { renderMessages, loading, inChatError, isFELocking } = useChat();
     const { compactMode } = useSettings();
-
 
     const visibleMessages = renderMessages;
 
@@ -45,15 +39,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = () => {
         <Box flexDirection="column" flexGrow={1} paddingX={0} paddingY={0}>
             {visibleMessages.length === 0 && <WelcomeHeader />}
             {compactMode ? (
-                <CompactMessagesBox
-                    renderMessages={visibleMessages}
-                    startIndex={0}
-                />
+                <CompactMessagesBox renderMessages={visibleMessages} startIndex={0} />
             ) : (
-                <MessagesBox
-                    renderMessages={visibleMessages}
-                    startIndex={0}
-                />
+                <MessagesBox renderMessages={visibleMessages} startIndex={0} />
             )}
             {inChatError && (
                 <Box marginTop={0} paddingLeft={1}>
@@ -253,7 +241,7 @@ const Chat: React.FC = () => {
         }
 
         if (task.dependencies && task.dependencies.length > 0) {
-            prompt += `**依赖任务：**\n${task.dependencies.map(id => `- ${id}`).join('\n')}\n\n`;
+            prompt += `**依赖任务：**\n${task.dependencies.map((id) => `- ${id}`).join('\n')}\n\n`;
         }
 
         if (task.acceptanceCriteria && task.acceptanceCriteria.length > 0) {
@@ -266,7 +254,7 @@ const Chat: React.FC = () => {
                 prompt += `\n### 子任务 ${idx + 1}: ${child.title}\n`;
                 prompt += `${child.description}\n`;
                 if (child.acceptanceCriteria && child.acceptanceCriteria.length > 0) {
-                    prompt += `验收标准：\n${child.acceptanceCriteria.map(c => `- ${c}`).join('\n')}\n`;
+                    prompt += `验收标准：\n${child.acceptanceCriteria.map((c) => `- ${c}`).join('\n')}\n`;
                 }
             });
             prompt += '\n';
@@ -298,7 +286,7 @@ const Chat: React.FC = () => {
                 }).then(() => {
                     notify('任务已发送给 Agent');
                 });
-            })
+            });
 
             // 关闭面板并返回聊天界面
             closePanel();

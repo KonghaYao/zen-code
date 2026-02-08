@@ -6,7 +6,7 @@
 import React, { useEffect } from 'react';
 import { Box, Text } from 'ink';
 import { TaskNode } from '@codegraph/config';
-import useInput from '../../utils/use-input';
+import { useInput } from 'ink-pro';
 
 interface TaskPreviewPanelProps {
     task: TaskNode;
@@ -45,7 +45,7 @@ const TaskPreviewPanel: React.FC<TaskPreviewPanelProps> = ({ task, onClose, onEx
             // Backspace/Delete 键：删除任务
             onDelete(task);
         }
-    })
+    });
 
     const statusInfo = task.status ? STATUS_CONFIG[task.status] : STATUS_CONFIG.pickup;
     const canExecute = task.status === 'pickup' || task.status === 'error' || task.status === 'feedback';
@@ -59,12 +59,10 @@ const TaskPreviewPanel: React.FC<TaskPreviewPanelProps> = ({ task, onClose, onEx
                     {statusInfo.emoji} 任务预览
                 </Text>
                 <Box flexGrow={1} />
-                {canExecute && onExecuteTask && (
-                    <Text color="green">Enter 执行</Text>
-                )}
+                {canExecute && onExecuteTask && <Text color="green">Enter 执行</Text>}
                 {onDelete && (
                     <>
-                        {(canExecute && onExecuteTask) && <Text dimColor> | </Text>}
+                        {canExecute && onExecuteTask && <Text dimColor> | </Text>}
                         <Text color="red">Delete 删除</Text>
                     </>
                 )}
@@ -87,7 +85,9 @@ const TaskPreviewPanel: React.FC<TaskPreviewPanelProps> = ({ task, onClose, onEx
                 {complexityInfo && (
                     <>
                         <Text> • </Text>
-                        <Text>{complexityInfo.emoji} {complexityInfo.label}</Text>
+                        <Text>
+                            {complexityInfo.emoji} {complexityInfo.label}
+                        </Text>
                     </>
                 )}
                 {task.estimatedTime && (
@@ -100,7 +100,9 @@ const TaskPreviewPanel: React.FC<TaskPreviewPanelProps> = ({ task, onClose, onEx
 
             {/* 任务描述 */}
             <Box marginBottom={1} flexDirection="column">
-                <Text color="gray" bold>描述:</Text>
+                <Text color="gray" bold>
+                    描述:
+                </Text>
                 <Text>{task.description}</Text>
             </Box>
 
@@ -135,7 +137,9 @@ const TaskPreviewPanel: React.FC<TaskPreviewPanelProps> = ({ task, onClose, onEx
             {/* 依赖任务 */}
             {task.dependencies && task.dependencies.length > 0 && (
                 <Box marginBottom={1} flexDirection="column">
-                    <Text color="gray" bold>依赖任务:</Text>
+                    <Text color="gray" bold>
+                        依赖任务:
+                    </Text>
                     <Text dimColor>{task.dependencies.join(', ')}</Text>
                 </Box>
             )}
@@ -143,7 +147,9 @@ const TaskPreviewPanel: React.FC<TaskPreviewPanelProps> = ({ task, onClose, onEx
             {/* 验收标准 */}
             {task.acceptanceCriteria && task.acceptanceCriteria.length > 0 && (
                 <Box marginBottom={1} flexDirection="column">
-                    <Text color="gray" bold>验收标准:</Text>
+                    <Text color="gray" bold>
+                        验收标准:
+                    </Text>
                     {task.acceptanceCriteria.map((c, i) => (
                         <Text key={i} dimColor>
                             {i + 1}. {c}
@@ -174,7 +180,9 @@ const TaskPreviewPanel: React.FC<TaskPreviewPanelProps> = ({ task, onClose, onEx
             {/* 错误信息 */}
             {task.status === 'error' && task.error && (
                 <Box marginTop={1} flexDirection="column" borderStyle="single" paddingX={1}>
-                    <Text color="red" bold>错误:</Text>
+                    <Text color="red" bold>
+                        错误:
+                    </Text>
                     <Text color="red">{task.error.message}</Text>
                 </Box>
             )}

@@ -48,6 +48,7 @@
     "devDependencies": {
         "@codegraph/agent": "workspace:*",
         "@codegraph/config": "workspace:*",
+        "ink-pro": "workspace:*",
         "@codegraph/union-client": "workspace:*",
         "@inkjs/ui": "^2.0.0",
         "@langchain/mcp-adapters": "^1.1.1",
