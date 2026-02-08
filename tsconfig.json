@@ -21,6 +21,12 @@
         "skipLibCheck": true,
         "strict": true
     },
-    "include": ["zen-code/", "agents/", "packages/agent/src/initChatModel.ts", "zen-code/src/chat/store/index.ts"],
+    "include": [
+        "zen-code/",
+        "agents/",
+        "packages/agent/src/initChatModel.ts",
+        "zen-code/src/chat/store/index.ts",
+        "packages/ink-pro/src/components/Input/SelectItem.tsx"
+    ],
     "exclude": ["node_modules/", "dist"]
 }
