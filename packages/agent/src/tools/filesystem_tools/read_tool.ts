@@ -1,4 +1,4 @@
-import { tool } from '@langchain/core/tools';
+import { tool } from 'langchain';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
 

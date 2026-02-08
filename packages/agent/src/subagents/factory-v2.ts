@@ -9,7 +9,7 @@ import { initChatModel } from '../utils/initChatModel.js';
 import { AgentMiddleware, createAgent, DynamicStructuredTool, Runtime, Tool, tool } from 'langchain';
 import { CodeState, CodeStateType } from '../state.js';
 import { ask_user_with_options_config, humanInTheLoopMiddleware } from '@langgraph-js/auk';
-import { anthropicPromptCachingMiddleware } from '../middlewares/anthropicCache.js';
+import { anthropicPromptCachingMiddleware } from '@langgraph-js/standard-agent';
 import { CommandSystemMiddleware } from '../middlewares/commandSystem.js';
 import { glob_tool, read_tool } from '../tools/filesystem_tools/index.js';
 import { getEnvInfo } from '../prompts/coding.js';

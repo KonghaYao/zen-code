@@ -36,7 +36,7 @@ export async function createMiddlewareRegistry(pkg: AgentPackage) {
         description: 'Progressive skills disclosure',
         execute: async (context: { skillsDir?: string; assistantId?: string; projectSkillsDir?: string }) => {
             context.projectSkillsDir = context.projectSkillsDir || './.claude/skills';
-            const { SkillsMiddleware } = await import('../middlewares/skills.js');
+            const { SkillsMiddleware } = await import('@langgraph-js/standard-agent');
             return new SkillsMiddleware(context);
         },
     };
@@ -48,7 +48,7 @@ export async function createMiddlewareRegistry(pkg: AgentPackage) {
         name: 'agents_md',
         description: 'Inject agent documentation',
         execute: async (context: { projectRoot?: string }) => {
-            const { AgentsMdMiddleware } = await import('../middlewares/agentsMD.js');
+            const { AgentsMdMiddleware } = await import('@langgraph-js/standard-agent');
             return new AgentsMdMiddleware({ projectRoot: context?.projectRoot });
         },
     };
