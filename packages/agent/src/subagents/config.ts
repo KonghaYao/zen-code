@@ -25,7 +25,7 @@ export interface AgentConfig {
  * Returns a map of agent ID to configuration
  *
  * Note: Subagent prompts are now injected via SkillsMiddleware
- * from agents/code/skills/subagents.ts
+ * from .claude/skills/{agent-name}/SKILL.md
  *
  * Future extensions:
  * - Load from ~/.zen-code/settings.json
@@ -46,6 +46,26 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
                 memories: true,
                 mcp: true,
                 subagents: true,
+            },
+        },
+        architect: {
+            id: 'architect',
+            name: 'Architect',
+            description: '高维度架构师角色，专注于系统设计、技术选型、架构决策和全局视角分析',
+
+            // System prompt 由 SkillsMiddleware 从 .claude/skills/architect/SKILL.md 注入
+            systemPrompt: '',
+
+            // 架构师只使用只读工具，不修改代码
+            tools: ['glob_files', 'search-files-rg', 'read_file', 'ask_user_with_options'],
+
+            // 只启用基础中间件，不启用 MCP 和 subagents
+            middleware: {
+                agents_md: true,
+                skills: true,
+                memories: true,
+                mcp: false,
+                subagents: false,
             },
         },
     };

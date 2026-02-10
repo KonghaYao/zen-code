@@ -1,6 +1,8 @@
-import { AgentMiddleware, AIMessage, HumanMessage, ReactAgent, SystemMessage } from 'langchain';
-import { ask_subagents, SubAgentStateSchema } from '../ask_agents';
+import { AgentMiddleware, AIMessage, ReactAgent, SystemMessage } from 'langchain';
+import { create_task_tool, SubAgentStateSchema } from '../tools/task_tools/create_task_tool';
 import { ClientTool, ServerTool } from '@langchain/core/tools';
+import { AgentPackage } from '@langgraph-js/standard-agent';
+import { createStandardAgentV2 } from '../subagents/factory-v2';
 
 // SubAgents System Documentation
 const SUBAGENTS_SYSTEM_PROMPT = `
@@ -54,60 +56,37 @@ export class SubAgentsMiddleware implements AgentMiddleware {
     stateSchema = SubAgentStateSchema;
     contextSchema = undefined;
     tools: (ClientTool | ServerTool)[] = [];
-
-    constructor() {
+    agentList = Promise.resolve('');
+    constructor(pkg: AgentPackage) {
+        this.agentList = this.formatSubAgentsList(pkg);
         this.tools.push(
-            ask_subagents(
+            create_task_tool(
                 async (taskId, args, state) => {
-                    return await this.selectSubAgent(taskId, args, state);
+                    return await createStandardAgentV2('agents/default', pkg, state, {}, { subagent_id: taskId });
                 },
                 { name: 'ask_subagents', description: 'ask subagents to help you' },
             ),
         );
     }
 
-    subAgents = new Map<string, SubAgentCreator>();
-
-    addSubAgents(name: string, creator: SubAgentCreator) {
-        this.subAgents.set(name, creator);
-    }
-
     /**
      * Format subagents metadata for display in system prompt.
      */
-    private formatSubAgentsList(): string {
-        if (this.subAgents.size === 0) {
-            return '(No subagents available yet. You can add subagents using the addSubAgents method)';
-        }
-
+    private async formatSubAgentsList(pkg: AgentPackage) {
         const lines: string[] = [];
 
-        for (const [name, creator] of this.subAgents) {
+        for (const agent of await pkg.listAgents()) {
             // Try to extract description from creator function or use generic
-            lines.push(`- **${name}**: Subagent for specialized tasks`);
-            lines.push(`  → Use ask_subagents with subagent_id: "${name}"`);
+            lines.push(`- **${agent.id}**: ${agent.description}`);
+            lines.push(`  → Use ask_subagents with subagent_id: "${agent.id}"`);
         }
 
         return lines.join('\n');
     }
 
-    async selectSubAgent(
-        taskId: string,
-        args: {
-            subagent_id: string;
-            task_description: string;
-            task_id?: string | undefined;
-            data_transfer?: any;
-        },
-        state: any,
-    ): Promise<ReactAgent> {
-        state.messages.push(new HumanMessage(args.task_description));
-        return this.subAgents.get(args.subagent_id)!(taskId, args, state);
-    }
-
     async wrapModelCall(request: any, handler: any): Promise<AIMessage> {
         // Format subagents documentation
-        const subagentsList = this.formatSubAgentsList();
+        const subagentsList = await this.agentList;
 
         const subagentsSection = SUBAGENTS_SYSTEM_PROMPT.replace('{subagents_list}', subagentsList);
 
@@ -136,7 +115,7 @@ export class SubAgentsMiddleware implements AgentMiddleware {
 export type SubAgentCreator = (
     taskId: string,
     args: {
-        subagent_id: string;
+        subagent_type: string;
         task_description: string;
         task_id?: string | undefined;
         data_transfer?: any;

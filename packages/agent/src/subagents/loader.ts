@@ -13,6 +13,7 @@ import { AgentPackage, MemoryStorage, AgentSchema } from '@langgraph-js/standard
 import { z } from 'zod';
 import { createToolRegistry } from './tools.js';
 import { createMiddlewareRegistry } from './middlewares.js';
+import { architectPrompt } from '../prompts/architect.js';
 
 export interface SubAgentConfig extends z.infer<typeof AgentSchema> {}
 
@@ -55,7 +56,32 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
     await pkg.addAgent({
         id: 'agents/default',
         name: 'Jarvis',
-        description: '全功能代码助手',
+        description: '代码实现助手',
+        system_prompt: 'prompts/default',
+        model: 'glm-4.7',
+        tools: {
+            read_file: true,
+            write_file: true,
+            edit_file: true,
+            glob_files: true,
+            'search-files-rg': true,
+            folder_operations: true,
+            terminal: true,
+            ask_user_with_options: true,
+            TodoWrite: true,
+        },
+        middleware: {
+            agents_md: true,
+            skills: true,
+            memories: true,
+            subagents: true,
+        },
+    });
+    // Default SubAgents
+    await pkg.addAgent({
+        id: 'agents/manager',
+        name: 'Manager',
+        description: '任务管理员',
         system_prompt: 'prompts/default',
         model: 'glm-4.7',
         tools: {

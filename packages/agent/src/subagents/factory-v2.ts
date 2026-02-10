@@ -13,7 +13,6 @@ import { anthropicPromptCachingMiddleware } from '@langgraph-js/standard-agent';
 import { CommandSystemMiddleware } from '../middlewares/commandSystem.js';
 import { glob_tool, read_tool } from '../tools/filesystem_tools/index.js';
 import { getEnvInfo } from '../prompts/coding.js';
-import { add_task_tool, commit_task_tool } from '../tools/task_tools/index.js';
 import { MCPManager } from '../mcp/MCPManager.js';
 import { AgentPackage } from '@langgraph-js/standard-agent';
 
@@ -39,6 +38,7 @@ export async function createStandardAgentV2(
     pkg: AgentPackage,
     state: CodeStateType,
     runtime: Runtime,
+    options?: { subagent_id?: string },
 ) {
     // Load agent configuration
     const agentConfig = await pkg.getAgent(agentId);
@@ -60,6 +60,10 @@ export async function createStandardAgentV2(
         modelProvider: process.env.MODEL_PROVIDER,
         streamUsage: true,
         enableThinking: state.enable_thinking,
+        metadata: {
+            // message 通过这个 id 判断是否为子调用
+            subagent_id: options?.subagent_id,
+        },
     });
 
     // Filter tools based on agent configuration
@@ -86,13 +90,6 @@ export async function createStandardAgentV2(
                 },
             ) as any as DynamicStructuredTool,
         );
-    }
-
-    // Add task tools based on state
-    if (state.is_in_task) {
-        tools.push(commit_task_tool);
-    } else {
-        tools.push(add_task_tool);
     }
 
     // Build middleware chain
@@ -133,7 +130,7 @@ export async function createStandardAgentV2(
     );
 
     // Anthropic prompt caching (if using Anthropic)
-    if (process.env.MODEL_PROVIDER) {
+    if (process.env.MODEL_PROVIDER === 'anthropic') {
         middleware.push(anthropicPromptCachingMiddleware());
     }
 
@@ -144,10 +141,9 @@ export async function createStandardAgentV2(
     }
 
     const systemPrompt = promptConfig.content + `\n\n${await getEnvInfo(state)}`;
-
     // Create agent
     return createAgent({
-        name: agentConfig.name,
+        name: options?.subagent_id ? `subagent_${options.subagent_id}` : agentConfig.name,
         model,
         systemPrompt,
         tools,

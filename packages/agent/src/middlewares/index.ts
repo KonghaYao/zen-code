@@ -5,5 +5,4 @@
  */
 
 export { MemoriesMiddleware } from './memories.js';
-export { SubAgentsMiddleware } from './subagents.js';
 export { CommandSystemMiddleware } from './commandSystem.js';

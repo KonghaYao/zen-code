@@ -7,7 +7,7 @@ import { Spacer, Text } from 'ink';
 import { UniversalPanel } from 'ink-pro';
 import { SelectItem } from 'ink-pro';
 import { PanelConfig } from 'ink-pro';
-import { useSettings } from '@codegraph/union-client';
+import { useSettings } from '../context/SettingsContext';
 import type { ModelConfig } from '@codegraph/agent/src/utils/get_allowed_models';
 
 interface ModelPanelProps {
@@ -57,7 +57,7 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
         renderItem: (model: any, index, isSelected) => {
             const isCurrent = model.id === extraParams.main_model;
             return (
-                <SelectItem key={model.id} isSelected={isSelected} isCurrent={isCurrent}>
+                <SelectItem key={model.id + model.provider} isSelected={isSelected} isCurrent={isCurrent}>
                     <Text bold>
                         {index + 1}. {model.id}
                     </Text>

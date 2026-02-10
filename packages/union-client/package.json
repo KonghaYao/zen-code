@@ -18,6 +18,10 @@
         "./utils": {
             "import": "./src/utils/index.ts",
             "types": "./src/utils/index.ts"
+        },
+        "./context": {
+            "import": "./src/context/index.ts",
+            "types": "./src/context/index.ts"
         }
     },
     "scripts": {

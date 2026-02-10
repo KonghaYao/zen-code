@@ -10,8 +10,8 @@ export async function createMiddlewareRegistry(pkg: AgentPackage) {
         name: 'subagents',
         description: 'Task delegation to specialized agents',
         execute: async () => {
-            const { SubAgentsMiddleware } = await import('../middlewares/subagents.js');
-            return new SubAgentsMiddleware();
+            const { SubAgentsMiddleware } = await import('../middlewares/subTasks.js');
+            return new SubAgentsMiddleware(pkg);
         },
     };
     await pkg.addMiddleware(subagents);

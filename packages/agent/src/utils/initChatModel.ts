@@ -10,12 +10,10 @@ export interface InitChatModelOptions {
     modelProvider?: string;
     streamUsage?: boolean;
     enableThinking?: boolean;
+    metadata?: Record<string, unknown>;
 }
 
-export const initChatModel = async (
-    mainModel: string,
-    options: InitChatModelOptions = {}
-) => {
+export const initChatModel = async (mainModel: string, options: InitChatModelOptions = {}) => {
     const { modelProvider, enableThinking = true } = options;
     let model;
 
@@ -28,10 +26,11 @@ export const initChatModel = async (
             maxTokens: 64000,
             thinking: enableThinking
                 ? {
-                    budget_tokens: 1024,
-                    type: 'enabled',
-                }
+                      budget_tokens: 1024,
+                      type: 'enabled',
+                  }
                 : undefined,
+            metadata: options.metadata,
         });
     } else {
         model = new ChatOpenAI({
@@ -40,11 +39,12 @@ export const initChatModel = async (
             maxRetries: 1,
             modelKwargs: enableThinking
                 ? {
-                    thinking: {
-                        type: 'enabled',
-                    },
-                }
+                      thinking: {
+                          type: 'enabled',
+                      },
+                  }
                 : undefined,
+            metadata: options.metadata,
         });
     }
 
