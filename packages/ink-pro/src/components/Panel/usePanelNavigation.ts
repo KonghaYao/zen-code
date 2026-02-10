@@ -2,7 +2,7 @@
  * 统一面板系统 - 导航 Hook
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useInput } from '../../utils';
 import type { PanelContext, PanelKeyMap } from './types';
 
@@ -46,20 +46,33 @@ export function usePanelNavigation<T>(options: UsePanelNavigationOptions<T>): Us
     const [selectedIndex, setSelectedIndex] = useState(initialIndex);
     const [searchMode, setSearchMode] = useState(false);
 
-    // 构建面板上下文 (传递给自定义快捷键)
+    // 使用 ref 存储可变函数，避免在 buildContext 中依赖它们造成循环
+    const setSelectedIndexRef = useRef(setSelectedIndex);
+    const onCloseRef = useRef(onClose);
+
+    // 同步 ref
+    useEffect(() => {
+        setSelectedIndexRef.current = setSelectedIndex;
+    }, [setSelectedIndex]);
+
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    }, [onClose]);
+
+    // 构建面板上下文 (传递给自定义快捷键) - 优化：使用 ref 避免依赖循环
     const buildContext = useCallback((): PanelContext<T> => {
         return {
             items,
             filteredItems,
             selectedIndex,
-            setSelectedIndex,
+            setSelectedIndex: setSelectedIndexRef.current,
             searchTerm: '',
             setSearchTerm: () => {},
             activeFilter: 'all',
             setActiveFilter: () => {},
-            onClose: onClose || (() => {}),
+            onClose: onCloseRef.current || (() => {}),
         };
-    }, [items, filteredItems, selectedIndex, setSelectedIndex, onClose]);
+    }, [items, filteredItems, selectedIndex]);
 
     useInput((input, key) => {
         // 搜索模式优先处理

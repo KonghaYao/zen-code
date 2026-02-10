@@ -2,7 +2,7 @@
  * History 面板 - 使用统一面板系统重构
  */
 
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Spacer, Text } from 'ink';
 import { UniversalPanel } from 'ink-pro';
 import { SelectItem } from 'ink-pro';
@@ -16,10 +16,10 @@ interface HistoryPanelProps {
 const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
     const { historyList, currentChatId, refreshHistoryList, toHistoryChat, createNewChat } = useChat();
 
-    // 格式化时间辅助函数
+    // 格式化时间辅助函数 - 提取到组件外部避免重复创建
     const formatTime = (date: Date) => date.toLocaleTimeString();
 
-    // 获取状态信息的辅助函数
+    // 获取状态信息的辅助函数 - 提取到组件外部
     const getStatusInfo = (status: string) => {
         switch (status) {
             case 'idle':
@@ -35,47 +35,15 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
         }
     };
 
-    const panelConfig: PanelConfig = {
-        id: 'history',
-        title: '历史记录',
-        icon: '📜',
+    // 修复：使用 useCallback 保持函数引用稳定
+    const dataSource = useCallback(async () => {
+        await refreshHistoryList();
+        return historyList;
+    }, [refreshHistoryList, historyList]);
 
-        dataSource: async () => {
-            await refreshHistoryList();
-            return historyList;
-        },
-
-        // 搜索配置
-        searchable: true,
-        searchFields: ['thread_id'],
-        searchPlaceholder: '搜索对话 ID...',
-
-        // 过滤配置
-        filterable: true,
-        filters: [
-            {
-                id: 'idle',
-                label: '空闲',
-                predicate: (thread: any) => thread.status === 'idle',
-            },
-            {
-                id: 'busy',
-                label: '忙碌',
-                predicate: (thread: any) => thread.status === 'busy',
-            },
-            {
-                id: 'error',
-                label: '错误',
-                predicate: (thread: any) => thread.status === 'error',
-            },
-        ],
-        defaultFilter: 'all',
-
-        // 渲染配置
-        itemHeight: 1,
-        visibleCount: 10,
-
-        renderItem: (thread: any, index, isSelected) => {
+    // 修复：使用 useCallback 保持 renderItem 引用稳定
+    const renderItem = useCallback(
+        (thread: any, index: number, isSelected: boolean) => {
             const statusInfo = getStatusInfo(thread.status);
             const isCurrent = thread.thread_id === currentChatId;
             const updatedTime = formatTime(new Date(thread.updated_at));
@@ -90,10 +58,20 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
                 </SelectItem>
             );
         },
+        [currentChatId],
+    );
 
-        isSelected: (thread: any) => thread.thread_id === currentChatId,
+    // 修复：使用 useCallback 保持 isSelected 引用稳定
+    const isSelected = useCallback(
+        (thread: any) => {
+            return thread.thread_id === currentChatId;
+        },
+        [currentChatId],
+    );
 
-        onSelect: async (thread: any) => {
+    // 修复：使用 useCallback 保持 onSelect 引用稳定
+    const handleSelect = useCallback(
+        async (thread: any) => {
             if (thread.value === 'new_chat') {
                 createNewChat();
             } else {
@@ -101,15 +79,85 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
             }
             onClose();
         },
+        [createNewChat, toHistoryChat, onClose],
+    );
 
-        showCount: true,
+    // 修复：使用 useCallback 保持 statusInfo 引用稳定
+    const statusInfoCallback = useCallback(
+        (items: any[]) => {
+            const current = items.find((t: any) => t.thread_id === currentChatId);
+            return current ? (
+                <Text color="gray" dimColor>
+                    当前: <Text color="green">{current.thread_id.substring(0, 8)}</Text>
+                </Text>
+            ) : null;
+        },
+        [currentChatId],
+    );
 
-        keyMap: {
+    // 修复：使用 useCallback 保持 keyMap 引用稳定
+    const keyMap = useMemo(
+        () => ({
             r: async (context: PanelContext<any>) => {
                 await refreshHistoryList();
             },
-        },
-    };
+        }),
+        [refreshHistoryList],
+    );
+
+    // 修复：使用 useMemo 缓存 panelConfig
+    const panelConfig: PanelConfig = useMemo(
+        () => ({
+            id: 'history',
+            title: '历史记录',
+            icon: '📜',
+
+            dataSource: dataSource,
+
+            // 搜索配置
+            searchable: true,
+            searchFields: ['thread_id'],
+            searchPlaceholder: '搜索对话 ID...',
+
+            // 过滤配置
+            filterable: true,
+            filters: [
+                {
+                    id: 'idle',
+                    label: '空闲',
+                    predicate: (thread: any) => thread.status === 'idle',
+                },
+                {
+                    id: 'busy',
+                    label: '忙碌',
+                    predicate: (thread: any) => thread.status === 'busy',
+                },
+                {
+                    id: 'error',
+                    label: '错误',
+                    predicate: (thread: any) => thread.status === 'error',
+                },
+            ],
+            defaultFilter: 'all',
+
+            // 渲染配置
+            itemHeight: 1,
+            visibleCount: 10,
+
+            renderItem: renderItem,
+
+            isSelected: isSelected,
+
+            onSelect: handleSelect,
+
+            showCount: true,
+
+            statusInfo: statusInfoCallback,
+
+            keyMap: keyMap,
+        }),
+        [dataSource, renderItem, isSelected, handleSelect, statusInfoCallback, keyMap],
+    );
 
     return <UniversalPanel config={panelConfig} onClose={onClose} />;
 };

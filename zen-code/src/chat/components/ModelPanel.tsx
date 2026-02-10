@@ -2,7 +2,7 @@
  * Model 面板 - 使用 Tab 系统重构
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Box, Text } from 'ink';
 import { useInput } from 'ink';
 import { UniversalPanel } from 'ink-pro';
@@ -166,25 +166,14 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
         }
     });
 
-    const panelConfig: PanelConfig<ModelConfig> = {
-        id: 'model',
-        title: `模型选择 - ${providerTabs.find((t) => t.id === activeTab)?.label || '加载中...'}`,
-        icon: providerTabs.find((t) => t.id === activeTab)?.icon || '🔮',
+    // 修复：使用 useCallback 保持函数引用稳定
+    const dataSource = useCallback(async () => {
+        return models;
+    }, [models]);
 
-        dataSource: async () => {
-            return models;
-        },
-
-        // 搜索配置
-        searchable: true,
-        searchFields: ['id', 'name'],
-        searchPlaceholder: '搜索模型...',
-
-        // 渲染配置
-        itemHeight: 1,
-        visibleCount: 10,
-
-        renderItem: (model: any, index, isSelected) => {
+    // 修复：使用 useCallback 保持 renderItem 引用稳定
+    const renderItem = useCallback(
+        (model: any, index: number, isSelected: boolean) => {
             const isCurrent = model.id === extraParams.model_id && model.provider === extraParams.provider_id;
             return (
                 <SelectItem key={model.id} isSelected={isSelected} isCurrent={isCurrent}>
@@ -195,12 +184,20 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
                 </SelectItem>
             );
         },
+        [extraParams.model_id, extraParams.provider_id],
+    );
 
-        isSelected: (model: any) => {
+    // 修复：使用 useCallback 保持 isSelected 引用稳定
+    const isSelected = useCallback(
+        (model: any) => {
             return model.id === extraParams.model_id && model.provider === extraParams.provider_id;
         },
+        [extraParams.model_id, extraParams.provider_id],
+    );
 
-        onSelect: async (model: any) => {
+    // 修复：使用 useCallback 保持 onSelect 引用稳定
+    const handleSelectModel = useCallback(
+        async (model: any) => {
             await updateConfig({
                 provider_id: activeTab,
                 provider_type: model.provider,
@@ -208,10 +205,12 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
             });
             onClose();
         },
+        [updateConfig, activeTab, onClose],
+    );
 
-        showCount: true,
-
-        statusInfo: (items) => {
+    // 修复：使用 useCallback 保持 statusInfo 引用稳定
+    const statusInfo = useCallback(
+        (items: any[]) => {
             const current = items.find(
                 (m: any) => m.id === extraParams.model_id && m.provider === extraParams.provider_id,
             );
@@ -221,7 +220,39 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
                 </Text>
             ) : null;
         },
-    };
+        [extraParams.model_id, extraParams.provider_id],
+    );
+
+    // 修复：使用 useMemo 缓存 panelConfig，避免每次渲染创建新对象
+    const panelConfig: PanelConfig<ModelConfig> = useMemo(() => {
+        const activeProviderTab = providerTabs.find((t) => t.id === activeTab);
+        return {
+            id: 'model',
+            title: `模型选择 - ${activeProviderTab?.label || '加载中...'}`,
+            icon: activeProviderTab?.icon || '🔮',
+
+            dataSource: dataSource,
+
+            // 搜索配置
+            searchable: true,
+            searchFields: ['id', 'name'],
+            searchPlaceholder: '搜索模型...',
+
+            // 渲染配置
+            itemHeight: 1,
+            visibleCount: 10,
+
+            renderItem: renderItem,
+
+            isSelected: isSelected,
+
+            onSelect: handleSelectModel,
+
+            showCount: true,
+
+            statusInfo: statusInfo,
+        };
+    }, [activeTab, providerTabs, dataSource, renderItem, isSelected, handleSelectModel, statusInfo]);
 
     // 如果没有配置任何 provider
     if (providerTabs.length === 0) {

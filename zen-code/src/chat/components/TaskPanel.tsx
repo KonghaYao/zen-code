@@ -3,7 +3,7 @@
  * 展示任务列表，支持状态过滤和任务执行
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import { Box, Text, Spacer } from 'ink';
 import { UniversalPanel } from 'ink-pro';
 import { SelectItem } from 'ink-pro';
@@ -35,9 +35,21 @@ const COMPLEXITY_CONFIG = {
 const TaskPanel: React.FC<TaskPanelProps> = ({ onClose, onExecuteTask }) => {
     // 预览任务状态
     const [previewTask, setPreviewTask] = useState<TaskNode | null>(null);
-    // 触发刷新标记
-    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+    // 使用 ref 存储 setPreviewTask，避免 onSelect 回调引用变化
+    const setPreviewTaskRef = useRef(setPreviewTask);
+    const onExecuteTaskRef = useRef(onExecuteTask);
+
+    // 同步 ref
+    React.useEffect(() => {
+        setPreviewTaskRef.current = setPreviewTask;
+    }, [setPreviewTask]);
+
+    React.useEffect(() => {
+        onExecuteTaskRef.current = onExecuteTask;
+    }, [onExecuteTask]);
+
+    // 修复：不要依赖 refreshTrigger，让 dataSource 保持稳定的函数引用
     const refreshTasks = useCallback(async () => {
         try {
             const { getTasksStore } = await import('../store/tasks');
@@ -49,7 +61,7 @@ const TaskPanel: React.FC<TaskPanelProps> = ({ onClose, onExecuteTask }) => {
             console.error('Failed to load tasks:', error);
             return [];
         }
-    }, [refreshTrigger]);
+    }, []); // ← 空依赖数组，函数引用保持稳定
 
     // 关闭预览
     const handleClosePreview = useCallback(() => {
@@ -65,8 +77,8 @@ const TaskPanel: React.FC<TaskPanelProps> = ({ onClose, onExecuteTask }) => {
             const success = await tasksStore.deleteTask(task.id);
 
             if (success) {
-                // 触发刷新
-                setRefreshTrigger((prev) => prev + 1);
+                // 触发刷新：通过改变状态导致组件重新渲染
+                setPreviewTask((prev) => (prev?.id === task.id ? null : prev));
             } else {
                 console.error(`Failed to delete task: ${task.id}`);
             }
@@ -75,18 +87,63 @@ const TaskPanel: React.FC<TaskPanelProps> = ({ onClose, onExecuteTask }) => {
         }
     }, []);
 
+    // 渲染函数 - 使用 useCallback 保持引用稳定
+    const renderItem = useCallback((task: TaskNode, index: number, isSelected: boolean) => {
+        const statusInfo = task.status ? STATUS_CONFIG[task.status] : STATUS_CONFIG.pickup;
+        const complexityInfo = task.complexity ? COMPLEXITY_CONFIG[task.complexity] : null;
+
+        return (
+            <SelectItem key={task.id} isSelected={isSelected}>
+                <Box>
+                    <Text color="cyan" dimColor={statusInfo === STATUS_CONFIG.complete}>
+                        {statusInfo.emoji} {index + 1}. {task.title}
+                    </Text>
+                    <Spacer />
+                    <Text color="yellow" dimColor>
+                        {statusInfo.label}
+                    </Text>
+                    {complexityInfo && (
+                        <Text dimColor>
+                            {complexityInfo.emoji} {complexityInfo.label}
+                        </Text>
+                    )}
+                </Box>
+            </SelectItem>
+        );
+    }, []);
+
+    // 状态信息渲染函数 - 使用 useCallback 保持引用稳定
+    const statusInfo = useCallback((filteredTasks: TaskNode[]) => {
+        const runningCount = filteredTasks.filter((t) => t.status === 'running').length;
+        const completeCount = filteredTasks.filter((t) => t.status === 'complete').length;
+        const errorCount = filteredTasks.filter((t) => t.status === 'error').length;
+        const canExecuteCount = filteredTasks.filter(
+            (t) => t.status === 'pickup' || t.status === 'error' || t.status === 'feedback',
+        ).length;
+
+        return (
+            <Text color="gray">
+                运行: {runningCount} | 完成: {completeCount} | 失败: {errorCount}
+                {canExecuteCount > 0 && <Text color="green"> | 可执行: {canExecuteCount}</Text>}
+                <Text dimColor> | Backspace 删除</Text>
+            </Text>
+        );
+    }, []);
+
+    // onSelect 回调 - 使用 ref 避免依赖循环
+    const handleSelectTask = useCallback((task: TaskNode) => {
+        setPreviewTaskRef.current(task);
+    }, []);
+
     const panelConfig: PanelConfig<TaskNode> = {
         id: 'tasks',
         title: '任务看板',
         icon: '📋',
-
         dataSource: refreshTasks,
-
         // 搜索配置
         searchable: true,
         searchFields: ['title', 'description'],
         searchPlaceholder: '搜索任务...',
-
         // 过滤配置
         filterable: true,
         filters: [
@@ -117,61 +174,14 @@ const TaskPanel: React.FC<TaskPanelProps> = ({ onClose, onExecuteTask }) => {
             },
         ],
         defaultFilter: 'all',
-
         // 渲染配置
         itemHeight: 3, // 3行：标题+描述+进度
         visibleCount: 10,
-
-        renderItem: (task: TaskNode, index, isSelected) => {
-            const statusInfo = task.status ? STATUS_CONFIG[task.status] : STATUS_CONFIG.pickup;
-            const complexityInfo = task.complexity ? COMPLEXITY_CONFIG[task.complexity] : null;
-
-            return (
-                <SelectItem key={task.id} isSelected={isSelected}>
-                    <Box>
-                        <Text color="cyan" dimColor={statusInfo === STATUS_CONFIG.complete}>
-                            {statusInfo.emoji} {index + 1}. {task.title}
-                        </Text>
-                        <Spacer />
-                        <Text color="yellow" dimColor>
-                            {statusInfo.label}
-                        </Text>
-                        {complexityInfo && (
-                            <Text dimColor>
-                                {complexityInfo.emoji} {complexityInfo.label}
-                            </Text>
-                        )}
-                    </Box>
-                </SelectItem>
-            );
-        },
-
-        onSelect: (task: TaskNode) => {
-            // Enter 键：总是进入预览模式
-            setPreviewTask(task);
-        },
-
+        renderItem: renderItem,
+        onSelect: handleSelectTask,
         onDelete: handleDeleteTask,
-
         showCount: true,
-
-        // 状态信息
-        statusInfo: (filteredTasks: TaskNode[]) => {
-            const runningCount = filteredTasks.filter((t) => t.status === 'running').length;
-            const completeCount = filteredTasks.filter((t) => t.status === 'complete').length;
-            const errorCount = filteredTasks.filter((t) => t.status === 'error').length;
-            const canExecuteCount = filteredTasks.filter(
-                (t) => t.status === 'pickup' || t.status === 'error' || t.status === 'feedback',
-            ).length;
-
-            return (
-                <Text color="gray">
-                    运行: {runningCount} | 完成: {completeCount} | 失败: {errorCount}
-                    {canExecuteCount > 0 && <Text color="green"> | 可执行: {canExecuteCount}</Text>}
-                    <Text dimColor> | Backspace 删除</Text>
-                </Text>
-            );
-        },
+        statusInfo: statusInfo,
     };
 
     return (

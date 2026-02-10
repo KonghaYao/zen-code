@@ -18,63 +18,83 @@ export function UniversalPanel<T extends Record<string, any>>({ config, onClose 
     const [items, setItems] = useState<T[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // 加载数据
+    // 使用 useMemo 缓存 config 的关键值，避免因 config 对象引用变化导致 useEffect 重复执行
+    // 这是修复死循环的关键：即使父组件每次渲染都创建新的 config 对象，这些缓存的值也会保持稳定
+    const dataSource = useMemo(() => config.dataSource, [config.dataSource]);
+    const id = useMemo(() => config.id, [config.id]);
+    const searchFields = useMemo(() => config.searchFields, [config.searchFields]);
+    const filters = useMemo(() => config.filters, [config.filters]);
+    const defaultFilter = useMemo(() => config.defaultFilter, [config.defaultFilter]);
+    const isSelected = useMemo(() => config.isSelected, [config.isSelected]);
+    const visibleCount = useMemo(() => config.visibleCount, [config.visibleCount]);
+    const itemHeight = useMemo(() => config.itemHeight, [config.itemHeight]);
+    const renderItem = useMemo(() => config.renderItem, [config.renderItem]);
+    const onSelect = useMemo(() => config.onSelect, [config.onSelect]);
+    const onDelete = useMemo(() => config.onDelete, [config.onDelete]);
+    const showCount = useMemo(() => config.showCount, [config.showCount]);
+    const statusInfo = useMemo(() => config.statusInfo, [config.statusInfo]);
+    const searchable = useMemo(() => config.searchable, [config.searchable]);
+    const filterable = useMemo(() => config.filterable, [config.filterable]);
+    const searchPlaceholder = useMemo(() => config.searchPlaceholder, [config.searchPlaceholder]);
+    const keyMap = useMemo(() => config.keyMap, [config.keyMap]);
+
+    // 加载数据 - 只依赖 dataSource 和 id
     useEffect(() => {
         const load = async () => {
             try {
-                const data = await config.dataSource();
+                const data = await dataSource();
                 setItems(data);
             } catch (error) {
-                console.error(`Failed to load data for panel ${config.id}:`, error);
+                console.error(`Failed to load data for panel ${id}:`, error);
                 setItems([]);
             } finally {
                 setLoading(false);
             }
         };
         load();
-    }, [config.id, config.dataSource]);
+    }, [dataSource, id]);
 
     // 搜索和过滤
     const { searchTerm, setSearchTerm, activeFilter, setActiveFilter, filteredItems } = usePanelSearch<T>({
         items,
-        searchFields: config.searchFields,
-        filters: config.filters,
-        defaultFilter: config.defaultFilter,
+        searchFields,
+        filters,
+        defaultFilter,
     });
 
     // 初始化选中项
     const initialIndex = useMemo(() => {
-        if (config.isSelected) {
-            return filteredItems.findIndex(config.isSelected);
+        if (isSelected) {
+            return filteredItems.findIndex(isSelected);
         }
         return 0;
-    }, [filteredItems, config]);
+    }, [filteredItems, isSelected]);
 
     // 导航逻辑
     const { selectedIndex } = usePanelNavigation<T>({
         items: filteredItems,
         initialIndex,
-        visibleCount: config.visibleCount,
-        onSelect: config.onSelect,
-        onDelete: config.onDelete,
+        visibleCount,
+        onSelect,
+        onDelete,
         onClose,
         onSearch: () => setSearchTerm(''),
         onFilter: () => {
             // Tab 键切换过滤器
-            if (config.filters && config.filters.length > 0) {
-                const allFilters = ['all', ...config.filters.map((f) => f.id)];
+            if (filters && filters.length > 0) {
+                const allFilters = ['all', ...filters.map((f) => f.id)];
                 const currentIndex = allFilters.indexOf(activeFilter);
                 const nextIndex = (currentIndex + 1) % allFilters.length;
                 setActiveFilter(allFilters[nextIndex]);
             }
         },
-        keyMap: config.keyMap,
+        keyMap,
     });
 
     // 加载中状态
     if (loading) {
         return (
-            <PanelContainer title={config.title} icon={config.icon} count={config.showCount ? items.length : undefined}>
+            <PanelContainer title={config.title} icon={config.icon} count={showCount ? items.length : undefined}>
                 <Text color="gray">加载中...</Text>
             </PanelContainer>
         );
@@ -89,15 +109,14 @@ export function UniversalPanel<T extends Record<string, any>>({ config, onClose 
         );
     }
 
-    const visibleCount = config.visibleCount || 8;
-    const itemHeight = config.itemHeight;
+    const displayVisibleCount = visibleCount || 8;
 
     return (
         <PanelContainer
             title={config.title}
             icon={config.icon}
-            count={config.showCount ? items.length : undefined}
-            statusInfo={config.statusInfo?.(filteredItems)}
+            count={showCount ? items.length : undefined}
+            statusInfo={statusInfo?.(filteredItems)}
         >
             {/* 虚拟滚动列表 */}
             <Box flexGrow={1}>
@@ -105,21 +124,21 @@ export function UniversalPanel<T extends Record<string, any>>({ config, onClose 
                     items={filteredItems}
                     selectedIndex={selectedIndex}
                     itemHeight={itemHeight}
-                    visibleCount={visibleCount}
-                    renderItem={config.renderItem}
+                    visibleCount={displayVisibleCount}
+                    renderItem={renderItem}
                 />
             </Box>
 
             {/* 搜索栏 - 移到下方 */}
-            {(config.searchable || config.filterable) && (
+            {(searchable || filterable) && (
                 <Box marginTop={1} width="100%">
                     <SearchBar
                         searchTerm={searchTerm}
                         onSearchTermChange={setSearchTerm}
                         activeFilter={activeFilter}
-                        filters={config.filters}
+                        filters={filters}
                         onFilterChange={setActiveFilter}
-                        placeholder={config.searchPlaceholder || '搜索...'}
+                        placeholder={searchPlaceholder || '搜索...'}
                         filteredCount={filteredItems.length}
                         totalCount={items.length}
                     />
