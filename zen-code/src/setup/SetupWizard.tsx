@@ -137,7 +137,7 @@ export const SetupWizard: React.FC = () => {
         }
     }, []);
 
-    // 保存配置
+    // 保存配置 - 使用新格式
     const saveConfig = useCallback(async () => {
         if (!state.provider || !state.apiKey || !state.selectedModel) {
             setError('配置不完整');
@@ -148,22 +148,18 @@ export const SetupWizard: React.FC = () => {
         setError(null);
 
         try {
-            const config: Record<string, string> = {
-                main_model: state.selectedModel,
-                model_provider: state.provider,
+            const config: any = {
+                provider_id: state.provider,
+                model_id: state.selectedModel,
+                providers: [
+                    {
+                        id: state.provider,
+                        type: state.provider,
+                        apiKey: state.apiKey,
+                        baseUrl: state.baseUrl || DEFAULT_BASE_URLS[state.provider],
+                    },
+                ],
             };
-
-            if (state.provider === 'openai') {
-                config.openai_api_key = state.apiKey;
-                if (state.baseUrl && state.baseUrl !== DEFAULT_BASE_URLS.openai) {
-                    config.openai_base_url = state.baseUrl;
-                }
-            } else {
-                config.anthropic_api_key = state.apiKey;
-                if (state.baseUrl && state.baseUrl !== DEFAULT_BASE_URLS.anthropic) {
-                    config.anthropic_base_url = state.baseUrl;
-                }
-            }
 
             await updateConfig(config);
             return true;

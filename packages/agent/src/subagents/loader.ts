@@ -13,7 +13,6 @@ import { AgentPackage, MemoryStorage, AgentSchema } from '@langgraph-js/standard
 import { z } from 'zod';
 import { createToolRegistry } from './tools.js';
 import { createMiddlewareRegistry } from './middlewares.js';
-import { architectPrompt } from '../prompts/architect.js';
 
 export interface SubAgentConfig extends z.infer<typeof AgentSchema> {}
 

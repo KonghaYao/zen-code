@@ -16,8 +16,8 @@ import { AgentPackage } from '@langgraph-js/standard-agent';
 
 const switchBranch = {
     smart_memory: async (state: CodeStateType) => {
-        const model = await initChatModel(state.main_model, {
-            modelProvider: process.env.MODEL_PROVIDER || 'openai',
+        const model = await initChatModel(state.model_id, {
+            modelProvider: state.provider_type,
             streamUsage: true,
             enableThinking: state.enable_thinking ?? true,
         });

@@ -80,7 +80,7 @@ export function usePanelNavigation<T>(options: UsePanelNavigationOptions<T>): Us
         }
 
         // 激活过滤器切换
-        if (input === 'Tab') {
+        if (key.tab) {
             onFilter?.();
             return;
         }
@@ -91,7 +91,49 @@ export function usePanelNavigation<T>(options: UsePanelNavigationOptions<T>): Us
             return;
         }
 
-        // 自定义快捷键
+        // 自定义快捷键 - 处理特殊键（箭头键等）
+        if (key.upArrow && keyMap.upArrow) {
+            const context = buildContext();
+            keyMap.upArrow(context);
+            return;
+        }
+        if (key.downArrow && keyMap.downArrow) {
+            const context = buildContext();
+            keyMap.downArrow(context);
+            return;
+        }
+        if (key.leftArrow && keyMap.leftArrow) {
+            const context = buildContext();
+            keyMap.leftArrow(context);
+            return;
+        }
+        if (key.rightArrow && keyMap.rightArrow) {
+            const context = buildContext();
+            keyMap.rightArrow(context);
+            return;
+        }
+        if (key.pageUp && keyMap.pageUp) {
+            const context = buildContext();
+            keyMap.pageUp(context);
+            return;
+        }
+        if (key.pageDown && keyMap.pageDown) {
+            const context = buildContext();
+            keyMap.pageDown(context);
+            return;
+        }
+        if (key.home && keyMap.home) {
+            const context = buildContext();
+            keyMap.home(context);
+            return;
+        }
+        if (key.end && keyMap.end) {
+            const context = buildContext();
+            keyMap.end(context);
+            return;
+        }
+
+        // 自定义快捷键（普通字符）
         const customHandler = keyMap[input];
         if (customHandler) {
             const context = buildContext();
@@ -106,8 +148,8 @@ export function usePanelNavigation<T>(options: UsePanelNavigationOptions<T>): Us
             if (comboHandler) {
                 const context = buildContext();
                 comboHandler(context);
+                return;
             }
-            return;
         }
 
         // 导航快捷键（基于过滤后的列表）

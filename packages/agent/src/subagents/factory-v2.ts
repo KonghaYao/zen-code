@@ -53,11 +53,11 @@ export async function createStandardAgentV2(
     }
 
     // Load model configuration
-    // const modelConfig = await pkg.getModel(state.main_model || agentConfig.modelId);
+    // const modelConfig = await pkg.getModel(state.model_id || agentConfig.modelId);
 
     // Initialize model
-    const model = await initChatModel(state.main_model, {
-        modelProvider: process.env.MODEL_PROVIDER,
+    const model = await initChatModel(state.model_id, {
+        modelProvider: state.provider_id,
         streamUsage: true,
         enableThinking: state.enable_thinking,
         metadata: {

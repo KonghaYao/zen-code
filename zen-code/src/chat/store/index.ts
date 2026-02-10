@@ -21,7 +21,7 @@ export const configStore: ConfigManager = await createFSManager();
  * @deprecated ConfigManager.initialize() 会自动处理
  */
 export const initDb = async () => {
-  await configStore.initialize();
+    await configStore.initialize();
 };
 
 /**
@@ -29,7 +29,7 @@ export const initDb = async () => {
  * @deprecated 使用 configStore.getConfig() 代替
  */
 export const getConfig = async (): Promise<AppConfig> => {
-  return await configStore.getConfig();
+    return await configStore.getConfig();
 };
 
 /**
@@ -37,15 +37,14 @@ export const getConfig = async (): Promise<AppConfig> => {
  * @deprecated 使用 configStore.updateConfig() 代替
  */
 export const updateConfig = async (newConfig: Partial<AppConfig>) => {
-  await configStore.updateConfig(newConfig);
+    await configStore.updateConfig(newConfig);
 };
-
 
 /**
  * 将配置同步到环境变量
  * @deprecated FileSystemConfigStore 已经在 initialize 和 updateConfig 中自动同步
  */
 export const syncEnvFromConfig = async () => {
-  // 读取配置会自动触发环境变量同步
-  await configStore.getConfig();
+    // 读取配置会自动触发环境变量同步
+    await configStore.getConfig();
 };

@@ -14,7 +14,7 @@ interface StatusBarProps {
  * 状态栏组件 - 显示应用状态信息
  * 包括：应用名称、当前模型、当前 Agent、Chat ID、MCP 状态、YOLO 模式、紧凑模式
  */
-const StatusBar: React.FC<StatusBarProps> = ({ }) => {
+const StatusBar: React.FC<StatusBarProps> = ({}) => {
     const { extraParams, compactMode } = useSettings();
     const { currentChatId, renderMessages } = useChat();
     const { loading: chatLoading } = useChat();
@@ -31,8 +31,7 @@ const StatusBar: React.FC<StatusBarProps> = ({ }) => {
                     {chatLoading && (
                         <Text color="yellow" bold>
                             <Spinner></Spinner>
-                            <Shimmer
-                                text='LOADING'></Shimmer>
+                            <Shimmer text="LOADING"></Shimmer>
                         </Text>
                     )}
                     {!chatLoading && (
@@ -42,7 +41,7 @@ const StatusBar: React.FC<StatusBarProps> = ({ }) => {
                     )}
                     <Text color="cyan" bold>
                         {' '}
-                        {extraParams.main_model}
+                        {extraParams.model_id}
                     </Text>
                     <Text color="yellow" bold>
                         {' '}
@@ -70,7 +69,6 @@ const StatusBar: React.FC<StatusBarProps> = ({ }) => {
                     <Text color="green" bold>
                         {renderMessages.length}
                     </Text>
-
                 </Box>
                 <Box>
                     <Text dimColor>{currentChatId?.slice(0, 6) || 'N/A'}</Text>

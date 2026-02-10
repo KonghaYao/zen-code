@@ -20,7 +20,7 @@ export const statusCommand: CommandDefinition = {
             `当前代理: ${agentInfo?.name || '未选择'} (${context.currentAgent || 'N/A'})`,
             `聊天ID: ${context.client?.currentChatId?.slice(-8) || 'N/A'}`,
             `可用代理数: ${context.client?.availableAssistants?.length || 0}`,
-            `模型: ${context.extraParams?.main_model || 'N/A'}`,
+            `模型: ${context.extraParams?.model_id || 'N/A'}`,
         ].join('\n');
 
         return {

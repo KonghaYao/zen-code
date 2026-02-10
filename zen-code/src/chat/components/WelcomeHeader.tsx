@@ -17,20 +17,17 @@ const WelcomeHeader: React.FC = () => {
     const platformDisplay = platform === 'darwin' ? 'macOS' : platform === 'win32' ? 'Windows' : 'Linux';
     const cwd = process.cwd();
 
-    // 确定当前使用的提供商
-    const provider = config?.model_provider || process.env.MODEL_PROVIDER || 'openai';
+    // 确定当前使用的 provider
+    const provider = config?.provider_id || process.env.MODEL_PROVIDER || 'openai';
 
-    // 根据提供商检查对应的配置
-    const hasOpenAIKey = !!config?.openai_api_key;
-    const hasOpenAIBaseUrl = !!config?.openai_base_url;
-    const hasAnthropicKey = !!config?.anthropic_api_key;
+    // 获取当前 provider 配置
+    const currentProvider = config?.providers?.find((p: any) => p.id === provider);
+    const hasProviderKey = !!currentProvider?.apiKey;
+
     const hasModels = AVAILABLE_MODELS.length > 0;
 
-    // 根据提供商判断是否配置完整
-    const isConfigured =
-        provider === 'anthropic'
-            ? hasAnthropicKey && hasModels
-            : hasOpenAIKey && hasOpenAIBaseUrl && hasModels;
+    // 检查配置是否完整
+    const isConfigured = hasProviderKey && hasModels;
 
     // 全局动画索引，用于同步所有 Shimmer 组件
     const [globalShimmerIndex, setGlobalShimmerIndex] = useState(0);
@@ -112,9 +109,9 @@ const WelcomeHeader: React.FC = () => {
                             <Text color="white">{terminalName}</Text>
                         </Box>
                         <Box>
-                            <Text color="blue">{process.env.MODEL_PROVIDER?.toUpperCase()}::</Text>
+                            <Text color="blue">{provider?.toUpperCase()}::</Text>
                             <Text color={hasModels ? 'white' : 'red'}>
-                                {hasModels ? extraParams.main_model : '无可用模型'}
+                                {hasModels ? extraParams.model_id : '无可用模型'}
                             </Text>
                         </Box>
                     </Box>
@@ -135,23 +132,11 @@ const WelcomeHeader: React.FC = () => {
             {!isConfigured && (
                 <Box marginTop={1} paddingX={1} flexDirection="column" gap={0}>
                     <Text color="red" bold>
-                        {provider === 'anthropic' ? '⚠️ 需要配置 Anthropic API:' : '⚠️ 需要配置 OpenAI API:'}
+                        ⚠️ 需要配置 {provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} API:
                     </Text>
-                    {provider === 'anthropic' ? (
-                        <>
-                            {!hasAnthropicKey && <Text color="yellow">{'  '}• /config anthropic_api_key sk-ant-your-api-key</Text>}
-                            {!hasModels && <Text color="yellow">{'  '}• 请确保网络连接正常以获取模型列表</Text>}
-                        </>
-                    ) : (
-                        <>
-                            {!hasOpenAIKey && <Text color="yellow">{'  '}• /config openai_api_key sk-your-api-key</Text>}
-                            {!hasOpenAIBaseUrl && (
-                                <Text color="yellow">{'  '}• /config openai_base_url https://api.openai.com/v1</Text>
-                            )}
-                            {!hasModels && <Text color="yellow">{'  '}• 请确保网络连接正常以获取模型列表</Text>}
-                        </>
-                    )}
-                    <Text color="gray">{'  '}• 配置后使用 /model 查看可用模型</Text>
+                    {!hasProviderKey && <Text color="yellow"> • 请使用 /model 面板配置 API Key</Text>}
+                    {!hasModels && <Text color="yellow"> • 请确保网络连接正常以获取模型列表</Text>}
+                    <Text color="gray"> • 配置后使用 /model 查看可用模型</Text>
                 </Box>
             )}
 

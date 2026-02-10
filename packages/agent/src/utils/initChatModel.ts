@@ -11,15 +11,17 @@ export interface InitChatModelOptions {
     streamUsage?: boolean;
     enableThinking?: boolean;
     metadata?: Record<string, unknown>;
+    baseURL?: string;
+    apiKey?: string;
 }
 
-export const initChatModel = async (mainModel: string, options: InitChatModelOptions = {}) => {
+export const initChatModel = async (modelId: string, options: InitChatModelOptions = {}) => {
     const { modelProvider, enableThinking = true } = options;
     let model;
 
     if (modelProvider === 'anthropic') {
         model = new ChatAnthropic({
-            model: mainModel,
+            model: modelId,
             streamUsage: true,
             streaming: true,
             maxRetries: 1,
@@ -30,11 +32,17 @@ export const initChatModel = async (mainModel: string, options: InitChatModelOpt
                       type: 'enabled',
                   }
                 : undefined,
+            apiKey: options.apiKey,
+            anthropicApiUrl: options.baseURL,
             metadata: options.metadata,
         });
     } else {
         model = new ChatOpenAI({
-            model: mainModel,
+            model: modelId,
+            configuration: {
+                baseURL: options.baseURL,
+                apiKey: options.apiKey,
+            },
             streamUsage: true,
             maxRetries: 1,
             modelKwargs: enableThinking

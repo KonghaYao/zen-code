@@ -11,29 +11,33 @@ import { MessagesAnnotation } from '@langchain/langgraph';
  * 基础注解
  */
 export const SubAgentAnnotation = createState().build({
-  task_store: createDefaultAnnotation(() => ({})),
+    task_store: createDefaultAnnotation(() => ({})),
 });
 
 export const SubAgentStateSchema = z.object({
-  task_store: z.record(z.string(), z.any()).optional(),
+    task_store: z.record(z.string(), z.any()).optional(),
 });
 
 /**
  * Code Agent 状态
  */
 export const CodeState = AgentState.extend(SubAgentStateSchema.shape).extend({
-  main_model: z.string().default('qwen-plus'),
-  agent_name: z.string().default('Code Agent'),
-  switch_command: z.string().optional(),
-  enable_thinking: z.boolean().default(true),
+    provider_id: z.string().default('openai'),
+    provider_type: z.string().default('openai'),
+    model_id: z.string().default('qwen-plus'),
+    agent_name: z.string().default('Code Agent'),
+    switch_command: z.string().optional(),
+    enable_thinking: z.boolean().default(true),
 });
 
 export const CodeAnnotation = createState(MessagesAnnotation, SubAgentAnnotation).build({
-  main_model: createDefaultAnnotation(() => 'qwen-plus'),
-  agent_name: createDefaultAnnotation(() => 'Code Agent'),
-  switch_command: createDefaultAnnotation(() => null),
-  enable_thinking: createDefaultAnnotation(() => true),
-  is_in_task: createDefaultAnnotation(() => false)
+    provider_id: createDefaultAnnotation(() => 'openai'),
+    provider_type: createDefaultAnnotation(() => 'openai'),
+    model_id: createDefaultAnnotation(() => 'qwen-plus'),
+    agent_name: createDefaultAnnotation(() => 'Code Agent'),
+    switch_command: createDefaultAnnotation(() => null),
+    enable_thinking: createDefaultAnnotation(() => true),
+    is_in_task: createDefaultAnnotation(() => false),
 });
 
 export type CodeStateType = typeof CodeAnnotation.State;

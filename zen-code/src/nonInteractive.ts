@@ -63,7 +63,8 @@ export async function runNonInteractive(prompt?: string, useStdin: boolean = fal
         // 构建初始状态
         const initialState = {
             messages: [new HumanMessage(finalPrompt)],
-            main_model: config.main_model,
+            provider_id: config.provider_id,
+            model_id: config.model_id,
             enable_thinking: config.enable_thinking,
         };
 

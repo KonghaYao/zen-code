@@ -11,7 +11,8 @@ interface SettingsContextType {
     config: AppConfig | null;
     updateConfig: (newConfig: Partial<AppConfig>) => Promise<void>;
     extraParams: {
-        main_model: string;
+        provider_id: string;
+        model_id: string;
         mcp_config?: MCPConfig;
         switch_command?: string;
     };
@@ -36,7 +37,8 @@ export const SettingsProvider = ({ manager, get_allowed_models, children }: Sett
 
     const extraParams = useMemo(() => {
         return {
-            main_model: config?.main_model || AVAILABLE_MODELS[0]?.id,
+            provider_id: config?.provider_id || 'default',
+            model_id: config?.model_id || AVAILABLE_MODELS[0]?.id,
             mcp_config: config?.mcp_config,
             enable_thinking: config?.enable_thinking ?? true,
             switch_command: config?.switch_command || '',
@@ -60,12 +62,12 @@ export const SettingsProvider = ({ manager, get_allowed_models, children }: Sett
         const models = await get_allowed_models().catch(() => []);
         setModels(models);
 
-        // 如果配置中没有 main_model，使用第一个可用模型
-        if (!loadedConfig.main_model && models[0]) {
-            const newConfig: Partial<AppConfig> = { main_model: models[0].id };
-            if (models[0].provider) {
-                newConfig.model_provider = models[0].provider;
-            }
+        // 如果配置中没有 provider_id/model_id，使用第一个可用模型
+        if ((!loadedConfig.provider_id || !loadedConfig.model_id) && models[0]) {
+            const newConfig: Partial<AppConfig> = {
+                provider_id: models[0].provider,
+                model_id: models[0].id,
+            };
             await manager.updateConfig(newConfig);
             const updatedConfig = await manager.getConfig();
             setConfig(updatedConfig);
@@ -91,7 +93,9 @@ export const SettingsProvider = ({ manager, get_allowed_models, children }: Sett
     }
 
     return (
-        <SettingsContext.Provider value={{ config, updateConfig, extraParams, AVAILABLE_MODELS, manager, compactMode, toggleCompactMode }}>
+        <SettingsContext.Provider
+            value={{ config, updateConfig, extraParams, AVAILABLE_MODELS, manager, compactMode, toggleCompactMode }}
+        >
             {children}
         </SettingsContext.Provider>
     );

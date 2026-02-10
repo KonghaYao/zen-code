@@ -73,8 +73,16 @@ describe('ConfigManager', () => {
 
     describe('getConfig', () => {
         const mockConfig: AppConfig = {
-            main_model: 'gpt-4',
-            model_provider: 'openai',
+            provider_id: 'default',
+            model_id: 'gpt-4',
+            providers: [
+                {
+                    id: 'default',
+                    type: 'openai',
+                    apiKey: '',
+                    baseUrl: 'https://api.openai.com/v1',
+                },
+            ],
         };
 
         it('should return config after initialization', async () => {
@@ -96,7 +104,7 @@ describe('ConfigManager', () => {
 
     describe('updateConfig', () => {
         it('should update config after initialization', async () => {
-            const update = { model: 'gpt-3.5-turbo' };
+            const update = { model_id: 'gpt-3.5-turbo' };
 
             await manager.initialize();
             await manager.updateConfig(update);
@@ -382,7 +390,16 @@ describe('ConfigManager', () => {
             it('should check bash command permission after initialization', async () => {
                 // Mock getConfig to return permissions config
                 (mockConfigStore.getConfig as any).mockResolvedValue({
-                    main_model: 'gpt-4',
+                    provider_id: 'default',
+                    model_id: 'gpt-4',
+                    providers: [
+                        {
+                            id: 'default',
+                            type: 'openai',
+                            apiKey: '',
+                            baseUrl: 'https://api.openai.com/v1',
+                        },
+                    ],
                     permissions: {
                         allow: ['Bash(git status)'], // Use exact match
                         ask: [],
@@ -408,7 +425,16 @@ describe('ConfigManager', () => {
 
             it('should handle cwd parameter', async () => {
                 (mockConfigStore.getConfig as any).mockResolvedValue({
-                    main_model: 'gpt-4',
+                    provider_id: 'default',
+                    model_id: 'gpt-4',
+                    providers: [
+                        {
+                            id: 'default',
+                            type: 'openai',
+                            apiKey: '',
+                            baseUrl: 'https://api.openai.com/v1',
+                        },
+                    ],
                     permissions: {
                         allow: ['Bash(ls )'],
                         ask: [],
@@ -432,7 +458,16 @@ describe('ConfigManager', () => {
                 };
 
                 (mockConfigStore.getConfig as any).mockResolvedValue({
-                    main_model: 'gpt-4',
+                    provider_id: 'default',
+                    model_id: 'gpt-4',
+                    providers: [
+                        {
+                            id: 'default',
+                            type: 'openai',
+                            apiKey: '',
+                            baseUrl: 'https://api.openai.com/v1',
+                        },
+                    ],
                     permissions: {
                         allow: ['Read(./src/*.ts)'],
                         ask: [],
@@ -457,7 +492,16 @@ describe('ConfigManager', () => {
         describe('checkWritePermission', () => {
             it('should check write file permission after initialization', async () => {
                 (mockConfigStore.getConfig as any).mockResolvedValue({
-                    main_model: 'gpt-4',
+                    provider_id: 'default',
+                    model_id: 'gpt-4',
+                    providers: [
+                        {
+                            id: 'default',
+                            type: 'openai',
+                            apiKey: '',
+                            baseUrl: 'https://api.openai.com/v1',
+                        },
+                    ],
                     permissions: {
                         allow: ['Write(./dist/*.js)'],
                         ask: [],
@@ -482,7 +526,16 @@ describe('ConfigManager', () => {
         describe('getPermissionMatcher', () => {
             it('should get permission matcher after initialization', async () => {
                 (mockConfigStore.getConfig as any).mockResolvedValue({
-                    main_model: 'gpt-4',
+                    provider_id: 'default',
+                    model_id: 'gpt-4',
+                    providers: [
+                        {
+                            id: 'default',
+                            type: 'openai',
+                            apiKey: '',
+                            baseUrl: 'https://api.openai.com/v1',
+                        },
+                    ],
                     permissions: {
                         allow: ['Bash(git status)'],
                         ask: [],
@@ -499,7 +552,16 @@ describe('ConfigManager', () => {
 
             it('should return undefined if no permissions configured', async () => {
                 (mockConfigStore.getConfig as any).mockResolvedValue({
-                    main_model: 'gpt-4',
+                    provider_id: 'default',
+                    model_id: 'gpt-4',
+                    providers: [
+                        {
+                            id: 'default',
+                            type: 'openai',
+                            apiKey: '',
+                            baseUrl: 'https://api.openai.com/v1',
+                        },
+                    ],
                     // No permissions field
                 } as AppConfig);
 

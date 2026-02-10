@@ -14,7 +14,7 @@ interface MessageAIProps {
 
 const MessageAI: React.FC<MessageAIProps> = ({ message, messageNumber }) => {
     const { extraParams } = useSettings();
-    const modelName = extraParams.main_model || 'AI';
+    const modelName = extraParams.model_id || 'AI';
 
     // MODIFIED: 提取 thinking 内容
     const thinkingContent = getThinkingContent(message);
