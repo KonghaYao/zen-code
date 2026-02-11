@@ -28,6 +28,9 @@ export const CodeState = AgentState.extend(SubAgentStateSchema.shape).extend({
     agent_name: z.string().default('Code Agent'),
     switch_command: z.string().optional(),
     enable_thinking: z.boolean().default(true),
+    // sb 的 langchain 在 agent middleware 的 runtime 里面拿不到这些数据
+    user_id: z.string().optional(),
+    thread_id: z.string().optional(),
 });
 
 export const CodeAnnotation = createState(MessagesAnnotation, SubAgentAnnotation).build({
@@ -38,6 +41,9 @@ export const CodeAnnotation = createState(MessagesAnnotation, SubAgentAnnotation
     switch_command: createDefaultAnnotation(() => null),
     enable_thinking: createDefaultAnnotation(() => true),
     is_in_task: createDefaultAnnotation(() => false),
+    // sb 的 langchain 在 agent middleware 的 runtime 里面拿不到这些数据
+    user_id: createDefaultAnnotation(() => ''),
+    thread_id: createDefaultAnnotation(() => ''),
 });
 
 export type CodeStateType = typeof CodeAnnotation.State;

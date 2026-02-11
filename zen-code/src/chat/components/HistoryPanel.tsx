@@ -35,7 +35,8 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
         }
     };
 
-    // 修复：使用 useCallback 保持函数引用稳定
+    // 修复：refreshHistoryList 返回 Promise<void>，它更新 historyList atom
+    // 所以 dataSource 应该返回当前的 historyList 值
     const dataSource = useCallback(async () => {
         await refreshHistoryList();
         return historyList;
@@ -95,14 +96,20 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
         [currentChatId],
     );
 
+    // 修复：使用 useRef 存储 refreshHistoryList 引用，避免 keyMap 循环依赖
+    const refreshHistoryListRef = React.useRef(refreshHistoryList);
+    React.useEffect(() => {
+        refreshHistoryListRef.current = refreshHistoryList;
+    }, [refreshHistoryList]);
+
     // 修复：使用 useCallback 保持 keyMap 引用稳定
     const keyMap = useMemo(
         () => ({
             r: async (context: PanelContext<any>) => {
-                await refreshHistoryList();
+                await refreshHistoryListRef.current();
             },
         }),
-        [refreshHistoryList],
+        [],
     );
 
     // 修复：使用 useMemo 缓存 panelConfig
