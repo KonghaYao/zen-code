@@ -43,7 +43,7 @@ export function UniversalPanel<T extends Record<string, any>>({ config, onClose 
         const load = async () => {
             try {
                 const data = await dataSource();
-                setItems(data);
+                setItems(data || []);
             } catch (error) {
                 console.error(`Failed to load data for panel ${id}:`, error);
                 setItems([]);
@@ -54,9 +54,9 @@ export function UniversalPanel<T extends Record<string, any>>({ config, onClose 
         load();
     }, [dataSource, id]);
 
-    // 搜索和过滤
+    // 搜索和过滤 - 确保 items 总是一个数组
     const { searchTerm, setSearchTerm, activeFilter, setActiveFilter, filteredItems } = usePanelSearch<T>({
-        items,
+        items: items || [],
         searchFields,
         filters,
         defaultFilter,
@@ -64,15 +64,18 @@ export function UniversalPanel<T extends Record<string, any>>({ config, onClose 
 
     // 初始化选中项
     const initialIndex = useMemo(() => {
-        if (isSelected) {
-            return filteredItems.findIndex(isSelected);
+        // 确保 filteredItems 不为 undefined
+        const safeFilteredItems = filteredItems || [];
+        if (isSelected && safeFilteredItems.length > 0) {
+            const index = safeFilteredItems.findIndex(isSelected);
+            return index >= 0 ? index : 0;
         }
         return 0;
     }, [filteredItems, isSelected]);
 
     // 导航逻辑
     const { selectedIndex } = usePanelNavigation<T>({
-        items: filteredItems,
+        items: filteredItems || [],
         initialIndex,
         visibleCount,
         onSelect,
@@ -101,7 +104,7 @@ export function UniversalPanel<T extends Record<string, any>>({ config, onClose 
     }
 
     // 空数据状态
-    if (items.length === 0) {
+    if (!items || items.length === 0) {
         return (
             <PanelContainer title={config.title} icon={config.icon} count={0}>
                 {config.renderEmpty ? config.renderEmpty() : <Text color="gray">暂无数据</Text>}
@@ -110,18 +113,20 @@ export function UniversalPanel<T extends Record<string, any>>({ config, onClose 
     }
 
     const displayVisibleCount = visibleCount || 8;
+    const safeFilteredItems = filteredItems || [];
+    const safeItems = items || [];
 
     return (
         <PanelContainer
             title={config.title}
             icon={config.icon}
-            count={showCount ? items.length : undefined}
-            statusInfo={statusInfo?.(filteredItems)}
+            count={showCount ? safeItems.length : undefined}
+            statusInfo={statusInfo?.(safeFilteredItems)}
         >
             {/* 虚拟滚动列表 */}
             <Box flexGrow={1}>
                 <VirtualScrollList
-                    items={filteredItems}
+                    items={safeFilteredItems}
                     selectedIndex={selectedIndex}
                     itemHeight={itemHeight}
                     visibleCount={displayVisibleCount}
@@ -139,8 +144,8 @@ export function UniversalPanel<T extends Record<string, any>>({ config, onClose 
                         filters={filters}
                         onFilterChange={setActiveFilter}
                         placeholder={searchPlaceholder || '搜索...'}
-                        filteredCount={filteredItems.length}
-                        totalCount={items.length}
+                        filteredCount={safeFilteredItems.length}
+                        totalCount={safeItems.length}
                     />
                 </Box>
             )}

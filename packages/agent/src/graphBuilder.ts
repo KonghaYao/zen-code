@@ -13,6 +13,7 @@ import { analyzeAndSaveMemories } from './memories/analyze.js';
 import { loadDefaultConfigs } from './subagents/loader.js';
 import { createStandardAgentV2, getAvailableAgentIds } from './subagents/factory-v2.js';
 import { AgentPackage } from '@langgraph-js/standard-agent';
+import { getThreadId } from '@langgraph-js/pro';
 
 const switchBranch = {
     smart_memory: async (state: CodeStateType) => {
@@ -31,8 +32,14 @@ const switchBranch = {
 
 async function invokeAgent(agentId: string, pkg: AgentPackage, state: CodeStateType, runtime: Runtime) {
     const agent = await createStandardAgentV2(agentId, pkg, state, runtime);
+
+    state.thread_id = getThreadId(runtime);
     /** @ts-ignore 这个类型是 langchain 的问题 */
-    const response = await agent.invoke(state, { recursionLimit: 500 });
+    const response = await agent.invoke(state, {
+        recursionLimit: 500,
+        configurable: runtime.configurable,
+        context: runtime.context,
+    });
     return {
         switch_command: '',
         task_store: response.task_store,
@@ -65,8 +72,8 @@ export function createCodeGraph() {
                         .join(', ')}`,
                 );
             }
-
-            return invokeAgent(agentId, pkg, state, runtime);
+            const result = await invokeAgent(agentId, pkg, state, runtime);
+            return result;
         })
         .addEdge(START, 'graph')
         .compile();

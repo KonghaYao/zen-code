@@ -176,7 +176,7 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
         (model: any, index: number, isSelected: boolean) => {
             const isCurrent = model.id === extraParams.model_id && model.provider === extraParams.provider_id;
             return (
-                <SelectItem key={model.id} isSelected={isSelected} isCurrent={isCurrent}>
+                <SelectItem key={index + model.id} isSelected={isSelected} isCurrent={isCurrent}>
                     <Text bold>
                         {index + 1}. {model.id}
                     </Text>
