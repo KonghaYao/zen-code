@@ -31,7 +31,7 @@
         "execa": "^9.6.1",
         "extract-zip": "^2.0.1",
         "fs-extra": "^11.3.3",
-        "langchain": "1.1.1",
+        "langchain": "^1.2.0",
         "lowdb": "^7.0.1",
         "marked": "^16.4.2",
         "marked-terminal": "^7.3.0",
