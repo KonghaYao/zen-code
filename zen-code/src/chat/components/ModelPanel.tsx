@@ -9,11 +9,12 @@ import { UniversalPanel } from 'ink-pro';
 import { SelectItem } from 'ink-pro';
 import { PanelConfig } from 'ink-pro';
 import { useSettings } from '@codegraph/union-client';
-import type { ModelConfig } from '@codegraph/agent/src/utils/get_allowed_models';
 import type { ProviderConfig } from '@codegraph/config';
 
-interface ModelPanelProps {
-    onClose: () => void;
+// 简化的模型接口（provider 字段已不再需要）
+export interface ModelConfig {
+    id: string;
+    name: string;
 }
 
 // Provider 图标映射
@@ -55,7 +56,6 @@ async function getOpenAIModels(apiKey: string, baseUrl: string): Promise<ModelCo
         .map((model: any) => ({
             id: model.id,
             name: model.id,
-            provider: 'openai' as const,
         }))
         .sort((a, b) => a.id.localeCompare(b.id));
 }
@@ -77,7 +77,6 @@ async function getAnthropicModels(apiKey: string, baseUrl: string): Promise<Mode
     return data.data.map((model: any) => ({
         id: model.id,
         name: model.display_name || model.id,
-        provider: 'anthropic' as const,
     }));
 }
 
@@ -174,7 +173,7 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
     // 修复：使用 useCallback 保持 renderItem 引用稳定
     const renderItem = useCallback(
         (model: any, index: number, isSelected: boolean) => {
-            const isCurrent = model.id === extraParams.model_id && model.provider === extraParams.provider_id;
+            const isCurrent = model.id === extraParams.model_id;
             return (
                 <SelectItem key={index + model.id} isSelected={isSelected} isCurrent={isCurrent}>
                     <Text bold>
@@ -184,15 +183,15 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
                 </SelectItem>
             );
         },
-        [extraParams.model_id, extraParams.provider_id],
+        [extraParams.model_id],
     );
 
     // 修复：使用 useCallback 保持 isSelected 引用稳定
     const isSelected = useCallback(
         (model: any) => {
-            return model.id === extraParams.model_id && model.provider === extraParams.provider_id;
+            return model.id === extraParams.model_id;
         },
-        [extraParams.model_id, extraParams.provider_id],
+        [extraParams.model_id],
     );
 
     // 修复：使用 useCallback 保持 onSelect 引用稳定
@@ -200,7 +199,6 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
         async (model: any) => {
             await updateConfig({
                 provider_id: activeTab,
-                provider_type: model.provider,
                 model_id: model.id,
             });
             onClose();
@@ -211,16 +209,14 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
     // 修复：使用 useCallback 保持 statusInfo 引用稳定
     const statusInfo = useCallback(
         (items: any[]) => {
-            const current = items.find(
-                (m: any) => m.id === extraParams.model_id && m.provider === extraParams.provider_id,
-            );
+            const current = items.find((m: any) => m.id === extraParams.model_id);
             return current ? (
                 <Text color="gray" dimColor>
                     当前模型: <Text color="green">{current.id}</Text>
                 </Text>
             ) : null;
         },
-        [extraParams.model_id, extraParams.provider_id],
+        [extraParams.model_id],
     );
 
     // 修复：使用 useMemo 缓存 panelConfig，避免每次渲染创建新对象
