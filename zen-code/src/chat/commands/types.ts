@@ -42,12 +42,10 @@ export interface CommandContext {
     switchToHistory?: () => void;
     /** 切换到知识库面板 */
     switchToKnowledge?: () => void;
-    /** 切换到模型面板 */
-    switchToModel?: () => void;
+    /** 切换到 Settings 面板（包含 Model 和 Provider 配置） */
+    switchToSettings?: () => void;
     /** 切换到 Agent 面板 */
     switchToAgent?: () => void;
-    /** 切换到 Provider 配置面板 */
-    switchToProvider?: () => void;
     /** 切换到任务看板面板 */
     switchToTask?: () => void;
     /** 关闭面板返回聊天 */

@@ -549,8 +549,8 @@ export const modelPanelCommand: CommandDefinition = {
     description: '打开模型选择面板',
     aliases: ['mp', 'm'],
     execute: async (args: string[], context) => {
-        if (context.switchToModel) {
-            context.switchToModel();
+        if (context.switchToSettings) {
+            context.switchToSettings();
             return {
                 success: true,
                 message: '已打开模型选择面板',

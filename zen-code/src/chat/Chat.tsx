@@ -14,9 +14,8 @@ import DefaultTools from './tools/index';
 import { ChatInputBuffer } from './components/input/ChatInputBuffer';
 import { notify } from '../utils/notify';
 import KnowledgePanel from './components/KnowledgePanel';
-import ModelPanel from './components/ModelPanel';
+import SettingsPanel from './components/SettingsPanel';
 import AgentPanel from './components/AgentPanel';
-import ProviderPanel from './components/ProviderPanel';
 import StatusBar from './components/StatusBar';
 import { useInput } from 'ink-pro';
 import { ApprovalProvider } from '@codegraph/union-client';
@@ -57,9 +56,8 @@ interface ChatInputProps {
     // MODIFIED: 添加面板切换回调 props
     switchToHistory?: () => void;
     switchToKnowledge?: () => void;
-    switchToModel?: () => void;
+    switchToSettings?: () => void;
     switchToAgent?: () => void;
-    switchToProvider?: () => void;
     switchToTask?: () => void;
     closePanel?: () => void;
 }
@@ -67,9 +65,8 @@ interface ChatInputProps {
 const ChatInput: React.FC<ChatInputProps> = ({
     switchToHistory,
     switchToKnowledge,
-    switchToModel,
+    switchToSettings,
     switchToAgent,
-    switchToProvider,
     switchToTask,
     closePanel,
 }) => {
@@ -90,9 +87,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
         extraParams,
         switchToHistory,
         switchToKnowledge,
-        switchToModel,
+        switchToSettings,
         switchToAgent,
-        switchToProvider,
         switchToTask,
         closePanel,
         startRalphLoop,
@@ -181,9 +177,9 @@ const Chat: React.FC = () => {
     }, [loading]);
 
     const focusManager = useFocusManager();
-    const [activeView, setActiveView] = useState<
-        'chat' | 'history' | 'knowledge' | 'model' | 'agent' | 'provider' | 'task'
-    >('chat');
+    const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge' | 'settings' | 'agent' | 'task'>(
+        'chat',
+    );
 
     // Global Ctrl+C exit handler and Ctrl+O expand handler
     // Disable when panel is open to avoid duplicate input handling
@@ -211,16 +207,12 @@ const Chat: React.FC = () => {
         setActiveView('knowledge');
     }, []);
 
-    const switchToModel = useCallback(() => {
-        setActiveView('model');
+    const switchToSettings = useCallback(() => {
+        setActiveView('settings');
     }, []);
 
     const switchToAgent = useCallback(() => {
         setActiveView('agent');
-    }, []);
-
-    const switchToProvider = useCallback(() => {
-        setActiveView('provider');
     }, []);
 
     const switchToTask = useCallback(() => {
@@ -320,9 +312,8 @@ const Chat: React.FC = () => {
                             <ChatInput
                                 switchToHistory={switchToHistory}
                                 switchToKnowledge={switchToKnowledge}
-                                switchToModel={switchToModel}
+                                switchToSettings={switchToSettings}
                                 switchToAgent={switchToAgent}
-                                switchToProvider={switchToProvider}
                                 switchToTask={switchToTask}
                                 closePanel={closePanel}
                             />
@@ -331,9 +322,8 @@ const Chat: React.FC = () => {
                 )}
                 {activeView === 'history' && <HistoryPanel onClose={closePanel} />}
                 {activeView === 'knowledge' && <KnowledgePanel onClose={closePanel} />}
-                {activeView === 'model' && <ModelPanel onClose={closePanel} />}
+                {activeView === 'settings' && <SettingsPanel onClose={closePanel} />}
                 {activeView === 'agent' && <AgentPanel onClose={closePanel} />}
-                {activeView === 'provider' && <ProviderPanel onClose={closePanel} />}
                 {activeView === 'task' && <TaskPanel onClose={closePanel} onExecuteTask={handleExecuteTask} />}
             </Box>
             <StatusBar />

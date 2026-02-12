@@ -212,19 +212,6 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
         [updateConfig, activeTab, onClose],
     );
 
-    // 修复：使用 useCallback 保持 statusInfo 引用稳定
-    const statusInfo = useCallback(
-        (items: any[]) => {
-            const current = items.find((m: any) => m.id === extraParams.model_id);
-            return current ? (
-                <Text color="gray" dimColor>
-                    当前模型: <Text color="green">{current.id}</Text>
-                </Text>
-            ) : null;
-        },
-        [extraParams.model_id],
-    );
-
     // 修复：使用 useMemo 缓存 panelConfig，避免每次渲染创建新对象
     const panelConfig: PanelConfig<ModelConfig> = useMemo(() => {
         const activeProviderTab = providerTabs.find((t) => t.id === activeTab);
@@ -251,10 +238,8 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
             onSelect: handleSelectModel,
 
             showCount: true,
-
-            statusInfo: statusInfo,
         };
-    }, [activeTab, providerTabs, dataSource, renderItem, isSelected, handleSelectModel, statusInfo]);
+    }, [activeTab, providerTabs, dataSource, renderItem, isSelected, handleSelectModel]);
 
     // 如果没有配置任何 provider
     if (providerTabs.length === 0) {
@@ -274,7 +259,7 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
     return (
         <Box flexDirection="column">
             {/* Tab 头 */}
-            <Box gap={4} paddingX={1} paddingY={1} borderStyle="single" borderColor="gray">
+            <Box gap={1} paddingX={1} paddingY={1}>
                 {providerTabs.map((tab) => (
                     <Text key={tab.id} bold={tab.id === activeTab} color={tab.id === activeTab ? 'cyan' : 'gray'}>
                         {tab.icon} {tab.label}
@@ -282,20 +267,6 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
                         {tab.id === activeTab && !hasApiKey && ' (未配置 API Key)'}
                     </Text>
                 ))}
-            </Box>
-
-            {/* 快捷键提示 */}
-            <Box gap={2} paddingX={1} paddingY={0}>
-                <Text color="gray" dimColor>
-                    <Text color="cyan" bold>
-                        ←→
-                    </Text>
-                    :切换 Provider
-                    <Text color="cyan" bold>
-                        ↑↓
-                    </Text>
-                    :导航
-                </Text>
             </Box>
 
             {loading ? (

@@ -3,20 +3,14 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Spacer, Text, useInput } from 'ink';
 import { useSettings } from '@codegraph/union-client';
 import type { ProviderConfig } from '@codegraph/config';
-import ProviderForm, { ProviderFormProps } from './forms/ProviderForm';
+import ProviderForm from './forms/ProviderForm';
 
 interface ProviderPanelProps {
     onClose: () => void;
 }
-
-// Provider 类型图标映射
-const PROVIDER_TYPE_ICONS: Record<string, string> = {
-    openai: '🤖',
-    anthropic: '🧠',
-};
 
 const ProviderPanel: React.FC<ProviderPanelProps> = ({ onClose }) => {
     const { config, updateConfig } = useSettings();
@@ -153,26 +147,23 @@ const ProviderPanel: React.FC<ProviderPanelProps> = ({ onClose }) => {
         }
 
         return (
-            <Box flexDirection="column" paddingX={2}>
+            <Box flexDirection="column" paddingX={2} gap={1}>
                 {providers.map((provider: ProviderConfig, index: number) => {
                     const hasApiKey = !!provider.apiKey;
                     const statusColor = hasApiKey ? 'green' : 'yellow';
 
                     return (
-                        <Box key={provider.id} marginBottom={0}>
+                        <Box key={provider.id} marginBottom={0} gap={1}>
                             <Text color={index === selectedIndex ? 'cyan' : 'gray'} bold={index === selectedIndex}>
                                 {index === selectedIndex ? '>' : ' '}
                             </Text>
-                            <Text
-                                marginLeft={1}
-                                bold={index === selectedIndex}
-                                color={index === selectedIndex ? 'cyan' : undefined}
-                            >
+                            <Text bold={index === selectedIndex} color={index === selectedIndex ? 'cyan' : undefined}>
                                 {provider.id}
                             </Text>
+                            <Spacer></Spacer>
                             <Text color="gray" dimColor={index !== selectedIndex}>
                                 {' '}
-                                {PROVIDER_TYPE_ICONS[provider.type] || '🔌'} {provider.name}
+                                {provider.type}
                             </Text>
                             <Text color={statusColor} dimColor={index !== selectedIndex}>
                                 {' '}
@@ -195,7 +186,7 @@ const ProviderPanel: React.FC<ProviderPanelProps> = ({ onClose }) => {
     // 渲染当前视图
     return (
         <Box flexDirection="column">
-            <Box paddingX={2} paddingY={0}>
+            <Box paddingX={2} paddingY={1}>
                 <Text bold color="cyan">
                     Providers
                 </Text>
