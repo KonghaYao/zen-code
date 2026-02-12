@@ -134,9 +134,9 @@ const WelcomeHeader: React.FC = () => {
                     <Text color="red" bold>
                         ⚠️ 需要配置 {provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} API:
                     </Text>
-                    {!hasProviderKey && <Text color="yellow"> • 请使用 /model 面板配置 API Key</Text>}
+                    {!hasProviderKey && <Text color="yellow"> • 请使用 /m 进入模型配置面板</Text>}
                     {!hasModels && <Text color="yellow"> • 请确保网络连接正常以获取模型列表</Text>}
-                    <Text color="gray"> • 配置后使用 /model 查看可用模型</Text>
+                    <Text color="gray"> • 配置后使用 /m 查看可用模型</Text>
                 </Box>
             )}
 

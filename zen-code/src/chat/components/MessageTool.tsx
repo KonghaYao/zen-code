@@ -1,7 +1,6 @@
 import React, { JSX } from 'react';
 import { Box, Spacer, Text } from 'ink';
 import { getMessageContent, RenderMessage, ToolMessage } from '@langgraph-js/sdk';
-import { UsageMetadata } from './UsageMetadata';
 import { useChat } from '@langgraph-js/sdk/react';
 import { ToolRenderData } from '@langgraph-js/sdk';
 
@@ -125,7 +124,7 @@ export const InputPreviewer = ({ content }: { content: any }) => {
         // Object rendering
         const keys = Object.keys(data);
         if (keys.length === 0) {
-            return <Text color="gray">{ }</Text>;
+            return <Text color="gray">{}</Text>;
         }
 
         const maxLength = 5;
@@ -168,8 +167,8 @@ const MessageTool: React.FC<MessageToolProps> = ({ message, messageNumber }) => 
     const label = inputRepaired?.title
         ? `: ${inputRepaired.title}`
         : inputRepaired?.description
-            ? `: ${inputRepaired.description}`
-            : '';
+          ? `: ${inputRepaired.description}`
+          : '';
     const render = message.name ? getToolUIRender(message.name!) : null;
     let borderColor = getToolColor(message.name || '');
     borderColor = message.status === 'error' ? 'red' : 'yellow';

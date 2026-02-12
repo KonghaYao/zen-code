@@ -11,10 +11,7 @@ import { agentCommands } from './agentCommands';
 import { interviewCommands } from './interviewCommand';
 // NEW: Import plan commands
 import { planCommands } from './planCommand';
-// NEW: Import spark commands
-import { sparkCommands } from './sparkCommand';
-// NEW: Import spark-to-task commands
-import { sparkToTaskCommands } from './sparkToTaskCommand';
+
 // NEW: Import compact mode command
 import { compactCommand } from './compactCommand';
 
@@ -25,8 +22,6 @@ import { compactCommand } from './compactCommand';
     ...agentCommands,
     ...interviewCommands,
     ...planCommands,
-    ...sparkCommands,
-    ...sparkToTaskCommands,
     compactCommand,
 ].forEach((command) => {
     commandRegistry.register(command);
