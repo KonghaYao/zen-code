@@ -4,7 +4,7 @@ import Spinner from 'ink-spinner';
 import { useSettings } from '@codegraph/union-client';
 import { useChat } from '@langgraph-js/sdk/react';
 import { MCPStatusPanel } from './MCPStatusPanel';
-import Shimmer from './Shimmer';
+import { Shimmer } from 'ink-pro';
 
 interface StatusBarProps {
     currentChatId?: string;

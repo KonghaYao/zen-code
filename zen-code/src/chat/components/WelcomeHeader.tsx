@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import { getCurrentUser, getTerminalName } from '@codegraph/union-client';
 import { useSettings } from '@codegraph/union-client';
-import Shimmer from './Shimmer';
+import { Shimmer } from 'ink-pro';
 
 const WelcomeHeader: React.FC = () => {
     const username = getCurrentUser();
