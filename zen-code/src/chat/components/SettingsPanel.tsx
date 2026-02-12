@@ -48,8 +48,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, initialTab = 'mo
         <Box flexDirection="column" width="100%" borderStyle="single" borderDimColor>
             {/* 内容区域 */}
             <Box flexDirection="column" paddingX={0} paddingY={0}>
-                {activeTab === 'model' && <ModelPanel onClose={() => {}} />}
-                {activeTab === 'provider' && <ProviderPanel onClose={() => {}} />}
+                {activeTab === 'model' && <ModelPanel onClose={onClose} />}
+                {activeTab === 'provider' && <ProviderPanel onClose={onClose} />}
             </Box>
             {/* Tab 头 */}
             <Box
