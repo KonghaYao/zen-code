@@ -2,7 +2,7 @@
  * Model 面板 - 使用 Tab 系统重构
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { Box, Text } from 'ink';
 import { useInput } from 'ink';
 import { UniversalPanel } from 'ink-pro';
@@ -171,10 +171,13 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
         }
     });
 
-    // 修复：使用 useCallback 保持函数引用稳定
+    // 修复：使用 useRef 保持 dataSource 引用稳定，同时始终返回最新的 models
+    const modelsRef = useRef(models);
+    modelsRef.current = models;
+
     const dataSource = useCallback(async () => {
-        return models;
-    }, [models]);
+        return modelsRef.current;
+    }, []);
 
     // 修复：使用 useCallback 保持 renderItem 引用稳定
     const renderItem = useCallback(

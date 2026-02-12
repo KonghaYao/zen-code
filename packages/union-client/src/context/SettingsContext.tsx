@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from 'react';
+import { createContext, useContext, useState, useRef, ReactNode, useEffect, useMemo } from 'react';
 import type { AppConfig, MCPConfig, ConfigManager } from '@codegraph/config';
 
 export interface ModelConfig {
@@ -35,15 +35,19 @@ export const SettingsProvider = ({ manager, get_allowed_models, children }: Sett
     const [loading, setLoading] = useState(true);
     const [AVAILABLE_MODELS, setModels] = useState<ModelConfig[]>([]);
 
+    // 使用 useRef 避免循环依赖：extraParams.model_id 使用 AVAILABLE_MODELS[0] 导致 models 变化时 extraParams 变化
+    const availableModelsRef = useRef<ModelConfig[]>([]);
+    availableModelsRef.current = AVAILABLE_MODELS;
+
     const extraParams = useMemo(() => {
         return {
             provider_id: config?.provider_id || 'default',
-            model_id: config?.model_id || AVAILABLE_MODELS[0]?.id,
+            model_id: config?.model_id || availableModelsRef.current[0]?.id,
             mcp_config: config?.mcp_config,
             enable_thinking: config?.enable_thinking ?? true,
             switch_command: config?.switch_command || '',
         };
-    }, [config, AVAILABLE_MODELS]);
+    }, [config?.provider_id, config?.model_id, config?.mcp_config, config?.enable_thinking, config?.switch_command]);
 
     const compactMode = useMemo(() => {
         return config?.compact_mode ?? false;
