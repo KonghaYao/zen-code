@@ -17,9 +17,21 @@ import { sparkCommands } from './sparkCommand';
 import { sparkToTaskCommands } from './sparkToTaskCommand';
 // NEW: Import compact mode command
 import { compactCommand } from './compactCommand';
+// NEW: Import provider command
+import { providerCommandImpl } from './implementations';
 
 // 注册内置命令
-[...builtinCommands, ...extendedCommands, ...agentCommands, ...interviewCommands, ...planCommands, ...sparkCommands, ...sparkToTaskCommands, compactCommand].forEach((command) => {
+[
+    ...builtinCommands,
+    ...extendedCommands,
+    ...agentCommands,
+    ...interviewCommands,
+    ...planCommands,
+    ...sparkCommands,
+    ...sparkToTaskCommands,
+    compactCommand,
+    providerCommandImpl,
+].forEach((command) => {
     commandRegistry.register(command);
 });
 

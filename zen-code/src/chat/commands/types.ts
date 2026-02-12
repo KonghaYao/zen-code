@@ -46,6 +46,8 @@ export interface CommandContext {
     switchToModel?: () => void;
     /** 切换到 Agent 面板 */
     switchToAgent?: () => void;
+    /** 切换到 Provider 配置面板 */
+    switchToProvider?: () => void;
     /** 切换到任务看板面板 */
     switchToTask?: () => void;
     /** 关闭面板返回聊天 */

@@ -4,6 +4,7 @@
 
 import { commandRegistry } from './registry';
 import { type CommandDefinition, type CommandResult, type CommandContext } from './types';
+import { providerCommand } from './providerCommand';
 
 /**
  * /init 命令 - 初始化新的对话会话
@@ -89,5 +90,24 @@ export const taskCommand: CommandDefinition = {
     },
 };
 
+/**
+ * /provider 命令 - 打开 Provider 配置面板
+ */
+export const providerCommandImpl: CommandDefinition = {
+    name: 'provider',
+    description: '配置 AI Provider',
+    aliases: ['providers', 'p'],
+    usage: '/provider',
+    execute: async (args: string[], context: CommandContext): Promise<CommandResult> => {
+        context.switchToProvider?.();
+
+        return {
+            success: true,
+            message: '打开 Provider 配置面板',
+            shouldClearInput: true,
+        };
+    },
+};
+
 // 导出所有命令
-export const builtinCommands: CommandDefinition[] = [initCommand, helpCommand, taskCommand];
+export const builtinCommands: CommandDefinition[] = [initCommand, helpCommand, taskCommand, providerCommandImpl];

@@ -24,7 +24,7 @@ export interface ProviderConfig {
     /** Provider 唯一标识 */
     id: string;
     /** Provider 类型 */
-    type: 'openai' | 'anthropic';
+    type: string;
     /** API 密钥 */
     apiKey: string;
     /** API 基础 URL */

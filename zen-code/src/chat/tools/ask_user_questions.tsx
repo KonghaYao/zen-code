@@ -146,7 +146,7 @@ const QuestionInteractionComponent: React.FC<{
 export const ask_user_questions = createUITool({
     name: 'ask_user_questions',
     description: 'Ask the user a question with selectable options',
-    parameters: AskUserQuestionsSchema,
+    parameters: AskUserQuestionsSchema as any,
     handler: ToolManager.waitForUIDone,
     render(tool) {
         return <QuestionInteractionComponent tool={tool} />;

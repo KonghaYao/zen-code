@@ -10,6 +10,14 @@ import type { SelectionContent } from '../content';
 import type { PanelInteraction } from '../panel';
 import { MultiSelectPro } from 'ink-pro';
 import { EnhancedTextInput } from '../../components/input/EnhancedTextInput';
+import { truncateByContext } from '../textUtils';
+
+/**
+ * 截断选项标签 - 确保不超长
+ */
+const truncateOptionLabel = (label: string): string => {
+    return truncateByContext(label, 'optionLabel');
+};
 
 /**
  * 选择渲染器实现
@@ -25,9 +33,9 @@ export const SelectionRenderer: InteractionRenderer<SelectionContent> = {
         const [selected, setSelected] = useState<any[]>([]);
         const [customInput, setCustomInput] = useState('');
 
-        // 转换选项格式
+        // 转换选项格式 - 截断过长的标签
         const options = content.options.map((opt) => ({
-            label: opt.label,
+            label: truncateOptionLabel(opt.label),
             value: opt.value,
         }));
 
@@ -38,19 +46,25 @@ export const SelectionRenderer: InteractionRenderer<SelectionContent> = {
             });
         };
 
+        // 截断标题和描述
+        const displayTitle = metadata?.title ? truncateByContext(metadata.title, 'title') : null;
+        const displayDescription = metadata?.description
+            ? truncateByContext(metadata.description, 'description')
+            : null;
+
         return (
             <Box flexDirection="column" paddingX={1}>
                 {/* 标题和描述 */}
-                {metadata?.title && (
+                {displayTitle && (
                     <Box marginBottom={1}>
                         <Text color="cyan" bold>
-                            {metadata.title}
+                            {displayTitle}
                         </Text>
                     </Box>
                 )}
-                {metadata?.description && (
+                {displayDescription && (
                     <Box marginBottom={1}>
-                        <Text dimColor>{metadata.description}</Text>
+                        <Text dimColor>{displayDescription}</Text>
                     </Box>
                 )}
 

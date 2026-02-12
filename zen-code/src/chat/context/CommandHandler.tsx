@@ -23,6 +23,8 @@ interface CommandHandlerProps {
     switchToModel?: () => void;
     /** 切换到 Agent 面板 */
     switchToAgent?: () => void;
+    /** 切换到 Provider 配置面板 */
+    switchToProvider?: () => void;
     switchToTask?: () => void;
     /** 关闭面板返回聊天 */
     closePanel?: () => void;
@@ -49,7 +51,16 @@ interface CommandHandlerReturn {
 }
 
 export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerReturn => {
-    const { onCommandExecuted, switchToHistory, switchToKnowledge, switchToModel, switchToAgent, closePanel, switchToTask } = props;
+    const {
+        onCommandExecuted,
+        switchToHistory,
+        switchToKnowledge,
+        switchToModel,
+        switchToAgent,
+        switchToProvider,
+        closePanel,
+        switchToTask,
+    } = props;
 
     // 从 useChat 获取所有需要的状态和函数
     const { userInput, setUserInput, sendMessage, currentAgent, client, createNewChat, renderMessages } = useChat();
@@ -64,80 +75,92 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
     const commandSuggestions = isCommandInput ? commandRegistry.getSuggestions(userInput) : [];
     const showCommandHint = isCommandInput;
 
-    const executeCommand = useCallback(async (inputValue?: string): Promise<boolean> => {
-        // 使用传入的 inputValue 或回退到 userInput 状态
-        const commandInput = inputValue || userInput;
+    const executeCommand = useCallback(
+        async (inputValue?: string): Promise<boolean> => {
+            // 使用传入的 inputValue 或回退到 userInput 状态
+            const commandInput = inputValue || userInput;
 
-        if (!commandRegistry.isCommand(commandInput)) {
-            return false; // 不是命令，返回 false 让调用者继续处理
-        }
+            if (!commandRegistry.isCommand(commandInput)) {
+                return false; // 不是命令，返回 false 让调用者继续处理
+            }
 
-        try {
-            const commandContext: CommandContext = {
-                userInput: commandInput,
-                setUserInput,
-                sendMessage,
-                currentAgent,
-                client,
-                extraParams,
-                createNewChat,
-                updateConfig,
-                AVAILABLE_MODELS,
-                renderMessages,
-                switchToHistory,
-                switchToKnowledge,
-                switchToModel,
-                switchToAgent,
-                switchToTask,
-                closePanel,
-                startRalphLoop: props.startRalphLoop,
-            };
+            try {
+                const commandContext: CommandContext = {
+                    userInput: commandInput,
+                    setUserInput,
+                    sendMessage,
+                    currentAgent,
+                    client,
+                    extraParams,
+                    createNewChat,
+                    updateConfig,
+                    AVAILABLE_MODELS,
+                    renderMessages,
+                    switchToHistory,
+                    switchToKnowledge,
+                    switchToModel,
+                    switchToAgent,
+                    switchToProvider,
+                    switchToTask,
+                    closePanel,
+                    startRalphLoop: props.startRalphLoop,
+                };
 
-            const result = await commandRegistry.executeCommand(commandInput, commandContext);
+                const result = await commandRegistry.executeCommand(commandInput, commandContext);
 
-            if (!result.success) {
-                setCommandError(result.message || '命令执行失败');
-                setTimeout(() => setCommandError(null), 3000); // 3秒后清除错误
-            } else {
-                if (result.message) {
-                    setCommandSuccessMessage(result.message);
-                    setTimeout(() => setCommandSuccessMessage(null), 5000); // 3秒后清除成功消息
+                if (!result.success) {
+                    setCommandError(result.message || '命令执行失败');
+                    setTimeout(() => setCommandError(null), 3000); // 3秒后清除错误
+                } else {
+                    if (result.message) {
+                        setCommandSuccessMessage(result.message);
+                        setTimeout(() => setCommandSuccessMessage(null), 5000); // 3秒后清除成功消息
+                    }
                 }
-            }
 
-            if (result.shouldClearInput) {
-                setUserInput('');
-            }
+                if (result.shouldClearInput) {
+                    setUserInput('');
+                }
 
-            // 如果命令要求发送消息，则发送
-            if (result.shouldSendMessage && result.messageContent) {
-                const content: Message[] = [
-                    {
-                        type: 'human',
-                        content: result.messageContent,
-                    },
-                ];
-                sendMessage(content, { extraParams });
-            }
+                // 如果命令要求发送消息，则发送
+                if (result.shouldSendMessage && result.messageContent) {
+                    const content: Message[] = [
+                        {
+                            type: 'human',
+                            content: result.messageContent,
+                        },
+                    ];
+                    sendMessage(content, { extraParams });
+                }
 
-            onCommandExecuted?.();
-            return true; // 命令已处理
-        } catch (error) {
-            setCommandError(`命令执行错误: ${error instanceof Error ? error.message : String(error)}`);
-            setTimeout(() => setCommandError(null), 3000);
-            return true; // 即使出错也认为命令已处理
-        }
-    }, [
-        userInput,
-        setUserInput,
-        sendMessage,
-        currentAgent,
-        client,
-        extraParams,
-        createNewChat,
-        onCommandExecuted,
-        AVAILABLE_MODELS,
-    ]);
+                onCommandExecuted?.();
+                return true; // 命令已处理
+            } catch (error) {
+                setCommandError(`命令执行错误: ${error instanceof Error ? error.message : String(error)}`);
+                setTimeout(() => setCommandError(null), 3000);
+                return true; // 即使出错也认为命令已处理
+            }
+        },
+        [
+            userInput,
+            setUserInput,
+            sendMessage,
+            currentAgent,
+            client,
+            extraParams,
+            createNewChat,
+            onCommandExecuted,
+            AVAILABLE_MODELS,
+            switchToHistory,
+            switchToKnowledge,
+            switchToModel,
+            switchToAgent,
+            switchToProvider,
+            switchToTask,
+            closePanel,
+            props.startRalphLoop,
+        ],
+    );
 
     // 命令提示UI组件
     const CommandHintUI: React.FC = () => {

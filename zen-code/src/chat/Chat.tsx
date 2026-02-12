@@ -16,6 +16,7 @@ import { notify } from '../utils/notify';
 import KnowledgePanel from './components/KnowledgePanel';
 import ModelPanel from './components/ModelPanel';
 import AgentPanel from './components/AgentPanel';
+import ProviderPanel from './components/ProviderPanel';
 import StatusBar from './components/StatusBar';
 import { useInput } from 'ink-pro';
 import { ApprovalProvider } from '@codegraph/union-client';
@@ -58,6 +59,7 @@ interface ChatInputProps {
     switchToKnowledge?: () => void;
     switchToModel?: () => void;
     switchToAgent?: () => void;
+    switchToProvider?: () => void;
     switchToTask?: () => void;
     closePanel?: () => void;
 }
@@ -67,6 +69,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     switchToKnowledge,
     switchToModel,
     switchToAgent,
+    switchToProvider,
     switchToTask,
     closePanel,
 }) => {
@@ -89,6 +92,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         switchToKnowledge,
         switchToModel,
         switchToAgent,
+        switchToProvider,
         switchToTask,
         closePanel,
         startRalphLoop,
@@ -177,7 +181,9 @@ const Chat: React.FC = () => {
     }, [loading]);
 
     const focusManager = useFocusManager();
-    const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge' | 'model' | 'agent' | 'task'>('chat');
+    const [activeView, setActiveView] = useState<
+        'chat' | 'history' | 'knowledge' | 'model' | 'agent' | 'provider' | 'task'
+    >('chat');
 
     // Global Ctrl+C exit handler and Ctrl+O expand handler
     // Disable when panel is open to avoid duplicate input handling
@@ -211,6 +217,10 @@ const Chat: React.FC = () => {
 
     const switchToAgent = useCallback(() => {
         setActiveView('agent');
+    }, []);
+
+    const switchToProvider = useCallback(() => {
+        setActiveView('provider');
     }, []);
 
     const switchToTask = useCallback(() => {
@@ -312,6 +322,7 @@ const Chat: React.FC = () => {
                                 switchToKnowledge={switchToKnowledge}
                                 switchToModel={switchToModel}
                                 switchToAgent={switchToAgent}
+                                switchToProvider={switchToProvider}
                                 switchToTask={switchToTask}
                                 closePanel={closePanel}
                             />
@@ -322,6 +333,7 @@ const Chat: React.FC = () => {
                 {activeView === 'knowledge' && <KnowledgePanel onClose={closePanel} />}
                 {activeView === 'model' && <ModelPanel onClose={closePanel} />}
                 {activeView === 'agent' && <AgentPanel onClose={closePanel} />}
+                {activeView === 'provider' && <ProviderPanel onClose={closePanel} />}
                 {activeView === 'task' && <TaskPanel onClose={closePanel} onExecuteTask={handleExecuteTask} />}
             </Box>
             <StatusBar />
