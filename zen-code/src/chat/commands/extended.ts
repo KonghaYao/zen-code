@@ -72,7 +72,10 @@ export const templateCommand: CommandDefinition = {
 
             return {
                 success: true,
-                message: `可用模板:\n${templateList}\n\n使用 /template <name> 插入模板`,
+                message: `可用模板:
+${templateList}
+
+使用 /template <name> 插入模板`,
                 shouldClearInput: true,
             };
         }
@@ -95,7 +98,8 @@ export const templateCommand: CommandDefinition = {
 
         return {
             success: true,
-            message: `已插入模板: ${template.name}\n${template.description}`,
+            message: `已插入模板: ${template.name}
+${template.description}`,
             shouldClearInput: false, // 不清空，让用户编辑模板
         };
     },
@@ -113,36 +117,43 @@ export const configCommand: CommandDefinition = {
         // 无参数：显示所有配置
         if (args.length === 0) {
             const config = await configStore.getConfig();
-            const hasOpenAIKey = !!config.openai_api_key;
-            const hasOpenAIBaseUrl = !!config.openai_base_url;
-            const hasAnthropicKey = !!config.anthropic_api_key;
-            const hasAnthropicBaseUrl = !!config.anthropic_base_url;
 
             const configLines = [
                 '当前配置:',
                 configStore.getConfigPath(),
-                `  main_model: ${config.main_model || 'N/A'}`,
-                `  model_provider: ${config.model_provider || 'openai'}`,
+                `  model_id: ${config.model_id || 'N/A'}`,
+                `  provider_id: ${config.provider_id || 'N/A'}`,
                 `  enable_thinking: ${config.enable_thinking ?? true}`,
-                `  openai_api_key: ${hasOpenAIKey ? '***已设置***' : '未设置'}`,
-                `  openai_base_url: ${config.openai_base_url || '未设置'}`,
-                `  anthropic_api_key: ${hasAnthropicKey ? '***已设置***' : '未设置'}`,
-                `  anthropic_base_url: ${config.anthropic_base_url || '未设置'}`,
+                `  compact_mode: ${config.compact_mode ?? false}`,
                 `  stream_refresh_interval: ${config.stream_refresh_interval}`,
+                '',
+                '可用 Provider:',
+            ];
+
+            if (config.providers && config.providers.length > 0) {
+                config.providers.forEach((p) => {
+                    const hasKey = !!p.apiKey;
+                    configLines.push(
+                        `  - [${p.id}] type: ${p.type}, url: ${p.baseUrl}, key: ${hasKey ? '***已设置***' : '未设置'}`,
+                    );
+                });
+            } else {
+                configLines.push('  (无已配置的 Provider)');
+            }
+
+            configLines.push(
+                '',
                 '使用方法:',
                 '  /config <key> <value>  - 设置配置项',
                 '  /config <key>          - 查看配置项',
                 '',
                 '可用配置项:',
-                '  main_model             - 主模型名称',
-                '  model_provider         - 模型提供商 (openai, anthropic)',
+                '  model_id               - 当前使用的模型 ID',
+                '  provider_id            - 当前使用的 Provider ID',
                 '  enable_thinking        - 启用思考模式 (true, false)',
-                '  openai_api_key         - OpenAI API 密钥',
-                '  openai_base_url        - OpenAI API 基础 URL',
-                '  anthropic_api_key      - Anthropic API 密钥',
-                '  anthropic_base_url     - Anthropic API 基础 URL',
+                '  compact_mode           - 紧凑模式 (true, false)',
                 '  stream_refresh_interval - 流刷新间隔',
-            ];
+            );
 
             return {
                 success: true,
@@ -151,38 +162,25 @@ export const configCommand: CommandDefinition = {
             };
         }
         const key = args[0];
-        const validKeys = [
-            'enable_thinking',
-            'stream_refresh_interval',
-            'openai_api_key',
-            'openai_base_url',
-            'model_provider',
-            'anthropic_api_key',
-            'anthropic_base_url',
-            'main_model',
-        ];
+        const validKeys = ['enable_thinking', 'stream_refresh_interval', 'provider_id', 'model_id', 'compact_mode'];
 
         if (!validKeys.includes(key)) {
             return {
                 success: false,
-                message: `无效的配置项: ${key}\n可用配置项: ${validKeys.join(', ')}`,
+                message: `无效的配置项: ${key}
+可用配置项: ${validKeys.join(', ')}`,
                 shouldClearInput: true,
             };
         }
 
         // 只有一个参数：查看配置项
         if (args.length === 1) {
-            const config = context.extraParams || {};
+            const config = (await configStore.getConfig()) as any;
             let value = config[key];
-
-            // 隐藏敏感信息
-            if ((key === 'openai_api_key' || key === 'anthropic_api_key') && value) {
-                value = '***已设置***';
-            }
 
             return {
                 success: true,
-                message: `${key}: ${value || '未设置'}`,
+                message: `${key}: ${value ?? '未设置'}`,
                 shouldClearInput: true,
             };
         }
@@ -191,11 +189,19 @@ export const configCommand: CommandDefinition = {
         let value: any = args.slice(1).join(' ');
 
         // 特殊处理布尔值
-        if (key === 'enable_thinking') {
+        if (key === 'enable_thinking' || key === 'compact_mode') {
             if (value === 'true' || value === '1' || value === 'yes') {
                 value = true;
             } else if (value === 'false' || value === '0' || value === 'no') {
                 value = false;
+            }
+        }
+
+        // 特殊处理数字
+        if (key === 'stream_refresh_interval') {
+            const num = parseInt(value, 10);
+            if (!isNaN(num)) {
+                value = num;
             }
         }
 
@@ -210,17 +216,13 @@ export const configCommand: CommandDefinition = {
 
             await context.updateConfig({ [key]: value });
 
-            // 显示设置成功的消息
-            let displayValue = value;
-            if (key === 'openai_api_key' || key === 'anthropic_api_key') {
-                displayValue = '***已设置***';
-            }
+            let message = `配置已更新: ${key} = ${value} 重启程序生效`;
 
-            let message = `配置已更新: ${key} = ${displayValue} 重启程序生效`;
+            // 如果更新的是 model_id 或 provider_id，提示用户可能需要重启
+            if (key === 'model_id' || key === 'provider_id') {
+                message += `
 
-            // 如果更新的是 main_model，提示用户可能需要新建会话
-            if (key === 'main_model') {
-                message += '\n\n提示: 如果当前会话未生效，请重启';
+提示: 更换模型或提供商后，请重启程序以确保完整生效`;
             }
 
             return {
@@ -293,7 +295,8 @@ export const mcpCommand: CommandDefinition = {
 
                     return {
                         success: true,
-                        message: `已配置的 MCP 服务器:\n${serverList}`,
+                        message: `已配置的 MCP 服务器:
+${serverList}`,
                         shouldClearInput: true,
                     };
                 }
@@ -364,7 +367,8 @@ export const mcpCommand: CommandDefinition = {
 
                     return {
                         success: true,
-                        message: `MCP 服务器 "${name}" 已移除\n重启程序生效`,
+                        message: `MCP 服务器 "${name}" 已移除
+重启程序生效`,
                         shouldClearInput: true,
                     };
                 }
@@ -403,7 +407,8 @@ export const mcpCommand: CommandDefinition = {
                 default:
                     return {
                         success: false,
-                        message: `未知操作: ${action}\n可用操作: list, add, remove, get`,
+                        message: `未知操作: ${action}
+可用操作: list, add, remove, get`,
                         shouldClearInput: true,
                     };
             }

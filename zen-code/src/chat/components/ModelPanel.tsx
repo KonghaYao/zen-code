@@ -51,9 +51,11 @@ async function getOpenAIModels(apiKey: string, baseUrl: string): Promise<ModelCo
         throw new Error(`OpenAI API error: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data: {
+        data: { id: string }[];
+    } = await response.json();
     return data.data
-        .map((model: any) => ({
+        .map((model) => ({
             id: model.id,
             name: model.id,
         }))
@@ -74,10 +76,14 @@ async function getAnthropicModels(apiKey: string, baseUrl: string): Promise<Mode
     }
 
     const data = await response.json();
-    return data.data.map((model: any) => ({
+    return data.data.map((model: { id: string; display_name?: string }) => ({
         id: model.id,
         name: model.display_name || model.id,
     }));
+}
+
+interface ModelPanelProps {
+    onClose: () => void;
 }
 
 const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
