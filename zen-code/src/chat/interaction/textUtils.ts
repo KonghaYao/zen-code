@@ -42,7 +42,7 @@ export const TRUNCATION_CONFIG = {
  * @param ellipsis - Ellipsis character(s) to append (default: '...')
  * @returns Truncated text with ellipsis if needed
  */
-export const truncateText = (text: string, maxWidth: number = 60, ellipsis: string = '…'): string => {
+export const truncateText = (text: string, maxWidth: number = 20, ellipsis: string = '…'): string => {
     if (!text) return '';
     if (text.length <= maxWidth) return text;
     return text.substring(0, maxWidth - ellipsis.length) + ellipsis;

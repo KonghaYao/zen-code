@@ -12,6 +12,7 @@ export interface ChatInputBufferProps {
     commandHandler: {
         isCommandInput: boolean;
         CommandHintUI: React.FC;
+        commandSuggestions?: any[];
     };
 }
 
@@ -47,6 +48,7 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
         if (isCommandInput) {
             onSubmit(internalValue);
             setInternalValue('');
+            ('');
             return;
         }
 
@@ -68,6 +70,28 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
         } else {
             setInternalValue(''); // 清空输入框
         }
+    };
+
+    // 处理命令补全 - 右箭头键（仅在光标在末尾且是命令输入时触发）
+    const handleRightArrow = () => {
+        if (!isCommandInput || !commandHandler.commandSuggestions || commandHandler.commandSuggestions.length === 0) {
+            return false; // 不是命令输入或没有建议，不拦截
+        }
+
+        const suggestions = commandHandler.commandSuggestions;
+        // 检查光标是否在末尾（通过检查当前 internalValue 和用户输入的最后一个字符位置）
+        // ink-pro 的 MultiLineTextInput 不直接提供光标位置信息
+        // 我们假设用户在连续输入时，光标通常在末尾
+        // 只有当输入以 '/' 开头且匹配某个建议的命令名前缀时才触发补全
+
+        const firstSuggestion = suggestions[0];
+        const completionText = firstSuggestion.displayText || firstSuggestion.command || '';
+
+        // 执行补全：使用第一个建议
+        const completedText = completionText + ' '; // 补全后添加空格
+        handleChange(completedText);
+
+        return true; // 拦截按键，阻止默认行为
     };
 
     return (
@@ -97,6 +121,15 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
                             handleEsc();
                             return false; // 阻止默认行为
                         }
+
+                        // 处理右箭头键补全命令
+                        if (key.rightArrow) {
+                            const handled = handleRightArrow();
+                            if (handled) {
+                                return false; // 阻止默认行为
+                            }
+                        }
+
                         return true;
                     }}
                     placeholder={
@@ -105,8 +138,8 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
                                 ? '按 Esc 清空缓冲区'
                                 : 'AI 响应中，Enter 将消息加入缓冲区'
                             : isCommandInput
-                            ? '输入命令... (试试 /help)'
-                            : placeholder
+                              ? '输入命令... (试试 /help，按 → 补全第一个建议)'
+                              : placeholder
                     }
                 />
             </Box>

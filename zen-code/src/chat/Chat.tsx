@@ -137,7 +137,11 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 onChange={setUserInput}
                 onSubmit={handleSendMessage}
                 loading={loading}
-                commandHandler={commandHandler}
+                commandHandler={{
+                    isCommandInput: commandHandler.isCommandInput,
+                    CommandHintUI: commandHandler.CommandHintUI,
+                    commandSuggestions: commandHandler.commandSuggestions,
+                }}
             />
         </Box>
     );

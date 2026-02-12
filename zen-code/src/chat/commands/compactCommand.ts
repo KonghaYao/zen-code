@@ -5,10 +5,10 @@ import { CommandDefinition, CommandContext } from './types';
  * 切换消息的紧凑/详细显示模式
  */
 export const compactCommand: CommandDefinition = {
-    name: 'compact',
+    name: 'compact-message',
     description: '切换紧凑消息显示模式 (紧凑模式显示简化的消息预览)',
     aliases: ['cm'],
-    usage: '/compact',
+    usage: '/compact-message',
     requiresArgs: false,
 
     execute: async (args: string[], context: CommandContext) => {

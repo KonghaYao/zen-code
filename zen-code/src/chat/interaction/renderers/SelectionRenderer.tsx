@@ -3,7 +3,7 @@
  * 渲染选择类型的交互内容
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import type { InteractionRenderer } from '../registry';
 import type { SelectionContent } from '../content';
@@ -29,15 +29,37 @@ export const SelectionRenderer: InteractionRenderer<SelectionContent> = {
      * 渲染选择交互
      */
     render(interaction: PanelInteraction & { content: SelectionContent }, onChange) {
-        const { content, metadata } = interaction;
-        const [selected, setSelected] = useState<any[]>([]);
-        const [customInput, setCustomInput] = useState('');
+        const { content, metadata, result } = interaction;
+
+        // 从 interaction.result 中恢复已保存的状态
+        const [selected, setSelected] = useState<any[]>(result?.selected || []);
+        const [customInput, setCustomInput] = useState(result?.customInput || '');
 
         // 转换选项格式 - 截断过长的标签
         const options = content.options.map((opt) => ({
             label: truncateOptionLabel(opt.label),
             value: opt.value,
         }));
+
+        // 保存临时状态到 interaction
+        const saveTempState = (newSelected?: any[], newCustomInput?: string) => {
+            onChange({
+                result: {
+                    selected: newSelected ?? selected,
+                    customInput: newCustomInput ?? customInput,
+                },
+            });
+        };
+
+        const handleSelectChange = (newSelected: any[]) => {
+            setSelected(newSelected);
+            saveTempState(newSelected, undefined);
+        };
+
+        const handleCustomInputChange = (newInput: string) => {
+            setCustomInput(newInput);
+            saveTempState(undefined, newInput);
+        };
 
         const handleSubmit = () => {
             onChange({
@@ -72,7 +94,8 @@ export const SelectionRenderer: InteractionRenderer<SelectionContent> = {
                 <MultiSelectPro
                     options={options}
                     singleSelect={content.singleSelect}
-                    onChange={setSelected}
+                    values={selected}
+                    onChange={handleSelectChange}
                     onSubmit={handleSubmit}
                     autoFocus={true}
                 />
@@ -82,7 +105,7 @@ export const SelectionRenderer: InteractionRenderer<SelectionContent> = {
                     <Box marginTop={1} flexDirection="column">
                         <EnhancedTextInput
                             value={customInput}
-                            onChange={setCustomInput}
+                            onChange={handleCustomInputChange}
                             onSubmit={handleSubmit}
                             placeholder={content.placeholder || 'Type custom option...'}
                             autoFocus={false}

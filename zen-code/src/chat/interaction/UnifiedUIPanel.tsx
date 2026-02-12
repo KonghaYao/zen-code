@@ -107,6 +107,7 @@ export const UnifiedUIPanel: React.FC = () => {
 
         return (
             <InteractionRendererWrapper
+                key={interaction.id}
                 interaction={interaction}
                 renderer={renderer}
                 onChange={(updates) => {

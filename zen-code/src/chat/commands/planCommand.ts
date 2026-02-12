@@ -21,12 +21,7 @@ I want to create a comprehensive implementation plan for this task.
 **Plan Format Requirements:**
 - Each task should be 2-5 minutes of work
 - Include exact file paths, code snippets, and commands
-- Follow TDD: Write test → Verify fail → Implement → Verify pass → Commit
 - Document testing strategies and edge cases
-
-**Required Skills:**
-- Use \`writing-plans\` skill (located at \`.claude/skills/writing-plans/SKILL.md\`)
-- Read the skill file for the complete plan structure template
 
 After the plan is created, ask if I want to execute it immediately or save for later.
 
