@@ -66,7 +66,7 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
             'search-files-rg': true,
             folder_operations: true,
             terminal: true,
-            ask_user_with_options: true,
+            ask_user_questions: true,
             TodoWrite: true,
         },
         middleware: {
@@ -91,7 +91,7 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
             'search-files-rg': true,
             folder_operations: true,
             terminal: true,
-            ask_user_with_options: true,
+            ask_user_questions: true,
             TodoWrite: true,
         },
         middleware: {

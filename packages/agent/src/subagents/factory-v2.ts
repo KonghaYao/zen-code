@@ -8,17 +8,27 @@
 import { initChatModel } from '../utils/initChatModel.js';
 import { AgentMiddleware, createAgent, DynamicStructuredTool, Runtime, tool } from 'langchain';
 import { CodeState, CodeStateType } from '../state.js';
-import { ask_user_with_options_config, humanInTheLoopMiddleware } from '@langgraph-js/auk';
 import { anthropicPromptCachingMiddleware } from '@langgraph-js/standard-agent';
 import { CommandSystemMiddleware } from '../middlewares/commandSystem.js';
 import { glob_tool, read_tool } from '../tools/filesystem_tools/index.js';
 import { getEnvInfo } from '../prompts/coding.js';
 import { MCPManager } from '../mcp/MCPManager.js';
 import { AgentPackage } from '@langgraph-js/standard-agent';
+import { humanInTheLoopMiddleware } from '@langgraph-js/auk';
 
 // ============================================
-// Runtime Middleware Registry
+// Human-in-the-Loop Configuration
 // ============================================
+
+/**
+ * Tool interrupt configuration
+ * Controls which tools require human approval
+ */
+const INTERRUPT_ON_CONFIG = {
+    ask_user_questions: {
+        allowedDecisions: ['respond', 'approve', 'reject', 'edit'],
+    },
+};
 
 // ============================================
 // Agent Factory
@@ -114,7 +124,7 @@ export async function createStandardAgentV2(
 
     // Human-in-the-loop middleware
     const interruptOn = {
-        ...ask_user_with_options_config.interruptOn,
+        ...INTERRUPT_ON_CONFIG,
     };
 
     if (process.env.YOLO_MODE !== 'true') {

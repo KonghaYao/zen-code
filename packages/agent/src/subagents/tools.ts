@@ -1,5 +1,4 @@
 import { Tool } from 'langchain';
-import { ask_user_with_options } from '@langgraph-js/auk';
 import { bash_tools } from '../tools/bash_tools/index.js';
 import {
     glob_tool,
@@ -10,11 +9,12 @@ import {
     folder_tool,
 } from '../tools/filesystem_tools/index.js';
 import { todo_write_tool } from '../tools/task_tools/index.js';
+import { ask_user_questions_tool } from '../tools/ask_user_questions.js';
 import { AgentPackage, fromLangChainTool } from '@langgraph-js/standard-agent';
 
 // All available tools
 const ALL_TOOLS = [
-    ask_user_with_options,
+    ask_user_questions_tool,
     todo_write_tool,
     glob_tool,
     grep_tool,

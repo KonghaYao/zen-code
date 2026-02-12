@@ -4,15 +4,15 @@
 
 ## 核心概念
 
--   **Agent**: 代理配置，包含名称、描述、系统提示、工具和中间件
--   **ToolRegistry**: 工具注册表，管理工具的 Schema 和实现（支持运行时发现）
--   **MiddlewareRegistry**: 中间件注册表，管理中间件的 Schema 和实现（支持运行时发现）
--   **AgentRepository**: 简化的 CRUD 接口，返回 `StandardAgent` 实例
--   **AgentValidator**: Agent 依赖验证器
--   **AgentSerializer**: JSON 导入导出工具
--   **AgentPackage**: 协调层，包装 Storage 并提供统一的 API
--   **createStandardAgentV2**: Factory 函数，从 AgentPackage 创建 LangChain Agent
--   **StandardAgent**: Agent 配置的包装类，提供标准化属性访问
+- **Agent**: 代理配置，包含名称、描述、系统提示、工具和中间件
+- **ToolRegistry**: 工具注册表，管理工具的 Schema 和实现（支持运行时发现）
+- **MiddlewareRegistry**: 中间件注册表，管理中间件的 Schema 和实现（支持运行时发现）
+- **AgentRepository**: 简化的 CRUD 接口，返回 `StandardAgent` 实例
+- **AgentValidator**: Agent 依赖验证器
+- **AgentSerializer**: JSON 导入导出工具
+- **AgentPackage**: 协调层，包装 Storage 并提供统一的 API
+- **createStandardAgentV2**: Factory 函数，从 AgentPackage 创建 LangChain Agent
+- **StandardAgent**: Agent 配置的包装类，提供标准化属性访问
 
 ## 基本使用
 
@@ -39,10 +39,10 @@ const agent = new StandardAgent({
 });
 
 // 访问属性
-console.log(agent.id);              // 'agent-1'
-console.log(agent.name);            // 'Code Assistant'
-console.log(agent.systemPromptId);  // 'prompt-1'
-console.log(agent.modelId);         // 'model-1'
+console.log(agent.id); // 'agent-1'
+console.log(agent.name); // 'Code Assistant'
+console.log(agent.systemPromptId); // 'prompt-1'
+console.log(agent.modelId); // 'model-1'
 
 // 获取工具配置（标准化格式）
 console.log(agent.tools);
@@ -90,7 +90,7 @@ await pkg.addModel({
     max_tokens: 4096,
     top_p: 1,
     frequency_penalty: 0,
-    presence_penalty: 0
+    presence_penalty: 0,
 });
 
 await pkg.addPrompt({ id: 'prompt-1', name: 'default', content: 'You are helpful.' });
@@ -101,17 +101,17 @@ await pkg.addAgent({
     system_prompt: 'prompt-1',
     model: 'model-1',
     tools: {},
-    middleware: {}
+    middleware: {},
 });
 
 // 获取资源（异步）- 返回 StandardAgent 实例
 const agent = await pkg.getAgent('agent-1');
-console.log(agent instanceof StandardAgent);  // true
-console.log(agent.name);  // 'Assistant'
+console.log(agent instanceof StandardAgent); // true
+console.log(agent.name); // 'Assistant'
 
 const allAgents = await pkg.listAgents();
-allAgents.forEach(agent => {
-    console.log(agent.id, agent.name);  // 每个 agent 都是 StandardAgent 实例
+allAgents.forEach((agent) => {
+    console.log(agent.id, agent.name); // 每个 agent 都是 StandardAgent 实例
 });
 
 // 验证 Agent 依赖
@@ -180,7 +180,9 @@ const json = await pkg.toJSON();
 console.log(json);
 
 // 从 JSON 导入（自动创建 AgentPackage）
-const data = { /* JSON 数据 */ };
+const data = {
+    /* JSON 数据 */
+};
 const pkg2 = await AgentPackage.loadFromJSON(storage, data);
 ```
 
@@ -195,7 +197,7 @@ const pkg2 = await AgentPackage.loadFromJSON(storage, data);
     description: string;
     system_prompt: string; // Prompt ID
     model: string; // Model ID
-    tools: Record<string, boolean | any>;  // true 或自定义参数
+    tools: Record<string, boolean | any>; // true 或自定义参数
     middleware: Record<string, boolean | any>;
 }
 ```
@@ -209,14 +211,20 @@ const pkg2 = await AgentPackage.loadFromJSON(storage, data);
     description: string;
     systemPromptId: string;
     modelId: string;
-    tools: Record<string, {
-        enabled: boolean;
-        customParams?: any;
-    }>;
-    middleware: Record<string, {
-        enabled: boolean;
-        customParams?: any;
-    }>;
+    tools: Record<
+        string,
+        {
+            enabled: boolean;
+            customParams?: any;
+        }
+    >;
+    middleware: Record<
+        string,
+        {
+            enabled: boolean;
+            customParams?: any;
+        }
+    >;
 }
 ```
 
@@ -350,8 +358,8 @@ const pkg = new AgentPackage(storage);
 const pkg = await AgentPackage.fromStorage(storage);
 
 // 使用 pkg（所有操作都是异步的）
-const agent = await pkg.getAgent('agent-1');  // 返回 StandardAgent 实例
-const allAgents = await pkg.listAgents();    // 返回 StandardAgent[]
+const agent = await pkg.getAgent('agent-1'); // 返回 StandardAgent 实例
+const allAgents = await pkg.listAgents(); // 返回 StandardAgent[]
 
 // 访问 StandardAgent 属性
 console.log(agent.name);
@@ -366,11 +374,12 @@ const json = await pkg.toJSON();
 ```
 
 **关键设计**：
+
 - `AgentPackage` 协调多个子系统：
-  - **AgentRepository**: CRUD 操作
-  - **AgentValidator**: 依赖验证
-  - **AgentSerializer**: JSON 导入导出
-  - **ToolRegistry/MiddlewareRegistry**: 运行时工具发现（不持久化）
+    - **AgentRepository**: CRUD 操作
+    - **AgentValidator**: 依赖验证
+    - **AgentSerializer**: JSON 导入导出
+    - **ToolRegistry/MiddlewareRegistry**: 运行时工具发现（不持久化）
 - 所有 CRUD 操作委托给 Repository
 - `getAgent()` 和 `listAgents()` 返回 `StandardAgent` 实例，提供标准化 API
 - 存储层只负责持久化，Registry 负责运行时实现
@@ -472,8 +481,8 @@ const pkg = new AgentPackage(storage);
 const agent = await createStandardAgentV2(
     'agent-1',
     pkg,
-    state,  // CodeStateType
-    runtime // Runtime
+    state, // CodeStateType
+    runtime, // Runtime
 );
 ```
 
@@ -483,14 +492,14 @@ const agent = await createStandardAgentV2(
 2. **验证**: 使用 AgentValidator 验证依赖完整性
 3. **初始化模型**: 根据 ModelConfig 初始化 LangChain ChatModel
 4. **构建工具链**:
-   - 从 `StandardAgent.tools` 过滤工具
-   - 根据状态添加任务工具（add_task 或 commit_task）
-   - 注册到 ToolRegistry
+    - 从 `StandardAgent.tools` 过滤工具
+    - 根据状态添加任务工具（add_task 或 commit_task）
+    - 注册到 ToolRegistry
 5. **构建中间件链**:
-   - 从 `StandardAgent.middleware` 加载中间件
-   - 自动添加 CommandSystemMiddleware（始终启用）
-   - 添加 HumanInTheLoopMiddleware（根据 YOLO_MODE）
-   - 添加 AnthropicPromptCachingMiddleware（如果使用 Anthropic）
+    - 从 `StandardAgent.middleware` 加载中间件
+    - 自动添加 CommandSystemMiddleware（始终启用）
+    - 添加 HumanInTheLoopMiddleware（根据 YOLO_MODE）
+    - 添加 AnthropicPromptCachingMiddleware（如果使用 Anthropic）
 6. **加载系统提示**: 合并 Prompt 内容和环境信息
 7. **创建 Agent**: 调用 LangChain 的 `createAgent` 函数
 
@@ -511,19 +520,17 @@ for (const [toolId, params] of Object.entries(agentConfig.tools)) {
         continue;
     }
     tools.push(
-        tool(
-            toolImpl.execute,
-            {
-                name: toolImpl.name,
-                description: toolImpl.description,
-                schema: toolImpl.paramsSchema?.toJSONSchema() || toolImpl.paramsSchema,
-            },
-        ) as any as DynamicStructuredTool,
+        tool(toolImpl.execute, {
+            name: toolImpl.name,
+            description: toolImpl.description,
+            schema: toolImpl.paramsSchema?.toJSONSchema() || toolImpl.paramsSchema,
+        }) as any as DynamicStructuredTool,
     );
 }
 ```
 
-**注意**: `agentConfig.tools` 来自 StandardAgent 的 getter，已经标准化为 `{ [toolId]: { enabled, customParams } }` 格式。
+**注意**: `agentConfig.tools` 来自 StandardAgent 的 getter，已经标准化为 `{ [toolId]: { enabled, customParams } }`
+格式。
 
 ### 中间件处理
 
@@ -541,7 +548,9 @@ if (process.env.YOLO_MODE !== 'true') {
     middleware.push(
         humanInTheLoopMiddleware({
             interruptOn: {
-                ...ask_user_with_options_config.interruptOn,
+                ask_user_questions: {
+                    allowedDecisions: ['approve', 'reject', 'edit'],
+                },
                 terminal: { allowedDecisions: ['approve', 'reject', 'edit'] },
             },
         }),
@@ -574,6 +583,7 @@ npx vitest run --coverage --config vitest.standard-agent.config.ts
 ```
 
 **测试文件：**
+
 - `memory-storage.test.ts` - MemoryStorage 完整测试（29 个测试）
 - `repository.test.ts` - AgentRepository CRUD 测试（22 个测试）
 - `validator.test.ts` - AgentValidator 验证逻辑测试（8 个测试）
@@ -581,6 +591,7 @@ npx vitest run --coverage --config vitest.standard-agent.config.ts
 - `package.test.ts` - AgentPackage 集成测试（21 个测试）
 
 **覆盖的关键场景：**
+
 - 资源的 CRUD 操作
 - 外键约束和关联关系
 - Agent 依赖验证

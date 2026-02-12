@@ -57,7 +57,7 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
             systemPrompt: '',
 
             // 架构师只使用只读工具，不修改代码
-            tools: ['glob_files', 'search-files-rg', 'read_file', 'ask_user_with_options'],
+            tools: ['glob_files', 'search-files-rg', 'read_file', 'ask_user_questions'],
 
             // 只启用基础中间件，不启用 MCP 和 subagents
             middleware: {

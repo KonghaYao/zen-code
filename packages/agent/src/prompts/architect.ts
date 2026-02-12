@@ -188,7 +188,7 @@ export const architectPrompt = `# 架构师技能
 
 **重要**：作为架构师，你的工具限制为：
 - ✅ 只读工具：\`read_file\`, \`glob_files\`, \`search-files-rg\`
-- ✅ 交互工具：\`ask_user_with_options\`（用于讨论方案）
+- ✅ 交互工具：\`ask_user_questions\`（用于讨论方案）
 - ❌ 不使用写入工具：\`write_file\`, \`edit_file\`
 - ❌ 不使用执行工具：\`terminal\`
 
