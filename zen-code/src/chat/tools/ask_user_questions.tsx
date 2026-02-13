@@ -98,7 +98,7 @@ const QuestionInteractionComponent: React.FC<{
 
                 if (result) {
                     if (result.selected && result.selected.length > 0) {
-                        message += `User selected: ${result.selected.join(', ')}`;
+                        message += `User selected: \n${result.selected.join('\n ')}`;
                     }
                     if (result.customInput && result.customInput.trim()) {
                         message += (message ? '\n' : '') + `User Custom Input: ${result.customInput}`;
