@@ -3,6 +3,7 @@ import { Box, Spacer, Text } from 'ink';
 import { getMessageContent, RenderMessage, ToolMessage } from '@langgraph-js/sdk';
 import { useChat } from '@langgraph-js/sdk/react';
 import { ToolRenderData } from '@langgraph-js/sdk';
+import ErrorBoundary from './ErrorBoundary';
 
 const TOOL_COLOR_NAMES = ['yellow', 'magenta', 'blue'];
 
@@ -172,45 +173,48 @@ const MessageTool: React.FC<MessageToolProps> = ({ message, messageNumber }) => 
     const render = message.name ? getToolUIRender(message.name!) : null;
     let borderColor = getToolColor(message.name || '');
     borderColor = message.status === 'error' ? 'red' : 'yellow';
-    return (
-        <Box flexDirection="column">
-            <Box>
-                <Text color={borderColor}>
-                    {messageNumber} {message.name}
-                    <Text color="gray">{label}</Text>
-                </Text>
-                <Text> {getStatusEmoji(message?.status)}</Text>
-            </Box>
-            {message.sub_messages?.length ? (
-                <Box>
-                    <Text color="gray">└─ </Text>
-                    <Text color={borderColor} dimColor>
-                        (hidden {message.sub_messages.length} subagent messages)
-                    </Text>
-                </Box>
-            ) : null}
 
-            {render ? (
+    return (
+        <ErrorBoundary>
+            <Box flexDirection="column">
                 <Box>
-                    <Text color="gray">└─ </Text>
-                    <Box flexDirection="column">{render(message as RenderMessage) as JSX.Element}</Box>
+                    <Text color={borderColor}>
+                        {messageNumber} {message.name}
+                        <Text color="gray">{label}</Text>
+                    </Text>
+                    <Text> {getStatusEmoji(message?.status)}</Text>
                 </Box>
-            ) : (
-                <Box flexDirection="column" paddingTop={0}>
-                    {/* 入参 */}
+                {message.sub_messages?.length ? (
                     <Box>
                         <Text color="gray">└─ </Text>
-                        <InputPreviewer content={tool.getInputRepaired()} />
-                    </Box>
-                    <Box paddingTop={0} paddingBottom={0}>
-                        <Text color="gray">└─ </Text>
-                        <Text dimColor italic>
-                            {truncateContentForDisplay(getMessageContent(message.content))}
+                        <Text color={borderColor} dimColor>
+                            (hidden {message.sub_messages.length} subagent messages)
                         </Text>
                     </Box>
-                </Box>
-            )}
-        </Box>
+                ) : null}
+
+                {render ? (
+                    <Box>
+                        <Text color="gray">└─ </Text>
+                        <Box flexDirection="column">{render(message as RenderMessage) as JSX.Element}</Box>
+                    </Box>
+                ) : (
+                    <Box flexDirection="column" paddingTop={0}>
+                        {/* 入参 */}
+                        <Box>
+                            <Text color="gray">└─ </Text>
+                            <InputPreviewer content={tool.getInputRepaired()} />
+                        </Box>
+                        <Box paddingTop={0} paddingBottom={0}>
+                            <Text color="gray">└─ </Text>
+                            <Text dimColor italic>
+                                {truncateContentForDisplay(getMessageContent(message.content))}
+                            </Text>
+                        </Box>
+                    </Box>
+                )}
+            </Box>
+        </ErrorBoundary>
     );
 };
 

@@ -2,7 +2,7 @@
  * Model 面板 - 使用 Tab 系统重构
  */
 
-import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Box, Text } from 'ink';
 import { useInput } from 'ink';
 import { UniversalPanel } from 'ink-pro';
@@ -93,6 +93,11 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // 使用 ref 存储最新的 models，避免 dataSource 依赖 models 导致引用变化
+    const modelsRef = useRef<ModelConfig[]>([]);
+    // 同步 models 到 ref
+    modelsRef.current = models;
+
     // 从配置动态生成 provider tabs
     const providerTabs: ProviderTab[] = useMemo(() => {
         if (!config?.providers || config.providers.length === 0) {
@@ -147,7 +152,7 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
             } catch (err) {
                 console.error(`Failed to load ${activeTab} models:`, err);
                 setError(err instanceof Error ? err.message : String(err));
-                setModels([]);
+                // 注意：这里不再调用 setModels([])，避免触发额外的渲染循环
             } finally {
                 setLoading(false);
             }
@@ -171,18 +176,17 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
         }
     });
 
-    // 修复：使用 useRef 保持 dataSource 引用稳定，同时始终返回最新的 models
-    const modelsRef = useRef(models);
-    modelsRef.current = models;
-
+    // 修复：使用 useCallback 保持 dataSource 引用稳定
+    // 使用空依赖数组，确保函数引用不会变化
+    // 内部通过 modelsRef 获取最新的 models 值
     const dataSource = useCallback(async () => {
         return modelsRef.current;
-    }, []);
+    }, []); // 空依赖，函数引用永远不变
 
     // 修复：使用 useCallback 保持 renderItem 引用稳定
     const renderItem = useCallback(
         (model: any, index: number, isSelected: boolean) => {
-            const isCurrent = model.id === extraParams.model_id;
+            const isCurrent = model.id === extraParams.provider_id + '-' + model.id;
             return (
                 <SelectItem key={index + model.id} isSelected={isSelected} isCurrent={isCurrent}>
                     <Text bold>
@@ -192,15 +196,15 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
                 </SelectItem>
             );
         },
-        [extraParams.model_id],
+        [extraParams.provider_id],
     );
 
     // 修复：使用 useCallback 保持 isSelected 引用稳定
     const isSelected = useCallback(
         (model: any) => {
-            return model.id === extraParams.model_id;
+            return model.id === extraParams.provider_id + '-' + model.id;
         },
-        [extraParams.model_id],
+        [extraParams.provider_id],
     );
 
     // 修复：使用 useCallback 保持 onSelect 引用稳定
@@ -223,6 +227,7 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
             title: `模型选择 - ${activeProviderTab?.label || '加载中...'}`,
             icon: activeProviderTab?.icon || '🔮',
 
+            // 关键：使用稳定的 dataSource 函数
             dataSource: dataSource,
 
             // 搜索配置
@@ -234,10 +239,9 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
             itemHeight: 1,
             visibleCount: 10,
 
+            // 关键：使用稳定的回调函数
             renderItem: renderItem,
-
             isSelected: isSelected,
-
             onSelect: handleSelectModel,
 
             showCount: true,
