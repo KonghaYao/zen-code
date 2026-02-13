@@ -1,6 +1,5 @@
 import { createUITool, ToolManager } from '@langgraph-js/sdk';
 import { Box, Text } from 'ink';
-import { cleanPath } from '@codegraph/union-client';
 import { z } from 'zod';
 import Link from '../components/Link';
 
@@ -19,7 +18,7 @@ export const write_file = createUITool({
         const input = tool.getInputRepaired();
         const output = tool.output;
 
-        const lineCount = input.content?.split('\n').length;
+        const lineCount = input.content?.split('\n')?.length;
 
         return (
             <Box flexDirection="column" paddingX={1}>
@@ -39,7 +38,7 @@ export const write_file = createUITool({
 
                 {!output && (
                     <Box marginTop={0}>
-                        <Text color="gray">Press Enter to confirm, Ctrl+C to cancel</Text>
+                        <Text color="gray">Waiting...</Text>
                     </Box>
                 )}
             </Box>
