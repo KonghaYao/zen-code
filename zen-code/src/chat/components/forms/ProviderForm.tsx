@@ -5,7 +5,7 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { MultiLineTextInput } from 'ink-pro';
-import { useSettings } from '@codegraph/union-client';
+import { useSettings } from '../../context/SettingsContext';
 import type { ProviderConfig } from '@codegraph/config';
 
 export interface ProviderFormProps {

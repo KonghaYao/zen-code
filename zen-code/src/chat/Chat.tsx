@@ -5,7 +5,8 @@ import { CompactMessagesBox } from './components/CompactMessagesBox';
 import HistoryPanel from './components/HistoryPanel';
 import { ChatProvider, useChat } from '@langgraph-js/sdk/react';
 import { Message } from '@langgraph-js/sdk';
-import { SettingsProvider, useSettings } from '@codegraph/union-client';
+import { SettingsProvider, useSettings } from './context/SettingsContext';
+import { TanStackQueryProvider } from './QueryClientProvider';
 import { ChatInputBufferProvider, useChatInputBuffer } from '@codegraph/union-client';
 import { useCommandHandler } from './context/CommandHandler';
 import { LangGraphFetch } from '@codegraph/agent/src/export';
@@ -350,15 +351,17 @@ const ChatWrapper: React.FC = () => {
             fetch={LangGraphFetch as any}
             autoRestoreLastSession
         >
-            <ChatInputBufferProvider>
-                <SettingsProvider get_allowed_models={get_allowed_models} manager={configStore}>
-                    <ApprovalProvider>
-                        <InteractionProvider>
-                            <Chat />
-                        </InteractionProvider>
-                    </ApprovalProvider>
-                </SettingsProvider>
-            </ChatInputBufferProvider>
+            <TanStackQueryProvider>
+                <ChatInputBufferProvider>
+                    <SettingsProvider get_allowed_models={get_allowed_models} manager={configStore}>
+                        <ApprovalProvider>
+                            <InteractionProvider>
+                                <Chat />
+                            </InteractionProvider>
+                        </ApprovalProvider>
+                    </SettingsProvider>
+                </ChatInputBufferProvider>
+            </TanStackQueryProvider>
         </ChatProvider>
     );
 };

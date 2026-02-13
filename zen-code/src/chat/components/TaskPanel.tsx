@@ -1,6 +1,8 @@
 /**
  * Task Panel - 任务看板面板
  * 展示任务列表，支持状态过滤和任务执行
+ *
+ * 使用 TanStack Query 管理任务列表状态
  */
 
 import React, { useCallback, useState, useRef } from 'react';
@@ -9,6 +11,7 @@ import { UniversalPanel } from 'ink-pro';
 import { SelectItem } from 'ink-pro';
 import { PanelConfig } from 'ink-pro';
 import { TaskNode } from '@codegraph/config';
+import { useTasks, useDeleteTask } from '../hooks/useTasks';
 import TaskPreviewPanel from './TaskPreviewPanel';
 
 interface TaskPanelProps {
@@ -33,6 +36,10 @@ const COMPLEXITY_CONFIG = {
 };
 
 const TaskPanel: React.FC<TaskPanelProps> = ({ onClose, onExecuteTask }) => {
+    // 使用 TanStack Query 获取任务列表
+    const { data: allTasks = [] } = useTasks();
+    const deleteTask = useDeleteTask();
+
     // 预览任务状态
     const [previewTask, setPreviewTask] = useState<TaskNode | null>(null);
 
@@ -49,43 +56,19 @@ const TaskPanel: React.FC<TaskPanelProps> = ({ onClose, onExecuteTask }) => {
         onExecuteTaskRef.current = onExecuteTask;
     }, [onExecuteTask]);
 
-    // 修复：不要依赖 refreshTrigger，让 dataSource 保持稳定的函数引用
-    const refreshTasks = useCallback(async () => {
-        try {
-            const { getTasksStore } = await import('../store/tasks');
-            const tasksStore = getTasksStore(process.cwd());
-            await tasksStore.initialize();
-            const allTasks = await tasksStore.getAllTasks();
-            return allTasks;
-        } catch (error) {
-            console.error('Failed to load tasks:', error);
-            return [];
-        }
-    }, []); // ← 空依赖数组，函数引用保持稳定
-
     // 关闭预览
     const handleClosePreview = useCallback(() => {
         setPreviewTask(null);
     }, []);
 
     // 删除任务
-    const handleDeleteTask = useCallback(async (task: TaskNode) => {
-        try {
-            const { getTasksStore } = await import('../store/tasks');
-            const tasksStore = getTasksStore(process.cwd());
-            await tasksStore.initialize();
-            const success = await tasksStore.deleteTask(task.id);
-
-            if (success) {
-                // 触发刷新：通过改变状态导致组件重新渲染
-                setPreviewTask((prev) => (prev?.id === task.id ? null : prev));
-            } else {
-                console.error(`Failed to delete task: ${task.id}`);
-            }
-        } catch (error) {
-            console.error('Error deleting task:', error);
-        }
-    }, []);
+    const handleDeleteTask = useCallback(
+        async (task: TaskNode) => {
+            await deleteTask.mutateAsync(task.id);
+            setPreviewTask((prev) => (prev?.id === task.id ? null : prev));
+        },
+        [deleteTask],
+    );
 
     // 渲染函数 - 使用 useCallback 保持引用稳定
     const renderItem = useCallback((task: TaskNode, index: number, isSelected: boolean) => {
@@ -135,54 +118,58 @@ const TaskPanel: React.FC<TaskPanelProps> = ({ onClose, onExecuteTask }) => {
         setPreviewTaskRef.current(task);
     }, []);
 
-    const panelConfig: PanelConfig<TaskNode> = {
-        id: 'tasks',
-        title: '任务看板',
-        icon: '📋',
-        dataSource: refreshTasks,
-        // 搜索配置
-        searchable: true,
-        searchFields: ['title', 'description'],
-        searchPlaceholder: '搜索任务...',
-        // 过滤配置
-        filterable: true,
-        filters: [
-            {
-                id: 'all',
-                label: '全部',
-                predicate: () => true,
-            },
-            {
-                id: 'pickup',
-                label: '待领取',
-                predicate: (task: TaskNode) => task.status === 'pickup',
-            },
-            {
-                id: 'running',
-                label: '运行中',
-                predicate: (task: TaskNode) => task.status === 'running',
-            },
-            {
-                id: 'complete',
-                label: '已完成',
-                predicate: (task: TaskNode) => task.status === 'complete',
-            },
-            {
-                id: 'error',
-                label: '失败',
-                predicate: (task: TaskNode) => task.status === 'error',
-            },
-        ],
-        defaultFilter: 'all',
-        // 渲染配置
-        itemHeight: 3, // 3行：标题+描述+进度
-        visibleCount: 10,
-        renderItem: renderItem,
-        onSelect: handleSelectTask,
-        onDelete: handleDeleteTask,
-        showCount: true,
-        statusInfo: statusInfo,
-    };
+    // 使用 useMemo 缓存 panelConfig
+    const panelConfig: PanelConfig<TaskNode> = React.useMemo(
+        () => ({
+            id: 'tasks',
+            title: '任务看板',
+            icon: '📋',
+            dataSource: async () => allTasks,
+            // 搜索配置
+            searchable: true,
+            searchFields: ['title', 'description'],
+            searchPlaceholder: '搜索任务...',
+            // 过滤配置
+            filterable: true,
+            filters: [
+                {
+                    id: 'all',
+                    label: '全部',
+                    predicate: () => true,
+                },
+                {
+                    id: 'pickup',
+                    label: '待领取',
+                    predicate: (task: TaskNode) => task.status === 'pickup',
+                },
+                {
+                    id: 'running',
+                    label: '运行中',
+                    predicate: (task: TaskNode) => task.status === 'running',
+                },
+                {
+                    id: 'complete',
+                    label: '已完成',
+                    predicate: (task: TaskNode) => task.status === 'complete',
+                },
+                {
+                    id: 'error',
+                    label: '失败',
+                    predicate: (task: TaskNode) => task.status === 'error',
+                },
+            ],
+            defaultFilter: 'all',
+            // 渲染配置
+            itemHeight: 3, // 3行：标题+描述+进度
+            visibleCount: 10,
+            renderItem: renderItem,
+            onSelect: handleSelectTask,
+            onDelete: handleDeleteTask,
+            showCount: true,
+            statusInfo: statusInfo,
+        }),
+        [allTasks, renderItem, statusInfo, handleSelectTask, handleDeleteTask],
+    );
 
     return (
         <>

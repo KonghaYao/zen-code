@@ -1,20 +1,32 @@
 /**
- * History 面板 - 使用统一面板系统重构
+ * History 面板 - 使用统一面板系统重构 + TanStack Query
+ *
+ * 使用 TanStack Query 管理历史记录状态
  */
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { Spacer, Text } from 'ink';
 import { UniversalPanel } from 'ink-pro';
 import { SelectItem } from 'ink-pro';
 import { PanelConfig, PanelContext } from 'ink-pro';
 import { useChat } from '@langgraph-js/sdk/react';
+import { useHistory } from '../hooks/useHistory';
 
 interface HistoryPanelProps {
     onClose: () => void;
 }
 
 const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
-    const { historyList, currentChatId, refreshHistoryList, toHistoryChat, createNewChat } = useChat();
+    const { currentChatId, toHistoryChat, createNewChat, refreshHistoryList } = useChat();
+
+    // 使用 TanStack Query 获取历史记录
+    const { data: historyList = [] } = useHistory();
+
+    // 存储 refreshHistoryList 引用用于 keyMap
+    const refreshHistoryListRef = useRef(refreshHistoryList);
+    React.useEffect(() => {
+        refreshHistoryListRef.current = refreshHistoryList;
+    }, [refreshHistoryList]);
 
     // 格式化时间辅助函数 - 提取到组件外部避免重复创建
     const formatTime = (date: Date) => date.toLocaleTimeString();
@@ -35,14 +47,12 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
         }
     };
 
-    // 修复：refreshHistoryList 返回 Promise<void>，它更新 historyList atom
-    // 所以 dataSource 应该返回当前的 historyList 值
+    // dataSource 返回当前的 historyList 值
     const dataSource = useCallback(async () => {
-        await refreshHistoryList();
         return historyList;
-    }, [refreshHistoryList, historyList]);
+    }, [historyList]);
 
-    // 修复：使用 useCallback 保持 renderItem 引用稳定
+    // renderItem - 使用 useCallback 保持引用稳定
     const renderItem = useCallback(
         (thread: any, index: number, isSelected: boolean) => {
             const statusInfo = getStatusInfo(thread.status);
@@ -62,7 +72,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
         [currentChatId],
     );
 
-    // 修复：使用 useCallback 保持 isSelected 引用稳定
+    // isSelected - 使用 useCallback 保持引用稳定
     const isSelected = useCallback(
         (thread: any) => {
             return thread.thread_id === currentChatId;
@@ -70,7 +80,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
         [currentChatId],
     );
 
-    // 修复：使用 useCallback 保持 onSelect 引用稳定
+    // onSelect - 使用 useCallback 保持引用稳定
     const handleSelect = useCallback(
         async (thread: any) => {
             if (thread.value === 'new_chat') {
@@ -83,7 +93,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
         [createNewChat, toHistoryChat, onClose],
     );
 
-    // 修复：使用 useCallback 保持 statusInfo 引用稳定
+    // statusInfo - 使用 useCallback 保持引用稳定
     const statusInfoCallback = useCallback(
         (items: any[]) => {
             const current = items.find((t: any) => t.thread_id === currentChatId);
@@ -96,13 +106,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
         [currentChatId],
     );
 
-    // 修复：使用 useRef 存储 refreshHistoryList 引用，避免 keyMap 循环依赖
-    const refreshHistoryListRef = React.useRef(refreshHistoryList);
-    React.useEffect(() => {
-        refreshHistoryListRef.current = refreshHistoryList;
-    }, [refreshHistoryList]);
-
-    // 修复：使用 useCallback 保持 keyMap 引用稳定
+    // keyMap - 使用 useMemo 缓存
     const keyMap = useMemo(
         () => ({
             r: async (context: PanelContext<any>) => {
@@ -112,7 +116,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
         [],
     );
 
-    // 修复：使用 useMemo 缓存 panelConfig
+    // panelConfig - 使用 useMemo 缓存
     const panelConfig: PanelConfig = useMemo(
         () => ({
             id: 'history',

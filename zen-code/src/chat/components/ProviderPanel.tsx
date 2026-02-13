@@ -1,10 +1,12 @@
 /**
  * Provider 配置面板 - 管理 Provider
+ *
+ * 使用 TanStack Query 优化配置更新
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { Box, Spacer, Text, useInput } from 'ink';
-import { useSettings } from '@codegraph/union-client';
+import { useSettings } from '../context/SettingsContext';
 import type { ProviderConfig } from '@codegraph/config';
 import ProviderForm from './forms/ProviderForm';
 
@@ -22,7 +24,7 @@ const ProviderPanel: React.FC<ProviderPanelProps> = ({ onClose }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [message, setMessage] = useState<string | null>(null);
 
-    // Providers 列表
+    // Providers 列表（直接从 config 获取）
     const providers = config?.providers || [];
 
     // 当前选中的 Provider
@@ -63,20 +65,16 @@ const ProviderPanel: React.FC<ProviderPanelProps> = ({ onClose }) => {
     // 保存 Provider（新增或编辑）
     const handleSaveProvider = useCallback(
         async (provider: ProviderConfig) => {
-            const existingProviders = config?.providers || [];
-            let newProviders: ProviderConfig[];
-
-            if (formMode === 'add') {
-                newProviders = [...existingProviders, provider];
-                setMessage(`已添加 Provider: ${provider.id}`);
-            } else {
-                newProviders = existingProviders.map((p: ProviderConfig) => (p.id === provider.id ? provider : p));
-                setMessage(`已更新 Provider: ${provider.id}`);
-            }
+            const newProviders =
+                formMode === 'add'
+                    ? [...providers, provider]
+                    : providers.map((p) => (p.id === provider.id ? provider : p));
 
             await updateConfig({
                 providers: newProviders,
             });
+
+            setMessage(formMode === 'add' ? `已添加 Provider: ${provider.id}` : `已更新 Provider: ${provider.id}`);
 
             // 新增时选中新 Provider
             if (formMode === 'add') {
@@ -86,7 +84,7 @@ const ProviderPanel: React.FC<ProviderPanelProps> = ({ onClose }) => {
 
             goToList();
         },
-        [formMode, config?.providers, updateConfig, goToList],
+        [formMode, providers, updateConfig, goToList],
     );
 
     // 删除 Provider

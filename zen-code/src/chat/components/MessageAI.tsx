@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Box, Text } from 'ink';
 import { RenderMessage } from '@langgraph-js/sdk';
 import { getThinkingContent, getTextContent } from '@langgraph-js/sdk';
-import { useSettings } from '@codegraph/union-client';
+import { useSettings } from '../context/SettingsContext';
 import Markdown from './Markdown';
 import { getColor } from '@codegraph/union-client';
 import { LimitedOutput } from 'ink-pro';

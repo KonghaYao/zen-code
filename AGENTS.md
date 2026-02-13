@@ -1,6 +1,7 @@
 # Repository Guidelines
 
-Monorepo: LangGraph backend (`packages/agent/`) + Config system (`packages/config/`) + Clients (`zen-code/`, `zen-worker/`)
+Monorepo: LangGraph backend (`packages/agent/`) + Config system (`packages/config/`) + Clients (`zen-code/`,
+`zen-worker/`)
 
 ## Project Structure
 
@@ -65,21 +66,39 @@ pnpm install                # Root (all packages)
 
 ```json
 {
-  "main_model": "qwen-plus",
-  "model_provider": "openai",
-  "openai_api_key": "sk-...",
-  "openai_base_url": "https://api.openai.com/v1",
-  "anthropic_api_key": "sk-ant-...",
+  "provider_id": "openai",
+  "model_id": "qwen-plus",
+  "providers": [
+    {
+      "id": "openai",
+      "type": "openai",
+      "apiKey": "sk-...",
+      "baseUrl": "https://api.openai.com/v1"
+    },
+    {
+      "id": "anthropic",
+      "type": "anthropic",
+      "apiKey": "sk-ant-...",
+      "baseUrl": "https://api.anthropic.com"
+    }
+  ],
   "enable_thinking": true,
   "mcp_config": { "filesystem": {...} }
 }
 ```
 
 **Config System** (`packages/config/`):
+
 - **FileSystemConfigStore**: LowDB-based persistence at `~/.zen-code/settings.json`
 - **ConfigManager**: Unified config access with auto-sync to environment variables
 - **ConfigServer**: Hono-based REST API for remote config management
 - Auto-syncs to `process.env`: `MODEL_PROVIDER`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.
+
+**Multi-Provider Architecture**:
+
+- New format: `provider_id` + `model_id` + `providers[]` array
+- Automatic migration from legacy format (`main_model` + `model_provider`)
+- Environment variables synced based on current `provider_id`
 
 **Environment** (can override config):
 
@@ -91,6 +110,126 @@ YOLO_MODE=true              # Disable HITL (dangerous)
 ```
 
 **Project Config**: `.zen-code/config.json` (optional, overrides user settings)
+
+**Provider Management**:
+
+- Command: `/provider` opens configuration panel in TUI
+- File: `zen-code/src/chat/components/ProviderPanel.tsx`
+- Features: Add, edit, delete providers
+- Integration: ModelPanel directly calls APIs using `provider.apiKey` and `provider.baseUrl`
+
+## State Management
+
+**Core Principle**: Library vs Application Separation
+
+**Architecture Decision**: TanStack Query hooks are implemented **only in zen-code application layer**, not in
+`packages/` shared libraries.
+
+**Rationale**:
+
+- `packages/` are shared libraries that may be used by other applications
+- Minimal impact scope, easy to rollback
+- Clear responsibility: libraries provide basic APIs, application handles state management
+
+**Architecture**:
+
+```
+✅ Recommended:
+zen-code/src/chat/
+  ├── hooks/                    ← Query logic in app
+  │   ├── useConfig.ts
+  │   ├── useSkills.ts
+  │   ├── useModels.ts
+  │   ├── useTasks.ts
+  │   ├── useHistory.ts
+  │   ├── useKnowledge.ts
+  │   └── useProviders.ts
+  ├── query-keys.ts            ← Query keys
+  ├── QueryClientProvider.tsx  ← Query Client setup
+  └── context/SettingsContext.tsx ← Context with Query hooks
+
+packages/union-client/          ← Pure library, no Query logic
+  └── ConfigManager.ts          ← Basic CRUD operations only
+
+packages/config/                ← Configuration system
+  └── implementations/          ← Storage implementations
+```
+
+**Implementation Guidelines**:
+
+1. **Query Hooks Location**: All TanStack Query hooks must be in `zen-code/src/chat/hooks/`
+
+2. **Shared Library Responsibility**:
+    - `packages/union-client` provides basic CRUD operations only
+    - `packages/config` provides storage interfaces and implementations
+    - No state management logic (useState, useEffect, useQuery) in `packages/`
+
+3. **Import Paths**:
+
+    ```typescript
+    // ✅ Correct: Import from app layer
+    import { useSettings } from '../context/SettingsContext';
+    import { useConfig } from '../hooks/useConfig';
+
+    // ❌ Wrong: Do not use Query logic from packages
+    import { useSettings } from '@codegraph/union-client';
+    ```
+
+4. **Creating Query Hooks**:
+    - Define query keys in `zen-code/src/chat/query-keys.ts`
+    - Implement `useXxx` for queries in `zen-code/src/chat/hooks/useXxx.ts`
+    - Implement `useXxxMutation` for mutations
+    - Integrate in `zen-code/src/chat/context/SettingsContext.tsx`
+    - Migrate components to use new hooks
+
+5. **Type Exports**:
+    - `packages/union-client` exports types used by application
+    - `packages/config` exports types used by hooks
+
+**Performance Optimizations**:
+
+- **UniversalPanel Rendering**: Fix infinite render loops
+    - Use `useRef` to stabilize function references in hooks
+    - Use `useMemo` to cache config properties
+    - Remove circular dependencies in useEffect
+    - Files: `packages/ink-pro/src/components/Panel/usePanelNavigation.ts`, `UniversalPanel.tsx`
+
+- **Component Optimization**:
+    - Use `useMemo` to cache `panelConfig` objects
+    - Use `useCallback` with minimal dependencies
+    - Avoid inline function/object creation in render
+
+**Migrated Components** (using TanStack Query):
+
+- `ModelPanel.tsx` - `useModels` hook
+- `TaskPanel.tsx` - `useTasks`, `useDeleteTask` hooks
+- `HistoryPanel.tsx` - `useHistory` hook
+- `KnowledgePanel.tsx` - `useKnowledge` hook
+- `ProviderPanel.tsx` - Direct config access
+
+**Available Hooks**:
+
+- `useConfig`, `useUpdateConfig` - Configuration management
+- `useSkills`, `useSaveSkill`, `useDeleteSkill` - Skills management
+- `useModels` - Model list fetching with timeout and retry
+- `useTasks`, `useDeleteTask`, `useUpdateTaskStatus` - Task management
+- `useHistory` - Chat history queries
+- `useKnowledge` - Knowledge base (memories + skills)
+- `useProviders` - Providers list queries
+
+**Key Implementation Details**:
+
+- `useModels`: 30s timeout, retry for network/timeout errors, direct API calls
+- Error handling: Distinguish timeout, network, and API errors
+- Import path corrections: `@codegraph/union-client` → `../context/SettingsContext`
+
+**When to Use State Management Standards**:
+
+- ✅ Monorepo with shared libraries and application layer
+- ✅ Implementing TanStack Query or similar state management
+- ✅ Need unified async state management
+- ❌ Single application without shared libraries
+- ❌ Library itself needs to provide data fetching hooks (e.g., SDK)
 
 ## Architecture
 
@@ -114,9 +253,7 @@ const graph = new StateGraph(CodeState)
         const config = configs[agentId];
 
         if (!config) {
-            throw new Error(
-                `Unknown agent: ${agentId}. Available: ${Object.keys(configs).join(', ')}`
-            );
+            throw new Error(`Unknown agent: ${agentId}. Available: ${Object.keys(configs).join(', ')}`);
         }
 
         return invokeAgent(config, state, runtime);
@@ -125,13 +262,16 @@ const graph = new StateGraph(CodeState)
 ```
 
 **Available Branches**:
+
 - `smart_memory` - Analyze conversation and save to `.claude/memories/`
 - Agent routing via `switch_command` (currently only 'default' agent available)
 
 **Available Agents** (configured in `subagents/config.ts`):
+
 - `default` - "Jarvis" with full capabilities
 
-**Note**: SubAgentsMiddleware is implemented but no sub-agents are currently registered (the agent Map is empty). The system supports dynamic agent configuration through `AgentConfig`, enabling future addition of specialized agents.
+**Note**: SubAgentsMiddleware is implemented but no sub-agents are currently registered (the agent Map is empty). The
+system supports dynamic agent configuration through `AgentConfig`, enabling future addition of specialized agents.
 
 ### Middleware System
 
@@ -150,8 +290,8 @@ export async function createStandardAgent(config: AgentConfig, state, runtime) {
     let tools = config.tools.includes('all')
         ? [...ALL_TOOLS]
         : config.tools
-            .map((name) => TOOL_MAP.get(name))
-            .filter((t): t is (typeof ALL_TOOLS)[number] => t !== undefined);
+              .map((name) => TOOL_MAP.get(name))
+              .filter((t): t is (typeof ALL_TOOLS)[number] => t !== undefined);
 
     // Build middleware chain based on config
     const middleware: AgentMiddleware[] = [];
@@ -164,16 +304,20 @@ export async function createStandardAgent(config: AgentConfig, state, runtime) {
 
     // MemoriesMiddleware (configurable)
     if (config.middleware.memories) {
-        middleware.push(new MemoriesMiddleware({
-            projectMemoriesDir: './.claude/memories',
-        }));
+        middleware.push(
+            new MemoriesMiddleware({
+                projectMemoriesDir: './.claude/memories',
+            }),
+        );
     }
 
     // SkillsMiddleware (configurable)
     if (config.middleware.skills) {
-        middleware.push(new SkillsMiddleware({
-            projectSkillsDir: './.claude/skills',
-        }));
+        middleware.push(
+            new SkillsMiddleware({
+                projectSkillsDir: './.claude/skills',
+            }),
+        );
     }
 
     // AgentsMdMiddleware (configurable)
@@ -224,6 +368,7 @@ export async function createStandardAgent(config: AgentConfig, state, runtime) {
 ```
 
 **Available Middleware**:
+
 - `SubAgentsMiddleware` - Task delegation to specialized sub-agents
 - `MemoriesMiddleware` - Progressive disclosure from `.claude/memories/`
 - `SkillsMiddleware` - Progressive disclosure from `.claude/skills/`
@@ -235,6 +380,7 @@ export async function createStandardAgent(config: AgentConfig, state, runtime) {
 ### Skills System
 
 **Locations**:
+
 - Project skills: `./.claude/skills/`
 - User skills: `~/.deepagents/code/skills/`
 
@@ -245,13 +391,13 @@ export async function createStandardAgent(config: AgentConfig, state, runtime) {
 name: 'web-research'
 description: 'Research latest developments'
 ---
-
 # Web Research
 
 Instructions...
 ```
 
 **Progressive Disclosure**:
+
 - Skills are NOT loaded into system prompt by default
 - SkillsMiddleware injects them only when relevant
 - Each skill has a `name` and `description` for matching
@@ -267,7 +413,7 @@ interface AgentConfig {
     name: string;
     description: string;
     systemPrompt?: string | ((state) => string);
-    tools: string[];           // 'all' or specific tool names
+    tools: string[]; // 'all' or specific tool names
     middleware: {
         agents_md?: boolean;
         skills?: boolean;
@@ -279,13 +425,16 @@ interface AgentConfig {
 ```
 
 **Current Agents**:
+
 - `default` - "Jarvis" with full capabilities
 
 **Current Status**:
+
 - Only `default` agent is available ("Jarvis" with full capabilities)
 - SubAgentsMiddleware is implemented but no sub-agents are registered (the agent Map is empty)
 
 **Future Extensions**:
+
 - Add specialized agents (finder, planner, reviewer, debugger, etc.) via `AgentConfig`
 - Load agent configurations from `~/.zen-code/settings.json`
 - Load agent configurations from database
@@ -298,18 +447,21 @@ interface AgentConfig {
 **Storage**: `.langgraph_api/memory.md` (runtime), `.claude/memories/` (persistent)
 
 **Tools**:
+
 - `add_memory_tool` - Store new memory
 - `query_memory_tool` - Search existing memories
 
 **Analysis**: `packages/agent/src/memories/analyze.ts`
 
 **Memory Format**: Each memory is a directory with `MEMORY.md` containing:
+
 - YAML frontmatter (name, description, tags, category, priority, etc.)
 - Markdown content with detailed explanation and code examples
 
 ### Tool System
 
 **Categories**:
+
 - `interaction` - ask_user_with_options (user approval and input)
 - `filesystem_tools` - read, write, glob, grep, folder, replace
 - `bash_tools` - terminal command execution
@@ -317,35 +469,40 @@ interface AgentConfig {
 - `memory` - memory storage and retrieval (triggered via smart_memory)
 
 **Command System** (additional capabilities):
+
 - `batch_command` - Execute multiple tools in one call
 - `list_available_commands` - Query all available tools at runtime
 
 **Tool Registration**:
+
 - CommandSystem does **not** automatically register all tools
 - Tools are manually registered via `commandSystem.registerTools(commandTools)`
 - Currently registered tools: `read_tool`, `glob_tool` + MCP tools (if enabled)
 - Injects system prompt via `wrapModelCall` to document Command System capabilities
 
 **Implementation Details**:
+
 ```typescript
 // factory.ts
 const commandSystem = new CommandSystemMiddleware();
-const commandTools = [read_tool, glob_tool];  // Manually specify tools
+const commandTools = [read_tool, glob_tool]; // Manually specify tools
 if (config.middleware.mcp) {
     const mcpTools = await MCPManager.getInstance().getAllTools();
     commandTools.push(...mcpTools);
 }
-commandSystem.registerTools(commandTools);  // Register before adding to middleware
+commandSystem.registerTools(commandTools); // Register before adding to middleware
 middleware.push(commandSystem);
 ```
 
 **MCP Integration**:
+
 - MCP tools exposed through CommandSystemMiddleware
 - MCPManager singleton manages connections and tool caching
 - MCP tools are added to commandTools array when enabled
 - Configured via `mcp_config` in settings
 
 **Tool Sources**:
+
 - MCP provided tools (added to CommandSystem when enabled)
 - System built-in tools (manually registered to CommandSystem: read_tool, glob_tool)
 - Other registered tools (available via ALL_TOOLS but not in CommandSystem)
@@ -366,6 +523,7 @@ middleware.push(commandSystem);
 Tools are organized by functionality in groups (e.g., `filesystem_tools/`, `bash_tools/`, `task_tools/`):
 
 **Current Tool Groups**:
+
 - `filesystem_tools/` - read, write, glob, grep, folder, replace (uses `export *`)
 - `bash_tools/` - bash execution (uses `export const bash_tools = [...]`)
 - `task_tools/` - todo, add_task, commit_task (uses `export *`)
@@ -377,16 +535,13 @@ Tools are organized by functionality in groups (e.g., `filesystem_tools/`, `bash
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-export const my_tool = tool(
-    async (input) => ({ result: 'ok' }),
-    {
-        name: 'my_tool',
-        description: 'Does something useful',
-        schema: z.object({
-            param: z.string().describe('Parameter description'),
-        }),
-    }
-);
+export const my_tool = tool(async (input) => ({ result: 'ok' }), {
+    name: 'my_tool',
+    description: 'Does something useful',
+    schema: z.object({
+        param: z.string().describe('Parameter description'),
+    }),
+});
 
 // Export in tools/filesystem_tools/index.ts
 export * from './my_tool.js';
@@ -423,8 +578,8 @@ const ALL_TOOLS = [
     write_tool,
     replace_tool,
     folder_tool,
-    ...bash_tools,  // Array spread for bash_tools
-    my_tool,        // Add new tool here
+    ...bash_tools, // Array spread for bash_tools
+    my_tool, // Add new tool here
     // or for array exports: ...my_tools,
 ];
 
@@ -467,10 +622,10 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
             id: 'my_agent',
             name: 'Specialist',
             description: 'Specialized agent for X',
-            tools: ['read_tool', 'grep_tool'],  // Specific tools
+            tools: ['read_tool', 'grep_tool'], // Specific tools
             middleware: {
                 skills: true,
-                memories: false,  // Custom middleware config
+                memories: false, // Custom middleware config
             },
         },
     };
@@ -504,6 +659,7 @@ EOF
 ## Security
 
 **User Approval Required** (HITL):
+
 - package.json changes (adding dependencies)
 - lint/test/type-check commands
 - documentation/test file generation
@@ -515,12 +671,14 @@ EOF
 ## Migration Notes (2025 Q1 Refactor)
 
 **From Old Structure** (`agents/code/`):
+
 - Fixed middleware chain → Dynamic agent configuration
 - Hardcoded subagents → Config-driven routing
 - Single backend package → Monorepo with separate packages
 - Mixed concerns → Separated agent/config/client layers
 
 **Key Improvements**:
+
 - Flexible agent specialization via `AgentConfig`
 - Separate config system supporting local + remote
 - Shared client logic for TUI and Web
@@ -528,6 +686,7 @@ EOF
 - Easier to add new agents and middleware
 
 **Compatibility**:
+
 - AGENTS.md still loaded by `AgentsMdMiddleware`
 - Skills format unchanged (YAML frontmatter + Markdown)
 - Memory system unchanged

@@ -1,17 +1,21 @@
 /**
- * Model 面板 - 使用 Tab 系统重构
+ * Model 面板 - 使用 Tab 系统重构 + TanStack Query
+ *
+ * 使用 TanStack Query 管理模型列表的加载状态
  */
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { Box, Text } from 'ink';
 import { useInput } from 'ink';
 import { UniversalPanel } from 'ink-pro';
 import { SelectItem } from 'ink-pro';
 import { PanelConfig } from 'ink-pro';
-import { useSettings } from '@codegraph/union-client';
+import { useSettings } from '../context/SettingsContext';
+import { useModels } from '../hooks/useModels';
 import type { ProviderConfig } from '@codegraph/config';
+import type { ModelConfig as HookModelConfig } from '../hooks/useModels';
 
-// 简化的模型接口（provider 字段已不再需要）
+// 组件内部使用的模型配置
 export interface ModelConfig {
     id: string;
     name: string;
@@ -39,49 +43,6 @@ interface ProviderTab {
     config: ProviderConfig;
 }
 
-// 直接获取模型列表的函数
-async function getOpenAIModels(apiKey: string, baseUrl: string): Promise<ModelConfig[]> {
-    const response = await fetch(`${baseUrl}/models`, {
-        headers: {
-            Authorization: `Bearer ${apiKey}`,
-        },
-    });
-
-    if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.statusText}`);
-    }
-
-    const data: {
-        data: { id: string }[];
-    } = await response.json();
-    return data.data
-        .map((model) => ({
-            id: model.id,
-            name: model.id,
-        }))
-        .sort((a, b) => a.id.localeCompare(b.id));
-}
-
-async function getAnthropicModels(apiKey: string, baseUrl: string): Promise<ModelConfig[]> {
-    // 注意：Anthropic API 可能需要使用 SDK，这里简化处理
-    const response = await fetch(`${baseUrl}/v1/models`, {
-        headers: {
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-        },
-    });
-
-    if (!response.ok) {
-        throw new Error(`Anthropic API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.data.map((model: { id: string; display_name?: string }) => ({
-        id: model.id,
-        name: model.display_name || model.id,
-    }));
-}
-
 interface ModelPanelProps {
     onClose: () => void;
 }
@@ -89,14 +50,9 @@ interface ModelPanelProps {
 const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
     const { extraParams, config, updateConfig } = useSettings();
     const [activeTab, setActiveTab] = useState<string>('');
-    const [models, setModels] = useState<ModelConfig[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     // 使用 ref 存储最新的 models，避免 dataSource 依赖 models 导致引用变化
     const modelsRef = useRef<ModelConfig[]>([]);
-    // 同步 models 到 ref
-    modelsRef.current = models;
 
     // 从配置动态生成 provider tabs
     const providerTabs: ProviderTab[] = useMemo(() => {
@@ -113,7 +69,7 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
     }, [config?.providers]);
 
     // 初始化 activeTab
-    useEffect(() => {
+    useMemo(() => {
         if (providerTabs.length > 0 && !activeTab) {
             // 优先使用当前配置的 provider_id
             const currentProviderTab = providerTabs.find((t) => t.id === extraParams.provider_id);
@@ -121,45 +77,28 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
         }
     }, [providerTabs, extraParams.provider_id, activeTab]);
 
-    // 加载当前 provider 的模型
-    useEffect(() => {
-        const loadModels = async () => {
-            if (!activeTab) return;
+    // 获取当前选中的 provider
+    const activeProviderTab = providerTabs.find((t) => t.id === activeTab);
 
-            const providerTab = providerTabs.find((t) => t.id === activeTab);
-            if (!providerTab) return;
+    // 使用 TanStack Query 加载模型列表
+    const {
+        data: hookModels,
+        isLoading,
+        error,
+    } = useModels({
+        provider: activeProviderTab?.config || null,
+        enabled: !!activeTab,
+    });
 
-            setLoading(true);
-            setError(null);
-
-            try {
-                let providerModels: ModelConfig[] = [];
-
-                if (providerTab.config.type === 'openai') {
-                    if (providerTab.config.apiKey && providerTab.config.baseUrl) {
-                        providerModels = await getOpenAIModels(providerTab.config.apiKey, providerTab.config.baseUrl);
-                    }
-                } else if (providerTab.config.type === 'anthropic') {
-                    if (providerTab.config.apiKey && providerTab.config.baseUrl) {
-                        providerModels = await getAnthropicModels(
-                            providerTab.config.apiKey,
-                            providerTab.config.baseUrl,
-                        );
-                    }
-                }
-
-                setModels(providerModels);
-            } catch (err) {
-                console.error(`Failed to load ${activeTab} models:`, err);
-                setError(err instanceof Error ? err.message : String(err));
-                // 注意：这里不再调用 setModels([])，避免触发额外的渲染循环
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadModels();
-    }, [activeTab, providerTabs]);
+    // 转换模型数据格式并同步到 ref
+    const models: ModelConfig[] = useMemo(() => {
+        const convertedModels = (hookModels || []).map((m: HookModelConfig) => ({
+            id: m.id,
+            name: m.name,
+        }));
+        modelsRef.current = convertedModels;
+        return convertedModels;
+    }, [hookModels]);
 
     // 左右箭头切换 Tab
     useInput((input, key) => {
@@ -177,8 +116,6 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
     });
 
     // 修复：使用 useCallback 保持 dataSource 引用稳定
-    // 使用空依赖数组，确保函数引用不会变化
-    // 内部通过 modelsRef 获取最新的 models 值
     const dataSource = useCallback(async () => {
         return modelsRef.current;
     }, []); // 空依赖，函数引用永远不变
@@ -221,10 +158,10 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
 
     // 修复：使用 useMemo 缓存 panelConfig，避免每次渲染创建新对象
     const panelConfig: PanelConfig<ModelConfig> = useMemo(() => {
-        const activeProviderTab = providerTabs.find((t) => t.id === activeTab);
+        const tabLabel = activeProviderTab?.label || '加载中...';
         return {
             id: 'model',
-            title: `模型选择 - ${activeProviderTab?.label || '加载中...'}`,
+            title: `模型选择 - ${tabLabel}`,
             icon: activeProviderTab?.icon || '🔮',
 
             // 关键：使用稳定的 dataSource 函数
@@ -246,7 +183,7 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
 
             showCount: true,
         };
-    }, [activeTab, providerTabs, dataSource, renderItem, isSelected, handleSelectModel]);
+    }, [activeTab, activeProviderTab, dataSource, renderItem, isSelected, handleSelectModel]);
 
     // 如果没有配置任何 provider
     if (providerTabs.length === 0) {
@@ -260,7 +197,6 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
         );
     }
 
-    const activeProviderTab = providerTabs.find((t) => t.id === activeTab);
     const hasApiKey = activeProviderTab?.config.apiKey;
 
     return (
@@ -276,13 +212,13 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
                 ))}
             </Box>
 
-            {loading ? (
+            {isLoading ? (
                 <Box paddingX={2} paddingY={1}>
                     <Text color="gray">加载模型列表中...</Text>
                 </Box>
             ) : error ? (
                 <Box paddingX={2} paddingY={1}>
-                    <Text color="red">加载失败: {error}</Text>
+                    <Text color="red">加载失败: {error.message}</Text>
                 </Box>
             ) : !hasApiKey ? (
                 <Box paddingX={2} paddingY={1}>

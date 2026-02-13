@@ -1,21 +1,20 @@
 /**
- * Knowledge 面板 - 使用统一面板系统重构
+ * Knowledge 面板 - 使用统一面板系统重构 + TanStack Query
+ *
+ * 使用 TanStack Query 管理知识库状态
  */
 
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { Box, Text } from 'ink';
-import { join } from 'path';
 import { UniversalPanel } from 'ink-pro';
 import { PanelConfig, PanelContext } from 'ink-pro';
-import { listMemories, type MemoryMetadata } from '@codegraph/agent/src/memories/load';
-import { listSkills, type SkillMetadata } from '@langgraph-js/standard-agent';
+import { useKnowledge } from '../hooks/useKnowledge';
 import { cleanPath } from '@codegraph/union-client';
+import type { KnowledgeItem } from '../hooks/useKnowledge';
 
 interface KnowledgePanelProps {
     onClose: () => void;
 }
-
-type KnowledgeItem = (MemoryMetadata | SkillMetadata) & { type: 'memory' | 'skill' };
 
 // 辅助函数 - 提取到组件外部
 const formatDescription = (description: string) => {
@@ -32,31 +31,16 @@ const KnowledgePanel: React.FC<KnowledgePanelProps> = ({ onClose }) => {
         setActiveTabRef.current = setActiveTab;
     }, [setActiveTab]);
 
-    // 修复：使用 useCallback 保持 dataSource 引用稳定
-    const loadKnowledge = useCallback(async (): Promise<KnowledgeItem[]> => {
-        const projectMemoriesDir = join(process.cwd(), '.claude/memories');
-        const userMemoriesDir = join(process.env.HOME || '', '.deepagents/code/memories');
-        const projectSkillsDir = join(process.cwd(), '.claude/skills');
-        const userSkillsDir = join(process.env.HOME || '', '.deepagents/code/skills');
+    // 使用 TanStack Query 加载知识库
+    const { data: memories = [] } = useKnowledge({ type: 'memories', enabled: activeTab === 'memories' });
+    const { data: skills = [] } = useKnowledge({ type: 'skills', enabled: activeTab === 'skills' });
 
-        try {
-            const memories = listMemories(userMemoriesDir, projectMemoriesDir);
-            const skills = listSkills(userSkillsDir, projectSkillsDir);
+    // dataSource 返回当前 tab 的数据
+    const dataSource = useCallback(async () => {
+        return activeTab === 'memories' ? memories : skills;
+    }, [activeTab, memories, skills]);
 
-            // 根据当前选中的标签过滤
-            const filteredByTab =
-                activeTab === 'memories'
-                    ? memories.map((m) => ({ ...m, type: 'memory' as const }))
-                    : skills.map((s) => ({ ...s, type: 'skill' as const }));
-
-            return filteredByTab;
-        } catch (error) {
-            console.warn('Failed to load knowledge:', error);
-            return [];
-        }
-    }, [activeTab]);
-
-    // 修复：使用 useCallback 保持 renderItem 引用稳定
+    // renderItem - 使用 useCallback 保持引用稳定
     const renderItem = useCallback((item: any, index: number, isSelected: boolean) => {
         const description = formatDescription(item.description);
 
@@ -80,13 +64,13 @@ const KnowledgePanel: React.FC<KnowledgePanelProps> = ({ onClose }) => {
         );
     }, []);
 
-    // 修复：使用 useCallback 保持 onSelect 引用稳定
+    // onSelect - 使用 useCallback 保持引用稳定
     const handleSelect = useCallback((item: KnowledgeItem) => {
         // 只读，不执行操作
         console.log('Selected knowledge item:', item.name);
     }, []);
 
-    // 修复：使用 useMemo 缓存 filters 和 keyMap
+    // filters - 使用 useMemo 缓存
     const filters = useMemo(
         () => [
             {
@@ -103,6 +87,7 @@ const KnowledgePanel: React.FC<KnowledgePanelProps> = ({ onClose }) => {
         [],
     );
 
+    // keyMap - 使用 useMemo 缓存
     const keyMap = useMemo(
         () => ({
             h: (context: PanelContext<KnowledgeItem>) => {
@@ -117,14 +102,14 @@ const KnowledgePanel: React.FC<KnowledgePanelProps> = ({ onClose }) => {
         [],
     );
 
-    // 修复：使用 useMemo 缓存 panelConfig，依赖 activeTab 状态
+    // panelConfig - 使用 useMemo 缓存
     const panelConfig: PanelConfig<KnowledgeItem> = useMemo(
         () => ({
             id: 'knowledge',
             title: '知识库',
             icon: '📚',
 
-            dataSource: loadKnowledge,
+            dataSource: dataSource,
 
             // 搜索配置
             searchable: true,
@@ -148,7 +133,7 @@ const KnowledgePanel: React.FC<KnowledgePanelProps> = ({ onClose }) => {
 
             keyMap: keyMap,
         }),
-        [loadKnowledge, filters, renderItem, handleSelect, keyMap, activeTab],
+        [dataSource, filters, renderItem, handleSelect, keyMap, activeTab],
     );
 
     return <UniversalPanel config={panelConfig} onClose={onClose} />;

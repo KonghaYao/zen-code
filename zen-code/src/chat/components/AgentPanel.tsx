@@ -7,7 +7,7 @@ import { Spacer, Text } from 'ink';
 import { UniversalPanel } from 'ink-pro';
 import { SelectItem } from 'ink-pro';
 import { PanelConfig } from 'ink-pro';
-import { useSettings } from '@codegraph/union-client';
+import { useSettings } from '../context/SettingsContext';
 import { AgentConfig, loadAgentsList } from '@codegraph/agent/src/subagents/config.js';
 
 interface AgentPanelProps {

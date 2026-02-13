@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import Spinner from 'ink-spinner';
-import { useSettings } from '@codegraph/union-client';
+import { useSettings } from '../context/SettingsContext';
 import { useChat } from '@langgraph-js/sdk/react';
 import { MCPStatusPanel } from './MCPStatusPanel';
 import { Shimmer } from 'ink-pro';

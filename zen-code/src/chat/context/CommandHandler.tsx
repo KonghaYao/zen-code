@@ -7,7 +7,7 @@ import { Box, Text } from 'ink';
 import { commandRegistry } from '../commands';
 import { CommandContext } from '../commands/types';
 import { useChat } from '@langgraph-js/sdk/react';
-import { useSettings } from '@codegraph/union-client';
+import { useSettings } from './SettingsContext';
 import { Message } from '@langgraph-js/sdk';
 
 interface CommandHandlerProps {

@@ -1,0 +1,123 @@
+/**
+ * Settings Context (zen-code version)
+ *
+ * Manages application settings using TanStack Query.
+ * Replaces manual state management from packages/union-client.
+ *
+ * Key improvements:
+ * - Uses TanStack Query for data fetching
+ * - Automatic cache management
+ * - Better error handling
+ * - Less boilerplate code
+ *
+ * Note: This is zen-code specific version. The original version
+ * in packages/union-client remains unchanged.
+ */
+
+import { createContext, useContext, useMemo, ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import type { AppConfig, MCPConfig, ConfigManager } from '@codegraph/config';
+import { useConfig, useUpdateConfig } from '../hooks/useConfig';
+import { queryKeys } from '../query-keys';
+
+export interface ModelConfig {
+    id: string;
+    name: string;
+    provider: 'openai' | 'anthropic';
+}
+
+interface SettingsContextType {
+    config: AppConfig | null;
+    updateConfig: (newConfig: Partial<AppConfig>) => Promise<void>;
+    extraParams: {
+        provider_id: string;
+        model_id: string;
+        mcp_config?: MCPConfig;
+        switch_command?: string;
+    };
+    AVAILABLE_MODELS: ModelConfig[];
+    manager: ConfigManager;
+    compactMode: boolean;
+    toggleCompactMode: () => Promise<void>;
+}
+
+const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+
+interface SettingsProviderProps {
+    manager: ConfigManager;
+    get_allowed_models: () => Promise<ModelConfig[]>;
+    children: ReactNode;
+}
+
+export const SettingsProvider = ({ manager, get_allowed_models, children }: SettingsProviderProps) => {
+    const { data: config, isLoading: configLoading, error: configError } = useConfig({ manager });
+    const updateConfigMutation = useUpdateConfig({ manager });
+
+    const {
+        data: AVAILABLE_MODELS = [],
+        isLoading: modelsLoading,
+        error: modelsError,
+    } = useQuery({
+        queryKey: queryKeys.models.available(),
+        queryFn: get_allowed_models,
+        staleTime: 30 * 60 * 1000,
+        retry: 1,
+    });
+
+    const extraParams = useMemo(() => {
+        return {
+            provider_id: config?.provider_id || 'default',
+            model_id: config?.model_id || AVAILABLE_MODELS[0]?.id || 'default',
+            mcp_config: config?.mcp_config,
+            enable_thinking: config?.enable_thinking ?? true,
+            switch_command: config?.switch_command || '',
+        };
+    }, [
+        config?.provider_id,
+        config?.model_id,
+        config?.mcp_config,
+        config?.enable_thinking,
+        config?.switch_command,
+        AVAILABLE_MODELS,
+    ]);
+
+    const compactMode = useMemo(() => {
+        return config?.compact_mode ?? false;
+    }, [config?.compact_mode]);
+
+    const toggleCompactMode = async () => {
+        await updateConfigMutation.mutateAsync({ compact_mode: !compactMode });
+    };
+
+    const updateConfig = async (newConfig: Partial<AppConfig>) => {
+        await updateConfigMutation.mutateAsync(newConfig);
+    };
+
+    if (configLoading || modelsLoading) {
+        return null;
+    }
+
+    return (
+        <SettingsContext.Provider
+            value={{
+                config: config || null,
+                updateConfig,
+                extraParams,
+                AVAILABLE_MODELS,
+                manager,
+                compactMode,
+                toggleCompactMode,
+            }}
+        >
+            {children}
+        </SettingsContext.Provider>
+    );
+};
+
+export const useSettings = () => {
+    const context = useContext(SettingsContext);
+    if (context === undefined) {
+        throw new Error('useSettings must be used within a SettingsProvider');
+    }
+    return context;
+};
