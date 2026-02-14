@@ -51,7 +51,7 @@ class ToolRegistryClass {
      * 批量注册
      */
     registerAll(metadataList: ToolMetadata[]) {
-        metadataList.forEach(metadata => this.register(metadata));
+        metadataList.forEach((metadata) => this.register(metadata));
     }
 
     /**
@@ -172,11 +172,19 @@ export const predefinedTools: ToolMetadata[] = [
         requiresApproval: false,
     },
     {
-        name: 'batch_command',
-        displayName: 'Batch Command',
-        description: '批量命令',
-        icon: '📦',
-        color: 'indigo',
+        name: 'load_mcp_tools',
+        displayName: 'Load MCP Tools',
+        description: '加载 MCP 工具列表',
+        icon: '🔌',
+        color: 'blue',
+        requiresApproval: false,
+    },
+    {
+        name: 'execute_mcp_tool',
+        displayName: 'Execute MCP Tool',
+        description: '执行 MCP 工具',
+        icon: '⚙️',
+        color: 'green',
         requiresApproval: true,
     },
 ];
@@ -188,10 +196,7 @@ ToolRegistry.registerAll(predefinedTools);
  * Hook: 使用工具元数据
  */
 export const useToolMetadata = (toolName: string) => {
-    const metadata = React.useMemo(
-        () => ToolRegistry.get(toolName),
-        [toolName]
-    );
+    const metadata = React.useMemo(() => ToolRegistry.get(toolName), [toolName]);
 
     return {
         displayName: metadata?.displayName || toolName,

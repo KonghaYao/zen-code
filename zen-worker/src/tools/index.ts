@@ -9,9 +9,10 @@ import { read_file } from './read_file';
 import { write_file } from './write_file';
 import { glob_files } from './glob_files';
 import { folder_operations } from './folder_operations';
-import { batch_command } from './batch_command';
 import { todo_tool } from './todo_tool';
 import { replace_in_file } from './replace_in_file';
+import { load_mcp_tools } from './mcp/load_mcp_tools';
+import { execute_mcp_tool } from './mcp/execute_mcp_tool';
 
 /**
  * 默认工具列表
@@ -25,5 +26,6 @@ export default [
     glob_files,
     write_file,
     folder_operations,
-    batch_command,
+    load_mcp_tools,
+    execute_mcp_tool,
 ];

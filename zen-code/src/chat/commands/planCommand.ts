@@ -15,7 +15,7 @@ I want to create a comprehensive implementation plan for this task.
 **Process:**
 1. Ask clarifying questions to understand requirements (use ask_user_questions for efficiency)
 2. Gather context by reading relevant files
-3. Create a detailed, actionable plan using the writing-plans skill
+3. Create a detailed, actionable plan
 4. Save the plan to \`docs/plans/YYYY-MM-DD-<feature-name>.md\`
 
 **Plan Format Requirements:**

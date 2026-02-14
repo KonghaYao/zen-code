@@ -10,9 +10,7 @@ import { AgentMiddleware, createAgent, DynamicStructuredTool, Runtime, tool } fr
 import { CodeState, CodeStateType } from '../state.js';
 import { anthropicPromptCachingMiddleware } from '@langgraph-js/standard-agent';
 import { CommandSystemMiddleware } from '../middlewares/commandSystem.js';
-import { glob_tool, read_tool } from '../tools/filesystem_tools/index.js';
 import { getEnvInfo } from '../prompts/coding.js';
-import { MCPManager } from '../mcp/MCPManager.js';
 import { AgentPackage } from '@langgraph-js/standard-agent';
 import { humanInTheLoopMiddleware } from '@langgraph-js/auk';
 
@@ -113,13 +111,8 @@ export async function createStandardAgentV2(
         middleware.push(await subagentsImpl!.execute(params.customParams || {}));
     }
 
-    // Command System middleware (always enabled for tool discovery)
+    // Command System middleware (always enabled for MCP tool discovery and execution)
     const commandSystem = new CommandSystemMiddleware();
-    const commandTools = [read_tool, glob_tool];
-    const mcpTools = await MCPManager.getInstance().getAllTools();
-    commandTools.push(...(mcpTools as any));
-
-    commandSystem.registerTools(commandTools);
     middleware.push(commandSystem);
 
     // Human-in-the-loop middleware

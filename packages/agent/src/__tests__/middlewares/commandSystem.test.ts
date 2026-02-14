@@ -1,292 +1,356 @@
 /**
  * Command System Middleware 测试
- * 测试命令注册、批量执行
+ * 测试 MCP 工具的加载和执行
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { CommandSystemMiddleware, BatchCommandSchema } from '../../middlewares/commandSystem';
-import { StructuredTool } from '@langchain/core/tools';
+import { CommandSystemMiddleware, LoadMcpToolsSchema, ExecuteMcpToolSchema } from '../../middlewares/commandSystem';
+import { MCPManager } from '../../mcp/MCPManager';
+
+// Mock MCPManager
+const mockMCPManager = {
+    getStatus: vi.fn().mockResolvedValue({
+        isInitialized: true,
+        toolCount: 3,
+        servers: ['filesystem', 'search'],
+    }),
+    getAllTools: vi.fn().mockResolvedValue([
+        {
+            name: 'filesystem.read_file',
+            description: 'Read a file',
+            schema: { type: 'object', properties: { path: { type: 'string' } } },
+        },
+        {
+            name: 'search.web',
+            description: 'Searches web',
+            schema: { type: 'object', properties: { query: { type: 'string' } } },
+        },
+    ]),
+    executeTool: vi.fn().mockImplementation(async (name, args) => {
+        if (name === 'filesystem.read_file') {
+            return { content: 'file content' };
+        }
+        if (name === 'search.web') {
+            return { results: ['result1', 'result2'] };
+        }
+        throw new Error(`Tool not found: ${name}`);
+    }),
+};
+
+vi.mock('../../mcp/MCPManager', () => ({
+    MCPManager: {
+        getInstance: vi.fn().mockReturnValue(mockMCPManager),
+    },
+}));
 
 describe('CommandSystemMiddleware', () => {
-  let middleware: CommandSystemMiddleware;
-  let mockTool1: StructuredTool;
-  let mockTool2: StructuredTool;
+    let middleware: CommandSystemMiddleware;
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-
-    // Create mock tools
-    mockTool1 = {
-      name: 'test_tool_1',
-      description: 'Test tool 1',
-      invoke: vi.fn().mockResolvedValue('Result from tool 1'),
-    } as unknown as StructuredTool;
-
-    mockTool2 = {
-      name: 'test_tool_2',
-      description: 'Test tool 2',
-      invoke: vi.fn().mockResolvedValue('Result from tool 2'),
-    } as unknown as StructuredTool;
-
-    middleware = new CommandSystemMiddleware();
-  });
-
-  describe('constructor', () => {
-    it('should create instance with required properties', () => {
-      expect(middleware.name).toBe('CommandSystemMiddleware');
-      expect(middleware.tools).toBeDefined();
-      expect(Array.isArray(middleware.tools)).toBe(true);
-      expect(middleware.tools.length).toBe(2); // batch_command and list_available_commands
-    });
-
-    it('should have batch_command tool', () => {
-      const batchTool = middleware.tools.find((t) => t.name === 'batch_command');
-      expect(batchTool).toBeDefined();
-    });
-
-    it('should have list_available_commands tool', () => {
-      const listTool = middleware.tools.find((t) => t.name === 'list_available_commands');
-      expect(listTool).toBeDefined();
-    });
-  });
-
-  describe('registerTools', () => {
-    it('should register a tool', () => {
-      middleware.registerTools([mockTool1]);
-      const registered = middleware.getRegisteredTools();
-      expect(registered.find(t => t.name === 'test_tool_1')).toBe(mockTool1);
-    });
-
-    it('should register multiple tools', () => {
-      middleware.registerTools([mockTool1, mockTool2]);
-      const registered = middleware.getRegisteredTools();
-
-      expect(registered.find(t => t.name === 'test_tool_1')).toBe(mockTool1);
-      expect(registered.find(t => t.name === 'test_tool_2')).toBe(mockTool2);
-    });
-
-    it('should overwrite existing tool with same name', () => {
-      const mockTool1v2 = {
-        name: 'test_tool_1',
-        description: 'Updated tool 1',
-        invoke: vi.fn().mockResolvedValue('Updated result'),
-      } as unknown as StructuredTool;
-
-      middleware.registerTools([mockTool1]);
-      middleware.registerTools([mockTool1v2]);
-
-      const registered = middleware.getRegisteredTools();
-      const tool1 = registered.find(t => t.name === 'test_tool_1');
-      expect(tool1).toBe(mockTool1v2);
-    });
-  });
-
-  describe('batch_command execution', () => {
     beforeEach(() => {
-      middleware.registerTools([mockTool1, mockTool2]);
+        vi.clearAllMocks();
+
+        middleware = new CommandSystemMiddleware();
     });
 
-    it('should execute single command', async () => {
-      const batchTool = middleware.tools.find((t) => t.name === 'batch_command') as StructuredTool;
-      const input = {
-        commands: [
-          {
-            name: 'test_tool_1',
-            args: { param: 'value' },
-          },
-        ],
-      };
+    describe('constructor', () => {
+        it('should create instance with required properties', () => {
+            expect(middleware.name).toBe('CommandSystemMiddleware');
+            expect(middleware.tools).toBeDefined();
+            expect(Array.isArray(middleware.tools)).toBe(true);
+            expect(middleware.tools.length).toBe(2); // load_mcp_tools and execute_mcp_tool
+        });
 
-      const result = await batchTool.invoke(input);
+        it('should have load_mcp_tools tool', () => {
+            const loadTool = middleware.tools.find((t) => t.name === 'load_mcp_tools');
+            expect(loadTool).toBeDefined();
+        });
 
-      expect(mockTool1.invoke).toHaveBeenCalledWith({ param: 'value' });
-      expect(result).toContain('[test_tool_1]');
+        it('should have execute_mcp_tool tool', () => {
+            const executeTool = middleware.tools.find((t) => t.name === 'execute_mcp_tool');
+            expect(executeTool).toBeDefined();
+        });
     });
 
-    it('should execute multiple commands in batch', async () => {
-      const batchTool = middleware.tools.find((t) => t.name === 'batch_command') as StructuredTool;
-      const input = {
-        commands: [
-          {
-            name: 'test_tool_1',
-            args: { param: 'value1' },
-          },
-          {
-            name: 'test_tool_2',
-            args: { param: 'value2' },
-          },
-        ],
-      };
+    describe('load_mcp_tools execution', () => {
+        it('should load and return MCP tools', async () => {
+            const loadTool = middleware.tools.find((t) => t.name === 'load_mcp_tools');
 
-      const result = await batchTool.invoke(input);
+            const result = await loadTool!.invoke({});
 
-      expect(mockTool1.invoke).toHaveBeenCalledWith({ param: 'value1' });
-      expect(mockTool2.invoke).toHaveBeenCalledWith({ param: 'value2' });
-      expect(result).toContain('[test_tool_1]');
-      expect(result).toContain('[test_tool_2]');
+            expect(mockMCPManager.getStatus).toHaveBeenCalled();
+            expect(mockMCPManager.getAllTools).toHaveBeenCalled();
+
+            const parsed = JSON.parse(result);
+            expect(parsed.tools).toBeDefined();
+            expect(parsed.tools).toHaveLength(2);
+            expect(parsed.tools[0].name).toBe('filesystem.read_file');
+            expect(parsed.status).toBeDefined();
+            expect(parsed.status.toolCount).toBe(3);
+        });
+
+        it('should include tool schemas', async () => {
+            const loadTool = middleware.tools.find((t) => t.name === 'load_mcp_tools');
+
+            const result = await loadTool!.invoke({});
+            const parsed = JSON.parse(result);
+
+            expect(parsed.tools[0].schema).toBeDefined();
+            expect(parsed.tools[0].schema.type).toBe('object');
+        });
+
+        it('should include status information', async () => {
+            const loadTool = middleware.tools.find((t) => t.name === 'load_mcp_tools');
+
+            const result = await loadTool!.invoke({});
+            const parsed = JSON.parse(result);
+
+            expect(parsed.status).toBeDefined();
+            expect(parsed.status.isInitialized).toBe(true);
+            expect(parsed.status.servers).toContain('filesystem');
+        });
+
+        it('should handle empty MCP configuration', async () => {
+            mockMCPManager.getAllTools.mockResolvedValueOnce([]);
+
+            const loadTool = middleware.tools.find((t) => t.name === 'load_mcp_tools');
+
+            const result = await loadTool!.invoke({});
+            const parsed = JSON.parse(result);
+
+            expect(parsed.tools).toHaveLength(0);
+        });
     });
 
-    it('should handle unknown command gracefully', async () => {
-      const batchTool = middleware.tools.find((t) => t.name === 'batch_command') as StructuredTool;
-      const input = {
-        commands: [
-          {
-            name: 'unknown_tool',
-            args: {},
-          },
-        ],
-      };
+    describe('execute_mcp_tool execution', () => {
+        it('should execute single MCP tool', async () => {
+            const executeTool = middleware.tools.find((t) => t.name === 'execute_mcp_tool');
+            const input = {
+                commands: [
+                    {
+                        name: 'filesystem.read_file',
+                        args: { path: '/path/to/file' },
+                    },
+                ],
+            };
 
-      const result = await batchTool.invoke(input);
+            const result = await executeTool!.invoke(input);
 
-      expect(result).toContain('[unknown_tool]');
-      expect(result).toContain('错误');
-      expect(result).toContain('Unknown Command');
+            expect(mockMCPManager.executeTool).toHaveBeenCalledWith('filesystem.read_file', {
+                path: '/path/to/file',
+            });
+
+            const parsed = JSON.parse(result);
+            expect(parsed.results).toHaveLength(1);
+            expect(parsed.results[0].tool).toBe('filesystem.read_file');
+            expect(parsed.results[0].result).toEqual({ content: 'file content' });
+            expect(parsed.results[0].error).toBeUndefined();
+        });
+
+        it('should execute multiple MCP tools', async () => {
+            const executeTool = middleware.tools.find((t) => t.name === 'execute_mcp_tool');
+            const input = {
+                commands: [
+                    {
+                        name: 'filesystem.read_file',
+                        args: { path: '/path/to/file' },
+                    },
+                    {
+                        name: 'search.web',
+                        args: { query: 'test' },
+                    },
+                ],
+            };
+
+            const result = await executeTool!.invoke(input);
+
+            expect(mockMCPManager.executeTool).toHaveBeenCalledTimes(2);
+            expect(mockMCPManager.executeTool).toHaveBeenNthCalledWith(1, 'filesystem.read_file', {
+                path: '/path/to/file',
+            });
+            expect(mockMCPManager.executeTool).toHaveBeenNthCalledWith(2, 'search.web', {
+                query: 'test',
+            });
+
+            const parsed = JSON.parse(result);
+            expect(parsed.results).toHaveLength(2);
+        });
+
+        it('should handle tool not found error', async () => {
+            mockMCPManager.executeTool.mockImplementationOnce(async (name) => {
+                throw new Error(`Tool not found: ${name}`);
+            });
+
+            const executeTool = middleware.tools.find((t) => t.name === 'execute_mcp_tool');
+            const input = {
+                commands: [
+                    {
+                        name: 'unknown_tool',
+                        args: {},
+                    },
+                ],
+            };
+
+            const result = await executeTool!.invoke(input);
+            const parsed = JSON.parse(result);
+
+            expect(parsed.results[0].tool).toBe('unknown_tool');
+            expect(parsed.results[0].result).toBeNull();
+            expect(parsed.results[0].error).toContain('Tool not found');
+        });
+
+        it('should handle tool execution error', async () => {
+            mockMCPManager.executeTool.mockImplementationOnce(async () => {
+                throw new Error('Execution failed');
+            });
+
+            const executeTool = middleware.tools.find((t) => t.name === 'execute_mcp_tool');
+            const input = {
+                commands: [
+                    {
+                        name: 'filesystem.read_file',
+                        args: {},
+                    },
+                ],
+            };
+
+            const result = await executeTool!.invoke(input);
+            const parsed = JSON.parse(result);
+
+            expect(parsed.results[0].error).toContain('Execution failed');
+        });
+
+        it('should handle mixed success and error commands', async () => {
+            let callCount = 0;
+            mockMCPManager.executeTool.mockImplementation(async (name) => {
+                callCount++;
+                if (callCount === 1) {
+                    return { success: true };
+                }
+                throw new Error('Second tool failed');
+            });
+
+            const executeTool = middleware.tools.find((t) => t.name === 'execute_mcp_tool');
+            const input = {
+                commands: [
+                    {
+                        name: 'filesystem.read_file',
+                        args: {},
+                    },
+                    {
+                        name: 'search.web',
+                        args: {},
+                    },
+                ],
+            };
+
+            const result = await executeTool!.invoke(input);
+            const parsed = JSON.parse(result);
+
+            expect(parsed.results[0].error).toBeUndefined();
+            expect(parsed.results[1].error).toContain('Second tool failed');
+        });
+
+        it('should handle empty commands array', async () => {
+            const executeTool = middleware.tools.find((t) => t.name === 'execute_mcp_tool');
+            const input = {
+                commands: [],
+            };
+
+            const result = await executeTool!.invoke(input);
+
+            expect(mockMCPManager.executeTool).not.toHaveBeenCalled();
+
+            const parsed = JSON.parse(result);
+            expect(parsed.results).toHaveLength(0);
+        });
     });
 
-    it('should handle mixed success and error commands', async () => {
-      const mockErrorTool = {
-        name: 'error_tool',
-        description: 'Error tool',
-        invoke: vi.fn().mockRejectedValue(new Error('Tool execution failed')),
-      } as unknown as StructuredTool;
+    describe('LoadMcpToolsSchema', () => {
+        it('should validate empty object', () => {
+            const validInput = {};
 
-      middleware.registerTools([mockErrorTool]);
-
-      const batchTool = middleware.tools.find((t) => t.name === 'batch_command') as StructuredTool;
-      const input = {
-        commands: [
-          {
-            name: 'test_tool_1',
-            args: {},
-          },
-          {
-            name: 'error_tool',
-            args: {},
-          },
-        ],
-      };
-
-      const result = await batchTool.invoke(input);
-
-      expect(result).toContain('[test_tool_1]');
-      expect(result).toContain('[error_tool]');
-      expect(result).toContain('错误');
+            const result = LoadMcpToolsSchema.safeParse(validInput);
+            expect(result.success).toBe(true);
+        });
     });
 
-    it('should handle empty commands array', async () => {
-      const batchTool = middleware.tools.find((t) => t.name === 'batch_command') as StructuredTool;
-      const input = {
-        commands: [],
-      };
+    describe('ExecuteMcpToolSchema', () => {
+        it('should validate valid execute command', () => {
+            const validInput = {
+                commands: [
+                    {
+                        name: 'test_tool',
+                        args: { key: 'value' },
+                    },
+                ],
+            };
 
-      const result = await batchTool.invoke(input);
+            const result = ExecuteMcpToolSchema.safeParse(validInput);
+            expect(result.success).toBe(true);
+        });
 
-      expect(result).toBe('');
-    });
-  });
+        it('should validate multiple commands', () => {
+            const validInput = {
+                commands: [
+                    { name: 'tool1', args: {} },
+                    { name: 'tool2', args: { param: 'value' } },
+                ],
+            };
 
-  describe('list_available_commands execution', () => {
-    beforeEach(() => {
-      middleware.registerTools([mockTool1, mockTool2]);
-    });
+            const result = ExecuteMcpToolSchema.safeParse(validInput);
+            expect(result.success).toBe(true);
+        });
 
-    it('should list all registered commands', async () => {
-      const listTool = middleware.tools.find((t) => t.name === 'list_available_commands') as StructuredTool;
+        it('should reject missing commands field', () => {
+            const invalidInput = {};
 
-      const result = await listTool.invoke({});
+            const result = ExecuteMcpToolSchema.safeParse(invalidInput);
+            expect(result.success).toBe(false);
+        });
 
-      expect(result).toContain('test_tool_1');
-      expect(result).toContain('test_tool_2');
-    });
+        it('should reject non-array commands', () => {
+            const invalidInput = {
+                commands: 'not an array',
+            };
 
-    it('should include tool descriptions', async () => {
-      const listTool = middleware.tools.find((t) => t.name === 'list_available_commands') as StructuredTool;
+            const result = ExecuteMcpToolSchema.safeParse(invalidInput);
+            expect(result.success).toBe(false);
+        });
 
-      const result = await listTool.invoke({});
+        it('should reject command without name', () => {
+            const invalidInput = {
+                commands: [
+                    {
+                        args: {},
+                    },
+                ],
+            };
 
-      expect(result).toContain('Test tool 1');
-      expect(result).toContain('Test tool 2');
-    });
-  });
+            const result = ExecuteMcpToolSchema.safeParse(invalidInput);
+            expect(result.success).toBe(false);
+        });
 
-  describe('BatchCommandSchema', () => {
-    it('should validate valid batch command', () => {
-      const validInput = {
-        commands: [
-          {
-            name: 'test_tool',
-            args: { key: 'value' },
-          },
-        ],
-      };
+        it('should reject command without args', () => {
+            const invalidInput = {
+                commands: [
+                    {
+                        name: 'tool',
+                    },
+                ],
+            };
 
-      const result = BatchCommandSchema.safeParse(validInput);
-      expect(result.success).toBe(true);
-    });
-
-    it('should validate multiple commands', () => {
-      const validInput = {
-        commands: [
-          { name: 'tool1', args: {} },
-          { name: 'tool2', args: { param: 'value' } },
-        ],
-      };
-
-      const result = BatchCommandSchema.safeParse(validInput);
-      expect(result.success).toBe(true);
-    });
-
-    it('should reject missing commands field', () => {
-      const invalidInput = {};
-
-      const result = BatchCommandSchema.safeParse(invalidInput);
-      expect(result.success).toBe(false);
-    });
-
-    it('should reject non-array commands', () => {
-      const invalidInput = {
-        commands: 'not an array',
-      };
-
-      const result = BatchCommandSchema.safeParse(invalidInput);
-      expect(result.success).toBe(false);
+            const result = ExecuteMcpToolSchema.safeParse(invalidInput);
+            expect(result.success).toBe(false);
+        });
     });
 
-    it('should reject command without name', () => {
-      const invalidInput = {
-        commands: [
-          {
-            args: {},
-          },
-        ],
-      };
-
-      const result = BatchCommandSchema.safeParse(invalidInput);
-      expect(result.success).toBe(false);
+    describe('middleware interface', () => {
+        it('should have required middleware properties', () => {
+            expect(middleware.name).toBeDefined();
+            expect(middleware.tools).toBeDefined();
+            expect(Array.isArray(middleware.tools)).toBe(true);
+            expect(middleware.stateSchema).toBeUndefined();
+            expect(middleware.contextSchema).toBeUndefined();
+        });
     });
-
-    it('should reject command without args', () => {
-      const invalidInput = {
-        commands: [
-          {
-            name: 'tool',
-          },
-        ],
-      };
-
-      const result = BatchCommandSchema.safeParse(invalidInput);
-      expect(result.success).toBe(false);
-    });
-  });
-
-  describe('middleware interface', () => {
-    it('should have required middleware properties', () => {
-      expect(middleware.name).toBeDefined();
-      expect(middleware.tools).toBeDefined();
-      expect(Array.isArray(middleware.tools)).toBe(true);
-      expect(middleware.stateSchema).toBeUndefined();
-      expect(middleware.contextSchema).toBeUndefined();
-    });
-  });
 });

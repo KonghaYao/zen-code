@@ -2,10 +2,10 @@ import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 import { FileSystemConfigStore } from '@codegraph/config';
 
 const getConfig = async () => {
-    const store = new FileSystemConfigStore()
-    await store.initialize()
-    return store.getConfig()
-}
+    const store = new FileSystemConfigStore();
+    await store.initialize();
+    return store.getConfig();
+};
 
 export interface MCPConfig {
     cache?: {
@@ -39,7 +39,7 @@ export class MCPManager {
     private lastRefresh: number | null = null;
     private serverStatuses: Map<string, MCPServerStatus> = new Map();
 
-    private constructor() { }
+    private constructor() {}
 
     static getInstance(): MCPManager {
         if (!this.instance) {
@@ -72,7 +72,7 @@ export class MCPManager {
         // 预加载工具列表
         await this.refreshAll();
     }
-    cacheTools: any[] = []
+    cacheTools: any[] = [];
 
     /**
      * 获取所有 MCP 工具（带缓存）
@@ -83,16 +83,14 @@ export class MCPManager {
         }
         // 如果初始化完成，还是没有，则认为是 没有 MCP
         if (!this.client) {
-            return []
+            return [];
         }
 
         // 从 client 获取工具列表
         const tools = await this.client!.getTools();
-        this.cacheTools = tools
+        this.cacheTools = tools;
         return tools;
     }
-
-
 
     /**
      * 刷新所有服务器
@@ -149,4 +147,30 @@ export class MCPManager {
         };
     }
 
+    /**
+     * 执行单个 MCP 工具
+     */
+    async executeTool(toolName: string, args: any): Promise<any> {
+        if (!this.client) {
+            await this.initialize();
+        }
+
+        if (!this.client) {
+            throw new Error('MCP client not initialized. No MCP configuration found.');
+        }
+
+        const tools = await this.getAllTools();
+        const targetTool = tools.find((t) => t.name === toolName);
+
+        if (!targetTool) {
+            const availableTools = tools.map((t) => t.name).join(', ');
+            throw new Error(`Tool not found: ${toolName}. Available: ${availableTools || 'none'}`);
+        }
+
+        try {
+            return await targetTool.invoke(args);
+        } catch (error: any) {
+            throw new Error(`Failed to execute MCP tool '${toolName}': ${error.message || String(error)}`);
+        }
+    }
 }

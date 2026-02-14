@@ -6,7 +6,8 @@ import { read_file } from './read_file';
 import { glob_files } from './glob_files';
 import { write_file } from './write_file';
 import { folder_operations } from './folder_operations';
-import { batch_command } from './batch_command';
+import { load_mcp_tools } from './mcp/load_mcp_tools';
+import { execute_mcp_tool } from './mcp/execute_mcp_tool';
 
 export default [
     terminal,
@@ -17,5 +18,6 @@ export default [
     glob_files,
     write_file,
     folder_operations,
-    batch_command,
+    load_mcp_tools,
+    execute_mcp_tool,
 ];

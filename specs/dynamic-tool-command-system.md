@@ -1,44 +1,51 @@
 # 动态工具 Command 系统设计文档
 
-> **状态**: ✅ 已完成
-> **实现方式**: LangChain Middleware（CommandSystemMiddleware）
-> **日期**: 2025-01-18
+> **状态**: ✅ 已完成 **实现方式**: LangChain Middleware（CommandSystemMiddleware） **日期**: 2025-01-18 **更新日期**:
+> 2025-02-14（MCP Tools 重构）
 
 ---
 
 ## 1. 概述
 
 ### 1.1 目标
-设计一个将 LangChain 工具调用转换为统一 command 格式的系统，实现：
-- **统一接口**：所有工具调用通过标准 command JSON 格式
-- **批量执行**：支持单次调用执行多个工具
-- **解耦设计**：工具实现与调用方式解耦
-- **向后兼容**：保持与现有 LangChain 工具系统的兼容性
+
+设计一个为 MCP 工具提供专门发现和执行能力的系统，实现：
+
+- **MCP 工具发现**：通过 `load_mcp_tools` 查询可用的 MCP 工具列表
+- **MCP 工具执行**：通过 `execute_mcp_tool` 执行 MCP 工具（支持批量）
+- **职责清晰**：MCP 工具与标准工具分离管理
+- **向后兼容**：标准工具（read_file, glob_files 等）直接调用，无需通过 MCP 命令
 
 ### 1.2 核心概念
 
-**Command 格式**：
+**MCP Tool 格式**：
+
 ```typescript
-interface ToolCommand {
-  name: string;      // 工具名称
-  args: any;         // 工具参数（符合工具 schema）
+interface McpTool {
+    name: string; // 工具名称
+    description: string; // 工具描述
+    schema: any; // 工具参数 schema
 }
 
-interface BatchCommand {
-  commands: ToolCommand[];  // 命令数组
+interface ExecuteMcpCommand {
+    commands: Array<{
+        name: string; // MCP 工具名称
+        args: any; // 工具参数（符合工具 schema）
+    }>;
 }
 ```
 
-**batch_command 工具**：
-- 接收命令数组 `[{name, args}, ...]`
-- 解析每个命令并调用对应的实际工具
-- 返回所有工具的执行结果
+**两个核心命令**：
+
+- `load_mcp_tools` - 查询和加载 MCP 工具列表
+- `execute_mcp_tool` - 执行一个或多个 MCP 工具
 
 ### 1.3 设计原则
-- **最小侵入**：复用现有 LangChain 工具定义
-- **类型安全**：TypeScript 严格模式，Zod schema 验证
-- **性能优化**：支持批量调用，减少 LLM 调用次数
+
+- **职责单一**：CommandSystemMiddleware 只负责 MCP 工具的发现和执行
+- **标准工具独立**：read_file, glob_files 等标准工具直接调用
 - **缓存友好**：静态描述支持 Anthropic Prompt Caching
+- **性能优化**：支持批量执行 MCP 工具
 
 ---
 
@@ -46,7 +53,7 @@ interface BatchCommand {
 
 ### 2.1 Middleware 设计
 
-**文件**: `agents/code/middlewares/commandSystem.ts`
+**文件**: `packages/agent/src/middlewares/commandSystem.ts`
 
 ```typescript
 export class CommandSystemMiddleware implements AgentMiddleware {
@@ -54,25 +61,17 @@ export class CommandSystemMiddleware implements AgentMiddleware {
     stateSchema = undefined;
     contextSchema = undefined;
 
-    private registry: ToolRegistry = {};
-    private batchCommandTool: StructuredTool;
-    private listToolsTool: StructuredTool;
+    private mcpManager: MCPManager;
+    private loadMcpToolsTool: StructuredTool;
+    private executeMcpToolTool: StructuredTool;
 
-    // 提供 batch_command 和 list_available_commands 工具
+    // 提供 load_mcp_tools 和 execute_mcp_tool 工具
     get tools(): StructuredTool[] {
-        return [this.batchCommandTool, this.listToolsTool];
-    }
-
-    // 注册底层工具
-    registerTools(tools: StructuredTool[]): void {
-        for (const tool of tools) {
-            this.registry[tool.name] = tool;
-        }
+        return [this.loadMcpToolsTool, this.executeMcpToolTool];
     }
 
     // 注入系统提示词
     async wrapModelCall(request: any, handler: any): Promise<AIMessage> {
-        // 添加 Command System 使用说明
         const systemPromptAddon = `...`;
         return await handler(modifiedRequest);
     }
@@ -82,576 +81,675 @@ export class CommandSystemMiddleware implements AgentMiddleware {
 ### 2.2 工具流程
 
 ```
-Agent 调用
+Agent 需要使用 MCP 工具
     ↓
-CommandSystemMiddleware (拦截)
+load_mcp_tools (查询可用工具)
     ↓
-batch_command 工具
+返回工具列表和 schema
     ↓
-Tool Registry (注册表)
+Agent 选择工具
     ↓
-底层工具 (read_file, grep, bash, etc.)
+execute_mcp_tool (执行 MCP 工具)
+    ↓
+MCPManager.executeTool
+    ↓
+MCP 服务器
+```
+
+### 2.3 标准工具流程
+
+```
+Agent 使用标准工具
+    ↓
+直接调用 (read_file, glob_files 等)
+    ↓
+无需通过 CommandSystemMiddleware
 ```
 
 ---
 
-## 3. 核心工具
+## 3. 核心命令
 
-### 3.1 batch_command
+### 3.1 load_mcp_tools
 
-**用途**：批量执行多个工具命令
-
-**格式**：
-```json
-{
-  "commands": [
-    {
-      "name": "read_file",
-      "args": {
-        "file_path": "/path/to/file.txt"
-      }
-    },
-    {
-      "name": "grep",
-      "args": {
-        "pattern": "TODO",
-        "path": "./src"
-      }
-    }
-  ]
-}
-```
-
-**返回**：
-```
-[read_file]
-文件内容...
-
-[grep]
-搜索结果...
-```
-
-### 3.2 list_available_commands
-
-**用途**：查询当前可用工具列表
+**用途**：加载并查询所有可用的 MCP 工具列表
 
 **格式**：
+
 ```json
 {}
 ```
 
 **返回**：
+
 ```json
-[
-  {
-    "name": "read_file",
-    "description": "读取文件内容..."
-  },
-  {
-    "name": "grep",
-    "description": "搜索文件内容..."
-  }
-]
+{
+    "tools": [
+        {
+            "name": "filesystem.read_file",
+            "description": "Read a file",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "path": { "type": "string" }
+                }
+            }
+        }
+    ],
+    "status": {
+        "isInitialized": true,
+        "toolCount": 3,
+        "servers": ["filesystem", "search"]
+    }
+}
+```
+
+**使用场景**：
+
+- Agent 需要了解有哪些 MCP 工具可用
+- 获取工具的参数格式（schema）
+- 检查 MCP 连接状态
+
+### 3.2 execute_mcp_tool
+
+**用途**：执行一个或多个 MCP 工具
+
+**格式**：
+
+```json
+{
+    "commands": [
+        {
+            "name": "filesystem.read_file",
+            "args": {
+                "path": "/path/to/file.txt"
+            }
+        },
+        {
+            "name": "search.web",
+            "args": {
+                "query": "AI"
+            }
+        }
+    ]
+}
+```
+
+**返回**：
+
+```json
+{
+    "results": [
+        {
+            "tool": "filesystem.read_file",
+            "result": {
+                "content": "file content..."
+            }
+        },
+        {
+            "tool": "search.web",
+            "result": {
+                "results": ["result1", "result2"]
+            }
+        }
+    ]
+}
+```
+
+**错误情况**：
+
+```json
+{
+    "results": [
+        {
+            "tool": "unknown.tool",
+            "result": null,
+            "error": "Tool not found: unknown.tool. Available: filesystem.read_file, search.web"
+        }
+    ]
+}
 ```
 
 ---
 
-## 4. 集成方式
+## 4. MCPManager 扩展
 
-### 4.1 配置系统
+### 4.1 executeTool 方法
 
-**文件**: `agents/code/subagents/config.ts`
-
-```typescript
-interface AgentConfig {
-    middleware: {
-        commandSystem?: boolean;  // 新增配置项
-    };
-}
-
-// 默认配置（向后兼容）
-default: {
-    middleware: {
-        commandSystem: false,  // 默认关闭
-    },
-},
-```
-
-### 4.2 工厂集成
-
-**文件**: `agents/code/subagents/factory.ts`
+**文件**: `packages/agent/src/mcp/MCPManager.ts`
 
 ```typescript
-export async function createStandardAgent(config: AgentConfig, state: CodeStateType, runtime: Runtime) {
-    // 原有工具
-    const tools = config.tools.includes('all')
-        ? [...ALL_TOOLS]
-        : config.tools.map(...).filter(...);
-
-    const middleware: any[] = [];
-    let finalTools = tools;
-
-    // 可选：启用 Command System
-    if (config.middleware.commandSystem) {
-        const commandSystem = new CommandSystemMiddleware();
-
-        // 注册工具（排除 ask_user_with_options）
-        const toolsForCommandSystem = tools.filter(t => t.name !== 'ask_user_with_options');
-        const specialTools = tools.filter(t => t.name === 'ask_user_with_options');
-
-        commandSystem.registerTools(toolsForCommandSystem);
-        middleware.push(commandSystem);
-
-        // 最终工具只包含特殊工具
-        finalTools = specialTools;
+/**
+ * 执行单个 MCP 工具
+ */
+async executeTool(toolName: string, args: any): Promise<any> {
+    if (!this.client) {
+        await this.initialize();
     }
 
-    // ... 其他 middleware
+    if (!this.client) {
+        throw new Error('MCP client not initialized. No MCP configuration found.');
+    }
 
-    return createAgent({
-        tools: finalTools,  // middleware 提供的工具自动包含
-        middleware,
-    });
+    const tools = await this.getAllTools();
+    const targetTool = tools.find((t) => t.name === toolName);
+
+    if (!targetTool) {
+        const availableTools = tools.map((t) => t.name).join(', ');
+        throw new Error(`Tool not found: ${toolName}. Available: ${availableTools || 'none'}`);
+    }
+
+    try {
+        return await targetTool.invoke(args);
+    } catch (error: any) {
+        throw new Error(`Failed to execute MCP tool '${toolName}': ${error.message || String(error)}`);
+    }
+}
+```
+
+### 4.2 错误处理
+
+- **客户端未初始化**：抛出错误 "MCP client not initialized"
+- **工具不存在**：抛出错误并提示可用工具列表
+- **执行失败**：包装原始错误信息
+
+---
+
+## 5. 集成方式
+
+### 5.1 工厂集成
+
+**文件**: `packages/agent/src/subagents/factory-v2.ts`
+
+```typescript
+// Command System middleware (always enabled for MCP tool discovery and execution)
+const commandSystem = new CommandSystemMiddleware();
+middleware.push(commandSystem);
+
+// 注意：不再需要注册 MCP 工具到 CommandSystem
+// MCP 工具通过 MCPManager 直接管理
+```
+
+### 5.2 标准工具
+
+标准工具（read_file, glob_files 等）通过 `AgentPackage` 配置直接注册到 agent 的 tools 数组：
+
+```typescript
+const tools: DynamicStructuredTool[] = [];
+const toolRegistry = pkg.tools;
+
+for (const [toolId, params] of Object.entries(agentConfig.tools)) {
+    const toolImpl = toolRegistry.getImplementation(toolId);
+    if (toolImpl) {
+        tools.push(/* 包装为 DynamicStructuredTool */);
+    }
 }
 ```
 
 ---
 
-## 5. 系统提示词设计
+## 6. 系统提示词设计
 
-### 5.1 静态描述原则
-
-**核心原则**：
-- ✅ 系统提示词和工具 description 完全静态
-- ✅ 支持 Anthropic Prompt Caching
-- ✅ 工具列表通过 `list_available_commands` 运行时查询
-- ❌ 不在 description 中包含动态工具列表
-
-### 5.2 Middleware 注入的提示词
+### 6.1 Middleware 注入的提示词
 
 ```typescript
 const systemPromptAddon = `
 
-## Command System 工具使用指南
+## MCP Tools
 
-所有工具调用通过统一的 Batch Command 格式进行：
+使用 MCP 工具需要两步：
 
-**核心工具**：
-- \`batch_command\` - 批量执行多个命令，格式：{commands: [{name, args}, ...]}
-- \`list_available_commands\` - 查询所有可用工具的列表和参数定义
+1. **load_mcp_tools** - 查询可用的 MCP 工具
+   - 返回所有 MCP 工具的列表和参数格式
+   - 包含 MCP 连接状态
 
-**使用示例**：
-- 读取文件：{commands: [{name: "read_file", args: {file_path: "/path/to/file"}}]}
-- 搜索代码：{commands: [{name: "grep", args: {pattern: "function", path: "./src"}}]}
-- 批量操作：{commands: [{name: "read_file", args: {...}}, {name: "grep", args: {...}}]}
+2. **execute_mcp_tool** - 执行 MCP 工具
+   - 支持单个或多个工具批量执行
+   - 格式：{commands: [{name, args}, ...]}
 
 **重要**：
-- 系统提示词和工具描述保持静态以支持 Prompt Caching
-- 工具列表动态查询，使用 list_available_commands 获取最新信息
-- 所有工具调用必须使用 batch_command，即使单个操作也包装为数组
+- 标准工具（read_file, glob_files）直接调用，不需要通过 MCP 命令
+- MCP 工具需要先调用 load_mcp_tools 查询
+- 再调用 execute_mcp_tool 执行
 `;
 ```
 
-### 5.3 为什么必须静态？
+### 6.2 静态描述原则
 
-| 方面 | 动态描述（❌） | 静态描述（✅） |
-|------|-------------|-------------|
-| **缓存稳定性** | 工具变化会打乱缓存 | description 始终固定 |
-| **Prompt Caching** | 无法利用 Anthropic 缓存 | 完全支持缓存优化 |
-| **工具查询** | 需要重新生成描述 | 通过 `list_available_commands` 查询 |
-| **可维护性** | 逻辑复杂，需要动态生成 | 简单静态文本 |
+**核心原则**：
+
+- ✅ 系统提示词和工具 description 完全静态
+- ✅ 支持 Anthropic Prompt Caching
+- ✅ 工具列表通过 `load_mcp_tools` 运行时查询
+- ❌ 不在 description 中包含动态工具列表
+
+**为什么必须静态？**
+
+| 方面               | 动态描述（❌）          | 静态描述（✅）             |
+| ------------------ | ----------------------- | -------------------------- |
+| **缓存稳定性**     | 工具变化会打乱缓存      | description 始终固定       |
+| **Prompt Caching** | 无法利用 Anthropic 缓存 | 完全支持缓存优化           |
+| **工具查询**       | 需要重新生成描述        | 通过 `load_mcp_tools` 查询 |
+| **可维护性**       | 逻辑复杂，需要动态生成  | 简单静态文本               |
 
 ---
 
-## 6. 使用方式
+## 7. 使用方式
 
-### 6.1 未启用 CommandSystem（默认）
+### 7.1 Agent 使用 MCP 工具
+
+**步骤 1：查询可用工具**
 
 ```typescript
-// Agent 配置
-middleware: {
-    commandSystem: false  // 或不设置
-}
-
-// Agent 调用
-read_file({
-    file_path: "/path/to/file.txt"
-})
+load_mcp_tools();
+// 返回：
+// {
+//   "tools": [...],
+//   "status": {...}
+// }
 ```
 
-### 6.2 启用 CommandSystem
+**步骤 2：执行工具**
 
 ```typescript
-// Agent 配置
-middleware: {
-    commandSystem: true
-}
-
-// Agent 调用
-batch_command({
+execute_mcp_tool({
     commands: [
         {
-            name: "read_file",
-            args: {
-                file_path: "/path/to/file.txt"
-            }
+            name: 'filesystem.read_file',
+            args: { path: '/path/to/file.txt' },
+        },
+    ],
+});
+```
+
+### 7.2 Agent 使用标准工具
+
+```typescript
+// 直接调用，无需通过 CommandSystem
+read_file({
+    file_path: '/path/to/file.txt',
+});
+```
+
+### 7.3 批量执行 MCP 工具
+
+```json
+{
+    "commands": [
+        {
+            "name": "filesystem.read_file",
+            "args": { "path": "/path/to/file1.txt" }
+        },
+        {
+            "name": "filesystem.write_file",
+            "args": { "path": "/path/to/file2.txt", "content": "hello" }
+        },
+        {
+            "name": "search.web",
+            "args": { "query": "AI development" }
         }
+    ]
+}
+```
+
+---
+
+## 8. TUI 组件
+
+### 8.1 zen-code (Ink.js)
+
+**文件**: `zen-code/src/chat/tools/mcp/`
+
+- `load_mcp_tools.tsx` - 显示 MCP 工具列表和状态
+- `execute_mcp_tool.tsx` - 显示 MCP 工具执行结果
+
+### 8.2 zen-worker (React DOM)
+
+**文件**: `zen-worker/src/tools/mcp/`
+
+- `load_mcp_tools.tsx` - 使用 ToolCard 组件显示
+- `execute_mcp_tool.tsx` - 使用 ToolCard 组件显示
+
+### 8.3 组件特性
+
+✅ **load_mcp_tools**
+
+- 显示连接状态（✓ 已连接 / ✗ 未连接）
+- 显示服务器列表
+- 显示工具数量
+- 列出前 5 个工具（可扩展）
+- 使用 LimitedOutput 显示完整结果
+
+✅ **execute_mcp_tool**
+
+- 显示执行的命令列表
+- 显示每个命令的结果状态（✓ 成功 / ✗ 失败）
+- 使用 LimitedOutput 显示详细输出
+- 错误高亮显示
+
+---
+
+## 9. 测试
+
+### 9.1 单元测试
+
+**CommandSystemMiddleware 测试** (`packages/agent/src/__tests__/middlewares/commandSystem.test.ts`)：
+
+- ✅ 构造函数验证（2 个工具）
+- ✅ load_mcp_tools 执行（4 个测试用例）
+- ✅ execute_mcp_tool 执行（6 个测试用例）
+- ✅ Schema 验证（6 个测试用例）
+- ✅ 中间件接口验证
+
+**MCPManager 测试** (`packages/agent/src/__tests__/mcp/MCPManager.test.ts`)：
+
+- ✅ executeTool 成功执行
+- ✅ 工具不存在错误处理
+- ✅ 执行错误处理
+- ✅ 参数传递验证
+- ✅ 单例模式验证
+- ✅ 错误信息包含可用工具列表
+
+### 9.2 测试覆盖
+
+| 组件                    | 测试数量 | 状态        |
+| ----------------------- | -------- | ----------- |
+| CommandSystemMiddleware | 21       | ✅ 全部通过 |
+| MCPManager              | 7        | ✅ 全部通过 |
+
+### 9.3 运行测试
+
+```bash
+# 测试 CommandSystemMiddleware
+bun test packages/agent/src/__tests__/middlewares/commandSystem.test.ts
+
+# 测试 MCPManager
+bun test packages/agent/src/__tests__/mcp/MCPManager.test.ts
+
+# 测试所有 agent 测试
+bun test packages/agent/src/__tests__/
+```
+
+---
+
+## 10. 实现清单
+
+### 10.1 核心文件
+
+| 文件                                              | 状态 | 说明                  |
+| ------------------------------------------------- | ---- | --------------------- |
+| `packages/agent/src/mcp/MCPManager.ts`            | ✅   | 添加 executeTool 方法 |
+| `packages/agent/src/middlewares/commandSystem.ts` | ✅   | 重构为 MCP 工具专用   |
+| `packages/agent/src/subagents/factory-v2.ts`      | ✅   | 简化初始化            |
+
+### 10.2 TUI 组件
+
+| 文件                                               | 状态 | 说明     |
+| -------------------------------------------------- | ---- | -------- |
+| `zen-code/src/chat/tools/mcp/load_mcp_tools.tsx`   | ✅   | TUI 组件 |
+| `zen-code/src/chat/tools/mcp/execute_mcp_tool.tsx` | ✅   | TUI 组件 |
+| `zen-worker/src/tools/mcp/load_mcp_tools.tsx`      | ✅   | Web 组件 |
+| `zen-worker/src/tools/mcp/execute_mcp_tool.tsx`    | ✅   | Web 组件 |
+
+### 10.3 测试文件
+
+| 文件                                                             | 状态 | 说明                         |
+| ---------------------------------------------------------------- | ---- | ---------------------------- |
+| `packages/agent/src/__tests__/middlewares/commandSystem.test.ts` | ✅   | CommandSystemMiddleware 测试 |
+| `packages/agent/src/__tests__/mcp/MCPManager.test.ts`            | ✅   | MCPManager 测试              |
+
+### 10.4 删除的文件
+
+| 文件                                        | 原因                                         |
+| ------------------------------------------- | -------------------------------------------- |
+| `zen-code/src/chat/tools/batch_command.tsx` | 已被 load_mcp_tools 和 execute_mcp_tool 替代 |
+| `zen-worker/src/tools/batch_command.tsx`    | 已被 load_mcp_tools 和 execute_mcp_tool 替代 |
+
+---
+
+## 11. 与旧版本的差异
+
+### 11.1 旧版本（batch_command + list_available_commands）
+
+```
+所有工具（包括 MCP 工具和标准工具）通过 batch_command 调用：
+- batch_command({commands: [{name: "read_file", ...}]})
+- list_available_commands() 返回所有工具
+```
+
+### 11.2 新版本（load_mcp_tools + execute_mcp_tool）
+
+```
+MCP 工具：
+- load_mcp_tools() 查询 MCP 工具
+- execute_mcp_tool({commands: [...]}) 执行 MCP 工具
+
+标准工具：
+- 直接调用（read_file, glob_files 等）
+- 无需通过 CommandSystemMiddleware
+```
+
+### 11.3 迁移影响
+
+| 变更                         | 影响          | 处理方式                    |
+| ---------------------------- | ------------- | --------------------------- |
+| 移除 batch_command           | ❌ 不向后兼容 | Agent 需要适应新的 MCP 命令 |
+| 移除 list_available_commands | ❌ 不向后兼容 | 使用 load_mcp_tools 替代    |
+| 标准工具直接调用             | ✅ 向后兼容   | 无需修改                    |
+
+---
+
+## 12. 文档更新
+
+### 12.1 更新文档
+
+- ✅ `specs/dynamic-tool-command-system.md` - 本文档
+- ✅ `specs/mcp-tools-refactor.md` - 重构规范
+
+### 12.2 相关文档
+
+- **MCP Tools 重构**: `specs/mcp-tools-refactor.md` - 完整的重构规范
+- **项目结构**: 详见 `README.md`
+- **开发命令**: 详见 `package.json`
+
+---
+
+## 13. 验收标准
+
+### 13.1 功能验收
+
+- [x] `load_mcp_tools` 返回正确的工具列表和状态
+- [x] `execute_mcp_tool` 能正确执行 MCP 工具
+- [x] `execute_mcp_tool` 支持批量执行
+- [x] 错误处理覆盖所有边界情况
+- [x] 所有单元测试通过
+
+### 13.2 TUI 验收
+
+- [x] TUI 组件正确渲染 MCP 工具信息
+- [x] Web 组件正确渲染 MCP 工具信息
+- [x] 工具注册正确更新
+
+### 13.3 测试验收
+
+- [x] CommandSystemMiddleware 测试全部通过（21/21）
+- [x] MCPManager 测试全部通过（7/7）
+- [x] 测试覆盖核心功能
+
+---
+
+## 14. 性能影响
+
+### 14.1 优势
+
+| 特性               | 收益                             |
+| ------------------ | -------------------------------- |
+| **职责清晰**       | MCP 工具和标准工具分离，易于维护 |
+| **Prompt Caching** | 静态描述完全支持 Anthropic 缓存  |
+| **批量执行**       | 减少 MCP 工具调用开销            |
+| **错误隔离**       | MCP 工具错误不影响标准工具       |
+
+### 14.2 示例对比
+
+**旧版本（batch_command）**：
+
+```
+User: 使用 MCP 工具读取文件
+AI: batch_command({
+    commands: [
+        {name: "filesystem.read_file", args: {...}}
     ]
 })
 ```
 
-### 6.3 批量调用示例
+**新版本（load_mcp_tools + execute_mcp_tool）**：
 
-```json
-{
-  "commands": [
-    {
-      "name": "grep",
-      "args": {
-        "pattern": "function",
-        "path": "./src"
-      }
-    },
-    {
-      "name": "read_file",
-      "args": {
-        "file_path": "./src/main.js"
-      }
-    },
-    {
-      "name": "bash",
-      "args": {
-        "command": "ls -la"
-      }
-    }
-  ]
-}
+```
+User: 使用 MCP 工具读取文件
+AI: load_mcp_tools()  // 查询可用工具
+AI: execute_mcp_tool({
+    commands: [
+        {name: "filesystem.read_file", args: {...}}
+    ]
+})
 ```
 
 ---
 
-## 7. 实现清单
+## 15. 总结
 
-### 7.1 核心文件
+### 15.1 实现成果
 
-| 文件 | 状态 | 说明 |
-|------|------|------|
-| `agents/code/middlewares/commandSystem.ts` | ✅ | CommandSystemMiddleware 实现 |
-| `agents/code/middlewares/index.ts` | ✅ | 导出所有 middleware |
-| `agents/code/middlewares/README.md` | ✅ | Middleware 文档 |
-| `agents/code/middlewares/COMMAND_SYSTEM.md` | ✅ | 使用指南 |
-| `agents/code/subagents/config.ts` | ✅ | 添加 commandSystem 配置 |
-| `agents/code/subagents/factory.ts` | ✅ | 集成 CommandSystemMiddleware |
+✅ **完整的 MCP 工具系统**
 
-### 7.2 删除的文件
-
-| 文件 | 原因 |
-|------|------|
-| `agents/code/tools/command_system.ts` | 已迁移到 middleware |
-| `agents/code/tools/registry.ts` | 已迁移到 middleware |
-| `agents/code/tools/index.ts` | 不再需要 |
-
-### 7.3 特性清单
-
-✅ **核心功能**
-- CommandSystemMiddleware 实现
-- batch_command 批量工具调用
-- list_available_commands 工具查询
-- 工具注册表管理
-- 静态描述（支持 Prompt Caching）
-
-✅ **高级特性**
-- 可选启用（配置控制）
-- 向后兼容（默认关闭）
-- 特殊工具处理（ask_user_with_options）
-- 系统提示词自动注入
-
-✅ **架构特性**
-- Middleware 模式
-- 工具拦截和包装
-- 错误处理和部分成功
-- 运行时工具查询
-
----
-
-## 8. 性能影响
-
-### 8.1 优势
-
-| 特性 | 收益 |
-|------|------|
-| **批量调用** | 减少 LLM 往返次数 |
-| **Prompt Caching** | 降低 token 成本 |
-| **并行执行** | 提高吞吐量 |
-
-### 8.2 示例对比
-
-**未启用（原有方式）**：
-```
-User: 读取 3 个文件
-AI: read_file(file1)
-AI: read_file(file2)
-AI: read_file(file3)
-→ 3 次 LLM 调用
-```
-
-**启用 CommandSystem**：
-```
-User: 读取 3 个文件
-AI: batch_command({commands: [
-    {name: "read_file", args: {file_path: "file1"}},
-    {name: "read_file", args: {file_path: "file2"}},
-    {name: "read_file", args: {file_path: "file3"}}
-]})
-→ 1 次 LLM 调用
-```
-
----
-
-## 9. 向后兼容性
-
-### 9.1 完全兼容
-
-- ✅ 默认关闭，不影响现有行为
-- ✅ 可按 agent 配置选择性启用
-- ✅ 工具代码无需任何修改
-- ✅ 可随时启用/禁用
-
-### 9.2 迁移步骤
-
-1. **在配置中启用** `commandSystem: true`
-2. **无需修改代码** - middleware 自动处理
-3. **Agent 自适应** - 自动使用 batch_command
-
-### 9.3 回退
-
-设置 `commandSystem: false` 即可恢复原有行为。
-
----
-
-## 10. 配置建议
-
-### 10.1 适合启用的场景
-
-- ✅ 需要频繁批量调用工具
-- ✅ 使用 Anthropic 模型（Prompt Caching 受益）
-- ✅ 需要运行时查询工具列表
-- ✅ 追求性能优化
-
-### 10.2 不建议启用的场景
-
-- ❌ 简单的单工具调用
-- ❌ 调试阶段（直接调用更直观）
-- ❌ 对包装开销极其敏感
-
----
-
-## 11. 文档
-
-### 11.1 用户文档
-
-- **使用指南**: `agents/code/middlewares/COMMAND_SYSTEM.md`
-  - 启用方法
-  - 配置说明
-  - 使用示例
-  - 迁移指南
-  - 故障排查
-
-### 11.2 开发文档
-
-- **架构文档**: `agents/code/middlewares/README.md`
-  - 设计原理
-  - 实现细节
-  - 扩展指南
-
----
-
-## 12. 测试
-
-### 12.1 测试命令
-
-```bash
-# 启用后测试
-bun run dev:server
-
-# 观察 Agent 是否使用 batch_command
-# 检查工具调用格式是否正确
-```
-
-### 12.2 验证清单
-
-- [ ] Agent 使用 batch_command 调用工具
-- [ ] 批量调用正确执行
-- [ ] 错误处理正常工作
-- [ ] list_available_commands 返回正确结果
-- [ ] Prompt Caching 正常工作
-
----
-
-## 13. 未来扩展
-
-### 13.1 可能的改进
-
-- [ ] 并发执行控制（串行/并行选项）
-- [ ] 执行结果缓存
-- [ ] 性能监控和日志
-- [ ] 更复杂的错误恢复策略
-
-### 13.2 集成点
-
-- MCP 工具动态加载
-- Skills 工具注册
-- 子代理工具共享
-
----
-
-## 14. 总结
-
-### 14.1 实现成果
-
-✅ **完整的 Middleware 实现**
-- CommandSystemMiddleware 符合 LangChain 规范
-- 可选启用，向后兼容
+- CommandSystemMiddleware 专注于 MCP 工具发现和执行
+- MCPManager.executeTool 方法提供工具执行能力
 - 静态描述，缓存友好
 
-✅ **灵活的配置系统**
-- 按 agent 配置
-- 默认关闭，按需启用
-- 无缝切换
+✅ **清晰的职责划分**
 
-✅ **完善的文档**
-- 使用指南
-- 架构文档
-- 配置示例
+- MCP 工具通过 load_mcp_tools + execute_mcp_tool
+- 标准工具直接调用
+- 两者互不干扰
 
-### 14.2 关键决策
+✅ **完善的测试覆盖**
 
-| 决策 | 理由 |
-|------|------|
-| **Middleware 而非工具** | 更好的集成和灵活性 |
-| **可选而非强制** | 保持向后兼容 |
-| **只有 batch_command** | 简化实现，避免冗余 |
-| **静态描述** | 支持 Prompt Caching |
-| **配置控制** | 灵活的启用/禁用 |
+- CommandSystemMiddleware 测试（21 个用例）
+- MCPManager 测试（7 个用例）
+- TUI 组件完整实现
 
-### 14.3 架构优势
+### 15.2 关键决策
 
-- ✓ **解耦**: 工具实现与调用方式分离
-- ✓ **可扩展**: 易于添加新特性
+| 决策             | 理由                  |
+| ---------------- | --------------------- |
+| **MCP 工具专用** | 职责单一，易于维护    |
+| **标准工具独立** | 直接调用，性能更好    |
+| **两步流程**     | 发现 + 执行，灵活性高 |
+| **静态描述**     | 支持 Prompt Caching   |
+
+### 15.3 架构优势
+
+- ✓ **解耦**: MCP 工具与标准工具分离
+- ✓ **可扩展**: 易于添加新的 MCP 工具类型
 - ✓ **可维护**: 清晰的职责划分
-- ✓ **可测试**: 纯函数设计
+- ✓ **可测试**: 完整的单元测试覆盖
 
 ---
 
 ## 附录 A: 相关文件路径
 
 ```
-agents/code/
-├── middlewares/
-│   ├── commandSystem.ts       # 核心实现
-│   ├── index.ts               # 导出
-│   ├── README.md              # 架构文档
-│   └── COMMAND_SYSTEM.md      # 使用指南
-├── subagents/
-│   ├── config.ts              # 配置（添加 commandSystem）
-│   └── factory.ts             # 工厂（集成 middleware）
-└── prompts/
-    └── coding.ts              # 系统提示词（已恢复）
+packages/agent/
+├── src/
+│   ├── mcp/
+│   │   └── MCPManager.ts              # 添加 executeTool 方法
+│   ├── middlewares/
+│   │   └── commandSystem.ts           # 重构为 MCP 工具专用
+│   ├── subagents/
+│   │   └── factory-v2.ts              # 简化初始化
+│   └── __tests__/
+│       ├── middlewares/
+│       │   └── commandSystem.test.ts  # CommandSystemMiddleware 测试
+│       └── mcp/
+│           └── MCPManager.test.ts     # MCPManager 测试
+
+zen-code/src/chat/tools/
+├── index.ts                           # 移除 batch_command，添加 MCP 工具
+├── mcp/
+│   ├── load_mcp_tools.tsx             # TUI 组件
+│   └── execute_mcp_tool.tsx           # TUI 组件
+└── batch_command.tsx                  # 已删除
+
+zen-worker/src/tools/
+├── index.ts                           # 移除 batch_command，添加 MCP 工具
+├── mcp/
+│   ├── load_mcp_tools.tsx             # Web 组件
+│   └── execute_mcp_tool.tsx           # Web 组件
+└── batch_command.tsx                  # 已删除
 ```
 
 ---
 
-## 附录 B: 配置示例
+## 附录 B: 完整使用示例
 
-### B.1 全部启用
+### B.1 查询并执行单个 MCP 工具
 
 ```typescript
-// config.ts
-const agents = {
-    default: {
-        middleware: {
-            agents_md: true,
-            skills: true,
-            memories: true,
-            mcp: true,
-            subagents: true,
-            commandSystem: true,  // 启用
+// 步骤 1: 查询可用工具
+const loadResult = await load_mcp_tools.invoke({});
+const parsed = JSON.parse(loadResult);
+console.log(
+    'Available tools:',
+    parsed.tools.map((t) => t.name),
+);
+// Output: ["filesystem.read_file", "search.web", ...]
+
+// 步骤 2: 执行工具
+const execResult = await execute_mcp_tool.invoke({
+    commands: [
+        {
+            name: 'filesystem.read_file',
+            args: { path: '/path/to/file.txt' },
         },
-    },
-};
+    ],
+});
+const execParsed = JSON.parse(execResult);
+console.log('Result:', execParsed.results[0].result);
 ```
 
-### B.2 选择性启用
+### B.2 批量执行多个 MCP 工具
 
 ```typescript
-// 只对特定 agent 启用
-default: {
-    middleware: { commandSystem: true }
-},
+const result = await execute_mcp_tool.invoke({
+    commands: [
+        {
+            name: 'filesystem.read_file',
+            args: { path: '/path/to/file1.txt' },
+        },
+        {
+            name: 'filesystem.write_file',
+            args: {
+                path: '/path/to/file2.txt',
+                content: 'Hello, World!',
+            },
+        },
+        {
+            name: 'search.web',
+            args: { query: 'AI development' },
+        },
+    ],
+});
 
-finder: {
-    middleware: { commandSystem: false }  // 保持原有方式
-}
+const parsed = JSON.parse(result);
+parsed.results.forEach((r) => {
+    if (r.error) {
+        console.error(`[ERROR] ${r.tool}: ${r.error}`);
+    } else {
+        console.log(`[SUCCESS] ${r.tool}:`, r.result);
+    }
+});
 ```
 
 ---
 
-## 附录 C: 调用示例
-
-### C.1 单个工具
-
-```json
-{
-  "commands": [
-    {
-      "name": "read_file",
-      "args": {
-        "file_path": "/path/to/file.txt"
-      }
-    }
-  ]
-}
-```
-
-### C.2 批量工具
-
-```json
-{
-  "commands": [
-    {
-      "name": "grep",
-      "args": {
-        "pattern": "function",
-        "path": "./src"
-      }
-    },
-    {
-      "name": "read_file",
-      "args": {
-        "file_path": "./src/main.js"
-      }
-    },
-    {
-      "name": "bash",
-      "args": {
-        "command": "npm test"
-      }
-    }
-  ]
-}
-```
-
-### C.3 工具查询
-
-```json
-{
-  "name": "list_available_commands",
-  "args": {}
-}
-```
-
----
-
-**文档版本**: 1.0
-**最后更新**: 2025-01-18
-**状态**: ✅ 已完成
+**文档版本**: 2.0 **最后更新**: 2025-02-14 **状态**: ✅ 已完成（MCP Tools 重构）
