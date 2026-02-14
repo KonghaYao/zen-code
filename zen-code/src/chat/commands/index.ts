@@ -11,6 +11,8 @@ import { agentCommands } from './agentCommands';
 import { interviewCommands } from './interviewCommand';
 // NEW: Import plan commands
 import { planCommands } from './planCommand';
+// NEW: Import create-agent-md commands
+import { createAgentMdCommands } from './createAgentMdCommand';
 
 // NEW: Import compact mode command
 import { compactCommand } from './compactCommand';
@@ -22,6 +24,7 @@ import { compactCommand } from './compactCommand';
     ...agentCommands,
     ...interviewCommands,
     ...planCommands,
+    ...createAgentMdCommands,
     compactCommand,
 ].forEach((command) => {
     commandRegistry.register(command);
