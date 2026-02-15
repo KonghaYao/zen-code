@@ -14,34 +14,28 @@ export const write_file = createUITool({
     description: 'Writes a file to the local filesystem',
     parameters: writeToolSchema.shape,
     handler: ToolManager.waitForUIDone,
-    render(tool) {
-        const input = tool.getInputRepaired();
-        const output = tool.output;
+    // render(tool) {
+    //     const input = tool.getInputRepaired();
+    //     const output = tool.output;
 
-        const lineCount = input.content?.split('\n')?.length;
+    //     const lineCount = input.content?.split('\n')?.length;
 
-        return (
-            <Box flexDirection="column" paddingX={1}>
-                <Box>
-                    <Text color="green">Write </Text>
-                    <Text dimColor>(</Text>
-                    <Link path={input.file_path} color="green" />
-                    <Text dimColor>)</Text>
-                    <Text dimColor> ({lineCount} lines)</Text>
-                </Box>
+    //     return (
+    //         <Box flexDirection="column" paddingX={1}>
+    //             <Box>
+    //                 <Text color="green">Write </Text>
+    //                 <Text dimColor>(</Text>
+    //                 <Link path={input.file_path} color="green" />
+    //                 <Text dimColor>)</Text>
+    //                 <Text dimColor> ({lineCount} lines)</Text>
+    //             </Box>
 
-                {output && output.startsWith('Error:') && (
-                    <Box marginTop={0} marginLeft={1} marginBottom={1}>
-                        <Text color="red">{output}</Text>
-                    </Box>
-                )}
-
-                {!output && (
-                    <Box marginTop={0}>
-                        <Text color="gray">Waiting...</Text>
-                    </Box>
-                )}
-            </Box>
-        );
-    },
+    //             {output && output.startsWith('Error:') && (
+    //                 <Box marginTop={0} marginLeft={1} marginBottom={1}>
+    //                     <Text color="red">{output}</Text>
+    //                 </Box>
+    //             )}
+    //         </Box>
+    //     );
+    // },
 });

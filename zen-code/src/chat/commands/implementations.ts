@@ -25,15 +25,12 @@ export const initCommand: CommandDefinition = {
             const initMessage = `我想开始一个关于 "${topic}" 的新对话。`;
 
             setTimeout(() => {
-                context.sendMessage(
-                    [
-                        {
-                            type: 'human',
-                            content: initMessage,
-                        },
-                    ],
-                    context.extraParams,
-                );
+                context.sendMessage([
+                    {
+                        type: 'human',
+                        content: initMessage,
+                    },
+                ]);
             }, 100); // 小延迟确保新聊天创建完成
 
             return {

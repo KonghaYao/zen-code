@@ -4,6 +4,7 @@ import { replace_in_file } from './replace_in_file';
 import { todo_tool } from './todo_tool';
 import { read_file } from './read_file';
 import { glob_files } from './glob_files';
+import { search_files_rg } from './search_files_rg';
 import { write_file } from './write_file';
 import { folder_operations } from './folder_operations';
 import { load_mcp_tools } from './mcp/load_mcp_tools';
@@ -16,6 +17,7 @@ export default [
     todo_tool,
     read_file,
     glob_files,
+    search_files_rg,
     write_file,
     folder_operations,
     load_mcp_tools,

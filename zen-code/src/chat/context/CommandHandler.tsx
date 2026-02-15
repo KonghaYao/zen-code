@@ -9,6 +9,7 @@ import { CommandContext } from '../commands/types';
 import { useChat } from '@langgraph-js/sdk/react';
 import { useSettings } from './SettingsContext';
 import { Message } from '@langgraph-js/sdk';
+import { metadataOfChat } from '../../utils/metadata';
 
 interface CommandHandlerProps {
     /** 额外参数 */
@@ -85,11 +86,18 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
                 const commandContext: CommandContext = {
                     userInput: commandInput,
                     setUserInput,
-                    sendMessage,
+                    sendMessage(messages) {
+                        return sendMessage(messages, {
+                            extraParams,
+                            metadata: metadataOfChat,
+                        });
+                    },
                     currentAgent,
                     client,
                     extraParams,
-                    createNewChat,
+                    createNewChat() {
+                        return createNewChat(metadataOfChat);
+                    },
                     updateConfig,
                     AVAILABLE_MODELS,
                     renderMessages,

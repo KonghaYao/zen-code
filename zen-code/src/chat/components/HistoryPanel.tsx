@@ -2,22 +2,24 @@
  * History 面板 - 使用统一面板系统重构 + TanStack Query
  *
  * 使用 TanStack Query 管理历史记录状态
+ * 自动设置 metadata 过滤器为当前工作目录
  */
 
-import React, { useCallback, useMemo, useRef } from 'react';
-import { Spacer, Text } from 'ink';
+import React, { useCallback, useMemo, useRef, useEffect } from 'react';
+import { Box, Text } from 'ink';
 import { UniversalPanel } from 'ink-pro';
-import { SelectItem } from 'ink-pro';
-import { PanelConfig, PanelContext } from 'ink-pro';
+import { PanelConfig } from 'ink-pro';
 import { useChat } from '@langgraph-js/sdk/react';
 import { useHistory } from '../hooks/useHistory';
+import { metadataOfChat } from '../../utils/metadata';
 
 interface HistoryPanelProps {
     onClose: () => void;
 }
 
 const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
-    const { currentChatId, toHistoryChat, createNewChat, refreshHistoryList } = useChat();
+    const { currentChatId, toHistoryChat, createNewChat, refreshHistoryList, setHistoryFilter, historyFilter } =
+        useChat();
 
     // 使用 TanStack Query 获取历史记录
     const { data: historyList = [] } = useHistory();
@@ -28,10 +30,17 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
         refreshHistoryListRef.current = refreshHistoryList;
     }, [refreshHistoryList]);
 
-    // 格式化时间辅助函数 - 提取到组件外部避免重复创建
+    // 自动设置 metadata 过滤器为当前工作目录
+    useEffect(() => {
+        setHistoryFilter({
+            metadata: { path: process.cwd() },
+        });
+    }, [setHistoryFilter]);
+
+    // 格式化时间辅助函数
     const formatTime = (date: Date) => date.toLocaleTimeString();
 
-    // 获取状态信息的辅助函数 - 提取到组件外部
+    // 获取状态信息的辅助函数
     const getStatusInfo = (status: string) => {
         switch (status) {
             case 'idle':
@@ -60,13 +69,13 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
             const updatedTime = formatTime(new Date(thread.updated_at));
 
             return (
-                <SelectItem key={thread.thread_id} isSelected={isSelected} isCurrent={isCurrent}>
-                    <Text bold color={statusInfo.color}>
-                        {index}. {thread.thread_id.substring(0, 8)}...
+                <Box key={thread.thread_id}>
+                    <Text bold color={isSelected ? 'cyan' : statusInfo.color}>
+                        {index + 1}. {thread.thread_id.substring(0, 8)}...
                     </Text>
-                    <Spacer></Spacer>
+                    <Box flexGrow={1} />
                     <Text dimColor>{updatedTime}</Text>
-                </SelectItem>
+                </Box>
             );
         },
         [currentChatId],
@@ -84,7 +93,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
     const handleSelect = useCallback(
         async (thread: any) => {
             if (thread.value === 'new_chat') {
-                createNewChat();
+                createNewChat(metadataOfChat);
             } else {
                 toHistoryChat(thread);
             }
@@ -100,6 +109,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
             return current ? (
                 <Text color="gray" dimColor>
                     当前: <Text color="green">{current.thread_id.substring(0, 8)}</Text>
+                    <Text>{historyFilter.metadata?.path}</Text>
                 </Text>
             ) : null;
         },
@@ -109,7 +119,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
     // keyMap - 使用 useMemo 缓存
     const keyMap = useMemo(
         () => ({
-            r: async (context: PanelContext<any>) => {
+            r: async () => {
                 await refreshHistoryListRef.current();
             },
         }),
@@ -130,25 +140,9 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
             searchFields: ['thread_id'],
             searchPlaceholder: '搜索对话 ID...',
 
-            // 过滤配置
-            filterable: true,
-            filters: [
-                {
-                    id: 'idle',
-                    label: '空闲',
-                    predicate: (thread: any) => thread.status === 'idle',
-                },
-                {
-                    id: 'busy',
-                    label: '忙碌',
-                    predicate: (thread: any) => thread.status === 'busy',
-                },
-                {
-                    id: 'error',
-                    label: '错误',
-                    predicate: (thread: any) => thread.status === 'error',
-                },
-            ],
+            // 过滤配置 - 暂不实现
+            filterable: false,
+            filters: [],
             defaultFilter: 'all',
 
             // 渲染配置

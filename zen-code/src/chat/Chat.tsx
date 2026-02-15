@@ -27,6 +27,7 @@ import { useRalphLoop } from './hooks/useRalphLoop';
 import { get_allowed_models } from '@codegraph/agent/src/utils/get_allowed_models';
 import { configStore } from './store';
 import { TaskNode } from '@codegraph/config';
+import { metadataOfChat } from '../utils/metadata';
 
 interface ChatMessagesProps {}
 
@@ -150,7 +151,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
 const Chat: React.FC = () => {
     const { extraParams, toggleCompactMode } = useSettings();
-    const { setTools, createNewChat, loading, stopGeneration, currentChatId, sendMessage, renderMessages } = useChat();
+    const { setTools, createNewChat, loading, stopGeneration, currentChatId, sendMessage } = useChat();
     const { bufferedMessage, clearBuffer } = useChatInputBuffer();
     // 初始化工具
     useEffect(() => {
@@ -284,12 +285,13 @@ const Chat: React.FC = () => {
                 },
             ];
 
-            createNewChat().then(() => {
+            createNewChat(metadataOfChat).then(() => {
                 sendMessage(content, {
                     extraParams: {
                         ...extraParams,
                         is_in_task: true,
                     },
+                    metadata: metadataOfChat,
                 }).then(() => {
                     notify('任务已发送给 Agent');
                 });
