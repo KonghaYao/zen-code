@@ -30,3 +30,10 @@ export * from './useKnowledge';
 
 // Providers hooks
 export * from './useProviders';
+
+// Agents hooks
+export * from './useAgents';
+
+// Autocomplete hooks
+export * from './useSkillAutocomplete';
+export * from './useAgentAutocomplete';

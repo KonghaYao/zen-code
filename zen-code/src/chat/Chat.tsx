@@ -22,6 +22,7 @@ import { useInput } from 'ink-pro';
 import { ApprovalProvider } from '@codegraph/union-client';
 import TaskPanel from './components/TaskPanel';
 import { useSkills } from './hooks/useSkills';
+import { useAgents } from './hooks/useAgents';
 
 import { InteractionProvider, useInteractionContext, UnifiedUIPanel } from './interaction';
 import { useRalphLoop } from './hooks/useRalphLoop';
@@ -72,6 +73,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
     // Fetch skills for autocomplete
     const { data: skills = [] } = useSkills({ manager });
+
+    // Fetch agents for autocomplete
+    const { data: agents = [] } = useAgents();
 
     // 使用 Ralph Loop hook
     const { startRalphLoop, sendTextMessage } = useRalphLoop({
@@ -143,6 +147,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     commandSuggestions: commandHandler.commandSuggestions,
                 }}
                 skills={skills}
+                agents={agents}
             />
         </Box>
     );

@@ -60,6 +60,13 @@ export const queryKeys = {
         memories: () => ['knowledge', 'memories'] as const,
         skills: () => ['knowledge', 'skills'] as const,
     },
+
+    // ========== Agents ==========
+    agents: {
+        all: ['agents'] as const,
+        list: () => ['agents', 'list'] as const,
+        detail: (id: string) => ['agents', 'detail', id] as const,
+    },
 } as const;
 
 /**

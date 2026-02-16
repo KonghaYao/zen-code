@@ -3,8 +3,10 @@ import { Box, Text } from 'ink';
 import { MultiLineTextInput } from 'ink-pro';
 import { useChatInputBuffer } from '@codegraph/union-client';
 import { useSkillAutocomplete } from '../../hooks/useSkillAutocomplete';
+import { useAgentAutocomplete } from '../../hooks/useAgentAutocomplete';
 import { SkillAutocompleteHintUI } from './SkillAutocompleteUI';
-import type { Skill } from '@codegraph/config';
+import { AgentAutocompleteHintUI } from './AgentAutocompleteUI';
+import type { Skill, Agent } from '@codegraph/config';
 
 export interface ChatInputBufferProps {
     value: string;
@@ -19,6 +21,8 @@ export interface ChatInputBufferProps {
     };
     /** Available skills for autocomplete */
     skills?: Skill[];
+    /** Available agents for autocomplete */
+    agents?: Agent[];
 }
 
 export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
@@ -29,6 +33,7 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
     placeholder = '输入消息...',
     commandHandler,
     skills = [],
+    agents = [],
 }) => {
     const { bufferedMessage, setBufferedMessage, clearBuffer } = useChatInputBuffer();
     const [internalValue, setInternalValue] = useState(value);
@@ -36,6 +41,12 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
     // Initialize skill autocomplete
     const skillAutocomplete = useSkillAutocomplete({
         skills,
+        maxSuggestions: 5,
+    });
+
+    // Initialize agent autocomplete
+    const agentAutocomplete = useAgentAutocomplete({
+        agents,
         maxSuggestions: 5,
     });
 
@@ -51,8 +62,9 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
     useEffect(() => {
         if (!isCommandInput) {
             skillAutocomplete.checkTrigger(internalValue);
+            agentAutocomplete.checkTrigger(internalValue);
         }
-    }, [internalValue, isCommandInput, skillAutocomplete.checkTrigger]);
+    }, [internalValue, isCommandInput, skillAutocomplete.checkTrigger, agentAutocomplete.checkTrigger]);
 
     // 处理输入变化，同步到外部和命令检测
     const handleChange = useCallback(
@@ -67,8 +79,9 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
         (submitValue: string) => {
             if (!submitValue.trim()) return;
 
-            // Hide skill autocomplete on submit
+            // Hide autocompletes on submit
             skillAutocomplete.hide();
+            agentAutocomplete.hide();
 
             // 命令优先处理
             if (isCommandInput) {
@@ -87,12 +100,18 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
                 setInternalValue('');
             }
         },
-        [isCommandInput, loading, onSubmit, setBufferedMessage, skillAutocomplete],
+        [isCommandInput, loading, onSubmit, setBufferedMessage, skillAutocomplete, agentAutocomplete],
     );
 
-    // 处理 Esc 键清空缓冲区或关闭技能补全
+    // 处理 Esc 键清空缓冲区或关闭自动补全
     const handleEsc = useCallback(() => {
-        // If skill autocomplete is open, close it first
+        // If agent autocomplete is open, close it first
+        if (agentAutocomplete.isActive) {
+            agentAutocomplete.hide();
+            return;
+        }
+
+        // If skill autocomplete is open, close it
         if (skillAutocomplete.isActive) {
             skillAutocomplete.hide();
             return;
@@ -103,7 +122,7 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
         } else {
             setInternalValue(''); // 清空输入框
         }
-    }, [bufferedMessage, clearBuffer, skillAutocomplete]);
+    }, [bufferedMessage, clearBuffer, skillAutocomplete, agentAutocomplete]);
 
     // 处理命令补全 - 右箭头键（仅在光标在末尾且是命令输入时触发）
     const handleCommandCompletion = useCallback(() => {
@@ -135,6 +154,36 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
         return true; // Intercept the key
     }, [skillAutocomplete, internalValue, handleChange]);
 
+    // Handle agent completion - right arrow key
+    const handleAgentCompletion = useCallback(() => {
+        if (!agentAutocomplete.isActive) {
+            return false;
+        }
+
+        const completedText = agentAutocomplete.complete(internalValue);
+        handleChange(completedText);
+        agentAutocomplete.hide();
+
+        return true; // Intercept the key
+    }, [agentAutocomplete, internalValue, handleChange]);
+
+    // Get placeholder text based on current state
+    const getPlaceholder = useMemo(() => {
+        if (loading) {
+            return bufferedMessage ? '按 Esc 清空缓冲区' : 'AI 响应中，Enter 将消息加入缓冲区';
+        }
+        if (isCommandInput) {
+            return '输入命令... (试试 /help，按 → 补全第一个建议)';
+        }
+        if (agentAutocomplete.isActive) {
+            return '按 → 补全 Agent';
+        }
+        if (skillAutocomplete.isActive) {
+            return '按 → 补全技能';
+        }
+        return placeholder;
+    }, [loading, bufferedMessage, isCommandInput, agentAutocomplete.isActive, skillAutocomplete.isActive, placeholder]);
+
     return (
         <Box flexDirection="column">
             {/* 缓冲区提示条 */}
@@ -149,6 +198,13 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
 
             {/* 外部命令提示（用于错误和成功消息） */}
             <commandHandler.CommandHintUI />
+
+            {/* Agent autocomplete suggestions */}
+            <AgentAutocompleteHintUI
+                visible={agentAutocomplete.state.visible}
+                agents={agentAutocomplete.state.filteredAgents}
+                query={agentAutocomplete.state.query}
+            />
 
             {/* Skill autocomplete suggestions */}
             <SkillAutocompleteHintUI
@@ -170,32 +226,28 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
                             return false; // 阻止默认行为
                         }
 
-                        // Handle right arrow for skill or command completion
+                        // Handle right arrow for autocompletions
                         if (key.rightArrow) {
-                            // Try skill completion first
+                            // Try agent completion first
+                            if (agentAutocomplete.isActive) {
+                                const handled = handleAgentCompletion();
+                                if (handled) return false;
+                            }
+
+                            // Then try skill completion
                             if (skillAutocomplete.isActive) {
                                 const handled = handleSkillCompletion();
                                 if (handled) return false;
                             }
 
-                            // Then try command completion
+                            // Finally try command completion
                             const handled = handleCommandCompletion();
                             if (handled) return false;
                         }
 
                         return true;
                     }}
-                    placeholder={
-                        loading
-                            ? bufferedMessage
-                                ? '按 Esc 清空缓冲区'
-                                : 'AI 响应中，Enter 将消息加入缓冲区'
-                            : isCommandInput
-                              ? '输入命令... (试试 /help，按 → 补全第一个建议)'
-                              : skillAutocomplete.isActive
-                                ? '按 → 补全技能'
-                                : placeholder
-                    }
+                    placeholder={getPlaceholder}
                 />
             </Box>
         </Box>

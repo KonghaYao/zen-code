@@ -1,6 +1,6 @@
 {
     "name": "ink-pro",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "type": "module",
     "description": "Advanced TUI components library for Ink.js - Production-ready multi-line text input, unified panel system, multi-select dropdowns, and cross-platform keyboard handling for building complex terminal applications with React",
     "main": "src/index.ts",
