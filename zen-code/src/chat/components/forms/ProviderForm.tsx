@@ -171,10 +171,6 @@ const ProviderForm: React.FC<ProviderFormProps> = ({ mode, provider, onCancel, o
 
     return (
         <Box flexDirection="column" paddingX={2}>
-            <Text bold color="cyan">
-                {mode === 'add' ? '新增 Provider' : '编辑 Provider'}
-            </Text>
-
             <Box marginTop={1} flexDirection="column" gap={1}>
                 {/* Provider ID */}
                 {renderField(0)}

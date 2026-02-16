@@ -64,6 +64,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, initialTab = 'mo
                     🔌 Provider
                 </Text>
                 <Spacer></Spacer>
+                <Text dimColor>{'Alt+ < >'}</Text>
             </Box>
         </Box>
     );

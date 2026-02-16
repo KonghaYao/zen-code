@@ -173,8 +173,8 @@ const ProviderPanel: React.FC<ProviderPanelProps> = ({ onClose }) => {
 
                 <Box marginTop={1}>
                     <Text color="gray" dimColor>
-                        <Text color="cyan">↑↓</Text> 导航 <Text color="cyan">n</Text> 新增 <Text color="cyan">e</Text>{' '}
-                        编辑 <Text color="cyan">d</Text> 删除 <Text color="cyan">Esc</Text> 关闭
+                        <Text color="cyan">↑↓</Text> 导航 <Text color="cyan">n</Text> 新增 <Text color="cyan">d</Text>{' '}
+                        删除 <Text color="cyan">Esc</Text> 关闭
                     </Text>
                 </Box>
             </Box>
