@@ -6,7 +6,6 @@
 
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { Box, Text } from 'ink';
-import { useInput } from 'ink';
 import { UniversalPanel } from 'ink-pro';
 import { SelectItem } from 'ink-pro';
 import { PanelConfig } from 'ink-pro';
@@ -106,21 +105,6 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
         return convertedModels;
     }, [hookModels]);
 
-    // 左右箭头切换 Tab
-    useInput((input, key) => {
-        if (providerTabs.length <= 1) return;
-
-        if (key.leftArrow) {
-            const currentIndex = providerTabs.findIndex((t) => t.id === activeTab);
-            const nextIndex = (currentIndex - 1 + providerTabs.length) % providerTabs.length;
-            setActiveTab(providerTabs[nextIndex].id);
-        } else if (key.rightArrow) {
-            const currentIndex = providerTabs.findIndex((t) => t.id === activeTab);
-            const nextIndex = (currentIndex + 1) % providerTabs.length;
-            setActiveTab(providerTabs[nextIndex].id);
-        }
-    });
-
     // 修复：使用 useCallback 保持 dataSource 引用稳定
     const dataSource = useCallback(async () => {
         return modelsRef.current;
@@ -162,11 +146,28 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
         [updateConfig, activeTab, onClose],
     );
 
-    // 修复：使用 useMemo 缓存 panelConfig，避免每次渲染创建新对象
+    // 修复：使用 useCallback 保持 handleSwitchTab 引用稳定
+    const handleSwitchTab = useCallback(
+        (direction: 'left' | 'right') => {
+            if (providerTabs.length <= 1) return;
+
+            const currentIndex = providerTabs.findIndex((t) => t.id === activeTab);
+            const nextIndex =
+                direction === 'left'
+                    ? (currentIndex - 1 + providerTabs.length) % providerTabs.length
+                    : (currentIndex + 1) % providerTabs.length;
+            setActiveTab(providerTabs[nextIndex].id);
+        },
+        [activeTab, providerTabs],
+    );
+
+    // 修复：使用 useMemo 缓存 panelConfig，最小化依赖项
+    // 只依赖 activeTab 和 activeProviderTab，其他通过 useCallback 保持稳定
     const panelConfig: PanelConfig<ModelConfig> = useMemo(() => {
         const tabLabel = activeProviderTab?.label || '加载中...';
         return {
-            id: 'model',
+            // 关键修复：在 id 中包含 activeTab，这样切换 Tab 时 id 会变化，触发 UniversalPanel 重新加载数据
+            id: `model-${activeTab}`,
             title: `模型选择 - ${tabLabel}`,
             icon: activeProviderTab?.icon || '🔮',
 
@@ -188,8 +189,18 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
             onSelect: handleSelectModel,
 
             showCount: true,
+
+            // 修复：通过 keyMap 处理左右箭头切换 Tab，避免多个 useInput 冲突
+            keyMap: {
+                leftArrow: (context) => {
+                    handleSwitchTab('left');
+                },
+                rightArrow: (context) => {
+                    handleSwitchTab('right');
+                },
+            },
         };
-    }, [activeTab, activeProviderTab, dataSource, renderItem, isSelected, handleSelectModel]);
+    }, [activeTab, activeProviderTab, dataSource, renderItem, isSelected, handleSelectModel, handleSwitchTab]);
 
     // 如果没有配置任何 provider
     if (providerTabs.length === 0) {
