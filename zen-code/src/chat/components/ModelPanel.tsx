@@ -67,7 +67,8 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
             const type = provider.type || 'default';
             return {
                 id: provider.id,
-                label: PROVIDER_LABELS[type] || provider.id,
+                // 使用 id 比较清楚
+                label: provider.id,
                 icon: PROVIDER_ICONS[type] || PROVIDER_ICONS.default,
                 config: provider,
             };
@@ -87,24 +88,10 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
     const activeProviderTab = providerTabs.find((t) => t.id === activeTab);
 
     // 使用 TanStack Query 加载模型列表
-    const {
-        data: hookModels,
-        isLoading,
-        error,
-    } = useModels({
+    const { data, isLoading, error } = useModels({
         provider: activeProviderTab?.config || null,
         enabled: !!activeTab,
     });
-
-    // 转换模型数据格式并同步到 ref
-    const models: ModelConfig[] = useMemo(() => {
-        const convertedModels = (hookModels || []).map((m: HookModelConfig) => ({
-            id: m.id,
-            name: m.name,
-        }));
-        modelsRef.current = convertedModels;
-        return convertedModels;
-    }, [hookModels]);
 
     // 左右箭头切换 Tab
     useInput((input, key) => {
