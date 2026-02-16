@@ -20,8 +20,14 @@ interface HistoryPanelProps {
 const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
     const { currentChatId, toHistoryChat, createNewChat, refreshHistoryList, setHistoryFilter, historyFilter } =
         useChat();
+    useEffect(() => {
+        const filter = { metadata: { path: process.cwd() } };
+        setHistoryFilter(filter);
+        // 设置 filter 后立即刷新历史记录
+        refreshHistoryList();
+    }, [setHistoryFilter, refreshHistoryList]);
 
-    // 使用 TanStack Query 获取历史记录
+    // 使用 TanStack Query 获取历史记录，historyFilter 已在 hook 内部从 useChat 读取
     const { data: historyList = [] } = useHistory();
 
     // 存储 refreshHistoryList 引用用于 keyMap
@@ -29,13 +35,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
     React.useEffect(() => {
         refreshHistoryListRef.current = refreshHistoryList;
     }, [refreshHistoryList]);
-
-    // 自动设置 metadata 过滤器为当前工作目录
-    useEffect(() => {
-        setHistoryFilter({
-            metadata: { path: process.cwd() },
-        });
-    }, [setHistoryFilter]);
 
     // 格式化时间辅助函数
     const formatTime = (date: Date) => date.toLocaleTimeString();

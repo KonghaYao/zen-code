@@ -19,7 +19,7 @@ import type { ProviderConfig as ConfigProviderConfig } from '@codegraph/config';
 export interface ModelConfig {
     id: string;
     name: string;
-    provider?: 'openai' | 'anthropic';
+    provider?: 'openai' | 'anthropic' | 'gemini';
 }
 
 // Use ConfigProviderConfig from @codegraph/config
@@ -119,6 +119,37 @@ async function getAnthropicModels(apiKey: string, baseUrl: string): Promise<Mode
 }
 
 /**
+ * Fetch Gemini models
+ * Returns a curated list of available Gemini models
+ */
+async function getGeminiModels(apiKey: string, _baseUrl: string): Promise<ModelConfig[]> {
+    // Optionally verify API key by making a simple request
+    try {
+        const response = await fetch(_baseUrl + `/v1beta/models`, {
+            method: 'GET',
+            headers: {
+                Authorization: 'Bearer ' + apiKey,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Gemini API error (${response.status}): Invalid API key`);
+        }
+
+        return response.json().then((res) => {
+            return res.models.map((model) => {
+                return { id: model.name, name: model.displayName || model.id, provider: 'gemini' as const };
+            });
+        });
+    } catch (error: any) {
+        if (error.name === 'AbortError') {
+            throw new Error('Gemini API request timeout (30s)');
+        }
+        throw error;
+    }
+}
+
+/**
  * Fetch models from provider API
  *
  * @param options - Hook options with provider config
@@ -145,6 +176,8 @@ export function useModels({ provider, enabled = true }: UseModelsOptions) {
                     return await getOpenAIModels(provider.apiKey, provider.baseUrl);
                 } else if (provider.type === 'anthropic') {
                     return await getAnthropicModels(provider.apiKey, provider.baseUrl);
+                } else if (provider.type === 'gemini') {
+                    return await getGeminiModels(provider.apiKey, provider.baseUrl);
                 }
 
                 return [];

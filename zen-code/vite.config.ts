@@ -40,6 +40,8 @@ export default defineConfig({
                 'marked-terminal',
                 '@anthropic-ai/sdk',
                 '@langchain/anthropic',
+                '@langchain/google-genai',
+                '@google/generative-ai',
                 '@langchain/core',
                 '@langchain/langgraph',
                 '@langchain/openai',

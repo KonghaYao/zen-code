@@ -153,6 +153,10 @@ export class FileSystemConfigStore implements IConfigStore {
                 process.env.MODEL_PROVIDER = 'anthropic';
                 process.env.ANTHROPIC_API_KEY = provider.apiKey;
                 process.env.ANTHROPIC_BASE_URL = provider.baseUrl;
+            } else if (provider.type === 'gemini' || provider.type === 'google') {
+                process.env.MODEL_PROVIDER = 'gemini';
+                process.env.GOOGLE_API_KEY = provider.apiKey;
+                process.env.GOOGLE_BASE_URL = provider.baseUrl;
             }
         }
     }

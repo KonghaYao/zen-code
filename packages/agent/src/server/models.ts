@@ -4,7 +4,7 @@
  */
 
 import { Hono } from 'hono';
-import { get_models_by_provider } from '../utils/get_allowed_models';
+import { get_models_by_provider } from '../utils/get_allowed_models.js';
 import type { ProviderConfig } from '@codegraph/config';
 
 // 缓存的配置，避免重复读取
@@ -48,7 +48,7 @@ export function createModelsRouter() {
      */
     router.get('/allowed', async (c) => {
         try {
-            const config = await getConfig();
+            await getConfig();
             const { get_allowed_models } = await import('../utils/get_allowed_models.js');
             const result = await get_allowed_models();
 
@@ -73,8 +73,7 @@ export function createModelsRouter() {
      */
     router.get('/providers', async (c) => {
         try {
-            const config = await getConfig();
-            const { get_models_by_provider } = await import('../utils/get_allowed_models.js');
+            await getConfig();
             const result = await get_models_by_provider();
 
             return c.json({
@@ -123,6 +122,8 @@ export function createModelsRouter() {
             const originalOpenAIBaseUrl = process.env.OPENAI_BASE_URL;
             const originalAnthropicKey = process.env.ANTHROPIC_API_KEY;
             const originalAnthropicBaseUrl = process.env.ANTHROPIC_BASE_URL;
+            const originalGeminiKey = process.env.GEMINI_API_KEY;
+            const originalGeminiBaseUrl = process.env.GEMINI_BASE_URL;
 
             try {
                 // 根据配置设置环境变量
@@ -142,10 +143,17 @@ export function createModelsRouter() {
                     if (providerConfig.baseUrl) {
                         process.env.ANTHROPIC_BASE_URL = providerConfig.baseUrl;
                     }
+                } else if (providerConfig.type === 'gemini') {
+                    process.env.MODEL_PROVIDER = 'gemini';
+                    if (providerConfig.apiKey) {
+                        process.env.GEMINI_API_KEY = providerConfig.apiKey;
+                    }
+                    if (providerConfig.baseUrl) {
+                        process.env.GEMINI_BASE_URL = providerConfig.baseUrl;
+                    }
                 }
 
                 // 获取模型列表
-                const { get_models_by_provider } = await import('../utils/get_allowed_models.js');
                 const result = await get_models_by_provider(providerConfig.type);
                 const models = result[providerConfig.type] || [];
 
@@ -168,6 +176,8 @@ export function createModelsRouter() {
                 if (originalOpenAIBaseUrl) process.env.OPENAI_BASE_URL = originalOpenAIBaseUrl;
                 if (originalAnthropicKey) process.env.ANTHROPIC_API_KEY = originalAnthropicKey;
                 if (originalAnthropicBaseUrl) process.env.ANTHROPIC_BASE_URL = originalAnthropicBaseUrl;
+                if (originalGeminiKey) process.env.GEMINI_API_KEY = originalGeminiKey;
+                if (originalGeminiBaseUrl) process.env.GEMINI_BASE_URL = originalGeminiBaseUrl;
             }
         } catch (error) {
             return c.json(

@@ -18,6 +18,7 @@ export interface ProviderFormProps {
 const PROVIDER_TYPES = [
     { id: 'openai', label: 'OpenAI', defaultUrl: 'https://api.openai.com/v1' },
     { id: 'anthropic', label: 'Anthropic', defaultUrl: 'https://api.anthropic.com' },
+    { id: 'gemini', label: 'Gemini', defaultUrl: 'https://generativelanguage.googleapis.com/v1beta' },
 ];
 
 const FIELDS = [

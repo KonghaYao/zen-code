@@ -25,6 +25,7 @@ export interface ModelConfig {
 const PROVIDER_ICONS: Record<string, string> = {
     openai: '🤖',
     anthropic: '🧠',
+    gemini: '✨',
     default: '🔮',
 };
 
@@ -32,6 +33,7 @@ const PROVIDER_ICONS: Record<string, string> = {
 const PROVIDER_LABELS: Record<string, string> = {
     openai: 'OpenAI',
     anthropic: 'Anthropic',
+    gemini: 'Gemini',
     default: 'Default',
 };
 
@@ -60,12 +62,16 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
             return [];
         }
 
-        return config.providers.map((provider: ProviderConfig) => ({
-            id: provider.id,
-            label: PROVIDER_LABELS[provider.id] || provider.id,
-            icon: PROVIDER_ICONS[provider.id] || PROVIDER_ICONS.default,
-            config: provider,
-        }));
+        return config.providers.map((provider: ProviderConfig) => {
+            // 根据 provider type 获取图标和标签
+            const type = provider.type || 'default';
+            return {
+                id: provider.id,
+                label: PROVIDER_LABELS[type] || provider.id,
+                icon: PROVIDER_ICONS[type] || PROVIDER_ICONS.default,
+                config: provider,
+            };
+        });
     }, [config?.providers]);
 
     // 初始化 activeTab

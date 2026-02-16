@@ -14,27 +14,43 @@
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../query-keys';
 import { useChat } from '@langgraph-js/sdk/react';
-
 /**
  * Fetch chat history list
  *
  * Wraps LangGraph SDK's useChat hook and adds TanStack Query caching.
  *
+ * @param filter Optional history filter to apply
  * @returns Query result with history data
  *
  * Example:
  * ```tsx
  * const { data: historyList, isLoading, error } = useHistory();
+ * const { data: filteredHistory } = useHistory({ metadata: { path: '/some/path' } });
  * ```
  */
 export function useHistory() {
-    const { historyList, refreshHistoryList } = useChat();
+    const { historyList, refreshHistoryList, historyFilter } = useChat();
+
+    // Create a filter-specific query key to trigger refetch when filter changes
+    // Use the entire filter object as part of the key
+    const filterKey = historyFilter
+        ? JSON.stringify({
+              metadata: historyFilter.metadata,
+              status: historyFilter.status,
+              sortBy: historyFilter.sortBy,
+              sortOrder: historyFilter.sortOrder,
+          })
+        : null;
+
+    const queryKey = filterKey ? ['history', 'list', filterKey] : queryKeys.history.list();
 
     return useQuery({
-        queryKey: queryKeys.history.list(),
+        queryKey,
         queryFn: async () => {
             await refreshHistoryList();
-            return historyList;
+            const result = historyList;
+
+            return result;
         },
         staleTime: 60 * 1000, // 1 minute - history changes moderately
     });
