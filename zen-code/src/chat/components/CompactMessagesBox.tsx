@@ -1,4 +1,4 @@
-import { Box, Static } from 'ink';
+import { Box, Static, Text } from 'ink';
 import { useState, useEffect, useMemo, Fragment, memo, useCallback } from 'react';
 import MessageHuman from './MessageHuman';
 import MessageAI from './MessageAI';
@@ -39,7 +39,26 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
             {toolGroup.map((msg, idx) => {
                 const render = msg.name ? getToolUIRender(msg.name!) : null;
                 if (!render) return null;
-                return <Fragment key={`extra-render-${groupId}-${idx}`}>{render(msg) as any}</Fragment>;
+                const totalSubmessages = msg.sub_messages?.length || 0;
+                const submessages = msg.sub_messages?.slice(-4) || [];
+                const omittedCount = totalSubmessages - submessages.length;
+                return (
+                    <Fragment key={`extra-render-${groupId}-${idx}`}>
+                        {render(msg) as any}
+                        {submessages.length ? (
+                            <>
+                                {omittedCount > 0 && (
+                                    <Box paddingLeft={2}>
+                                        <Text dimColor>
+                                            ... {omittedCount} more submessage{omittedCount > 1 ? 's' : ''}
+                                        </Text>
+                                    </Box>
+                                )}
+                                <CompactMessagesBox renderMessages={submessages} startIndex={1}></CompactMessagesBox>
+                            </>
+                        ) : null}
+                    </Fragment>
+                );
             })}
         </>
     );
@@ -138,10 +157,10 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
                     {/* 如果有工具组，显示摘要 */}
                     {message.type === 'group' && (
                         <>
-                            <CompactToolSummary
+                            {/* <CompactToolSummary
                                 toolMessages={message.toolGroup}
                                 messageNumber={displayIndex + 1 + startIndex}
-                            />
+                            /> */}
                             {/* 延迟渲染工具额外内容，避免预计算 */}
                             <ToolGroupExtraRender toolGroup={message.toolGroup} groupId={message.id} />
                         </>

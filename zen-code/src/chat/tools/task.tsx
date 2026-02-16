@@ -56,9 +56,6 @@ const TaskComponent: React.FC<{
         <Box flexDirection="column">
             {/* 头部信息 */}
             <TaskHeader tool={tool} />
-
-            {/* 输出结果 */}
-            {output && <LimitedOutput content={output} maxLines={8} borderColor="cyan" showOmittedInfo />}
         </Box>
     );
 };

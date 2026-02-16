@@ -184,14 +184,6 @@ const MessageTool: React.FC<MessageToolProps> = ({ message, messageNumber }) => 
                     </Text>
                     <Text> {getStatusEmoji(message?.status)}</Text>
                 </Box>
-                {message.sub_messages?.length ? (
-                    <Box>
-                        <Text color="gray">└─ </Text>
-                        <Text color={borderColor} dimColor>
-                            (hidden {message.sub_messages.length} subagent messages)
-                        </Text>
-                    </Box>
-                ) : null}
 
                 {render ? (
                     <Box>
@@ -213,6 +205,14 @@ const MessageTool: React.FC<MessageToolProps> = ({ message, messageNumber }) => 
                         </Box>
                     </Box>
                 )}
+                {message.sub_messages?.length ? (
+                    <Box>
+                        <Text color="gray">└─ </Text>
+                        <Text color={borderColor} dimColor>
+                            (hidden {message.sub_messages.length} subagent messages)
+                        </Text>
+                    </Box>
+                ) : null}
             </Box>
         </ErrorBoundary>
     );
