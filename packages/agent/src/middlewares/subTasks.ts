@@ -63,7 +63,7 @@ export class SubAgentsMiddleware implements AgentMiddleware {
         this.tools.push(
             create_task_tool(async (taskId, args, state) => {
                 console.log(state.model_id);
-                return await createStandardAgentV2(args.subagent_id, pkg, state, {}, { subagent_id: taskId });
+                return await createStandardAgentV2(args.subagent_id, pkg, state, {}, { parent_id: taskId });
             }),
         );
     }

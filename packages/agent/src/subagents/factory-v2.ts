@@ -46,9 +46,9 @@ export async function createStandardAgentV2(
     pkg: AgentPackage,
     state: CodeStateType,
     runtime: Runtime,
-    options?: { subagent_id?: string },
+    options?: { parent_id?: string },
 ) {
-    const isSubAgent = !!options?.subagent_id;
+    const isSubAgent = !!options?.parent_id;
     // Load agent configuration
     const agentConfig = await pkg.getAgent(agentId);
     if (!agentConfig) {
@@ -71,7 +71,7 @@ export async function createStandardAgentV2(
         enableThinking: state.enable_thinking,
         metadata: {
             // message 通过这个 id 判断是否为子调用
-            subagent_id: options?.subagent_id,
+            parent_id: options?.parent_id,
         },
     });
 
@@ -149,7 +149,7 @@ export async function createStandardAgentV2(
     const systemPrompt = promptConfig.content + `\n\n${await getEnvInfo(state)}`;
     // Create agent
     return createAgent({
-        name: isSubAgent ? `subagent_${options.subagent_id}` : agentConfig.name,
+        name: isSubAgent ? `subagent_${options.parent_id}` : agentConfig.name,
         model,
         systemPrompt,
         tools,
