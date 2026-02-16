@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text, useFocusManager } from 'ink';
 import { MessagesBox } from './components/MessageBox';
 import { CompactMessagesBox } from './components/CompactMessagesBox';
@@ -21,6 +21,7 @@ import StatusBar from './components/StatusBar';
 import { useInput } from 'ink-pro';
 import { ApprovalProvider } from '@codegraph/union-client';
 import TaskPanel from './components/TaskPanel';
+import { useSkills } from './hooks/useSkills';
 
 import { InteractionProvider, useInteractionContext, UnifiedUIPanel } from './interaction';
 import { useRalphLoop } from './hooks/useRalphLoop';
@@ -32,9 +33,8 @@ import { metadataOfChat } from '../utils/metadata';
 interface ChatMessagesProps {}
 
 const ChatMessages: React.FC<ChatMessagesProps> = () => {
-    const { renderMessages, loading, inChatError, isFELocking } = useChat();
+    const { renderMessages } = useChat();
     const { compactMode } = useSettings();
-
     const visibleMessages = renderMessages;
 
     return (
@@ -44,11 +44,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = () => {
                 <CompactMessagesBox renderMessages={visibleMessages} startIndex={0} />
             ) : (
                 <MessagesBox renderMessages={visibleMessages} startIndex={0} />
-            )}
-            {inChatError && (
-                <Box marginTop={0} paddingLeft={1}>
-                    <Text color="red">❌ {JSON.stringify(inChatError)}</Text>
-                </Box>
             )}
         </Box>
     );
@@ -73,7 +68,10 @@ const ChatInput: React.FC<ChatInputProps> = ({
     closePanel,
 }) => {
     const { userInput, setUserInput, sendMessage, loading, renderMessages } = useChat();
-    const { extraParams } = useSettings();
+    const { extraParams, manager } = useSettings();
+
+    // Fetch skills for autocomplete
+    const { data: skills = [] } = useSkills({ manager });
 
     // 使用 Ralph Loop hook
     const { startRalphLoop, sendTextMessage } = useRalphLoop({
@@ -144,6 +142,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     CommandHintUI: commandHandler.CommandHintUI,
                     commandSuggestions: commandHandler.commandSuggestions,
                 }}
+                skills={skills}
             />
         </Box>
     );
@@ -281,7 +280,7 @@ const Chat: React.FC = () => {
             const content: Message[] = [
                 {
                     type: 'human',
-                    content: `${taskPrompt}\n\n请你先写一个 TODO LIST 然后开始这个任务，最后完成任务的时候，使用 commit_task`,
+                    content: `${taskPrompt}\n\n请你先写一个 TODO LIST 焦后开始这个任务，最后完成任务的时候，使用 commit_task`,
                 },
             ];
 
