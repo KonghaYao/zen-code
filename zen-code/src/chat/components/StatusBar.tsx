@@ -31,7 +31,8 @@ const StatusBar: React.FC<StatusBarProps> = ({}) => {
                     {chatLoading && (
                         <Text color="yellow" bold>
                             <Spinner></Spinner>
-                            <Shimmer text="LOADING"></Shimmer>
+                            <Text color="red">Loading</Text>
+                            {/* <Shimmer text="LOADING"></Shimmer> */}
                         </Text>
                     )}
                     {!chatLoading && (

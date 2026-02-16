@@ -59,16 +59,14 @@ const WelcomeHeader: React.FC = () => {
             <Box flexDirection="row" marginTop={1} gap={2}>
                 {/* Left: Logo */}
                 <Box flexDirection="column">
-                    {`███████╗███████╗███╗   ██╗
+                    <Text color="cyan">
+                        {`███████╗███████╗███╗   ██╗
 ╚══███╔╝██╔════╝████╗  ██║
   ███╔╝ █████╗  ██╔██╗ ██║
  ███╔╝  ██╔══╝  ██║╚██╗██║
 ███████╗███████╗██║ ╚████║
-╚══════╝╚══════╝╚═╝  ╚═══╝`
-                        .split('\n')
-                        .map((line) => {
-                            return <Shimmer key={line} interval={40} text={line} globalIndex={globalShimmerIndex} />;
-                        })}
+╚══════╝╚══════╝╚═╝  ╚═══╝`}
+                    </Text>
                 </Box>
 
                 {/* Right: Status Panel */}
