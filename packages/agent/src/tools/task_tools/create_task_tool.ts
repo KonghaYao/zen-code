@@ -21,10 +21,15 @@ const schema = z.object({
         .string()
         .optional()
         .describe('The task id to ask the subagent, if not provided, will use the tool call id'),
+    subagent_id: z
+        .string()
+        .describe(
+            'REQUIRED. The specific ID of the subagent to invoke (e.g., "agents/default", "agents/manager"). Must match exactly one of the available subagents listed in the system prompt.',
+        ),
     subagent_type: z
         .string()
         .describe(
-            'The type of subagent to use. Must be one of the available agent types listed in the tool description.',
+            'REQUIRED. The type/category of subagent (e.g., "general-purpose", "statusline-setup"). Must be one of the available agent types listed in the tool description.',
         ),
     task_description: z.string().describe('Describe the user state and what you want the subagent to do.'),
     data_transfer: z.any().optional().describe('Data to transfer to the subagent.'),
@@ -101,12 +106,13 @@ export const create_task_tool = (
 
 Available agent types and the tools they have access to:
 - general-purpose: General-purpose agent for researching complex questions, searching for code, and executing multi-step tasks. When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you. (Tools: *)
-- statusline-setup: Use this agent to configure the user\'s Claude Code status line setting. (Tools: Read, Edit)
+- statusline-setup: Use this agent to configure the user's Claude Code status line setting. (Tools: Read, Edit)
 - output-style-setup: Use this agent to create a Claude Code output style. (Tools: Read, Write, Edit, Glob, LS, Grep)
 
-When using the Task tool, you must specify a subagent_type parameter to select which agent type to use.
+**IMPORTANT: Both subagent_id AND subagent_type are REQUIRED parameters. You must provide BOTH.**
 
-
+- subagent_id: The specific ID of the subagent (e.g., "agents/default", "agents/manager")
+- subagent_type: The type category of the subagent (e.g., "general-purpose", "statusline-setup")
 
 When NOT to use the Agent tool:
 - If you want to read a specific file path, use the Read or Glob tool instead of the Agent tool, to find the match more quickly
@@ -119,8 +125,8 @@ Usage notes:
 1. Launch multiple agents concurrently whenever possible, to maximize performance; to do that, use a single message with multiple tool uses
 2. When the agent is done, it will return a single message back to you. The result returned by the agent is not visible to the user. To show the user the result, you should send a text message back to the user with a concise summary of the result.
 3. Each agent invocation is stateless. You will not be able to send additional messages to the agent, nor will the agent be able to communicate with you outside of its final report. Therefore, your prompt should contain a highly detailed task description for the agent to perform autonomously and you should specify exactly what information the agent should return back to you in its final and only message to you.
-4. The agent\'s outputs should generally be trusted
-5. Clearly tell the agent whether you expect it to write code or just to do research (search, file reads, web fetches, etc.), since it is not aware of the user\'s intent
+4. The agent's outputs should generally be trusted
+5. Clearly tell the agent whether you expect it to write code or just to do research (search, file reads, web fetches, etc.), since it is not aware of the user's intent
 6. If the agent description mentions that it should be used proactively, then you should try your best to use it without the user having to ask for it first. Use your judgement.
 
 Example usage:
@@ -134,7 +140,7 @@ Example usage:
 user: "Please write a function that checks if a number is prime"
 assistant: Sure let me write a function that checks if a number is prime
 assistant: First let me use the Write tool to write a function that checks if a number is prime
-assistant: I\'m going to use the Write tool to write the following code:
+assistant: I'm going to use the Write tool to write the following code:
 <code>
 function isPrime(n) {
   if (n <= 1) return false
@@ -156,7 +162,7 @@ user: "Hello"
 <commentary>
 Since the user is greeting, use the greeting-responder agent to respond with a friendly joke
 </commentary>
-assistant: "I\'m going to use the Task tool to launch the with the greeting-responder agent"
+assistant: "I'm going to use the Task tool to launch the with the greeting-responder agent"
 </example>
 `,
             schema,

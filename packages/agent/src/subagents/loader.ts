@@ -13,6 +13,8 @@ import { AgentPackage, MemoryStorage, AgentSchema } from '@langgraph-js/standard
 import { z } from 'zod';
 import { createToolRegistry } from './tools.js';
 import { createMiddlewareRegistry } from './middlewares.js';
+import { CORE_SYSTEM_PROMPT } from '../prompts/coding.js';
+import { architectPrompt } from '../prompts/architect.js';
 
 export interface SubAgentConfig extends z.infer<typeof AgentSchema> {}
 
@@ -42,7 +44,12 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
     await pkg.addPrompt({
         id: 'prompts/default',
         name: 'default',
-        content: 'You are a helpful AI assistant specialized in coding tasks.',
+        content: CORE_SYSTEM_PROMPT,
+    });
+    await pkg.addPrompt({
+        id: 'prompts/manager',
+        name: 'manager',
+        content: architectPrompt,
     });
 
     // Register tools into the package
@@ -81,7 +88,7 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
         id: 'agents/manager',
         name: 'Manager',
         description: '任务管理员',
-        system_prompt: 'prompts/default',
+        system_prompt: 'prompts/manager',
         model: 'glm-4.7',
         tools: {
             read_file: true,

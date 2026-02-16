@@ -9,6 +9,7 @@ import { write_file } from './write_file';
 import { folder_operations } from './folder_operations';
 import { load_mcp_tools } from './mcp/load_mcp_tools';
 import { execute_mcp_tool } from './mcp/execute_mcp_tool';
+import { task } from './task';
 
 export default [
     terminal,
@@ -22,4 +23,5 @@ export default [
     folder_operations,
     load_mcp_tools,
     execute_mcp_tool,
+    task,
 ];

@@ -55,7 +55,6 @@ export function createCodeGraph() {
     return new StateGraph(CodeState)
         .addNode('graph', async (state: CodeStateType, runtime: Runtime) => {
             const { switch_command: cmd } = state;
-
             if (cmd === 'smart_memory') return switchBranch.smart_memory(state);
 
             // Load agent package (cached after first load)

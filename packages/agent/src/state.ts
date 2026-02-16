@@ -40,7 +40,6 @@ export const CodeAnnotation = createState(MessagesAnnotation, SubAgentAnnotation
     agent_name: createDefaultAnnotation(() => 'Code Agent'),
     switch_command: createDefaultAnnotation(() => null),
     enable_thinking: createDefaultAnnotation(() => true),
-    is_in_task: createDefaultAnnotation(() => false),
     // sb 的 langchain 在 agent middleware 的 runtime 里面拿不到这些数据
     user_id: createDefaultAnnotation(() => ''),
     thread_id: createDefaultAnnotation(() => ''),

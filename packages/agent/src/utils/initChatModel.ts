@@ -49,6 +49,7 @@ export const initChatModel = async (modelId: string, options: InitChatModelOptio
 
             // Note: Gemini doesn't have native thinking support like Anthropic,
             // but we can use extended thinking mode for supported models
+            metadata: options.metadata,
         });
     } else {
         model = new ChatOpenAI({

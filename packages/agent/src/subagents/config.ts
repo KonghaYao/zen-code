@@ -3,21 +3,18 @@
  *
  * Defines specialized agent configurations for switchBranch routing.
  * Each agent has specific tools, prompts, and middleware settings.
+ *
+ * Aligned with AgentSchema from @langgraph-js/standard-agent
  */
 
 export interface AgentConfig {
     id: string;
     name: string;
     description: string;
-    systemPrompt?: string | ((state: any) => string);
-    tools: string[];
-    middleware: {
-        agents_md?: boolean;
-        skills?: boolean;
-        memories?: boolean;
-        mcp?: boolean;
-        subagents?: boolean;
-    };
+    system_prompt: string; // Reference to prompt ID
+    model: string; // Reference to model ID
+    tools: Record<string, boolean | any>; // Tool ID -> enabled/params
+    middleware: Record<string, boolean | any>; // Middleware ID -> enabled/params
 }
 
 /**
@@ -37,9 +34,21 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
         default: {
             id: 'default',
             name: 'Jarvis', // Iron Man's AI assistant
-            description: '全功能代码助手',
+            description: '代码实现助手',
+            system_prompt: 'prompts/default',
+            model: 'glm-4.7',
 
-            tools: ['all'],
+            tools: {
+                read_file: true,
+                write_file: true,
+                edit_file: true,
+                glob_files: true,
+                'search-files-rg': true,
+                folder_operations: true,
+                terminal: true,
+                ask_user_questions: true,
+                TodoWrite: true,
+            },
             middleware: {
                 agents_md: true,
                 skills: true,
@@ -48,24 +57,29 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
                 subagents: true,
             },
         },
-        architect: {
-            id: 'architect',
-            name: 'Architect',
-            description: '高维度架构师角色，专注于系统设计、技术选型、架构决策和全局视角分析',
+        manager: {
+            id: 'manager',
+            name: 'Manager',
+            description: '任务管理员',
+            system_prompt: 'prompts/manager',
+            model: 'glm-4.7',
 
-            // System prompt 由 SkillsMiddleware 从 .claude/skills/architect/SKILL.md 注入
-            systemPrompt: '',
-
-            // 架构师只使用只读工具，不修改代码
-            tools: ['glob_files', 'search-files-rg', 'read_file', 'ask_user_questions'],
-
-            // 只启用基础中间件，不启用 MCP 和 subagents
+            tools: {
+                read_file: true,
+                write_file: true,
+                edit_file: true,
+                glob_files: true,
+                'search-files-rg': true,
+                folder_operations: true,
+                terminal: true,
+                ask_user_questions: true,
+                TodoWrite: true,
+            },
             middleware: {
                 agents_md: true,
                 skills: true,
                 memories: true,
-                mcp: false,
-                subagents: false,
+                subagents: true,
             },
         },
     };
@@ -80,16 +94,25 @@ export function getDefaultAgentId(): string {
 
 /**
  * Validate agent configuration
- * Ensures tools exist and middleware settings are valid
+ * Ensures required fields are present and types are correct
  */
-export function validateAgentConfig(config: AgentConfig, availableTools: Set<string>): string[] {
+export function validateAgentConfig(config: AgentConfig): string[] {
     const errors: string[] = [];
 
-    // Validate tools
-    for (const tool of config.tools) {
-        if (tool !== 'all' && !availableTools.has(tool)) {
-            errors.push(`Unknown tool: ${tool}`);
-        }
+    if (!config.id) {
+        errors.push('Agent id is required');
+    }
+    if (!config.name) {
+        errors.push('Agent name is required');
+    }
+    if (!config.description) {
+        errors.push('Agent description is required');
+    }
+    if (!config.system_prompt) {
+        errors.push('Agent system_prompt is required');
+    }
+    if (!config.model) {
+        errors.push('Agent model is required');
     }
 
     return errors;

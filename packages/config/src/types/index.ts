@@ -106,6 +106,12 @@ export interface SkillContent {
     markdown: string;
 }
 
+export interface Agent {
+    id: string;
+    name: string;
+    description: string;
+}
+
 export interface Plugin {
     name: string;
     version: string;

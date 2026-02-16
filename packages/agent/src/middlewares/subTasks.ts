@@ -3,6 +3,7 @@ import { create_task_tool, SubAgentStateSchema } from '../tools/task_tools/creat
 import { ClientTool, ServerTool } from '@langchain/core/tools';
 import { AgentPackage } from '@langgraph-js/standard-agent';
 import { createStandardAgentV2 } from '../subagents/factory-v2';
+import { CodeAnnotation, CodeState } from '../state';
 
 // SubAgents System Documentation
 const SUBAGENTS_SYSTEM_PROMPT = `
@@ -20,7 +21,7 @@ You have access to a subagent system that can delegate specialized tasks to othe
 SubAgents follow a **progressive disclosure** pattern - you know they exist (name + description above), but you only delegate tasks when needed:
 
 1. **Recognize when to delegate**: Check if the user's task matches a subagent's specialization
-2. **Use the ask_subagents tool**: Call the tool with the subagent's ID and a clear task description
+2. **Use the task tool**: Call the tool with the subagent's ID and a clear task description
 3. **Provide context**: Use the \`data_transfer\` parameter to pass relevant information
 4. **Get results**: The subagent will process the task and return results
 
@@ -32,7 +33,7 @@ SubAgents follow a **progressive disclosure** pattern - you know they exist (nam
 
 **SubAgent Tool Usage:**
 
-The \`ask_subagents\` tool is available for delegation:
+The \`task\` tool is available for delegation:
 
 - **subagent_id**: The ID of the subagent to delegate to
 - **task_description**: Clear description of what needs to be done
@@ -44,7 +45,7 @@ The \`ask_subagents\` tool is available for delegation:
 User: "Can you have the research agent look into quantum computing developments?"
 
 1. Check available subagents above → See "research" subagent with ID
-2. Use ask_subagents tool with appropriate parameters
+2. Use task tool with appropriate parameters
 3. Provide clear task description and any necessary context
 4. Process the results from the subagent
 
@@ -53,19 +54,17 @@ Remember: SubAgents are tools to distribute work and leverage specialized capabi
 
 export class SubAgentsMiddleware implements AgentMiddleware {
     name: string = 'SubAgentsMiddleware';
-    stateSchema = SubAgentStateSchema;
-    contextSchema = undefined;
+    stateSchema = CodeState;
+    // contextSchema = undefined;
     tools: (ClientTool | ServerTool)[] = [];
     agentList = Promise.resolve('');
     constructor(pkg: AgentPackage) {
         this.agentList = this.formatSubAgentsList(pkg);
         this.tools.push(
-            create_task_tool(
-                async (taskId, args, state) => {
-                    return await createStandardAgentV2('agents/default', pkg, state, {}, { subagent_id: taskId });
-                },
-                { name: 'ask_subagents', description: 'ask subagents to help you' },
-            ),
+            create_task_tool(async (taskId, args, state) => {
+                console.log(state.model_id);
+                return await createStandardAgentV2(args.subagent_id, pkg, state, {}, { subagent_id: taskId });
+            }),
         );
     }
 
@@ -78,7 +77,7 @@ export class SubAgentsMiddleware implements AgentMiddleware {
         for (const agent of await pkg.listAgents()) {
             // Try to extract description from creator function or use generic
             lines.push(`- **${agent.id}**: ${agent.description}`);
-            lines.push(`  → Use ask_subagents with subagent_id: "${agent.id}"`);
+            lines.push(`  → Use task with subagent_id: "${agent.id}"`);
         }
 
         return lines.join('\n');

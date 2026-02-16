@@ -7,7 +7,7 @@
 
 import { initChatModel } from '../utils/initChatModel.js';
 import { AgentMiddleware, createAgent, DynamicStructuredTool, Runtime, tool } from 'langchain';
-import { CodeState, CodeStateType } from '../state.js';
+import { CodeAnnotation, CodeState, CodeStateType } from '../state.js';
 import { anthropicPromptCachingMiddleware } from '@langgraph-js/standard-agent';
 import { CommandSystemMiddleware } from '../middlewares/commandSystem.js';
 import { getEnvInfo } from '../prompts/coding.js';
@@ -48,6 +48,7 @@ export async function createStandardAgentV2(
     runtime: Runtime,
     options?: { subagent_id?: string },
 ) {
+    const isSubAgent = !!options?.subagent_id;
     // Load agent configuration
     const agentConfig = await pkg.getAgent(agentId);
     if (!agentConfig) {
@@ -103,6 +104,7 @@ export async function createStandardAgentV2(
     // Build middleware chain
     const middleware: AgentMiddleware[] = [];
     for (const [middlewareId, params] of Object.entries(agentConfig.middleware)) {
+        if (middlewareId === 'subagents' && isSubAgent) continue;
         const subagentsImpl = pkg.middlewares.getImplementation(middlewareId);
         if (!params) {
             break;
@@ -128,6 +130,7 @@ export async function createStandardAgentV2(
 
     middleware.push(
         humanInTheLoopMiddleware({
+            /** @ts-ignore */
             interruptOn,
         }),
     );
@@ -146,11 +149,11 @@ export async function createStandardAgentV2(
     const systemPrompt = promptConfig.content + `\n\n${await getEnvInfo(state)}`;
     // Create agent
     return createAgent({
-        name: options?.subagent_id ? `subagent_${options.subagent_id}` : agentConfig.name,
+        name: isSubAgent ? `subagent_${options.subagent_id}` : agentConfig.name,
         model,
         systemPrompt,
         tools,
-        stateSchema: CodeState,
+        stateSchema: CodeAnnotation,
         middleware,
     });
 }
