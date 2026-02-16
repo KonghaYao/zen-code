@@ -123,7 +123,7 @@ const ProviderPanel: React.FC<ProviderPanelProps> = ({ onClose }) => {
                 setSelectedIndex((prev) => (prev < providers.length - 1 ? prev + 1 : 0));
             } else if (input === 'n' || input === 'N') {
                 goToAddForm();
-            } else if ((input === 'e' || input === 'E') && selectedProvider) {
+            } else if ((input === 'e' || input === 'E' || key.return) && selectedProvider) {
                 goToEditForm();
             } else if ((input === 'd' || input === 'D') && selectedProvider) {
                 handleDeleteProvider();

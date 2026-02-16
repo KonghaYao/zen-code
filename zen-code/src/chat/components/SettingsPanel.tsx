@@ -20,23 +20,16 @@ interface SettingsPanelProps {
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, initialTab = 'model' }) => {
     const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
 
-    // 切换到 Model tab
-    const switchToModel = useCallback(() => {
-        setActiveTab('model');
-    }, []);
-
-    // 切换到 Provider tab
-    const switchToProvider = useCallback(() => {
-        setActiveTab('provider');
-    }, []);
-
     // 快捷键处理
     useInput(
         (input, key) => {
-            if (input === 'm' || input === 'M') {
-                switchToModel();
-            } else if (input === 'p' || input === 'P') {
-                switchToProvider();
+            // Alt+左箭头 切换到前一个 tab (provider -> model)
+            if (key.leftArrow && key.alt) {
+                setActiveTab('model');
+            }
+            // Alt+右箭头 切换到后一个 tab (model -> provider)
+            else if (key.rightArrow && key.alt) {
+                setActiveTab('provider');
             } else if (key.escape) {
                 onClose();
             }
@@ -66,13 +59,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, initialTab = 'mo
             >
                 <Text bold={activeTab === 'model'} color={activeTab === 'model' ? 'cyan' : 'gray'}>
                     🤖 Model
-                    {activeTab !== 'model' && '[M]'}
                 </Text>
                 <Text bold={activeTab === 'provider'} color={activeTab === 'provider' ? 'cyan' : 'gray'}>
-                    🔌 Provider {activeTab !== 'provider' && '[P]'}
+                    🔌 Provider
                 </Text>
                 <Spacer></Spacer>
-                <Text>{'[快捷键]'}</Text>
             </Box>
         </Box>
     );
