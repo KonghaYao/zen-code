@@ -1,13 +1,44 @@
 /**
  * MCP Middleware
  *
- * 统一管理 MCP 服务器连接和工具执行。
+ * Base middleware for managing MCP (Model Context Protocol) server connections and tool execution.
  *
- * 特性：
- * - 自动初始化 MCP 服务器
- * - 提供 load_mcp_tools 工具：查询 MCP 工具列表
- * - 提供 execute_mcp_tool 工具：执行 MCP 工具（支持批量）
- * - 内部集成 MultiServerMCPClient 和工具缓存
+ * This is a framework-agnostic implementation that provides:
+ * - Automatic MCP server initialization via a config provider
+ * - load_mcp_tools tool: Query available MCP tools
+ * - execute_mcp_tool tool: Execute MCP tools (supports batch execution)
+ * - Internal integration with MultiServerMCPClient and tool caching
+ *
+ * ## Usage
+ *
+ * ```typescript
+ * import { createMCPMiddleware } from '@langgraph-js/standard-agent';
+ *
+ * // Create with config provider
+ * const mcpMiddleware = createMCPMiddleware({
+ *   configProvider: async () => {
+ *     // Return MCP server configuration
+ *     return {
+ *       servers: {
+ *         filesystem: {
+ *           command: 'npx',
+ *           args: ['-y', '@modelcontextprotocol/server-filesystem', '/path/to/directory']
+ *         }
+ *       }
+ *     };
+ *   },
+ *   cache: {
+ *     ttl: 300,  // 5 minutes
+ *   }
+ * });
+ *
+ * const agent = createAgent({
+ *   model,
+ *   systemPrompt,
+ *   tools,
+ *   middleware: [mcpMiddleware]
+ * });
+ * ```
  */
 
 import { AgentMiddleware } from 'langchain';
@@ -15,16 +46,48 @@ import { tool, StructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { AIMessage } from '@langchain/core/messages';
 import { MultiServerMCPClient } from '@langchain/mcp-adapters';
-import { FileSystemConfigStore } from '@codegraph/config';
 
-// Config Types
+// ============================================
+// Type Definitions
+// ============================================
+
+/**
+ * MCP Server Configuration
+ */
+export interface MCPServerConfig {
+    command: string;
+    args: string[];
+    env?: Record<string, string>;
+}
+
+/**
+ * MCP Configuration
+ */
 export interface MCPConfig {
+    servers: Record<string, MCPServerConfig>;
+}
+
+/**
+ * MCP Middleware Options
+ */
+export interface MCPMiddlewareOptions {
+    /**
+     * Async function that provides MCP configuration
+     */
+    configProvider: () => Promise<MCPConfig | null | undefined>;
+
+    /**
+     * Cache configuration
+     */
     cache?: {
-        ttl?: number; // 工具缓存时间（秒），默认 300
-        reconnectDelay?: number; // 重连延迟（毫秒），默认 5000
+        ttl?: number; // Tool cache TTL in seconds (default: 300)
+        reconnectDelay?: number; // Reconnect delay in milliseconds (default: 5000)
     };
 }
 
+/**
+ * MCP Status Information
+ */
 export interface MCPStatus {
     isInitialized: boolean;
     toolCount: number;
@@ -32,6 +95,9 @@ export interface MCPStatus {
     servers: string[];
 }
 
+/**
+ * MCP Server Status
+ */
 export interface MCPServerStatus {
     name: string;
     isConnected: boolean;
@@ -39,26 +105,41 @@ export interface MCPServerStatus {
     error?: string;
 }
 
+// ============================================
 // Schemas
+// ============================================
+
+/**
+ * Schema for load_mcp_tools tool
+ */
 export const LoadMcpToolsSchema = z.object({});
 
+/**
+ * Schema for execute_mcp_tool tool
+ */
 export const ExecuteMcpToolSchema = z.object({
     commands: z
         .array(
             z.object({
-                name: z.string().describe('MCP 工具名称'),
-                args: z.record(z.string(), z.any()).describe('工具参数，JSON 对象格式'),
+                name: z.string().describe('MCP tool name'),
+                args: z.record(z.string(), z.any()).describe('Tool parameters in JSON object format'),
             }),
         )
-        .describe('要执行的 MCP 工具列表'),
+        .describe('List of MCP tools to execute'),
 });
 
 export type ExecuteMcpTool = z.infer<typeof ExecuteMcpToolSchema>;
 
+// ============================================
+// MCP Middleware
+// ============================================
+
 /**
- * MCP Middleware
+ * MCP Middleware Implementation
  *
- * 统一管理 MCP 服务器连接和工具执行。
+ * Manages MCP server connections and provides tools for:
+ * - Querying available MCP tools
+ * - Executing MCP tools (including batch execution)
  */
 export class MCPMiddleware implements AgentMiddleware {
     name = 'MCPMiddleware';
@@ -68,37 +149,43 @@ export class MCPMiddleware implements AgentMiddleware {
     // MCP Client
     private mcpClient: MultiServerMCPClient | null = null;
     private cacheTools: any[] = [];
-    private config: MCPConfig | null = null;
+    private configProvider: () => Promise<MCPConfig | null | undefined>;
+
     private lastRefresh: number | null = null;
     private serverStatuses: Map<string, MCPServerStatus> = new Map();
     private initializing: boolean = false;
     private initializationPromise: Promise<void> | null = null;
 
-    // 工具
+    // Tools
     private loadMcpToolsTool: StructuredTool;
     private executeMcpToolTool: StructuredTool;
 
-    constructor() {
-        // 自动初始化
+    /**
+     * Create MCP middleware
+     *
+     * @param options - Middleware configuration options
+     */
+    constructor(options: MCPMiddlewareOptions) {
+        this.configProvider = options.configProvider;
+
+        // Auto-initialize
         this.initialize().catch((error) => {
             console.error('Failed to initialize MCPMiddleware:', error);
         });
 
-        // 创建工具
+        // Create tools
         this.createTools();
     }
 
     /**
-     * 获取配置
+     * Get configuration from provider
      */
-    private async getConfig() {
-        const store = new FileSystemConfigStore();
-        await store.initialize();
-        return store.getConfig();
+    private async getConfig(): Promise<MCPConfig | null | undefined> {
+        return await this.configProvider();
     }
 
     /**
-     * 初始化 MultiServerMCPClient
+     * Initialize MultiServerMCPClient
      */
     private async initialize(): Promise<void> {
         if (this.initializing) {
@@ -108,8 +195,9 @@ export class MCPMiddleware implements AgentMiddleware {
         this.initializing = true;
         this.initializationPromise = (async () => {
             try {
-                const globalConfig = await this.getConfig();
-                if (!globalConfig.mcp_config || Object.keys(globalConfig.mcp_config).length === 0) {
+                const mcpConfig = await this.getConfig();
+
+                if (!mcpConfig || !mcpConfig.servers || Object.keys(mcpConfig.servers).length === 0) {
                     this.mcpClient = null;
                     this.serverStatuses.clear();
                     this.cacheTools = [];
@@ -123,10 +211,10 @@ export class MCPMiddleware implements AgentMiddleware {
                     useStandardContentBlocks: true,
                     onConnectionError: 'ignore',
                     /** @ts-ignore */
-                    mcpServers: globalConfig.mcp_config,
+                    mcpServers: mcpConfig.servers,
                 });
 
-                // 预加载工具列表
+                // Pre-load tool list
                 await this.refreshAll();
             } finally {
                 this.initializing = false;
@@ -137,10 +225,10 @@ export class MCPMiddleware implements AgentMiddleware {
     }
 
     /**
-     * 获取所有 MCP 工具（带缓存）
+     * Get all MCP tools (with caching)
      */
     private async getAllTools(): Promise<any[]> {
-        // 等待初始化完成
+        // Wait for initialization
         if (this.initializing && this.initializationPromise) {
             await this.initializationPromise;
         }
@@ -153,21 +241,17 @@ export class MCPMiddleware implements AgentMiddleware {
             return [];
         }
 
-        // 从 client 获取工具列表
+        // Get tool list from client
         const tools = await this.mcpClient.getTools();
         this.cacheTools = tools;
         return tools;
     }
 
     /**
-     * 刷新所有服务器
+     * Refresh all servers
      */
     private async refreshAll(): Promise<void> {
-        if (!this.config) {
-            return;
-        }
-
-        // 关闭旧连接
+        // Close old connection
         if (this.mcpClient) {
             try {
                 await this.mcpClient.close();
@@ -176,15 +260,15 @@ export class MCPMiddleware implements AgentMiddleware {
             }
         }
 
-        // 重新初始化
+        // Re-initialize
         await this.initialize();
         this.lastRefresh = Date.now();
     }
 
     /**
-     * 清理连接
+     * Cleanup connections
      */
-    private async cleanup(): Promise<void> {
+    async cleanup(): Promise<void> {
         if (this.mcpClient) {
             try {
                 await this.mcpClient.close();
@@ -199,12 +283,12 @@ export class MCPMiddleware implements AgentMiddleware {
     }
 
     /**
-     * 获取 MCP 状态信息
+     * Get MCP status information
      */
     private async getStatus(): Promise<MCPStatus> {
         const tools = this.cacheTools;
-        const globalConfig = await this.getConfig();
-        const servers = globalConfig.mcp_config ? Object.keys(globalConfig.mcp_config) : [];
+        const mcpConfig = await this.getConfig();
+        const servers = mcpConfig?.servers ? Object.keys(mcpConfig.servers) : [];
 
         return {
             isInitialized: this.mcpClient !== null,
@@ -215,10 +299,10 @@ export class MCPMiddleware implements AgentMiddleware {
     }
 
     /**
-     * 执行单个 MCP 工具
+     * Execute a single MCP tool
      */
     private async executeTool(toolName: string, args: any): Promise<any> {
-        // 等待初始化完成
+        // Wait for initialization
         if (this.initializing && this.initializationPromise) {
             await this.initializationPromise;
         }
@@ -247,10 +331,10 @@ export class MCPMiddleware implements AgentMiddleware {
     }
 
     /**
-     * 创建工具
+     * Create middleware tools
      */
     private createTools(): void {
-        // load_mcp_tools 工具
+        // load_mcp_tools tool
         this.loadMcpToolsTool = tool(
             async () => {
                 const status = await this.getStatus();
@@ -271,23 +355,23 @@ export class MCPMiddleware implements AgentMiddleware {
             },
             {
                 name: 'load_mcp_tools',
-                description: `加载并查询所有可用的 MCP 工具列表。
+                description: `Load and query all available MCP tools.
 
-返回：
-- tools: MCP 工具列表，每个工具包含 name, description, schema
-- status: MCP 连接状态，包含 toolCount, servers 等
+Returns:
+- tools: List of MCP tools, each containing name, description, schema
+- status: MCP connection status, including toolCount, servers, etc.
 
-使用场景：
-- 查询当前有哪些 MCP 工具可用
-- 获取工具的参数格式
-- 检查 MCP 连接状态
+Use cases:
+- Query which MCP tools are available
+- Get tool parameter formats
+- Check MCP connection status
 
-重要：工具列表是动态的，建议在需要时调用此命令获取最新信息。`,
+Important: The tool list is dynamic. Call this command when needed to get the latest information.`,
                 schema: LoadMcpToolsSchema,
             },
         );
 
-        // execute_mcp_tool 工具
+        // execute_mcp_tool tool
         this.executeMcpToolTool = tool(
             async ({ commands }) => {
                 const results: Array<{ tool: string; result: any; error?: string }> = [];
@@ -317,52 +401,52 @@ export class MCPMiddleware implements AgentMiddleware {
             },
             {
                 name: 'execute_mcp_tool',
-                description: `执行一个或多个 MCP 工具。
+                description: `Execute one or more MCP tools.
 
-使用格式：
-- commands: MCP 工具数组，每个工具包含 name 和 args
+Usage format:
+- commands: Array of MCP tools, each containing name and args
 
-示例：
-- 执行单个工具: {commands: [{name: "filesystem.read_file", args: {path: "/path/to/file"}}]}
-- 执行多个工具: {commands: [{name: "tool1", args: {...}}, {name: "tool2", args: {...}}]}
+Examples:
+- Single tool: {commands: [{name: "filesystem.read_file", args: {path: "/path/to/file"}}]}
+- Multiple tools: {commands: [{name: "tool1", args: {...}}, {name: "tool2", args: {...}}]}
 
-重要：
-- 所有工具独立执行，失败不影响其他工具
-- 返回结果按命令顺序排列
-- 适合批量执行 MCP 相关操作`,
+Important:
+- All tools execute independently; failure of one does not affect others
+- Results are returned in command order
+- Suitable for batch execution of MCP-related operations`,
                 schema: ExecuteMcpToolSchema,
             },
         );
     }
 
     /**
-     * 获取 middleware 提供的工具
+     * Get middleware tools
      */
     get tools(): StructuredTool[] {
         return [this.loadMcpToolsTool, this.executeMcpToolTool];
     }
 
     /**
-     * 包装模型调用，注入系统提示词
+     * Wrap model call to inject system prompt
      */
     async wrapModelCall(request: any, handler: any): Promise<AIMessage> {
         const systemPromptAddon = `
 ## MCP Tools
 
-使用 MCP 工具需要两步：
+Using MCP tools requires two steps:
 
-1. **load_mcp_tools** - 查询可用的 MCP 工具
-   - 返回所有 MCP 工具的列表和参数格式
-   - 包含 MCP 连接状态
+1. **load_mcp_tools** - Query available MCP tools
+   - Returns list of all MCP tools and their parameter formats
+   - Includes MCP connection status
 
-2. **execute_mcp_tool** - 执行 MCP 工具
-   - 支持单个或多个工具批量执行
-   - 格式：{commands: [{name, args}, ...]}
+2. **execute_mcp_tool** - Execute MCP tools
+   - Supports single or multiple batch execution
+   - Format: {commands: [{name, args}, ...]}
 
-**重要**：
-- 标准工具（read_file, glob_files）直接调用，不需要通过 MCP 命令
-- MCP 工具需要先调用 load_mcp_tools 查询
-- 再调用 execute_mcp_tool 执行
+**Important**:
+- Standard tools (read_file, glob_files) are called directly, no MCP commands needed
+- MCP tools require first calling load_mcp_tools to query
+- Then call execute_mcp_tool to execute
 `;
 
         let newSystemPrompt: string;
@@ -379,4 +463,14 @@ export class MCPMiddleware implements AgentMiddleware {
 
         return await handler(modifiedRequest);
     }
+}
+
+/**
+ * Factory function to create MCP middleware
+ *
+ * @param options - Middleware configuration options
+ * @returns MCP middleware instance
+ */
+export function createMCPMiddleware(options: MCPMiddlewareOptions): MCPMiddleware {
+    return new MCPMiddleware(options);
 }

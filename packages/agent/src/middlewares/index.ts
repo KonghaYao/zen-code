@@ -5,4 +5,3 @@
  */
 
 export { MemoriesMiddleware } from './memories.js';
-export { MCPMiddleware } from './mcp.js';
