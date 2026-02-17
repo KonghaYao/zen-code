@@ -102,7 +102,7 @@ export class MCPMiddleware implements AgentMiddleware {
      */
     private async initialize(): Promise<void> {
         if (this.initializing) {
-            return this.initializationPromise;
+            return this.initializationPromise as Promise<void>;
         }
 
         this.initializing = true;

@@ -1,21 +1,43 @@
 ---
-name: 'vitest-complete-testing-guide'
-description: 'CodeGraph 项目 Vitest 测试完整指南：涵盖 monorepo 基础设施、断言模式选择、包级测试配置、常见修复模式和覆盖率优化。适用于 TypeScript monorepo 项目的测试体系搭建、调试和维护。'
-tags: ['vitest', 'testing', 'monorepo', 'assertions', 'debug', 'coverage', 'react-hooks', 'happy-dom']
+name: 'testing-bugfixes'
+description:
+    '测试指南与Bug修复记录：包含 Vitest 完整测试体系（monorepo
+    基础设施、断言模式选择、包级测试配置、常见修复模式）以及项目关键 Bug 修复记录（sum 命令参数传递、setup-wizard
+    配置验证）。'
+tags:
+    [
+        'vitest',
+        'testing',
+        'monorepo',
+        'assertions',
+        'debug',
+        'coverage',
+        'react-hooks',
+        'happy-dom',
+        'bug-fix',
+        'command-system',
+        'parameter-passing',
+        'setup-wizard',
+        'configuration',
+        'validation',
+    ]
 category: 'configuration'
 created: '2025-01-13'
-last_updated: '2025-01-26'
+last_updated: '2026-02-17'
 priority: 'high'
 context_scope: 'project'
 ---
 
-# Vitest 完整测试指南
+# 测试指南与 Bug 修复记录
 
-## 背景
+## 第一部分：Vitest 完整测试指南
 
-为 CodeGraph monorepo 项目建立完整的测试体系。项目包含多个包（@codegraph/config、@codegraph/agent、@codegraph/union-client）和应用（zen-code）。
+### 概述
 
-## 技术选型
+为 CodeGraph
+monorepo 项目建立完整的测试体系。项目包含多个包（@codegraph/config、@codegraph/agent、@codegraph/union-client）和应用（zen-code）。
+
+### 技术选型
 
 **核心工具**：
 
@@ -175,7 +197,7 @@ expect(result).toContain('- World');
 // ✅ 内容存在性断言（稳定）
 expect(result).toContain('Line 2');
 expect(result).toContain('World');
-expect(result.some(r => r.content.includes('Line 2'))).toBe(true);
+expect(result.some((r) => r.content.includes('Line 2'))).toBe(true);
 ```
 
 **适用场景**：第三方库输出格式不确定或实现细节可能变化
@@ -188,7 +210,8 @@ expect(result.some(r => r.content.includes('Line 2'))).toBe(true);
 
 ```typescript
 // ❌ 真值检查（无法区分空字符串和不存在）
-if (message.thinking) { }
+if (message.thinking) {
+}
 
 // ✅ 存在性检查
 if ('thinking' in message) {
@@ -413,22 +436,22 @@ ERROR: Unexpected "\x00" at line 270
 
 ### Phase 2: 包级测试
 
-| 包 | 测试数 | 覆盖率 |
-|---|--------|--------|
-| agent | 99 | 86.93% |
-| config | 88 | 92.56% |
-| union-client | 43 | 97.5% |
+| 包           | 测试数 | 覆盖率 |
+| ------------ | ------ | ------ |
+| agent        | 99     | 86.93% |
+| config       | 88     | 92.56% |
+| union-client | 43     | 97.5%  |
 
 **总计：230 个测试全部通过**
 
 ### Phase 3: Zen Code 工具类
 
-| 测试文件 | 测试数 | 状态 |
-|---|---|---|
-| keypress.test.ts | 30 | ✓ |
-| notify.test.ts | 8 | ✓ |
-| tasks.test.ts | 16 | ✓ |
-| diffUtils.test.ts | 24 | ✓ |
+| 测试文件          | 测试数 | 状态 |
+| ----------------- | ------ | ---- |
+| keypress.test.ts  | 30     | ✓    |
+| notify.test.ts    | 8      | ✓    |
+| tasks.test.ts     | 16     | ✓    |
+| diffUtils.test.ts | 24     | ✓    |
 
 **总计：78/78 测试通过**
 
@@ -477,10 +500,277 @@ pnpm add -D -w @vitest/coverage-v8
 
 ---
 
-## 适用场景
+## 第二部分：Bug 修复记录
+
+---
+
+## Bug #1: /sum 命令参数传递问题
+
+### 背景
+
+用户报告 `/sum` 指令坏了，无法触发智能记忆提取功能。
+
+### 问题根因
+
+在 `zen-code/src/chat/context/CommandHandler.tsx` 中，命令上下文的 `sendMessage` 函数实现有 bug：
+
+```typescript
+sendMessage(messages) {
+    return sendMessage(messages, {
+        extraParams,
+        metadata: metadataOfChat,
+    });
+}
+```
+
+当 `summarizeCommand` 调用 `context.sendMessage([], { extraParams: summarizeExtraParams })` 时：
+
+- `summarizeExtraParams` 包含 `{ switch_command: 'smart_memory' }`
+- 但 CommandHandler 中的实现总是使用固定的 `extraParams`（来自 `useSettings`）
+- 导致 `switch_command` 无法传递到后端
+
+### 解决方案
+
+修改 CommandHandler 中的命令上下文构建，让 `sendMessage` 函数能够合并调用者传入的 options：
+
+```typescript
+sendMessage(messages, options = {}) {
+    return sendMessage(messages, {
+        extraParams: { ...extraParams, ...options.extraParams },
+        ...options,
+        metadata: metadataOfChat,
+    });
+}
+```
+
+关键修改：
+
+1. 使用展开运算符合并 extraParams：`{ ...extraParams, ...options.extraParams }`
+2. 传递其他 options：`...options`
+
+这样调用者传入的 `extraParams` 就会覆盖默认值，而不是被忽略。
+
+### 适用场景
+
+- 命令系统需要传递额外参数到后端
+- 需要在默认参数和调用参数之间进行合并的场景
+- 所有使用 `switch_command` 机制的命令（如 `/sum`、`/agent` 等）
+
+### 相关文件
+
+- `zen-code/src/chat/context/CommandHandler.tsx:89-97`：命令上下文中的 sendMessage 实现
+- `zen-code/src/chat/commands/extended.ts:428-475`：summarizeCommand 定义
+- `packages/agent/src/graphBuilder.ts:20-30`：graph 中的 smart_memory 分支处理
+
+---
+
+## Bug #2: Setup Wizard 配置验证
+
+### 背景
+
+用户需要在应用启动时自动检查配置状态，确保：
+
+1. 配置文件存在
+2. Provider 配置有效
+3. 当前 provider_id 指向存在的 provider
+4. 当前 provider 已配置 API Key
+
+如果检查失败，自动进入配置模式引导用户完成设置。
+
+### 解决方案
+
+#### 1. 配置验证工具
+
+**文件**: `zen-code/src/chat/utils/configValidation.ts`
+
+```typescript
+export function validateConfig(config: AppConfig | null): { needsSetup: boolean; reason?: string } {
+    if (!config) {
+        return { needsSetup: true, reason: '未找到配置文件' };
+    }
+
+    if (!config.providers || config.providers.length === 0) {
+        return { needsSetup: true, reason: '未配置任何 Provider' };
+    }
+
+    const currentProvider = config.providers.find(p.id === config.provider_id);
+    if (!currentProvider) {
+        return { needsSetup: true, reason: `Provider "${config.provider_id}" 不存在` };
+    }
+
+    if (!currentProvider.apiKey) {
+        return { needsSetup: true, reason: `Provider "${config.provider_id}" 未配置 API Key` };
+    }
+
+    return { needsSetup: false };
+}
+```
+
+#### 2. SetupWizard 组件
+
+**文件**: `zen-code/src/chat/components/SetupWizard.tsx`
+
+三步配置流程：
+
+**Step 1 - 欢迎页**：显示配置问题原因，按 Enter 继续
+
+**Step 2 - Provider 配置**：
+
+- 列表显示所有 providers
+- `n` 新增、`e/Enter` 编辑
+- `s` 下一步（需要至少一个 provider 配置了 API Key）
+- 集成 ProviderForm 组件
+
+**Step 3 - Model 选择**：
+
+- 从 Provider API 获取可用模型
+- 上下键导航，Enter/Space 确认
+- Esc/B 返回上一步
+- 集成 ModelPanel 组件
+
+关键实现：
+
+```typescript
+const [step, setStep] = useState<0 | 1 | 2>(0);
+const [config, setConfig] = useState(initialConfig);
+
+// Step 2: Provider 选择
+if (step === 1) {
+    return (
+        <ProviderPanel
+            config={config}
+            onSelect={(provider) => {
+                setConfig({ ...config, provider_id: provider.id });
+            }}
+            onNext={() => setStep(2)}
+        />
+    );
+}
+
+// Step 3: Model 选择
+if (step === 2) {
+    return (
+        <ModelPanel
+            providerId={config.provider_id}
+            onSelect={(modelId) => {
+                setConfig({ ...config, model_id });
+                onComplete(config);
+            }}
+        />
+    );
+}
+```
+
+#### 3. Chat.tsx 集成
+
+**启动检查逻辑**：
+
+```typescript
+const { needsSetup, reason } = validateConfig(config);
+
+if (needsSetup && !showSetupWizard) {
+    setShowSetupWizard(true);
+}
+
+if (showSetupWizard) {
+    return <SetupWizard onComplete={(newConfig) => {
+        updateConfig(newConfig);
+        setShowSetupWizard(false);
+    }} reason={reason} />;
+}
+```
+
+### 适用场景
+
+- 需要引导式配置的 TUI 应用
+- 需要在启动时验证配置状态
+- 需要分步骤配置流程的场景
+
+### 相关文件
+
+- `zen-code/src/chat/utils/configValidation.ts` - 配置验证工具
+- `zen-code/src/chat/components/SetupWizard.tsx` - Setup Wizard 组件
+- `zen-code/src/chat/Chat.tsx` - 启动检查集成
+
+---
+
+## 适用场景总结
+
+### 测试相关
 
 - TypeScript monorepo 项目测试体系搭建
 - Vitest 测试开发和调试
 - React hooks 和组件测试
 - LangGraph 应用测试
 - 测试覆盖率优化
+
+### Bug 修复相关
+
+- 命令系统参数传递问题
+- 配置验证和引导流程
+- 参数合并和默认值覆盖场景
+
+---
+
+## 快速参考
+
+### 测试命令
+
+```bash
+# 运行所有测试
+pnpm test
+
+# 运行指定包的测试（必须从包目录）
+cd packages/agent && vitest run
+
+# 覆盖率报告
+pnpm test:coverage
+
+# UI 模式
+pnpm test:ui
+```
+
+### 常用断言模式
+
+```typescript
+// 对象比较 - 宽松匹配
+expect(result).toMatchObject({ name: 'test' });
+
+// 字段存在性检查
+if ('field' in obj) {
+    /* ... */
+}
+
+// 内容存在性断言（第三方库输出）
+expect(result.some((r) => r.content.includes('text'))).toBe(true);
+```
+
+### 常见修复模式
+
+```typescript
+// 参数合并
+extraParams: { ...extraParams, ...options.extraParams }
+
+// 配置验证
+if (!config || !config.providers || !config.providers.length) {
+    return { needsSetup: true };
+}
+```
+
+---
+
+## 相关文件
+
+### 测试基础设施
+
+- `vitest.workspace.ts` - 工作区配置
+- `packages/config/vitest.config.ts` - Config 包测试配置
+- `packages/agent/vitest.config.ts` - Agent 包测试配置
+- `packages/union-client/vitest.config.ts` - Union Client 包测试配置
+- `zen-code/vitest.config.ts` - Zen Code 应用测试配置
+
+### Bug 修复
+
+- `zen-code/src/chat/context/CommandHandler.tsx` - 命令处理器
+- `zen-code/src/chat/utils/configValidation.ts` - 配置验证工具
+- `zen-code/src/chat/components/SetupWizard.tsx` - Setup Wizard 组件
