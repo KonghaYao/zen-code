@@ -126,7 +126,7 @@ function _parseSkillMetadata(skillMdPath: string, source: 'user' | 'project'): S
         const content = readFileSync(skillMdPath, 'utf-8');
 
         // Match YAML frontmatter between --- delimiters
-        const frontmatterPattern = /^---\s*\n(.*?)\n---\s*\n/s;
+        const frontmatterPattern = /^---\s*\n([\s\S]*?)\n---\s*\n/;
         const match = content.match(frontmatterPattern);
 
         if (!match) {

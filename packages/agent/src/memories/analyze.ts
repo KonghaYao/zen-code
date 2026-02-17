@@ -3,6 +3,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
 import path from 'path';
+import yaml from 'yaml';
 import { cleanPath } from '../utils/cleanPath';
 import { createAgent, toolStrategy } from 'langchain';
 
@@ -313,15 +314,21 @@ async function saveMemories(memory: MemoryCandidate): Promise<string> {
             ? memory.content.substring(0, Math.min(firstLineEnd, 100))
             : memory.content.substring(0, Math.min(100, memory.content.length));
 
+    // 构建 frontmatter 对象
+    const frontmatter = {
+        name: memory.name,
+        description: memory.description,
+        tags: memory.tags,
+        category: memory.category,
+        created: memory.created,
+        last_updated: memory.last_updated,
+        priority: memory.priority,
+        context_scope: memory.context_scope,
+    };
+
+    const frontmatterYaml = yaml.stringify(frontmatter).trim();
     const memoryMdContent = `---
-name: "${memory.name}"
-description: "${memory.description}"
-tags: [${memory.tags.map((t) => `"${t}"`).join(', ')}]
-category: "${memory.category}"
-created: "${memory.created}"
-last_updated: "${memory.last_updated}"
-priority: "${memory.priority}"
-context_scope: "${memory.context_scope}"
+${frontmatterYaml}
 ---
 
 # ${title}

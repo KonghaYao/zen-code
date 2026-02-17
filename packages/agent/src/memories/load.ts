@@ -90,7 +90,7 @@ function _parseMemoryMetadata(memoryMdPath: string, source: 'user' | 'project'):
         }
 
         const content = readFileSync(memoryMdPath, 'utf-8');
-        const frontmatterPattern = /^---\s*\n(.*?)\n---\s*\n/s;
+        const frontmatterPattern = /^---\s*\n([\s\S]*?)\n---\s*\n/;
         const match = content.match(frontmatterPattern);
 
         if (!match) {
