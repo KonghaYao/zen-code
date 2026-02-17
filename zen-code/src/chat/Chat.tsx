@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Text, useFocusManager } from 'ink';
+import { Box, useFocusManager } from 'ink';
 import { MessagesBox } from './components/MessageBox';
 import { CompactMessagesBox } from './components/CompactMessagesBox';
 import HistoryPanel from './components/HistoryPanel';
@@ -30,6 +30,8 @@ import { get_allowed_models } from '@codegraph/agent/src/utils/get_allowed_model
 import { configStore } from './store';
 import { TaskNode } from '@codegraph/config';
 import { metadataOfChat } from '../utils/metadata';
+import SetupWizard from './components/SetupWizard';
+import { validateConfig } from './utils/configValidation';
 
 interface ChatMessagesProps {}
 
@@ -154,14 +156,32 @@ const ChatInput: React.FC<ChatInputProps> = ({
 };
 
 const Chat: React.FC = () => {
-    const { extraParams, toggleCompactMode } = useSettings();
+    const { extraParams, toggleCompactMode, config } = useSettings();
     const { setTools, createNewChat, loading, stopGeneration, currentChatId, sendMessage } = useChat();
     const { bufferedMessage, clearBuffer } = useChatInputBuffer();
+
+    // 配置验证状态
+    const [configValidation, setConfigValidation] = useState<ReturnType<typeof validateConfig> | null>(null);
+    const [showSetupWizard, setShowSetupWizard] = useState(false);
+
     // 初始化工具
     useEffect(() => {
         console.clear();
         setTools(DefaultTools);
     }, []);
+
+    // 检查配置是否有效
+    useEffect(() => {
+        if (config) {
+            const validation = validateConfig(config);
+            setConfigValidation(validation);
+            if (validation.needsSetup) {
+                setShowSetupWizard(true);
+            } else {
+                setShowSetupWizard(false);
+            }
+        }
+    }, [config]);
 
     // loading 结束时自动发送缓冲区消息
     useEffect(() => {
@@ -307,6 +327,21 @@ const Chat: React.FC = () => {
         [sendMessage, extraParams, closePanel],
     );
     const { hasPendingInteractions } = useInteractionContext();
+
+    // 完成配置向导的回调
+    const handleSetupComplete = useCallback(() => {
+        setShowSetupWizard(false);
+        focusManager.focus('global-input');
+    }, [focusManager]);
+
+    // 如果需要显示配置向导
+    if (showSetupWizard && configValidation) {
+        return (
+            <Box flexDirection="column" width="100%">
+                <SetupWizard validation={configValidation} onComplete={handleSetupComplete} />
+            </Box>
+        );
+    }
 
     return (
         <Box flexDirection="column" width="100%">

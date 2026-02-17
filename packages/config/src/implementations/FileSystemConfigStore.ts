@@ -14,7 +14,7 @@ const defaultData: Data = {
     config: {
         provider_id: 'default',
         provider_type: 'openai',
-        model_id: 'gpt-5.2',
+        model_id: 'glm-5',
         providers: [
             {
                 id: 'default',
@@ -23,6 +23,7 @@ const defaultData: Data = {
                 baseUrl: 'https://api.openai.com/v1',
             },
         ],
+        compact_mode: true,
     },
 };
 
