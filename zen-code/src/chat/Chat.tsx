@@ -356,6 +356,11 @@ const ChatWrapper: React.FC = () => {
             }}
             fetch={LangGraphFetch as any}
             autoRestoreLastSession
+            historyFilter={{
+                metadata: {
+                    path: process.cwd(),
+                },
+            }}
         >
             <TanStackQueryProvider>
                 <ChatInputBufferProvider>

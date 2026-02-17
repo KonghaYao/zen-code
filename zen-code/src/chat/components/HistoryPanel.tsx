@@ -5,12 +5,12 @@
  * 自动设置 metadata 过滤器为当前工作目录
  */
 
-import React, { useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Box, Text } from 'ink';
 import { UniversalPanel } from 'ink-pro';
 import { PanelConfig } from 'ink-pro';
 import { useChat } from '@langgraph-js/sdk/react';
-import { useHistory } from '../hooks/useHistory';
+import { useHistory, HistoryFilter } from '../hooks/useHistory';
 import { metadataOfChat } from '../../utils/metadata';
 
 interface HistoryPanelProps {
@@ -18,17 +18,11 @@ interface HistoryPanelProps {
 }
 
 const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
-    const { currentChatId, toHistoryChat, createNewChat, refreshHistoryList, setHistoryFilter, historyFilter } =
-        useChat();
-    useEffect(() => {
-        const filter = { metadata: { path: process.cwd() } };
-        setHistoryFilter(filter);
-        // 设置 filter 后立即刷新历史记录
-        refreshHistoryList();
-    }, [setHistoryFilter, refreshHistoryList]);
+    const { currentChatId, toHistoryChat, createNewChat, refreshHistoryList, historyFilter } = useChat();
 
-    // 使用 TanStack Query 获取历史记录，historyFilter 已在 hook 内部从 useChat 读取
-    const { data: historyList = [] } = useHistory();
+    // 使用 TanStack Query 获取历史记录，filter 整合到 useHistory 中
+    const filter: HistoryFilter = useMemo(() => ({ metadata: { path: process.cwd() } }), []);
+    const { data: historyList = [], refetch } = useHistory(filter);
 
     // 存储 refreshHistoryList 引用用于 keyMap
     const refreshHistoryListRef = useRef(refreshHistoryList);
@@ -70,7 +64,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
             return (
                 <Box key={thread.thread_id}>
                     <Text bold color={isSelected ? 'cyan' : statusInfo.color}>
-                        {index + 1}. {thread.thread_id.substring(0, 8)}...
+                        {index + 1}. {thread.thread_id.slice(-8)}
                     </Text>
                     <Box flexGrow={1} />
                     <Text dimColor>{updatedTime}</Text>
@@ -108,22 +102,15 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
             return current ? (
                 <Text color="gray" dimColor>
                     当前: <Text color="green">{current.thread_id.substring(0, 8)}</Text>
-                    <Text>{historyFilter.metadata?.path}</Text>
+                    <Text>{historyFilter?.metadata?.path}</Text>
                 </Text>
             ) : null;
         },
-        [currentChatId],
+        [currentChatId, historyFilter],
     );
 
     // keyMap - 使用 useMemo 缓存
-    const keyMap = useMemo(
-        () => ({
-            r: async () => {
-                await refreshHistoryListRef.current();
-            },
-        }),
-        [],
-    );
+    const keyMap = useMemo(() => ({}), []);
 
     // panelConfig - 使用 useMemo 缓存
     const panelConfig: PanelConfig = useMemo(
@@ -165,5 +152,4 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
 
     return <UniversalPanel config={panelConfig} onClose={onClose} />;
 };
-
 export default HistoryPanel;

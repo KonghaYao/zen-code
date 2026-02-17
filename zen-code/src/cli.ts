@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+
+import { initDatabaseUri } from './utils';
+
 const args = process.argv.slice(2);
 
 async function main() {
@@ -9,8 +12,9 @@ async function main() {
         args.splice(yoloIndex, 1); // 移除 --yolo 参数
     }
 
+    initDatabaseUri('~/.zen-code/data/sessions.db');
     if (args[0] === 'init') {
-        import('./zen-init');
+        console.log('Please zen-code and use /m to configure models');
     } else if (args[0] === 'keyboard') {
         import('./zen-keyboard');
     } else if (args[0] === '-p' || args[0] === '--prompt') {
@@ -64,7 +68,7 @@ async function detectStdin() {
     });
 }
 
-main().catch(error => {
+main().catch((error) => {
     console.error('❌ 执行失败:', error);
     process.exit(1);
 });
