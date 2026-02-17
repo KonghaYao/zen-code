@@ -10,7 +10,8 @@ import {
 } from '../tools/filesystem_tools/index.js';
 import { todo_write_tool } from '../tools/task_tools/index.js';
 import { ask_user_questions_tool } from '../tools/ask_user_questions.js';
-import { AgentPackage, fromLangChainTool } from '@langgraph-js/standard-agent';
+import { AgentPackage, ToolImplementation } from '@langgraph-js/standard-agent';
+import { z } from 'zod';
 
 // All available tools
 const ALL_TOOLS = [
@@ -31,13 +32,27 @@ async function registerLangChainTool(pkg: AgentPackage, tool: Tool) {
         name: tool.name,
         description: tool.description,
     });
-    pkg.tools.registerImplementation(
-        fromLangChainTool(tool.invoke.bind(tool), {
-            name: tool.name,
-            description: tool.description,
-            schema: tool.schema as any,
-        }),
-    );
+
+    // Create a ToolImplementation that wraps the LangChain tool
+    // We need to handle the difference between LangChain's invoke() and ToolImplementation's execute()
+    const toolImpl: ToolImplementation<any, any> = {
+        id: tool.name,
+        name: tool.name,
+        description: tool.description,
+        paramsSchema: tool.schema as any,
+        execute: async (params) => {
+            // Call the tool's invoke method directly
+            // The params should already match the schema
+            const result = await tool.invoke(params);
+            // Handle ToolMessage return type - extract content
+            if (result && typeof result === 'object' && 'content' in result) {
+                return (result as any).content;
+            }
+            return result;
+        },
+    };
+
+    pkg.tools.registerImplementation(toolImpl);
 }
 
 /**

@@ -88,17 +88,27 @@ export async function createStandardAgentV2(
         if (!toolImpl.name || !params) {
             continue;
         }
-        tools.push(
-            tool(
-                toolImpl.execute,
-                /** @ts-ignore */
-                {
-                    name: toolImpl.name,
-                    description: toolImpl.description,
-                    schema: toolImpl.paramsSchema?.toJSONSchema() || toolImpl.paramsSchema,
-                },
-            ) as any as DynamicStructuredTool,
+
+        // Directly use the ToolImplementation's execute function
+        // Wrap it to handle ToolMessage return type
+        const langChainTool = tool(
+            async (input) => {
+                // Call ToolImplementation.execute with validated params
+                const result = await toolImpl.execute(input);
+                // Handle ToolMessage return type - extract content
+                if (result && typeof result === 'object' && 'content' in result) {
+                    return (result as any).content;
+                }
+                return result;
+            },
+            {
+                name: toolImpl.name,
+                description: toolImpl.description,
+                schema: toolImpl.paramsSchema as any,
+            },
         );
+
+        tools.push(langChainTool as any as DynamicStructuredTool);
     }
 
     // Build middleware chain
