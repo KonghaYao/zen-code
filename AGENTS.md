@@ -222,10 +222,15 @@ YOLO_MODE=true              # Disable HITL (dangerous)
 
 - `add_memory_tool` - Store new memory
 - `query_memory_tool` - Search existing memories
+- `/memory-clear` - Organize and clean up memories (merge, remove outdated, improve structure)
 
 **Analysis**: `packages/agent/src/memories/analyze.ts`
 
 **Memory Format**: Directory with `MEMORY.md` (YAML frontmatter + Markdown content)
+
+**Frontmatter Fields**: name, description, tags, category, created, last_updated, priority, context_scope
+
+**Categories**: architecture, workflow, configuration, bug-fix, optimization
 
 **Memory Organization** (Compressed into 3 core files):
 

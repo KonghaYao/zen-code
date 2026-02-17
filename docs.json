@@ -1,0 +1,122 @@
+{
+    "$schema": "./schema.json",
+    "theme": {
+        "name": "opener",
+        "logo": {
+            "light": "./logo.webp",
+            "dark": "./logo.webp",
+            "page": "docs/user-guide/getting-started"
+        },
+        "favicon": "./logo.webp",
+        "icons": {
+            "library": [
+                {
+                    "name": "lucide",
+                    "default": true
+                }
+            ]
+        },
+        "appearance": {},
+        "head": [],
+        "fonts": {
+            "body": {
+                "family": "Roboto"
+            }
+        }
+    },
+    "integrations": {
+        "editLink": {
+            "baseUrl": "https://github.com/KonghaYao/zen-code/edit/master",
+            "title": "Edit page",
+            "icon": "docs:github"
+        },
+        "search": {
+            "orama": true
+        },
+        ".apps": {
+            "githubStar": {
+                "title": "Star",
+                "label": "Show your support! Star us on GitHub ⭐️",
+                "href": "https://github.com/KonghaYao/zen-code",
+                "dataIcon": "octicon-star",
+                "dataSize": "large",
+                "dataShowCount": true,
+                "ariaLabel": "Star pure-graph on GitHub"
+            }
+        }
+    },
+    "seo": {
+        "domain": "https://zen-code.agent-aura.top"
+    },
+    "navigation": {
+        "anchors": {
+            "header": [
+                {
+                    "title": "Examples",
+                    "href": "https://github.com/KonghaYao/zen-code"
+                },
+                {
+                    "title": "Feedback",
+                    "href": "https://github.com/KonghaYao/zen-code/discussions",
+                    "button": "primary"
+                },
+                {
+                    "title": "Github",
+                    "href": "https://github.com/KonghaYao/zen-code",
+                    "icon": "docs:github"
+                }
+            ],
+            "sidebar": {
+                "bottom": [
+                    {
+                        "href": "https://github.com/KonghaYao/zen-code",
+                        "icon": "docs:github",
+                        "title": "GitHub"
+                    }
+                ]
+            }
+        },
+        "tabs": [
+            {
+                "title": "User Guide",
+                "page": "docs/user-guide/getting-started",
+                "icon": "book"
+            }
+        ],
+        "sidebar": [
+            {
+                "route": "docs",
+                "pages": [
+                    {
+                        "group": "快速开始",
+                        "pages": ["docs/user-guide/getting-started"]
+                    },
+                    {
+                        "group": "功能指南",
+                        "pages": [
+                            "docs/user-guide/how-to-change-model",
+                            "docs/user-guide/how-to-manage-memory",
+                            "docs/user-guide/how-to-use-history",
+                            "docs/user-guide/how-to-use-plan-mode",
+                            "docs/user-guide/how-to-use-mcp"
+                        ]
+                    },
+                    {
+                        "group": "进阶功能",
+                        "pages": [
+                            "docs/user-guide/configuration",
+                            "docs/user-guide/skills",
+                            "docs/user-guide/shortcuts"
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "redirects": [
+        {
+            "source": "index",
+            "destination": "docs/user-guide/getting-started"
+        }
+    ]
+}
