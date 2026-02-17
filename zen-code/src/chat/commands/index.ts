@@ -23,6 +23,9 @@ import { mcpPanelCommand } from './mcpCommand';
 // NEW: Import Settings panel command
 import { settingsCommand } from './settingsCommand';
 
+// NEW: Import Memory-clear command
+import { memoryCommands } from './memoryClearCommand';
+
 // 注册内置命令
 [
     ...builtinCommands,
@@ -31,6 +34,7 @@ import { settingsCommand } from './settingsCommand';
     ...interviewCommands,
     ...planCommands,
     ...createAgentMdCommands,
+    ...memoryCommands,
     compactCommand,
     mcpPanelCommand,
     settingsCommand,

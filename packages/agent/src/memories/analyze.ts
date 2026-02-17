@@ -99,15 +99,35 @@ export const smart_memory_prompt = `你是一个负责分析对话并提取关�
 
 **评分 < 6 分**：设置 name 为 "no-memory-{timestamp}"，content 为 "无重要信息"
 
-## 记忆命名建议
+## 记忆命名规范（强制执行）
 
-- 使用 kebab-case 格式（小写、连字符分隔）
-- 从核心主题中提取 2-4 个关键词
+**格式要求**：
+- **仅包含小写字母、数字和单个连字符（-）**
+- **不能包含空格、下划线、中文或其他特殊字符**
+- **不能以连字符开头或结尾**
+- **不能有连续的连字符**
+
+**正确示例**：
+- \`memory-system-design\`
+- \`langchain-structured-output\`
+- \`tui-panel-implementation\`
+
+**错误示例**：
+- \`Memory_System\` ❌（大写、下划线）
+- \`zen-code-user-guide\` ❌（中文）
+- \`memory--system\` ❌（连续连字符）
+- \`-memory-system\` ❌（以连字符开头）
+- \`memory system\` ❌（包含空格）
+
+**命名建议**：
+- 从核心主题中提取 2-4 个英文关键词
+- 使用具体的技术术语
 - 示例：
-  - "langchain-structured-output-single-object-pattern"
+  - "langchain-structured-output-single-object"
   - "memory-system-design"
   - "middleware-execution-order"
-- 避免通用名称：使用具体的技术术语而非 "fix-bug" 或 "optimization"
+  - "tui-panel-system"
+- 避免通用名称：不使用 "fix-bug" 或 "optimization"
 
 ## 内容提取模板
 
@@ -289,6 +309,19 @@ function generateMemoryName(content: string, index: number): string {
 }
 
 /**
+ * 规范化记忆名称，确保符合 kebab-case 格式
+ * 规则：仅包含小写字母、数字和单个连字符（-）
+ */
+function normalizeMemoryName(name: string): string {
+    return name
+        .toLowerCase() // 转小写
+        .trim() // 移除首尾空格和换行符
+        .replace(/[^a-z0-9]+/g, '-') // 非字母数字字符转为连字符（包括中文、空格、标点等）
+        .replace(/-+/g, '-') // 多个连字符合并为一个
+        .replace(/^-|-$/g, ''); // 移除首尾连字符
+}
+
+/**
  * 保存记忆片段到文件
  */
 async function saveMemories(memory: MemoryCandidate): Promise<string> {
@@ -302,8 +335,13 @@ async function saveMemories(memory: MemoryCandidate): Promise<string> {
     await fs.mkdir(memoriesDir, { recursive: true });
 
     // 使用模型返回的字段，如果没有提供则生成兜底值
-    const memoryName = memory.name || generateMemoryName(memory.content, 0);
-    const memoryDir = path.join(memoriesDir, memoryName);
+    // 规范化名称，确保符合 kebab-case 格式
+    const memoryName = normalizeMemoryName(memory.name || generateMemoryName(memory.content, 0));
+
+    // 如果规范化后名称为空，使用兜底名称
+    const finalMemoryName = memoryName || generateMemoryName(memory.content, 0);
+
+    const memoryDir = path.join(memoriesDir, finalMemoryName);
 
     await fs.mkdir(memoryDir, { recursive: true });
 
@@ -316,8 +354,8 @@ async function saveMemories(memory: MemoryCandidate): Promise<string> {
 
     // 构建 frontmatter 对象
     const frontmatter = {
-        name: memory.name,
-        description: memory.description,
+        name: finalMemoryName,
+        description: memory.description.replace(/\n/g, ' '),
         tags: memory.tags,
         category: memory.category,
         created: memory.created,
@@ -326,7 +364,12 @@ async function saveMemories(memory: MemoryCandidate): Promise<string> {
         context_scope: memory.context_scope,
     };
 
-    const frontmatterYaml = yaml.stringify(frontmatter).trim();
+    // 使用 yaml.stringify 格式化，自动处理特殊字符的转义
+    const frontmatterYaml = yaml.stringify(frontmatter, {
+        indent: 2,
+        lineWidth: 0, // 不折行，避免意外换行
+    });
+
     const memoryMdContent = `---
 ${frontmatterYaml}
 ---
