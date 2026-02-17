@@ -34,7 +34,7 @@
         "@langchain/openai": "^1.2.2",
         "@langgraph-js/auk": "^1.0.0",
         "@langgraph-js/pro": "^2.2.0",
-        "@langgraph-js/pure-graph": "^3.1.2",
+        "@langgraph-js/pure-graph": "^3.2.0",
         "@langgraph-js/sdk": "^4.6.3",
         "eventemitter3": "^5.0.1",
         "execa": "^9.6.1",

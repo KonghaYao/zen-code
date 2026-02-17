@@ -20,7 +20,7 @@ After getting answers:
 1. Summarize user's requirements
 2. Output a document about this task
 3. ask user question to improve
-
+4. output your plan to standard way it store in this project
 ---
 
 User's original message:

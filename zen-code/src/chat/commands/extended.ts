@@ -111,7 +111,7 @@ ${template.description}`,
 export const configCommand: CommandDefinition = {
     name: 'config',
     description: '查看或设置配置项',
-    aliases: ['cfg', 'set'],
+    aliases: ['cfg'],
     usage: '/config [key] [value]',
     execute: async (args: string[], context) => {
         // 无参数：显示所有配置
