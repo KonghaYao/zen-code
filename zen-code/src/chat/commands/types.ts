@@ -48,6 +48,8 @@ export interface CommandContext {
     switchToAgent?: () => void;
     /** 切换到任务看板面板 */
     switchToTask?: () => void;
+    /** 切换到 MCP 配置面板 */
+    switchToMcp?: () => void;
     /** 关闭面板返回聊天 */
     closePanel?: () => void;
     /** 启动 Ralph 循环模式 */

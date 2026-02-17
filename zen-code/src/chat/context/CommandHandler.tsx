@@ -25,6 +25,7 @@ interface CommandHandlerProps {
     /** 切换到 Agent 面板 */
     switchToAgent?: () => void;
     switchToTask?: () => void;
+    switchToMcp?: () => void;
     /** 关闭面板返回聊天 */
     closePanel?: () => void;
     startRalphLoop: (text: string) => void;
@@ -58,6 +59,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
         switchToAgent,
         closePanel,
         switchToTask,
+        switchToMcp,
     } = props;
 
     // 从 useChat 获取所有需要的状态和函数
@@ -107,6 +109,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
                     switchToSettings,
                     switchToAgent,
                     switchToTask,
+                    switchToMcp,
                     closePanel,
                     startRalphLoop: props.startRalphLoop,
                 };
@@ -161,6 +164,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
             switchToSettings,
             switchToAgent,
             switchToTask,
+            switchToMcp,
             closePanel,
             props.startRalphLoop,
         ],

@@ -17,6 +17,9 @@ import { createAgentMdCommands } from './createAgentMdCommand';
 // NEW: Import compact mode command
 import { compactCommand } from './compactCommand';
 
+// NEW: Import MCP panel command
+import { mcpPanelCommand } from './mcpCommand';
+
 // 注册内置命令
 [
     ...builtinCommands,
@@ -26,6 +29,7 @@ import { compactCommand } from './compactCommand';
     ...planCommands,
     ...createAgentMdCommands,
     compactCommand,
+    mcpPanelCommand,
 ].forEach((command) => {
     commandRegistry.register(command);
 });

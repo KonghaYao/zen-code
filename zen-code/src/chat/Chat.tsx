@@ -17,6 +17,7 @@ import { notify } from '../utils/notify';
 import KnowledgePanel from './components/KnowledgePanel';
 import SettingsPanel from './components/SettingsPanel';
 import AgentPanel from './components/AgentPanel';
+import McpPanel from './components/McpPanel';
 import StatusBar from './components/StatusBar';
 import { useInput } from 'ink-pro';
 import { ApprovalProvider } from '@codegraph/union-client';
@@ -59,6 +60,7 @@ interface ChatInputProps {
     switchToSettings?: () => void;
     switchToAgent?: () => void;
     switchToTask?: () => void;
+    switchToMcp?: () => void;
     closePanel?: () => void;
 }
 
@@ -68,6 +70,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     switchToSettings,
     switchToAgent,
     switchToTask,
+    switchToMcp,
     closePanel,
 }) => {
     const { userInput, setUserInput, sendMessage, loading, renderMessages } = useChat();
@@ -96,6 +99,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         switchToSettings,
         switchToAgent,
         switchToTask,
+        switchToMcp,
         closePanel,
         startRalphLoop,
     });
@@ -207,9 +211,9 @@ const Chat: React.FC = () => {
     }, [loading]);
 
     const focusManager = useFocusManager();
-    const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge' | 'settings' | 'agent' | 'task'>(
-        'chat',
-    );
+    const [activeView, setActiveView] = useState<
+        'chat' | 'history' | 'knowledge' | 'settings' | 'agent' | 'task' | 'mcp'
+    >('chat');
 
     // Global Ctrl+C exit handler and Ctrl+O expand handler
     // Disable when panel is open to avoid duplicate input handling
@@ -247,6 +251,10 @@ const Chat: React.FC = () => {
 
     const switchToTask = useCallback(() => {
         setActiveView('task');
+    }, []);
+
+    const switchToMcp = useCallback(() => {
+        setActiveView('mcp');
     }, []);
 
     const closePanel = useCallback(() => {
@@ -361,6 +369,7 @@ const Chat: React.FC = () => {
                                 switchToSettings={switchToSettings}
                                 switchToAgent={switchToAgent}
                                 switchToTask={switchToTask}
+                                switchToMcp={switchToMcp}
                                 closePanel={closePanel}
                             />
                         )}
@@ -371,6 +380,7 @@ const Chat: React.FC = () => {
                 {activeView === 'settings' && <SettingsPanel onClose={closePanel} />}
                 {activeView === 'agent' && <AgentPanel onClose={closePanel} />}
                 {activeView === 'task' && <TaskPanel onClose={closePanel} onExecuteTask={handleExecuteTask} />}
+                {activeView === 'mcp' && <McpPanel onClose={closePanel} />}
             </Box>
             <StatusBar />
         </Box>

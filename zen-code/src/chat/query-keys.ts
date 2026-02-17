@@ -67,6 +67,12 @@ export const queryKeys = {
         list: () => ['agents', 'list'] as const,
         detail: (id: string) => ['agents', 'detail', id] as const,
     },
+
+    // ========== MCP ==========
+    mcp: {
+        all: ['mcp'] as const,
+        config: () => ['mcp', 'config'] as const,
+    },
 } as const;
 
 /**

@@ -53,11 +53,20 @@ import { MultiServerMCPClient } from '@langchain/mcp-adapters';
 
 /**
  * MCP Server Configuration
+ *
+ * Supports two modes:
+ * - stdio: command-based (local processes)
+ * - SSE: Server-Sent Events (HTTP-based)
  */
 export interface MCPServerConfig {
-    command: string;
-    args: string[];
+    // stdio mode fields
+    command?: string;
+    args?: string[];
     env?: Record<string, string>;
+
+    // SSE mode fields
+    url?: string;
+    headers?: Record<string, string>;
 }
 
 /**
@@ -214,8 +223,15 @@ export class MCPMiddleware implements AgentMiddleware {
                     mcpServers: mcpConfig.servers,
                 });
 
-                // Pre-load tool list
-                await this.refreshAll();
+                // Initialize connections and pre-load tools
+                try {
+                    await this.mcpClient.initializeConnections();
+                    this.cacheTools = await this.mcpClient.getTools();
+                } catch (error) {
+                    console.warn('MCP server connection failed:', error);
+                    this.cacheTools = [];
+                }
+                this.lastRefresh = Date.now();
             } finally {
                 this.initializing = false;
             }
@@ -241,28 +257,12 @@ export class MCPMiddleware implements AgentMiddleware {
             return [];
         }
 
-        // Get tool list from client
-        const tools = await this.mcpClient.getTools();
-        this.cacheTools = tools;
-        return tools;
-    }
-
-    /**
-     * Refresh all servers
-     */
-    private async refreshAll(): Promise<void> {
-        // Close old connection
-        if (this.mcpClient) {
-            try {
-                await this.mcpClient.close();
-            } catch (error) {
-                console.warn('Failed to close MCP client:', error);
-            }
+        // Return cached tools or fetch from client
+        if (this.cacheTools.length === 0) {
+            this.cacheTools = await this.mcpClient.getTools();
         }
 
-        // Re-initialize
-        await this.initialize();
-        this.lastRefresh = Date.now();
+        return this.cacheTools;
     }
 
     /**

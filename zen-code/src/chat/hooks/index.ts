@@ -13,6 +13,9 @@
 // Config hooks
 export * from './useConfig';
 
+// MCP hooks
+export * from './useMcpConfig';
+
 // Skills hooks
 export * from './useSkills';
 
