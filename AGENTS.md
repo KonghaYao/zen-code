@@ -369,11 +369,11 @@ export async function createStandardAgent(config: AgentConfig, state, runtime) {
 
 **Available Middleware**:
 
+- `MCPMiddleware` - Unified MCP server connection and tool execution (provides `load_mcp_tools` and `execute_mcp_tool`)
 - `SubAgentsMiddleware` - Task delegation to specialized sub-agents
 - `MemoriesMiddleware` - Progressive disclosure from `.claude/memories/`
 - `SkillsMiddleware` - Progressive disclosure from `.claude/skills/`
 - `AgentsMdMiddleware` - AGENTS.md loader for project guidelines
-- `CommandSystemMiddleware` - Batch command execution + tool listing
 - `HumanInTheLoop` - User approval for sensitive operations
 - `AnthropicCacheMiddleware` - Prompt caching (Anthropic only)
 

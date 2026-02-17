@@ -9,7 +9,7 @@ import { initChatModel } from '../utils/initChatModel.js';
 import { AgentMiddleware, createAgent, DynamicStructuredTool, Runtime, tool } from 'langchain';
 import { CodeAnnotation, CodeState, CodeStateType } from '../state.js';
 import { anthropicPromptCachingMiddleware } from '@langgraph-js/standard-agent';
-import { CommandSystemMiddleware } from '../middlewares/commandSystem.js';
+import { MCPMiddleware } from '../middlewares/mcp.js';
 import { getEnvInfo } from '../prompts/coding.js';
 import { AgentPackage } from '@langgraph-js/standard-agent';
 import { humanInTheLoopMiddleware } from '@langgraph-js/auk';
@@ -123,9 +123,9 @@ export async function createStandardAgentV2(
         middleware.push(await subagentsImpl!.execute(params.customParams || {}));
     }
 
-    // Command System middleware (always enabled for MCP tool discovery and execution)
-    const commandSystem = new CommandSystemMiddleware();
-    middleware.push(commandSystem);
+    // MCP middleware (always enabled for MCP tool discovery and execution)
+    const mcpMiddleware = new MCPMiddleware();
+    middleware.push(mcpMiddleware);
 
     // Human-in-the-loop middleware
     const interruptOn = {

@@ -5,4 +5,4 @@
  */
 
 export { MemoriesMiddleware } from './memories.js';
-export { CommandSystemMiddleware } from './commandSystem.js';
+export { MCPMiddleware } from './mcp.js';
