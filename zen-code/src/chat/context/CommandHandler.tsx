@@ -86,9 +86,10 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
                 const commandContext: CommandContext = {
                     userInput: commandInput,
                     setUserInput,
-                    sendMessage(messages) {
+                    sendMessage(messages, options = {}) {
                         return sendMessage(messages, {
-                            extraParams,
+                            extraParams: { ...extraParams, ...options.extraParams },
+                            ...options,
                             metadata: metadataOfChat,
                         });
                     },
