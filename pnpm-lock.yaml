@@ -307,6 +307,9 @@ importers:
             '@langchain/langgraph':
                 specifier: ^1.1.0
                 version: 1.1.0(@langchain/core@1.1.15(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5)))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(zod-to-json-schema@3.25.1(zod@4.3.5))(zod@4.3.5)
+            '@langchain/mcp-adapters':
+                specifier: ^1.1.1
+                version: 1.1.1(@cfworker/json-schema@4.1.1)(@langchain/core@1.1.15(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5)))(@langchain/langgraph@1.1.0(@langchain/core@1.1.15(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5)))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(zod-to-json-schema@3.25.1(zod@4.3.5))(zod@4.3.5))(hono@4.11.4)
             '@langchain/openai':
                 specifier: 1.1.3
                 version: 1.1.3(@langchain/core@1.1.15(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5)))(ws@8.19.0)
@@ -319,6 +322,9 @@ importers:
             chalk:
                 specifier: ^5.6.2
                 version: 5.6.2
+            diff-match-patch:
+                specifier: ^1.0.5
+                version: 1.0.5
             execa:
                 specifier: ^9.6.1
                 version: 9.6.1
@@ -328,6 +334,15 @@ importers:
             fs-extra:
                 specifier: ^11.3.3
                 version: 11.3.3
+            kysely:
+                specifier: ^0.28.11
+                version: 0.28.11
+            kysely-bun-worker:
+                specifier: ^1.2.1
+                version: 1.2.1(bun-types@1.3.6)(kysely@0.28.11)
+            kysely-wasm:
+                specifier: ^1.2.1
+                version: 1.2.1(kysely@0.28.11)
             langchain:
                 specifier: 1.1.1
                 version: 1.1.1(@langchain/core@1.1.15(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5)))(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(zod-to-json-schema@3.25.1(zod@4.3.5))
@@ -383,9 +398,6 @@ importers:
             '@inkjs/ui':
                 specifier: ^2.0.0
                 version: 2.0.0(ink@6.6.0(@types/react@19.2.8)(react-devtools-core@6.1.5)(react@19.2.3))
-            '@langchain/mcp-adapters':
-                specifier: ^1.1.1
-                version: 1.1.1(@cfworker/json-schema@4.1.1)(@langchain/core@1.1.15(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5)))(@langchain/langgraph@1.1.0(@langchain/core@1.1.15(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5)))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(zod-to-json-schema@3.25.1(zod@4.3.5))(zod@4.3.5))(hono@4.11.4)
             '@langgraph-js/sdk':
                 specifier: ^4.6.3
                 version: 4.6.3(@langchain/core@1.1.15(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5)))(@nanostores/react@1.0.0(nanostores@1.1.0)(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -419,12 +431,6 @@ importers:
             '@vitejs/plugin-react':
                 specifier: ^5.1.2
                 version: 5.1.2(vite@7.3.1(@types/node@25.0.9)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
-            comlink:
-                specifier: ^4.4.2
-                version: 4.4.2
-            diff-match-patch:
-                specifier: ^1.0.5
-                version: 1.0.5
             happy-dom:
                 specifier: ^20.3.9
                 version: 20.3.9
@@ -443,9 +449,6 @@ importers:
             ink-syntax-highlight:
                 specifier: ^2.0.2
                 version: 2.0.2(ink@6.6.0(@types/react@19.2.8)(react-devtools-core@6.1.5)(react@19.2.3))(react@19.2.3)
-            ink-text-input:
-                specifier: ^6.0.0
-                version: 6.0.0(ink@6.6.0(@types/react@19.2.8)(react-devtools-core@6.1.5)(react@19.2.3))(react@19.2.3)
             react:
                 specifier: ^19.2.3
                 version: 19.2.3
@@ -4143,12 +4146,6 @@ packages:
                 integrity: sha512-IfEDxwoWIjkeXL1eXcDiow4UbKjhLdq6/EuSVR9GMN7KVH3r9gQ83e73hsz1Nd1T3ijd5xv1wcWRYO+D6kCI2w==,
             }
 
-    comlink@4.4.2:
-        resolution:
-            {
-                integrity: sha512-OxGdvBmJuNKSCMO4NTl1L47VRp6xn2wG4F/2hYzB6tiCb709otOxtEYCSvK80PtjODfXXZu8ds+Nw5kVCjqd2g==,
-            }
-
     comma-separated-tokens@2.0.3:
         resolution:
             {
@@ -5496,16 +5493,6 @@ packages:
             ink: ^5.1.0
             react: ^19.2.3
 
-    ink-text-input@6.0.0:
-        resolution:
-            {
-                integrity: sha512-Fw64n7Yha5deb1rHY137zHTAbSTNelUKuB5Kkk2HACXEtwIHBCf9OH2tP/LQ9fRYTl1F0dZgbW0zPnZk6FA9Lw==,
-            }
-        engines: { node: '>=18' }
-        peerDependencies:
-            ink: '>=5'
-            react: ^19.2.3
-
     ink@6.6.0:
         resolution:
             {
@@ -5854,10 +5841,10 @@ packages:
         peerDependencies:
             kysely: '>=0.26'
 
-    kysely@0.28.10:
+    kysely@0.28.11:
         resolution:
             {
-                integrity: sha512-ksNxfzIW77OcZ+QWSAPC7yDqUSaIVwkTWnTPNiIy//vifNbwsSgQ57OkkncHxxpcBHM3LRfLAZVEh7kjq5twVA==,
+                integrity: sha512-zpGIFg0HuoC893rIjYX1BETkVWdDnzTzF5e0kWXJFg5lE0k1/LfNWBejrcnOFu8Q2Rfq/hTDTU7XLUM8QOrpzg==,
             }
         engines: { node: '>=20.0.0' }
 
@@ -9557,7 +9544,7 @@ snapshots:
             '@langgraph-js/pro': 2.2.0(@opentelemetry/api@1.9.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(ws@8.19.0)(zod-to-json-schema@3.25.1(zod@4.3.5))
             camelcase-keys: 10.0.1
             eventemitter3: 5.0.1
-            kysely: 0.28.10
+            kysely: 0.28.11
             langchain: 1.1.1(@langchain/core@1.1.15(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5)))(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(zod-to-json-schema@3.25.1(zod@4.3.5))
             uuid: 13.0.0
             zod: 4.3.5
@@ -9567,8 +9554,8 @@ snapshots:
             '@langchain/langgraph-checkpoint-postgres': 1.0.0(@langchain/core@1.1.15(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5)))(@langchain/langgraph-checkpoint@1.0.0(@langchain/core@1.1.15(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5))))
             '@langchain/langgraph-checkpoint-redis': 1.0.1(@langchain/core@1.1.15(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5)))(@langchain/langgraph-checkpoint@1.0.0(@langchain/core@1.1.15(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5))))
             hono: 4.11.4
-            kysely-bun-worker: 1.2.1(bun-types@1.3.6)(kysely@0.28.10)
-            kysely-wasm: 1.2.1(kysely@0.28.10)
+            kysely-bun-worker: 1.2.1(bun-types@1.3.6)(kysely@0.28.11)
+            kysely-wasm: 1.2.1(kysely@0.28.11)
             node-sqlite3-wasm: 0.8.53
             pg: 8.17.1
             redis: 5.10.0
@@ -10890,7 +10877,7 @@ snapshots:
             sirv: 3.0.2
             tinyglobby: 0.2.15
             tinyrainbow: 3.0.3
-            vitest: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@20.19.30)(@vitest/ui@4.0.18)(happy-dom@20.3.9)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
+            vitest: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@25.0.9)(@vitest/ui@4.0.18)(happy-dom@20.3.9)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
 
     '@vitest/utils@4.0.18':
         dependencies:
@@ -11321,8 +11308,6 @@ snapshots:
     color-name@1.1.4: {}
 
     colorette@2.0.20: {}
-
-    comlink@4.4.2: {}
 
     comma-separated-tokens@2.0.3: {}
 
@@ -12208,13 +12193,6 @@ snapshots:
             ink: 6.6.0(@types/react@19.2.8)(react-devtools-core@6.1.5)(react@19.2.3)
             react: 19.2.3
 
-    ink-text-input@6.0.0(ink@6.6.0(@types/react@19.2.8)(react-devtools-core@6.1.5)(react@19.2.3))(react@19.2.3):
-        dependencies:
-            chalk: 5.6.2
-            ink: 6.6.0(@types/react@19.2.8)(react-devtools-core@6.1.5)(react@19.2.3)
-            react: 19.2.3
-            type-fest: 4.41.0
-
     ink@6.6.0(@types/react@19.2.8)(react-devtools-core@6.1.5)(react@19.2.3):
         dependencies:
             '@alcalzone/ansi-tokenize': 0.2.3
@@ -12377,25 +12355,22 @@ snapshots:
 
     khroma@2.1.0: {}
 
-    kysely-bun-worker@1.2.1(bun-types@1.3.6)(kysely@0.28.10):
+    kysely-bun-worker@1.2.1(bun-types@1.3.6)(kysely@0.28.11):
         dependencies:
             bun-types: 1.3.6
-            kysely: 0.28.10
-            kysely-generic-sqlite: 1.2.1(kysely@0.28.10)
-        optional: true
+            kysely: 0.28.11
+            kysely-generic-sqlite: 1.2.1(kysely@0.28.11)
 
-    kysely-generic-sqlite@1.2.1(kysely@0.28.10):
+    kysely-generic-sqlite@1.2.1(kysely@0.28.11):
         dependencies:
-            kysely: 0.28.10
-        optional: true
+            kysely: 0.28.11
 
-    kysely-wasm@1.2.1(kysely@0.28.10):
+    kysely-wasm@1.2.1(kysely@0.28.11):
         dependencies:
-            kysely: 0.28.10
-            kysely-generic-sqlite: 1.2.1(kysely@0.28.10)
-        optional: true
+            kysely: 0.28.11
+            kysely-generic-sqlite: 1.2.1(kysely@0.28.11)
 
-    kysely@0.28.10: {}
+    kysely@0.28.11: {}
 
     langchain@1.1.1(@langchain/core@1.1.15(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5)))(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(zod-to-json-schema@3.25.1(zod@4.3.5)):
         dependencies:

@@ -163,6 +163,7 @@ export async function createStandardAgentV2(
         model,
         systemPrompt,
         tools,
+        /** @ts-ignore */
         stateSchema: CodeAnnotation,
         middleware,
     });

@@ -1,6 +1,6 @@
 import { registerGraph } from '@langgraph-js/pure-graph';
 import { graph } from './graphBuilder.js';
-import { handleRequest } from '@langgraph-js/pure-graph/dist/adapter/fetch';
+import { handleRequest } from '@langgraph-js/pure-graph/dist/adapter/fetch/index.js';
 import { downloadRipGrep } from './utils/ripgrep.js';
 
 await downloadRipGrep();

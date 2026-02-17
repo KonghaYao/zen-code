@@ -68,7 +68,6 @@ export function checkDbSize(dbPath: string, maxSize?: number): void {
 export function initDatabaseUri(inputPath: string): string {
     const dbPath = initDbPath(inputPath);
     process.env.SQLITE_DATABASE_URI = dbPath;
-
     // 检查文件大小（如果文件已存在）
     checkDbSize(dbPath);
 
