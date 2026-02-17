@@ -23,7 +23,7 @@ import { queryKeys } from '../query-keys';
 export interface ModelConfig {
     id: string;
     name: string;
-    provider: 'openai' | 'anthropic';
+    provider: 'openai' | 'anthropic' | 'gemini';
 }
 
 interface SettingsContextType {

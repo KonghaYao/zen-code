@@ -20,8 +20,10 @@ interface CommandHandlerProps {
     switchToHistory?: () => void;
     /** 切换到知识库面板 */
     switchToKnowledge?: () => void;
-    /** 切换到 Settings 面板（包含 Model 和 Provider 配置） */
+    /** 切换到 Settings 面板（通用设置） */
     switchToSettings?: () => void;
+    /** 切换到 Model/Provider 配置面板 */
+    switchToModelProvider?: () => void;
     /** 切换到 Agent 面板 */
     switchToAgent?: () => void;
     switchToTask?: () => void;
@@ -59,6 +61,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
         switchToAgent,
         closePanel,
         switchToTask,
+        switchToModelProvider,
         switchToMcp,
     } = props;
 
@@ -107,6 +110,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
                     switchToHistory,
                     switchToKnowledge,
                     switchToSettings,
+                    switchToModelProvider,
                     switchToAgent,
                     switchToTask,
                     switchToMcp,
@@ -162,6 +166,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
             switchToHistory,
             switchToKnowledge,
             switchToSettings,
+            switchToModelProvider,
             switchToAgent,
             switchToTask,
             switchToMcp,

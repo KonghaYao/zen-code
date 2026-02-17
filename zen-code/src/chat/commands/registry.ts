@@ -119,9 +119,28 @@ export class CommandRegistry {
         const query = input.slice(1).toLowerCase();
         const suggestions: CommandSuggestion[] = [];
 
-        // 如果只输入了 /，显示前5个常用命令
+        // 如果只输入了 /，显示常用命令（分类展示）
         if (query === '') {
-            const popularCommands = ['model', 'agent', 'history', 'knowledge', 'summarize', 'new', 'help'];
+            // 按类别组织的常用命令
+            const popularCommands = [
+                // 对话管理
+                'new',
+                'history',
+                'task',
+                // 面板切换
+                'agent',
+                'model',
+                'settings',
+                'mcp',
+                'knowledge',
+                // 功能命令
+                'summarize',
+                'template',
+                'plan',
+                'interview',
+                // 帮助
+                'help',
+            ];
             for (const commandName of popularCommands) {
                 const command = this.commands.get(commandName);
                 if (command) {
@@ -132,7 +151,7 @@ export class CommandRegistry {
                     });
                 }
             }
-            return suggestions.slice(0, 5);
+            return suggestions.slice(0, 10); // 显示更多命令
         }
 
         // 定义常用命令优先级

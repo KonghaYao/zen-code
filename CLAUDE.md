@@ -167,7 +167,7 @@ YOLO_MODE=true              # Disable HITL (dangerous)
 **Locations**:
 
 - Project skills: `./.claude/skills/`
-- User skills: `~/.deepagents/code/skills/`
+- User skills: `~/.claude/code/skills/`
 
 **Format**: YAML frontmatter + Markdown
 

@@ -301,15 +301,9 @@ const McpPanel: React.FC<McpPanelProps> = ({ onClose }) => {
                     </Box>
                     <Box marginTop={1}>
                         <Text color="gray">建议检查:</Text>
-                        <Text color="gray" paddingLeft={2}>
-                            - 配置格式是否正确
-                        </Text>
-                        <Text color="gray" paddingLeft={2}>
-                            - 命令是否已安装（stdio 模式）
-                        </Text>
-                        <Text color="gray" paddingLeft={2}>
-                            - URL 是否可访问（SSE 模式）
-                        </Text>
+                        <Text color="gray">- 配置格式是否正确</Text>
+                        <Text color="gray">- 命令是否已安装（stdio 模式）</Text>
+                        <Text color="gray">- URL 是否可访问（SSE 模式）</Text>
                     </Box>
                     <Box marginTop={1}>
                         <Text color="gray" dimColor>

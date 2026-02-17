@@ -546,14 +546,14 @@ export const closePanelCommand: CommandDefinition = {
  */
 export const modelPanelCommand: CommandDefinition = {
     name: 'model',
-    description: '打开模型选择面板',
+    description: '打开模型/Provider配置面板',
     aliases: ['mp', 'm'],
     execute: async (args: string[], context) => {
-        if (context.switchToSettings) {
-            context.switchToSettings();
+        if (context.switchToModelProvider) {
+            context.switchToModelProvider();
             return {
                 success: true,
-                message: '已打开模型选择面板',
+                message: '已打开模型/Provider配置面板',
                 shouldClearInput: true,
             };
         }

@@ -136,7 +136,7 @@ export const smart_memory_prompt = `你是一个负责分析对话并提取关�
 示例：
 - \`agents/code/graph.ts:120-180\`：中间件链执行顺序
 - \`tui/src/chat/Chat.tsx\`：完整的面板切换回调实现
-- \`.deepagents/skills/web-research/SKILL.md\`：技能结构模板
+- \`.claude/skills/web-research/SKILL.md\`：技能结构模板
 
 ### 何时内联代码（仅限以下情况）
 1. **极短片段**（≤ 5 行）：用于说明关键概念

@@ -16,6 +16,7 @@ import { ChatInputBuffer } from './components/input/ChatInputBuffer';
 import { notify } from '../utils/notify';
 import KnowledgePanel from './components/KnowledgePanel';
 import SettingsPanel from './components/SettingsPanel';
+import ModelProviderPanel from './components/ModelProviderPanel';
 import AgentPanel from './components/AgentPanel';
 import McpPanel from './components/McpPanel';
 import StatusBar from './components/StatusBar';
@@ -58,6 +59,7 @@ interface ChatInputProps {
     switchToHistory?: () => void;
     switchToKnowledge?: () => void;
     switchToSettings?: () => void;
+    switchToModelProvider?: () => void;
     switchToAgent?: () => void;
     switchToTask?: () => void;
     switchToMcp?: () => void;
@@ -68,6 +70,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     switchToHistory,
     switchToKnowledge,
     switchToSettings,
+    switchToModelProvider,
     switchToAgent,
     switchToTask,
     switchToMcp,
@@ -97,6 +100,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         switchToHistory,
         switchToKnowledge,
         switchToSettings,
+        switchToModelProvider,
         switchToAgent,
         switchToTask,
         switchToMcp,
@@ -212,7 +216,7 @@ const Chat: React.FC = () => {
 
     const focusManager = useFocusManager();
     const [activeView, setActiveView] = useState<
-        'chat' | 'history' | 'knowledge' | 'settings' | 'agent' | 'task' | 'mcp'
+        'chat' | 'history' | 'knowledge' | 'settings' | 'model-provider' | 'agent' | 'task' | 'mcp'
     >('chat');
 
     // Global Ctrl+C exit handler and Ctrl+O expand handler
@@ -243,6 +247,10 @@ const Chat: React.FC = () => {
 
     const switchToSettings = useCallback(() => {
         setActiveView('settings');
+    }, []);
+
+    const switchToModelProvider = useCallback(() => {
+        setActiveView('model-provider');
     }, []);
 
     const switchToAgent = useCallback(() => {
@@ -367,6 +375,7 @@ const Chat: React.FC = () => {
                                 switchToHistory={switchToHistory}
                                 switchToKnowledge={switchToKnowledge}
                                 switchToSettings={switchToSettings}
+                                switchToModelProvider={switchToModelProvider}
                                 switchToAgent={switchToAgent}
                                 switchToTask={switchToTask}
                                 switchToMcp={switchToMcp}
@@ -378,6 +387,7 @@ const Chat: React.FC = () => {
                 {activeView === 'history' && <HistoryPanel onClose={closePanel} />}
                 {activeView === 'knowledge' && <KnowledgePanel onClose={closePanel} />}
                 {activeView === 'settings' && <SettingsPanel onClose={closePanel} />}
+                {activeView === 'model-provider' && <ModelProviderPanel onClose={closePanel} />}
                 {activeView === 'agent' && <AgentPanel onClose={closePanel} />}
                 {activeView === 'task' && <TaskPanel onClose={closePanel} onExecuteTask={handleExecuteTask} />}
                 {activeView === 'mcp' && <McpPanel onClose={closePanel} />}
