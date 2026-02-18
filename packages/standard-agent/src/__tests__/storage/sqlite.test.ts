@@ -1,0 +1,417 @@
+/**
+ * BunSqliteStorage Tests
+ */
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { BunSqliteStorage } from '../../storage/sqlite.js';
+
+// Simple ID generator for tests
+function randomId(prefix: string): string {
+    return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
+describe('BunSqliteStorage', () => {
+    let storage: BunSqliteStorage;
+
+    beforeEach(() => {
+        // Use in-memory database for tests
+        storage = new BunSqliteStorage(':memory:');
+    });
+
+    afterEach(async () => {
+        await storage.close();
+    });
+
+    describe('Lifecycle', () => {
+        it('should initialize and create tables', async () => {
+            await storage.initialize();
+
+            const models = await storage.getAllModels();
+            expect(models).toEqual([]);
+        });
+
+        it('should close connection', async () => {
+            await storage.initialize();
+            await storage.close();
+            // Connection closed successfully if no error thrown
+        });
+    });
+
+    describe('Models', () => {
+        it('should insert and retrieve model', async () => {
+            await storage.initialize();
+
+            const modelId = randomId('model');
+            const model = {
+                id: modelId,
+                model_name: 'gpt-4',
+                model_provider: 'openai',
+                stream_usage: true,
+                enable_thinking: false,
+                temperature: 0.7,
+                max_tokens: 4096,
+                top_p: 1.0,
+                frequency_penalty: 0.0,
+                presence_penalty: 0.0,
+            };
+
+            await storage.insertModel(model);
+            const retrieved = await storage.getModel(modelId);
+
+            expect(retrieved).toBeDefined();
+            expect(retrieved?.id).toBe(modelId);
+            expect(retrieved?.model_name).toBe('gpt-4');
+        });
+
+        it('should get all models', async () => {
+            await storage.initialize();
+
+            await storage.insertModel({
+                id: randomId('model'),
+                model_name: 'gpt-4',
+                model_provider: 'openai',
+                stream_usage: true,
+                enable_thinking: false,
+                temperature: 0.7,
+                max_tokens: 4096,
+                top_p: 1.0,
+                frequency_penalty: 0.0,
+                presence_penalty: 0.0,
+            });
+
+            await storage.insertModel({
+                id: randomId('model'),
+                model_name: 'claude-3',
+                model_provider: 'anthropic',
+                stream_usage: false,
+                enable_thinking: true,
+                temperature: 0.5,
+                max_tokens: 8192,
+                top_p: 0.9,
+                frequency_penalty: 0.1,
+                presence_penalty: 0.1,
+            });
+
+            const models = await storage.getAllModels();
+            expect(models).toHaveLength(2);
+        });
+
+        it('should update model', async () => {
+            await storage.initialize();
+
+            const modelId = randomId('model');
+            const model = {
+                id: modelId,
+                model_name: 'gpt-4',
+                model_provider: 'openai',
+                stream_usage: true,
+                enable_thinking: false,
+                temperature: 0.7,
+                max_tokens: 4096,
+                top_p: 1.0,
+                frequency_penalty: 0.0,
+                presence_penalty: 0.0,
+            };
+
+            await storage.insertModel(model);
+
+            await storage.updateModel({
+                ...model,
+                temperature: 0.9,
+            });
+
+            const retrieved = await storage.getModel(modelId);
+            expect(retrieved?.temperature).toBe(0.9);
+        });
+
+        it('should delete model', async () => {
+            await storage.initialize();
+
+            const modelId = randomId('model');
+            const model = {
+                id: modelId,
+                model_name: 'gpt-4',
+                model_provider: 'openai',
+                stream_usage: true,
+                enable_thinking: false,
+                temperature: 0.7,
+                max_tokens: 4096,
+                top_p: 1.0,
+                frequency_penalty: 0.0,
+                presence_penalty: 0.0,
+            };
+
+            await storage.insertModel(model);
+            await storage.deleteModel(modelId);
+
+            const retrieved = await storage.getModel(modelId);
+            expect(retrieved).toBeNull();
+        });
+
+        it('should prevent deleting model referenced by agent', async () => {
+            await storage.initialize();
+
+            const modelId = randomId('model');
+            const promptId = randomId('prompt');
+            const agentId = randomId('agent');
+
+            await storage.insertModel({
+                id: modelId,
+                model_name: 'gpt-4',
+                model_provider: 'openai',
+                stream_usage: true,
+                enable_thinking: false,
+                temperature: 0.7,
+                max_tokens: 4096,
+                top_p: 1.0,
+                frequency_penalty: 0.0,
+                presence_penalty: 0.0,
+            });
+
+            await storage.insertPrompt({
+                id: promptId,
+                name: 'system-prompt',
+                content: 'You are a helpful assistant',
+                metadata: null,
+            });
+
+            await storage.insertAgent({
+                id: agentId,
+                name: 'Test Agent',
+                description: 'Test description',
+                system_prompt: promptId,
+                model: modelId,
+                tools: {},
+                middleware: {},
+            });
+
+            await expect(storage.deleteModel(modelId)).rejects.toThrow();
+        });
+    });
+
+    describe('Prompts', () => {
+        it('should insert and retrieve prompt', async () => {
+            await storage.initialize();
+
+            const promptId = randomId('prompt');
+            const prompt = {
+                id: promptId,
+                name: 'system-prompt',
+                content: 'You are a helpful assistant',
+                metadata: null,
+            };
+
+            await storage.insertPrompt(prompt);
+            const retrieved = await storage.getPrompt(promptId);
+
+            expect(retrieved).toBeDefined();
+            expect(retrieved?.id).toBe(promptId);
+            expect(retrieved?.name).toBe('system-prompt');
+        });
+
+        it('should get prompt by name', async () => {
+            await storage.initialize();
+
+            const prompt = {
+                id: randomId('prompt'),
+                name: 'system-prompt',
+                content: 'You are a helpful assistant',
+                metadata: null,
+            };
+
+            await storage.insertPrompt(prompt);
+            const retrieved = await storage.getPromptByName('system-prompt');
+
+            expect(retrieved).toBeDefined();
+            expect(retrieved?.name).toBe('system-prompt');
+        });
+
+        it('should prevent duplicate prompt names', async () => {
+            await storage.initialize();
+
+            const prompt1 = {
+                id: randomId('prompt'),
+                name: 'system-prompt',
+                content: 'You are a helpful assistant',
+                metadata: null,
+            };
+
+            const prompt2 = {
+                id: randomId('prompt'),
+                name: 'system-prompt', // Same name
+                content: 'You are another assistant',
+                metadata: null,
+            };
+
+            await storage.insertPrompt(prompt1);
+
+            await expect(storage.insertPrompt(prompt2)).rejects.toThrow();
+        });
+    });
+
+    describe('Tools', () => {
+        it('should insert and retrieve tool', async () => {
+            await storage.initialize();
+
+            const toolId = randomId('tool');
+            const tool = {
+                id: toolId,
+                name: 'read-file',
+                description: 'Read a file from the filesystem',
+            };
+
+            await storage.insertTool(tool);
+            const retrieved = await storage.getTool(toolId);
+
+            expect(retrieved).toBeDefined();
+            expect(retrieved?.id).toBe(toolId);
+            expect(retrieved?.name).toBe('read-file');
+        });
+    });
+
+    describe('Middlewares', () => {
+        it('should insert and retrieve middleware', async () => {
+            await storage.initialize();
+
+            const middlewareId = randomId('middleware');
+            const middleware = {
+                id: middlewareId,
+                name: 'mcp-middleware',
+                description: 'MCP server integration',
+            };
+
+            await storage.insertMiddleware(middleware);
+            const retrieved = await storage.getMiddleware(middlewareId);
+
+            expect(retrieved).toBeDefined();
+            expect(retrieved?.id).toBe(middlewareId);
+            expect(retrieved?.name).toBe('mcp-middleware');
+        });
+    });
+
+    describe('Agents', () => {
+        beforeEach(async () => {
+            await storage.initialize();
+
+            // Setup dependencies
+            const modelId = randomId('model');
+            const promptId = randomId('prompt');
+            const toolId = randomId('tool');
+            const middlewareId = randomId('middleware');
+
+            await storage.insertModel({
+                id: modelId,
+                model_name: 'gpt-4',
+                model_provider: 'openai',
+                stream_usage: true,
+                enable_thinking: false,
+                temperature: 0.7,
+                max_tokens: 4096,
+                top_p: 1.0,
+                frequency_penalty: 0.0,
+                presence_penalty: 0.0,
+            });
+
+            await storage.insertPrompt({
+                id: promptId,
+                name: 'system-prompt',
+                content: 'You are a helpful assistant',
+                metadata: null,
+            });
+
+            await storage.insertTool({
+                id: toolId,
+                name: 'read-file',
+                description: 'Read a file from the filesystem',
+            });
+
+            await storage.insertMiddleware({
+                id: middlewareId,
+                name: 'mcp-middleware',
+                description: 'MCP server integration',
+            });
+        });
+
+        it('should insert and retrieve agent with tools and middlewares', async () => {
+            const modelId = (await storage.getAllModels())[0].id;
+            const promptId = (await storage.getAllPrompts())[0].id;
+            const toolId = (await storage.getAllTools())[0].id;
+            const middlewareId = (await storage.getAllMiddlewares())[0].id;
+
+            const agentId = randomId('agent');
+            const agent = {
+                id: agentId,
+                name: 'Test Agent',
+                description: 'Test description',
+                system_prompt: promptId,
+                model: modelId,
+                tools: { [toolId]: true },
+                middleware: { [middlewareId]: { priority: 1 } },
+            };
+
+            await storage.insertAgent(agent);
+            const retrieved = await storage.getAgent(agentId);
+
+            expect(retrieved).toBeDefined();
+            expect(retrieved?.id).toBe(agentId);
+            expect(retrieved?.tools[toolId]).toBe(true);
+            expect(retrieved?.middlewares[middlewareId]).toEqual({ priority: 1 });
+        });
+
+        it('should get agent with dependencies', async () => {
+            const modelId = (await storage.getAllModels())[0].id;
+            const promptId = (await storage.getAllPrompts())[0].id;
+            const toolId = (await storage.getAllTools())[0].id;
+            const middlewareId = (await storage.getAllMiddlewares())[0].id;
+
+            const agentId = randomId('agent');
+            const agent = {
+                id: agentId,
+                name: 'Test Agent',
+                description: 'Test description',
+                system_prompt: promptId,
+                model: modelId,
+                tools: { [toolId]: true },
+                middleware: { [middlewareId]: true },
+            };
+
+            await storage.insertAgent(agent);
+            const retrieved = await storage.getAgentWithDependencies(agentId);
+
+            expect(retrieved).toBeDefined();
+            expect(retrieved?.agent.id).toBe(agentId);
+            expect(retrieved?.model.id).toBe(modelId);
+            expect(retrieved?.systemPrompt.id).toBe(promptId);
+        });
+    });
+
+    describe('Transactions', () => {
+        it('should rollback on error', async () => {
+            await storage.initialize();
+
+            const modelId = randomId('model');
+            const model = {
+                id: modelId,
+                model_name: 'gpt-4',
+                model_provider: 'openai',
+                stream_usage: true,
+                enable_thinking: false,
+                temperature: 0.7,
+                max_tokens: 4096,
+                top_p: 1.0,
+                frequency_penalty: 0.0,
+                presence_penalty: 0.0,
+            };
+
+            await expect(
+                storage.transaction(() => {
+                    storage.insertModel(model);
+                    throw new Error('Rollback test');
+                }),
+            ).rejects.toThrow('Rollback test');
+
+            const models = await storage.getAllModels();
+            expect(models).toHaveLength(0);
+        });
+    });
+});
