@@ -6,17 +6,7 @@
 import { AgentState, createDefaultAnnotation, createState } from '@langgraph-js/pro';
 import { z } from 'zod';
 import { MessagesAnnotation } from '@langchain/langgraph';
-
-/**
- * 基础注解
- */
-export const SubAgentAnnotation = createState().build({
-    task_store: createDefaultAnnotation(() => ({})),
-});
-
-export const SubAgentStateSchema = z.object({
-    task_store: z.record(z.string(), z.any()).optional(),
-});
+import { SubAgentAnnotation, SubAgentStateSchema } from '@langgraph-js/standard-agent';
 
 /**
  * Code Agent 状态
@@ -33,7 +23,7 @@ export const CodeState = AgentState.extend(SubAgentStateSchema.shape).extend({
     thread_id: z.string().optional(),
 });
 
-export const CodeAnnotation = createState(MessagesAnnotation, SubAgentAnnotation).build({
+export const CodeAnnotation = createState(SubAgentAnnotation, MessagesAnnotation).build({
     provider_id: createDefaultAnnotation(() => 'openai'),
     provider_type: createDefaultAnnotation(() => 'openai'),
     model_id: createDefaultAnnotation(() => 'qwen-plus'),

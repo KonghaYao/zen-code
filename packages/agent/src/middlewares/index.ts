@@ -5,3 +5,4 @@
  */
 
 export { MemoriesMiddleware } from './memories.js';
+export { SubAgentsMiddleware, createSubAgentsMiddleware } from './subTasks.js';

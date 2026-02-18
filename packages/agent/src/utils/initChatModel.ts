@@ -46,9 +46,7 @@ export const initChatModel = async (modelId: string, options: InitChatModelOptio
             maxRetries: 1,
             streaming: true,
             streamUsage: true,
-
-            // Note: Gemini doesn't have native thinking support like Anthropic,
-            // but we can use extended thinking mode for supported models
+            thinkingConfig: {},
             metadata: options.metadata,
         });
     } else {
