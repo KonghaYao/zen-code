@@ -21,10 +21,13 @@ tags:
         'tanstack-query',
         'performance',
         'ink-pro',
+        'settings-panel',
+        'json-schema',
+        'form-rendering',
     ]
 category: 'architecture'
 created: '2025-01-17'
-last_updated: '2026-02-17'
+last_updated: '2025-02-17'
 priority: 'high'
 context_scope: 'project'
 ---
@@ -828,6 +831,72 @@ import { useSettings } from '../context/SettingsContext';
 
 ---
 
+## 八、Settings Panel (JSON Schema 驱动表单)
+
+### 背景
+
+需要一个通用 Settings 面板配置 compact_mode、enable_thinking、stream_refresh_interval 等通用项。
+
+### 架构决策
+
+**JSON Schema 驱动**：所有配置项在 schema.ts 中定义，面板根据 Schema 自动渲染表单。
+
+### 文件结构
+
+```
+zen-code/src/chat/components/settings/
+├── types.ts              # SettingField 等类型定义
+├── schema.ts             # SETTINGS_SCHEMA 配置项定义
+├── SettingField.tsx      # 字段组件 (Toggle/Number/Select/Input)
+├── SettingsForm.tsx      # 表单组件 (分组渲染 + 键盘导航)
+├── SettingsPanel.tsx     # 面板主组件
+└── index.ts              # 导出
+```
+
+### 核心实现
+
+**Schema 定义** (schema.ts):
+
+```typescript
+export interface SettingField {
+    key: keyof AppConfig;
+    label: string;
+    type: 'toggle' | 'select' | 'input' | 'number';
+    help?: string;
+    group: string;
+    tab?: string;
+    options?: Array<{ label: string; value: any }>;
+    min?: number;
+    max?: number;
+    step?: number;
+}
+
+export const SETTINGS_SCHEMA: SettingField[] = [
+    { key: 'compact_mode', label: '紧凑模式', type: 'toggle', group: '显示', help: '紧凑显示消息' },
+    { key: 'enable_thinking', label: '思考模式', type: 'toggle', group: '模型', help: '启用模型思考' },
+];
+```
+
+**统一交互** (SettingsForm.tsx):
+
+- ↑↓ 导航字段
+- ←→ 修改所有类型（Toggle 切换、Number 增减、Select 切换）
+- 仅聚焦时显示帮助文本
+
+### 与其他面板的关系
+
+| 面板               | 命令      | 职责                |
+| ------------------ | --------- | ------------------- |
+| ModelProviderPanel | /provider | Model/Provider 配置 |
+| McpPanel           | /mcp      | MCP 服务器配置      |
+| SettingsPanel      | /settings | 通用配置            |
+
+### 扩展方式
+
+添加新配置项只需在 schema.ts 中添加 SettingField，面板自动渲染。
+
+---
+
 ## 相关文件
 
 ### 多行文本输入
@@ -867,3 +936,9 @@ import { useSettings } from '../context/SettingsContext';
 - `packages/config/src/types/index.ts` - 类型定义
 - `packages/config/src/implementations/FileSystemConfigStore.ts` - 配置存储
 - `zen-code/src/chat/components/ProviderPanel.tsx` - Provider 配置面板
+
+### Settings Panel
+
+- `zen-code/src/chat/components/settings/types.ts` - 类型定义
+- `zen-code/src/chat/components/settings/schema.ts` - Schema 定义
+- `zen-code/src/chat/components/settings/SettingsPanel.tsx` - 面板主组件

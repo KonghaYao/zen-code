@@ -21,7 +21,7 @@ tags:
         'configuration',
         'validation',
     ]
-category: 'configuration'
+category: 'bug-fix'
 created: '2025-01-13'
 last_updated: '2026-02-17'
 priority: 'high'
@@ -275,7 +275,7 @@ vi.spyOn(os, 'homedir').mockReturnValue(path.join(baseDir, 'user-skills'));
 const mockHomeDir = path.join(tempBaseDir, 'home');
 const mockProjectDir = path.join(tempBaseDir, 'project');
 
-userSkillsDir = path.join(mockHomeDir, '.deepagents', 'code', 'skills');
+userSkillsDir = path.join(mockHomeDir, '.claude', 'code', 'skills');
 projectSkillsDir = path.join(mockProjectDir, '.claude', 'skills');
 
 vi.spyOn(os, 'homedir').mockReturnValue(mockHomeDir);
