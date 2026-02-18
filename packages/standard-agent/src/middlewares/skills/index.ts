@@ -99,7 +99,7 @@ export class SkillsMiddleware implements AgentMiddleware {
     tools = [];
 
     private skillsDir?: string;
-    private assistantId?: string;
+
     private projectSkillsDir?: string;
     private userSkillsDisplay?: string;
     private systemPromptTemplate: string;
@@ -107,22 +107,15 @@ export class SkillsMiddleware implements AgentMiddleware {
     /**
      * Initialize the skills middleware.
      *
-     * @param skillsDir - Path to the user-level skills directory (per-agent)
+     * @param skillsDir - Path to the user-level skills directory
      * @param assistantId - The agent identifier for path references in prompts
      * @param projectSkillsDir - Optional path to project-level skills directory
      */
     constructor(options: { skillsDir?: string; assistantId?: string; projectSkillsDir?: string } = {}) {
         this.skillsDir = options.skillsDir;
-        this.assistantId = options.assistantId;
         this.projectSkillsDir = options.projectSkillsDir || './.claude/skills';
-
-        if (this.skillsDir && !this.assistantId) {
-            console.warn('user skills directory is provided, but assistant id is not provided');
-        }
-        // Store display paths for prompts
-        if (this.assistantId) {
-            this.userSkillsDisplay = `~/.claude/${this.assistantId}/skills`;
-        }
+        // Format user skills display path: ~/.claude/skills/
+        this.userSkillsDisplay = this.skillsDir || '~/.claude/skills';
         this.systemPromptTemplate = SKILLS_SYSTEM_PROMPT;
     }
 

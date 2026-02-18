@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import os from 'os';
 import yaml from 'yaml';
@@ -14,23 +15,27 @@ export class FileSystemSkillStore implements ISkillStore {
 
     constructor() {
         const userHome = os.homedir();
-        this.skillsDir = path.join(userHome, '.claude', 'code', 'skills');
+        this.skillsDir = path.join(userHome, '.claude', 'skills');
         // 假设当前工作目录是项目根目录
         this.projectSkillsDir = path.join(process.cwd(), '.claude', 'skills');
     }
 
     async listSkills(): Promise<Skill[]> {
-        const skills: Skill[] = [];
+        const skillsMap = new Map<string, Skill>();
 
         // 列出用户 skills
         const userSkills = await this.listSkillsInDir(this.skillsDir);
-        skills.push(...userSkills);
+        for (const skill of userSkills) {
+            skillsMap.set(skill.name, skill);
+        }
 
-        // 列出项目 skills（优先级更高）
+        // 列出项目 skills（优先级更高，覆盖用户技能）
         const projectSkills = await this.listSkillsInDir(this.projectSkillsDir);
-        skills.push(...projectSkills);
+        for (const skill of projectSkills) {
+            skillsMap.set(skill.name, skill);
+        }
 
-        return skills;
+        return Array.from(skillsMap.values());
     }
 
     private async listSkillsInDir(dir: string): Promise<Skill[]> {
@@ -39,19 +44,46 @@ export class FileSystemSkillStore implements ISkillStore {
             const skills: Skill[] = [];
 
             for (const entry of entries) {
-                if (entry.isDirectory()) {
-                    const skillPath = path.join(dir, entry.name, 'SKILL.md');
-                    try {
-                        const content = await fs.readFile(skillPath, 'utf-8');
-                        const frontmatter = this.parseFrontmatter(content);
-                        skills.push({
-                            name: entry.name,
-                            description: frontmatter.description || '',
-                            path: skillPath,
-                        });
-                    } catch {
-                        // 跳过无效的 skill
+                const entryPath = path.join(dir, entry.name);
+
+                // Check if it's a symlink or directory
+                const lstat = await fs.lstat(entryPath).catch(() => null);
+                if (!lstat) continue;
+
+                // Follow symlinks using stat
+                const stat = await fs.stat(entryPath).catch(() => null);
+                if (!stat || !stat.isDirectory()) continue;
+
+                // For symlinks, validate the resolved target is safe
+                if (lstat.isSymbolicLink()) {
+                    const resolvedEntryPath = path.resolve(entryPath);
+                    const resolvedBase = path.resolve(dir);
+
+                    // Check if symlink is safe (within base dir or within user home)
+                    const relativePath = resolvedEntryPath.substring(resolvedBase.length);
+                    const isWithinBase =
+                        resolvedEntryPath === resolvedBase || relativePath.startsWith('/') || relativePath === '';
+
+                    if (!isWithinBase) {
+                        // For user skills, allow symlinks within home directory
+                        const userHome = os.homedir();
+                        if (!resolvedEntryPath.startsWith(userHome)) {
+                            continue; // Skip unsafe symlinks
+                        }
                     }
+                }
+
+                const skillPath = path.join(entryPath, 'SKILL.md');
+                try {
+                    const content = await fs.readFile(skillPath, 'utf-8');
+                    const frontmatter = this.parseFrontmatter(content);
+                    skills.push({
+                        name: entry.name,
+                        description: frontmatter.description || '',
+                        path: skillPath,
+                    });
+                } catch {
+                    // 跳过无效的 skill
                 }
             }
 

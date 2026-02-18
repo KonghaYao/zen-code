@@ -37,7 +37,14 @@ export async function createMiddlewareRegistry(pkg: AgentPackage) {
         name: 'skills',
         description: 'Progressive skills disclosure',
         execute: async (context: { skillsDir?: string; assistantId?: string; projectSkillsDir?: string }) => {
+            // Set default paths for skills directories
             context.projectSkillsDir = context.projectSkillsDir || './.claude/skills';
+            // User skills directory path: ~/.claude/skills/
+            if (!context.skillsDir) {
+                const os = await import('os');
+                const path = await import('path');
+                context.skillsDir = path.join(os.homedir(), '.claude', 'skills');
+            }
             const { SkillsMiddleware } = await import('@langgraph-js/standard-agent');
             return new SkillsMiddleware(context);
         },

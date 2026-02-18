@@ -52,6 +52,9 @@ export interface SkillMetadata {
  * The function resolves both paths to their canonical form (following symlinks)
  * and verifies that the target path is within the base directory.
  *
+ * For user skills directories (~/.claude/skills), we allow symlinks that point
+ * within the user's home directory to support shared skill libraries.
+ *
  * @param path - The path to validate
  * @param baseDir - The base directory that should contain the path
  * @returns True if the path is safely within baseDir, false otherwise
@@ -68,7 +71,22 @@ function _isSafePath(path: string, baseDir: string): boolean {
 
         // If the path starts with the base directory and the next character is path separator
         // or if they are exactly equal, it's safe
-        return resolvedPath === resolvedBase || relativePath.startsWith('/') || relativePath === '';
+        if (resolvedPath === resolvedBase || relativePath.startsWith('/') || relativePath === '') {
+            return true;
+        }
+
+        // For user skills directories, allow symlinks within the user's home directory
+        // This enables shared skill libraries via symlinks
+        if (baseDir.includes('/.claude/skills')) {
+            const os = require('os');
+            const homedir = os.homedir();
+            // Check if the resolved path is within the user's home directory
+            if (resolvedPath.startsWith(homedir)) {
+                return true;
+            }
+        }
+
+        return false;
     } catch (error) {
         // Error resolving paths (e.g., circular symlinks, too many levels)
         return false;
@@ -240,20 +258,27 @@ function _listSkills(skillsDir: string, source: 'user' | 'project'): SkillMetada
     for (const item of skillDirs) {
         const skillDir = join(skillsDir, item);
 
-        // Security: Catch symlinks pointing outside the skills directory
-        if (!_isSafePath(skillDir, resolvedBase)) {
-            continue;
-        }
-
+        // Use lstat to check if it's a symlink, stat to follow symlinks
+        let lstat;
         let stat;
         try {
-            stat = lstatSync(skillDir);
+            lstat = lstatSync(skillDir);
+            stat = statSync(skillDir); // Follow symlinks
         } catch (error) {
             continue;
         }
 
+        // Check if it's a directory (after following symlinks)
         if (!stat.isDirectory()) {
             continue;
+        }
+
+        // Security: For symlinks, validate the resolved target is safe
+        if (lstat.isSymbolicLink()) {
+            const resolvedSkillDir = resolve(skillDir);
+            if (!_isSafePath(resolvedSkillDir, resolvedBase)) {
+                continue;
+            }
         }
 
         // Look for SKILL.md file
@@ -263,9 +288,17 @@ function _listSkills(skillsDir: string, source: 'user' | 'project'): SkillMetada
         }
 
         // Security: Validate SKILL.md path is safe before reading
-        // This catches SKILL.md files that are symlinks pointing outside
-        if (!_isSafePath(skillMdPath, resolvedBase)) {
-            continue;
+        // For symlinks, validate the resolved target
+        const skillMdStat = lstatSync(skillMdPath);
+        if (skillMdStat.isSymbolicLink()) {
+            const resolvedMdPath = resolve(skillMdPath);
+            if (!_isSafePath(resolvedMdPath, resolvedBase)) {
+                continue;
+            }
+        } else {
+            if (!_isSafePath(skillMdPath, resolvedBase)) {
+                continue;
+            }
         }
 
         // Parse metadata
