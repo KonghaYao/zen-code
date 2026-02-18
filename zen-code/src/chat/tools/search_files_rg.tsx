@@ -4,7 +4,7 @@ import { Box, Text } from 'ink';
 import Link from '../components/Link';
 
 export const search_files_rg = createUITool({
-    name: 'search-files-rg',
+    name: 'search_files_rg',
     description: 'Ripgrep - fast text search tool',
     parameters: {},
     handler: ToolManager.waitForUIDone,

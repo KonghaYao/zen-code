@@ -503,6 +503,9 @@ importers:
             superjson:
                 specifier: ^2.2.6
                 version: 2.2.6
+            uuid:
+                specifier: ^13.0.0
+                version: 13.0.0
         devDependencies:
             typescript:
                 specifier: ^5.9.3

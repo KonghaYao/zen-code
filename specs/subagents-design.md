@@ -92,7 +92,7 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
             name: 'Finder Agent',
             description: '文件搜索专家，只读工具',
             systemPrompt: '你是文件搜索专家，专注于文件查找和只读分析。',
-            tools: ['glob_files', 'search-files-rg', 'read_file'],
+            tools: ['glob_files', 'search_files_rg', 'read_file'],
             middleware: {
                 agents_md: true,
                 skills: true,
@@ -122,7 +122,7 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
             name: 'Reviewer Agent',
             description: '代码审查专家，只读分析',
             systemPrompt: '你是代码审查专家，关注代码质量、规范、潜在 bug、性能优化建议。不直接修改代码。',
-            tools: ['glob_files', 'search-files-rg', 'read_file'],
+            tools: ['glob_files', 'search_files_rg', 'read_file'],
             middleware: {
                 agents_md: true,
                 skills: true,
