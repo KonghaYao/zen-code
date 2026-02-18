@@ -4,7 +4,7 @@
  * 使用 TanStack Query 优化配置更新
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Box, Spacer, Text, useInput } from 'ink';
 import { useSettings } from '../context/SettingsContext';
 import type { ProviderConfig } from '@codegraph/config';
@@ -19,28 +19,45 @@ const ProviderPanel: React.FC<ProviderPanelProps> = ({ onClose }) => {
 
     // 视图状态: 'list' | 'form'
     const [view, setView] = useState<'list' | 'form'>('list');
-    const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
     const [editingProvider, setEditingProvider] = useState<ProviderConfig | null>(null);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [message, setMessage] = useState<string | null>(null);
 
+    // 使用 ref 稳定状态引用
+    const viewRef = useRef(view);
+    const selectedIndexRef = useRef(selectedIndex);
+    const providersRef = useRef<ProviderConfig[]>([]);
+    const isAddModeRef = useRef(true); // true = add, false = edit
+
+    // 同步 ref
+    useEffect(() => {
+        viewRef.current = view;
+    }, [view]);
+
+    useEffect(() => {
+        selectedIndexRef.current = selectedIndex;
+    }, [selectedIndex]);
+
     // Providers 列表（直接从 config 获取）
     const providers = config?.providers || [];
 
-    // 当前选中的 Provider
-    const selectedProvider = providers[selectedIndex];
+    // 同步 providers 到 ref
+    useEffect(() => {
+        providersRef.current = providers;
+    }, [providers]);
 
     // 显示消息后自动清除
-    React.useEffect(() => {
+    useEffect(() => {
         if (message) {
             const timer = setTimeout(() => setMessage(null), 3000);
             return () => clearTimeout(timer);
         }
+        return undefined;
     }, [message]);
 
     // 进入新增表单
     const goToAddForm = useCallback(() => {
-        setFormMode('add');
+        isAddModeRef.current = true;
         setEditingProvider(null);
         setView('form');
         setMessage(null);
@@ -48,12 +65,15 @@ const ProviderPanel: React.FC<ProviderPanelProps> = ({ onClose }) => {
 
     // 进入编辑表单
     const goToEditForm = useCallback(() => {
-        if (!selectedProvider) return;
-        setFormMode('edit');
-        setEditingProvider(selectedProvider);
+        const currentProviders = providersRef.current;
+        const currentIndex = selectedIndexRef.current;
+        const provider = currentProviders[currentIndex];
+        if (!provider) return;
+        isAddModeRef.current = false;
+        setEditingProvider(provider);
         setView('form');
         setMessage(null);
-    }, [selectedProvider]);
+    }, []);
 
     // 返回列表
     const goToList = useCallback(() => {
@@ -62,73 +82,112 @@ const ProviderPanel: React.FC<ProviderPanelProps> = ({ onClose }) => {
         setMessage(null);
     }, []);
 
-    // 保存 Provider（新增或编辑）
+    // 保存 Provider（新增或编辑）- 使用 ref 稳定引用
     const handleSaveProvider = useCallback(
         async (provider: ProviderConfig) => {
-            const newProviders =
-                formMode === 'add'
-                    ? [...providers, provider]
-                    : providers.map((p) => (p.id === provider.id ? provider : p));
+            const currentProviders = providersRef.current;
+            const isAddMode = isAddModeRef.current;
+
+            const newProviders = isAddMode
+                ? [...currentProviders, provider]
+                : currentProviders.map((p) => (p.id === provider.id ? provider : p));
 
             await updateConfig({
                 providers: newProviders,
             });
 
-            setMessage(formMode === 'add' ? `已添加 Provider: ${provider.id}` : `已更新 Provider: ${provider.id}`);
+            setMessage(isAddMode ? `已添加 Provider: ${provider.id}` : `已更新 Provider: ${provider.id}`);
 
             // 新增时选中新 Provider
-            if (formMode === 'add') {
+            if (isAddMode) {
                 const newIndex = newProviders.findIndex((p) => p.id === provider.id);
                 setSelectedIndex(newIndex >= 0 ? newIndex : 0);
             }
 
-            goToList();
+            setView('list');
+            setEditingProvider(null);
+            setMessage(null);
         },
-        [formMode, providers, updateConfig, goToList],
+        [updateConfig],
     );
 
     // 删除 Provider
     const handleDeleteProvider = useCallback(async () => {
-        if (!selectedProvider) return;
-        if (providers.length <= 1) {
+        const currentProviders = providersRef.current;
+        const currentIndex = selectedIndexRef.current;
+        const provider = currentProviders[currentIndex];
+
+        if (!provider) return;
+        if (currentProviders.length <= 1) {
             setMessage('无法删除最后一个 Provider');
             return;
         }
 
-        const newProviders = providers.filter((p: ProviderConfig) => p.id !== selectedProvider.id);
+        const newProviders = currentProviders.filter((p: ProviderConfig) => p.id !== provider.id);
 
         await updateConfig({
             providers: newProviders,
         });
 
-        const newIndex = Math.min(selectedIndex, newProviders.length - 1);
+        const newIndex = Math.min(currentIndex, newProviders.length - 1);
         setSelectedIndex(newIndex >= 0 ? newIndex : 0);
-        setMessage(`已删除 Provider: ${selectedProvider.id}`);
-    }, [selectedProvider, providers, selectedIndex, updateConfig]);
+        setMessage(`已删除 Provider: ${provider.id}`);
+    }, [updateConfig]);
 
-    // 键盘快捷键
+    // 使用 ref 存储回调
+    const goToAddFormRef = useRef(goToAddForm);
+    const goToEditFormRef = useRef(goToEditForm);
+    const handleDeleteProviderRef = useRef(handleDeleteProvider);
+    const goToListRef = useRef(goToList);
+    const onCloseRef = useRef(onClose);
+
+    useEffect(() => {
+        goToAddFormRef.current = goToAddForm;
+    }, [goToAddForm]);
+
+    useEffect(() => {
+        goToEditFormRef.current = goToEditForm;
+    }, [goToEditForm]);
+
+    useEffect(() => {
+        handleDeleteProviderRef.current = handleDeleteProvider;
+    }, [handleDeleteProvider]);
+
+    useEffect(() => {
+        goToListRef.current = goToList;
+    }, [goToList]);
+
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    }, [onClose]);
+
+    // 键盘快捷键 - 使用稳定的 handler
     useInput(
         (input, key) => {
-            if (view === 'form') {
+            const currentView = viewRef.current;
+            const currentProviders = providersRef.current;
+            const currentSelectedIndex = selectedIndexRef.current;
+
+            if (currentView === 'form') {
                 if (key.escape) {
-                    goToList();
+                    goToListRef.current();
                 }
                 return;
             }
 
             // 列表视图快捷键
             if (key.upArrow) {
-                setSelectedIndex((prev) => (prev > 0 ? prev - 1 : providers.length - 1));
+                setSelectedIndex((prev) => (prev > 0 ? prev - 1 : currentProviders.length - 1));
             } else if (key.downArrow) {
-                setSelectedIndex((prev) => (prev < providers.length - 1 ? prev + 1 : 0));
+                setSelectedIndex((prev) => (prev < currentProviders.length - 1 ? prev + 1 : 0));
             } else if (input === 'n' || input === 'N') {
-                goToAddForm();
-            } else if ((input === 'e' || input === 'E' || key.return) && selectedProvider) {
-                goToEditForm();
-            } else if ((input === 'd' || input === 'D') && selectedProvider) {
-                handleDeleteProvider();
+                goToAddFormRef.current();
+            } else if ((input === 'e' || input === 'E' || key.return) && currentProviders[currentSelectedIndex]) {
+                goToEditFormRef.current();
+            } else if ((input === 'd' || input === 'D') && currentProviders[currentSelectedIndex]) {
+                handleDeleteProviderRef.current();
             } else if (key.escape) {
-                onClose();
+                onCloseRef.current();
             }
         },
         { isActive: true },
@@ -193,12 +252,7 @@ const ProviderPanel: React.FC<ProviderPanelProps> = ({ onClose }) => {
             {view === 'list' ? (
                 renderListView
             ) : (
-                <ProviderForm
-                    mode={formMode}
-                    provider={editingProvider || undefined}
-                    onCancel={goToList}
-                    onSave={handleSaveProvider}
-                />
+                <ProviderForm provider={editingProvider || undefined} onCancel={goToList} onSave={handleSaveProvider} />
             )}
 
             {/* 消息提示 */}

@@ -18,6 +18,7 @@ export interface InitChatModelOptions {
 
 export const initChatModel = async (modelId: string, options: InitChatModelOptions = {}) => {
     const { modelProvider, enableThinking = true } = options;
+    const outputVersion = 'v1';
     let model;
     if (modelProvider === 'anthropic') {
         model = new ChatAnthropic({
@@ -35,6 +36,7 @@ export const initChatModel = async (modelId: string, options: InitChatModelOptio
             apiKey: options.apiKey,
             anthropicApiUrl: options.baseURL,
             metadata: options.metadata,
+            outputVersion,
         });
     } else if (modelProvider === 'gemini' || modelProvider === 'google') {
         console.log(process.env.GOOGLE_BASE_URL);
@@ -48,6 +50,7 @@ export const initChatModel = async (modelId: string, options: InitChatModelOptio
             streamUsage: true,
             thinkingConfig: {},
             metadata: options.metadata,
+            outputVersion,
         });
     } else {
         model = new ChatOpenAI({
@@ -66,6 +69,7 @@ export const initChatModel = async (modelId: string, options: InitChatModelOptio
                   }
                 : undefined,
             metadata: options.metadata,
+            outputVersion,
         });
     }
 

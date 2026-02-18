@@ -7,7 +7,7 @@
  * 3. 完成
  */
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Box, Text } from 'ink';
 import { useInput } from 'ink-pro';
 import { useSettings } from '../context/SettingsContext';
@@ -27,13 +27,27 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ validation, onComplete }) => 
     const { config, updateConfig } = useSettings();
     const [step, setStep] = useState<SetupStep>('welcome');
     const [showProviderForm, setShowProviderForm] = useState(false);
-    const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
     const [editingProvider, setEditingProvider] = useState<ProviderConfig | null>(null);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [message, setMessage] = useState<string | null>(null);
 
+    // 使用 ref 稳定状态引用
+    const isAddModeRef = useRef(true);
+    const providersRef = useRef<ProviderConfig[]>([]);
+    const selectedIndexRef = useRef(selectedIndex);
+
     // 获取 providers 列表
     const providers = config?.providers || [];
+
+    // 同步 ref
+    useEffect(() => {
+        providersRef.current = providers;
+    }, [providers]);
+
+    useEffect(() => {
+        selectedIndexRef.current = selectedIndex;
+    }, [selectedIndex]);
+
     const selectedProvider = providers[selectedIndex];
 
     // 显示消息后自动清除
@@ -45,7 +59,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ validation, onComplete }) => 
 
     // 进入新增表单
     const goToAddForm = useCallback(() => {
-        setFormMode('add');
+        isAddModeRef.current = true;
         setEditingProvider(null);
         setShowProviderForm(true);
         setMessage(null);
@@ -53,12 +67,15 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ validation, onComplete }) => 
 
     // 进入编辑表单
     const goToEditForm = useCallback(() => {
-        if (!selectedProvider) return;
-        setFormMode('edit');
-        setEditingProvider(selectedProvider);
+        const currentProviders = providersRef.current;
+        const currentIndex = selectedIndexRef.current;
+        const provider = currentProviders[currentIndex];
+        if (!provider) return;
+        isAddModeRef.current = false;
+        setEditingProvider(provider);
         setShowProviderForm(true);
         setMessage(null);
-    }, [selectedProvider]);
+    }, []);
 
     // 返回列表
     const closeForm = useCallback(() => {
@@ -70,25 +87,27 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ validation, onComplete }) => 
     // 保存 Provider
     const handleSaveProvider = useCallback(
         async (provider: ProviderConfig) => {
-            const newProviders =
-                formMode === 'add'
-                    ? [...providers, provider]
-                    : providers.map((p) => (p.id === provider.id ? provider : p));
+            const currentProviders = providersRef.current;
+            const isAddMode = isAddModeRef.current;
+
+            const newProviders = isAddMode
+                ? [...currentProviders, provider]
+                : currentProviders.map((p) => (p.id === provider.id ? provider : p));
 
             await updateConfig({
                 providers: newProviders,
             });
 
-            setMessage(formMode === 'add' ? `已添加 Provider: ${provider.id}` : `已更新 Provider: ${provider.id}`);
+            setMessage(isAddMode ? `已添加 Provider: ${provider.id}` : `已更新 Provider: ${provider.id}`);
 
-            if (formMode === 'add') {
+            if (isAddMode) {
                 const newIndex = newProviders.findIndex((p) => p.id === provider.id);
                 setSelectedIndex(newIndex >= 0 ? newIndex : 0);
             }
 
             closeForm();
         },
-        [formMode, providers, updateConfig, closeForm],
+        [updateConfig, closeForm],
     );
 
     // 进入 Model 选择步骤
@@ -175,7 +194,6 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ validation, onComplete }) => 
 
                 {showProviderForm ? (
                     <ProviderForm
-                        mode={formMode}
                         provider={editingProvider || undefined}
                         onCancel={closeForm}
                         onSave={handleSaveProvider}
