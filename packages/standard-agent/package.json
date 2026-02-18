@@ -1,19 +1,14 @@
 {
     "name": "@langgraph-js/standard-agent",
-    "version": "1.2.0",
+    "version": "1.2.2",
     "type": "module",
     "description": "Standard Agent System - A unified agent package system for tools, middlewares, and storage",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "default": "./dist/index.js"
-        }
-    },
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
+        "prepublish": "pnpm build",
         "test": "vitest run",
         "test:watch": "vitest watch",
         "test:coverage": "vitest run --coverage"

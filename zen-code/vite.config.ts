@@ -44,6 +44,7 @@ export default defineConfig({
                 '@google/generative-ai',
                 '@langchain/core',
                 '@langchain/langgraph',
+                '@langgraph-js/standard-agent',
                 '@langchain/openai',
                 'openai',
                 'langchain',
