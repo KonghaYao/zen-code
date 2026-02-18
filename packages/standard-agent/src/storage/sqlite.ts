@@ -33,7 +33,7 @@ import { ModelSchema, PromptSchema, ToolSchema, MiddlewareSchema, AgentSchema } 
 import { join } from 'path';
 
 export class BunSqliteStorage extends BaseStorage {
-    private db: Database;
+    protected db: Database;
     private dbPath: string;
 
     constructor(dbPath?: string) {

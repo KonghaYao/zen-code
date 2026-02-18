@@ -8,6 +8,7 @@ import { promptsRouter } from './prompts.js';
 import { toolsRouter } from './tools.js';
 import { middlewaresRouter } from './middlewares.js';
 import { agentsRouter } from './agents.js';
+import { mcpRouter } from './mcp.js';
 
 // ========================================
 // 主 Router
@@ -19,7 +20,18 @@ export const appRouter = router({
     tools: toolsRouter,
     middlewares: middlewaresRouter,
     agents: agentsRouter,
+    mcp: mcpRouter,
 });
+
+// 导出 API 路由映射供 Hono 使用
+export const apiRoutes = {
+    models: modelsRouter,
+    prompts: promptsRouter,
+    tools: toolsRouter,
+    middlewares: middlewaresRouter,
+    agents: agentsRouter,
+    mcp: mcpRouter,
+};
 
 // 导出类型供客户端使用
 export type AppRouter = typeof appRouter;

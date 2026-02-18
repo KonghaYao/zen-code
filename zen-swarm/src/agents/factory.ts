@@ -3,15 +3,24 @@
  * 使用 LangGraph standard-agent 创建 agents
  */
 
-import { createAgent } from 'langchain';
+import { createAgent, anthropicPromptCachingMiddleware, humanInTheLoopMiddleware } from 'langchain';
 import { AgentPackage } from '@langgraph-js/standard-agent';
 import { SwarmState } from '../state.js';
 import { initChatModel } from '../utils/initChatModel.js';
+import { MCPWithConfigMiddleware } from '../middlewares/mcp.js';
+import { MemoriesMiddleware } from '../middlewares/memories.js';
 
 /**
  * 创建 Swarm Agent
  */
-export async function createSwarmAgent(agentId: string, pkg: AgentPackage, state: typeof SwarmState.State) {
+export async function createSwarmAgent(
+    agentId: string,
+    pkg: AgentPackage,
+    state: typeof SwarmState.State,
+    options?: { parent_id?: string },
+): Promise<any> {
+    const isSubAgent = !!options?.parent_id;
+
     // 加载 agent 配置
     const agentConfig = await pkg.getAgent(agentId);
     if (!agentConfig) {
@@ -28,12 +37,16 @@ export async function createSwarmAgent(agentId: string, pkg: AgentPackage, state
     if (!modelConfig) {
         throw new Error('');
     }
+
     // 初始化模型
     const model = await initChatModel(modelConfig.model_name, {
         modelProvider: modelConfig.model_provider,
         temperature: modelConfig.temperature,
         streamUsage: true,
         enableThinking: modelConfig.enable_thinking,
+        metadata: {
+            parent_id: options?.parent_id,
+        },
     });
 
     // 构建工具列表
@@ -66,8 +79,11 @@ export async function createSwarmAgent(agentId: string, pkg: AgentPackage, state
     }
 
     // 构建中间件列表
-    const middleware = [];
+    const middleware: any[] = [];
+
+    // 1. 配置的中间件
     for (const [middlewareId, params] of Object.entries(agentConfig.middleware)) {
+        if (middlewareId === 'subagents' && isSubAgent) continue;
         if (!params) continue;
 
         const impl = pkg.middlewares.getImplementation(middlewareId);
@@ -77,12 +93,38 @@ export async function createSwarmAgent(agentId: string, pkg: AgentPackage, state
         middleware.push(await impl.execute(context));
     }
 
+    // 2. Human-in-the-loop 中间件
+    const interruptOn: any = {
+        ask_user_questions: {
+            allowedDecisions: ['respond', 'approve', 'reject', 'edit'],
+        },
+    };
+
+    if (process.env.YOLO_MODE !== 'true') {
+        Object.assign(interruptOn, {
+            terminal: { allowedDecisions: ['approve', 'reject', 'edit'] },
+        });
+    }
+
+    middleware.push(
+        humanInTheLoopMiddleware({
+            /** @ts-ignore */
+            interruptOn,
+        }),
+    );
+
+    // 3. Anthropic prompt caching（仅 Anthropic）
+    if (modelConfig.model_provider === 'anthropic') {
+        middleware.push(anthropicPromptCachingMiddleware());
+    }
+
     // 创建 agent
     return createAgent({
-        name: agentConfig.name,
+        name: isSubAgent ? `subagent_${options.parent_id}` : agentConfig.name,
         model,
         systemPrompt: promptConfig.content,
         tools,
+        /** @ts-ignore */
         stateSchema: SwarmState,
         middleware,
     });

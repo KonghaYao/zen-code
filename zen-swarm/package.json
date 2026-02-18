@@ -9,6 +9,7 @@
         "build": "tsc",
         "watch": "tsc --watch",
         "test": "bun test",
+        "seed": "bun run scripts/seed-default-agent.ts",
         "start": "bun run dist/server.js"
     },
     "dependencies": {
@@ -22,7 +23,8 @@
         "@langgraph-js/standard-agent": "workspace:*",
         "@trpc/client": "^11.10.0",
         "@trpc/server": "^11.10.0",
-        "superjson": "^2.2.6"
+        "solid-js": "^1.9.6",
+        "uuid": "^13.0.0"
     },
     "devDependencies": {
         "typescript": "^5.9.3"

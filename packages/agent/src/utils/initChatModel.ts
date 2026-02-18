@@ -14,6 +14,7 @@ export interface InitChatModelOptions {
     metadata?: Record<string, unknown>;
     baseURL?: string;
     apiKey?: string;
+    temperature?: number;
 }
 
 export const initChatModel = async (modelId: string, options: InitChatModelOptions = {}) => {
