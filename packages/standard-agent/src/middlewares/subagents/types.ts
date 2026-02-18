@@ -5,17 +5,26 @@
  */
 
 import type { ReactAgent } from 'langchain';
-import type { Annotation } from '@langchain/langgraph';
 import type { z } from 'zod';
+
+/**
+ * SubAgent info for system prompt and listing
+ */
+export interface SubAgentInfo {
+    id: string;
+    name: string;
+    description: string;
+}
 
 /**
  * SubAgent middleware options
  */
 export interface SubAgentsMiddlewareOptions<TState = any> {
     /**
-     * AgentPackage instance for listing available agents
+     * List of available subagents
+     * This replaces the AgentPackage dependency for better decoupling
      */
-    package: any; // AgentPackage type
+    agents: SubAgentInfo[];
 
     /**
      * Function to create subagent instances
@@ -35,9 +44,8 @@ export interface SubAgentsMiddlewareOptions<TState = any> {
     /**
      * State schema for the middleware
      * Used to define the state schema this middleware operates on
-     * Can be Annotation or Zod schema
      */
-    stateSchema?: typeof Annotation | z.ZodType<any>;
+    stateSchema?: z.ZodType<any>;
 
     /**
      * Context schema for the middleware
@@ -63,15 +71,5 @@ export interface SubAgentsMiddlewareOptions<TState = any> {
     /**
      * Custom agent list formatter
      */
-    formatAgentList?: (agents: Array<{ id: string; description: string }>) => string;
-}
-
-/**
- * SubAgent info for system prompt
- */
-export interface SubAgentInfo {
-    id: string;
-    name: string;
-    description: string;
-    tools: string[];
+    formatAgentList?: (agents: SubAgentInfo[]) => string;
 }

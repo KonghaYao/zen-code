@@ -8,7 +8,8 @@ import { UniversalPanel } from 'ink-pro';
 import { SelectItem } from 'ink-pro';
 import { PanelConfig } from 'ink-pro';
 import { useSettings } from '../context/SettingsContext';
-import { AgentConfig, loadAgentsList } from '@codegraph/agent/src/subagents/config.js';
+import { FEAgentConfig, loadAgentsList } from '@codegraph/agent/src/subagents/config.js';
+import { agentPackage } from '@codegraph/agent/src/config';
 
 interface AgentPanelProps {
     onClose: () => void;
@@ -20,13 +21,13 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
 
     // 修复：使用 useCallback 保持 dataSource 引用稳定
     const dataSource = useCallback(async () => {
-        const configs = await loadAgentsList();
+        const configs = await loadAgentsList(agentPackage);
         return Object.values(configs);
     }, []);
 
     // 修复：使用 useCallback 保持 renderItem 引用稳定
     const renderItem = useCallback(
-        (agent: AgentConfig, index: number, isSelected: boolean) => {
+        (agent: FEAgentConfig, index: number, isSelected: boolean) => {
             const isCurrent = agent.id === currentAgentId;
             return (
                 <SelectItem key={agent.id} isSelected={isSelected} isCurrent={isCurrent}>
@@ -43,7 +44,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
 
     // 修复：使用 useCallback 保持 isSelected 引用稳定
     const isSelected = useCallback(
-        (agent: AgentConfig) => {
+        (agent: FEAgentConfig) => {
             return agent.id === currentAgentId;
         },
         [currentAgentId],
@@ -51,7 +52,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
 
     // 修复：使用 useCallback 保持 onSelect 引用稳定
     const handleSelect = useCallback(
-        async (agent: AgentConfig) => {
+        async (agent: FEAgentConfig) => {
             const switchCommand = agent.id === 'default' ? '' : agent.id;
             updateConfig({ switch_command: switchCommand });
             onClose();
@@ -93,12 +94,12 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
                 {
                     id: 'default',
                     label: '默认',
-                    predicate: (agent: AgentConfig) => agent.id === 'default',
+                    predicate: (agent: FEAgentConfig) => agent.id === 'default',
                 },
                 {
                     id: 'custom',
                     label: '自定义',
-                    predicate: (agent: AgentConfig) => agent.id !== 'default',
+                    predicate: (agent: FEAgentConfig) => agent.id !== 'default',
                 },
             ],
             defaultFilter: 'all',

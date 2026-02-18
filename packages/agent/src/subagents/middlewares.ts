@@ -1,4 +1,4 @@
-import { AgentPackage, SubAgentsMiddleware } from '@langgraph-js/standard-agent';
+import { AgentPackage } from '@langgraph-js/standard-agent';
 
 /**
  * Register middleware implementations into the registry
@@ -12,7 +12,8 @@ export async function createMiddlewareRegistry(pkg: AgentPackage) {
         execute: async () => {
             // Dynamic import to avoid circular dependency
             const { createSubAgentsMiddleware } = await import('../middlewares/subTasks.js');
-            return createSubAgentsMiddleware(pkg);
+            // createSubAgentsMiddleware is now async
+            return await createSubAgentsMiddleware(pkg);
         },
     };
     await pkg.addMiddleware(subagents);

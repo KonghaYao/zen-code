@@ -10,10 +10,10 @@ import { REMOVE_ALL_MESSAGES, START, StateGraph } from '@langchain/langgraph';
 import { AIMessage, RemoveMessage } from '@langchain/core/messages';
 import { initChatModel } from './utils/initChatModel.js';
 import { analyzeAndSaveMemories } from './memories/analyze.js';
-import { loadDefaultConfigs } from './subagents/loader.js';
 import { createStandardAgentV2, getAvailableAgentIds } from './subagents/factory-v2.js';
 import { AgentPackage } from '@langgraph-js/standard-agent';
 import { getThreadId } from '@langgraph-js/pro';
+import { agentPackage } from './config/index.js';
 
 const switchBranch = {
     smart_memory: async (state: CodeStateType) => {
@@ -58,7 +58,7 @@ export function createCodeGraph() {
             if (cmd === 'smart_memory') return switchBranch.smart_memory(state);
 
             // Load agent package (cached after first load)
-            const pkg = await loadDefaultConfigs();
+            const pkg = agentPackage;
 
             // Determine agent ID (from command or default)
             const availableAgents = await getAvailableAgentIds(pkg);

@@ -10,6 +10,7 @@
  * - State isolation between parent and subagents
  * - Customizable agent creation via factory function
  * - Configurable stateSchema and contextSchema
+ * - Decoupled from AgentPackage - accepts plain agent list
  */
 
 import { AgentMiddleware, AIMessage, SystemMessage } from 'langchain';
@@ -93,13 +94,13 @@ export class SubAgentsMiddleware<TState = any> implements AgentMiddleware {
     // Tools
     tools: AgentMiddleware['tools'] = [];
 
-    // Options
-    private pkg: any; // AgentPackage
+    // Agent list (plain array, no AgentPackage dependency)
+    private agents: SubAgentInfo[];
     private formatAgentListFn: (agents: SubAgentInfo[]) => string;
-    private agentListPromise: Promise<string>;
+    private agentListString: string;
 
     constructor(options: SubAgentsMiddlewareOptions<TState>) {
-        this.pkg = options.package;
+        this.agents = options.agents;
         this.formatAgentListFn = options.formatAgentList || defaultFormatAgentList;
 
         // Set stateSchema and contextSchema from options
@@ -110,8 +111,8 @@ export class SubAgentsMiddleware<TState = any> implements AgentMiddleware {
             this.contextSchema = options.contextSchema;
         }
 
-        // Pre-compute agent list for system prompt
-        this.agentListPromise = this.formatSubAgentsList();
+        // Pre-compute agent list string (no async needed now)
+        this.agentListString = this.formatAgentListFn(this.agents);
 
         // Create task tool using original interface
         const taskTool = create_task_tool(
@@ -129,34 +130,11 @@ export class SubAgentsMiddleware<TState = any> implements AgentMiddleware {
     }
 
     /**
-     * Format subagents list for system prompt
-     */
-    private async formatSubAgentsList(): Promise<string> {
-        try {
-            const agents = await this.pkg.listAgents();
-            const agentInfos: SubAgentInfo[] = agents.map((agent: any) => ({
-                id: agent.id,
-                name: agent.name || agent.id,
-                description: agent.description || '',
-                tools: agent.tools ? Object.keys(agent.tools) : [],
-            }));
-
-            return this.formatAgentListFn(agentInfos);
-        } catch (error) {
-            console.warn('Failed to list agents:', error);
-            return '(No subagents available)';
-        }
-    }
-
-    /**
      * Wrap model call to inject subagents system prompt
      */
     async wrapModelCall(request: any, handler: any): Promise<AIMessage> {
-        // Get pre-computed agent list
-        const subagentsList = await this.agentListPromise;
-
         // Format system prompt
-        const subagentsSection = SUBAGENTS_SYSTEM_PROMPT.replace('{subagents_list}', subagentsList);
+        const subagentsSection = SUBAGENTS_SYSTEM_PROMPT.replace('{subagents_list}', this.agentListString);
 
         // Append to system prompt
         let newSystemPrompt: string;
@@ -179,3 +157,4 @@ export class SubAgentsMiddleware<TState = any> implements AgentMiddleware {
 // Re-export types and utilities
 export * from './types.js';
 export * from './task_tool.js';
+export * from './package-utils.js';

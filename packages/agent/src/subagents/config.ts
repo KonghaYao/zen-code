@@ -1,88 +1,41 @@
 /**
  * Agent Configuration System
  *
- * Defines specialized agent configurations for switchBranch routing.
+ * Reads agent configurations from AgentPackage.
  * Each agent has specific tools, prompts, and middleware settings.
  *
  * Aligned with AgentSchema from @langgraph-js/standard-agent
  */
 
-export interface AgentConfig {
+import type { AgentPackage } from '@langgraph-js/standard-agent';
+
+export interface FEAgentConfig {
     id: string;
     name: string;
     description: string;
     system_prompt: string; // Reference to prompt ID
     model: string; // Reference to model ID
-    tools: Record<string, boolean | any>; // Tool ID -> enabled/params
-    middleware: Record<string, boolean | any>; // Middleware ID -> enabled/params
 }
 
 /**
- * Load agent configurations
+ * Load agent configurations from AgentPackage
  * Returns a map of agent ID to configuration
- *
- * Note: Subagent prompts are now injected via SkillsMiddleware
- * from .claude/skills/{agent-name}/SKILL.md
- *
- * Future extensions:
- * - Load from ~/.zen-code/settings.json
- * - Load from database
- * - Remote configuration service
  */
-export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
-    return {
-        default: {
-            id: 'default',
-            name: 'Jarvis', // Iron Man's AI assistant
-            description: '代码实现助手',
-            system_prompt: 'prompts/default',
-            model: 'glm-4.7',
+export async function loadAgentsList(pkg: AgentPackage): Promise<Record<string, FEAgentConfig>> {
+    const agents = await pkg.listAgents();
+    const result: Record<string, FEAgentConfig> = {};
 
-            tools: {
-                read_file: true,
-                write_file: true,
-                edit_file: true,
-                glob_files: true,
-                'search-files-rg': true,
-                folder_operations: true,
-                terminal: true,
-                ask_user_questions: true,
-                todo_write: true,
-            },
-            middleware: {
-                agents_md: true,
-                skills: true,
-                memories: true,
-                mcp: true,
-                subagents: true,
-            },
-        },
-        manager: {
-            id: 'manager',
-            name: 'Manager',
-            description: '任务管理员',
-            system_prompt: 'prompts/manager',
-            model: 'glm-4.7',
+    for (const agent of agents) {
+        result[agent.id] = {
+            id: agent.id,
+            name: agent.name,
+            description: agent.description,
+            system_prompt: agent.systemPromptId,
+            model: agent.modelId,
+        };
+    }
 
-            tools: {
-                read_file: true,
-                write_file: true,
-                edit_file: true,
-                glob_files: true,
-                'search-files-rg': true,
-                folder_operations: true,
-                terminal: true,
-                ask_user_questions: true,
-                todo_write: true,
-            },
-            middleware: {
-                agents_md: true,
-                skills: true,
-                memories: true,
-                subagents: true,
-            },
-        },
-    };
+    return result;
 }
 
 /**
@@ -96,7 +49,7 @@ export function getDefaultAgentId(): string {
  * Validate agent configuration
  * Ensures required fields are present and types are correct
  */
-export function validateAgentConfig(config: AgentConfig): string[] {
+export function validateAgentConfig(config: FEAgentConfig): string[] {
     const errors: string[] = [];
 
     if (!config.id) {

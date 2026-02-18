@@ -1,6 +1,6 @@
 {
     "name": "@langgraph-js/standard-agent",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "type": "module",
     "description": "Standard Agent System - A unified agent package system for tools, middlewares, and storage",
     "main": "./dist/index.js",

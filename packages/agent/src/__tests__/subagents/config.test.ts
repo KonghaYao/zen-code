@@ -4,221 +4,192 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  loadAgentsList,
-  getDefaultAgentId,
-  validateAgentConfig,
-  type AgentConfig,
-} from '../../subagents/config';
+import { AgentPackage, MemoryStorage } from '@langgraph-js/standard-agent';
+import { loadAgentsList, getDefaultAgentId, validateAgentConfig, type FEAgentConfig } from '../../subagents/config';
+
+// Mock AgentPackage for testing
+function createMockAgentPackage(): AgentPackage {
+    const storage = new MemoryStorage();
+    const pkg = new AgentPackage(storage);
+
+    // Add mock agents to storage
+    (async () => {
+        await pkg.addModel({
+            id: 'glm-4.7',
+            model_name: 'glm-4.7',
+            model_provider: 'openai',
+            stream_usage: true,
+            enable_thinking: true,
+            temperature: 0.7,
+            max_tokens: 4096,
+            top_p: 1,
+            frequency_penalty: 0,
+            presence_penalty: 0,
+        });
+
+        await pkg.addPrompt({
+            id: 'prompts/default',
+            name: 'default',
+            content: 'Default system prompt',
+        });
+
+        await pkg.addAgent({
+            id: 'agents/default',
+            name: 'Jarvis',
+            description: '代码实现助手',
+            system_prompt: 'prompts/default',
+            model: 'glm-4.7',
+            tools: {
+                read_file: true,
+                write_file: true,
+            },
+            middleware: {
+                agents_md: true,
+                skills: true,
+            },
+        });
+    })();
+
+    return pkg;
+}
 
 describe('loadAgentsList', () => {
-  it('should return a record of agent configs', async () => {
-    const configs = await loadAgentsList();
-    expect(typeof configs).toBe('object');
-    expect(Array.isArray(configs)).toBe(false);
-  });
+    it('should return a record of agent configs', async () => {
+        const pkg = createMockAgentPackage();
+        // Wait for async initialization
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        const configs = await loadAgentsList(pkg);
+        expect(typeof configs).toBe('object');
+        expect(Array.isArray(configs)).toBe(false);
+    });
 
-  it('should include default agent', async () => {
-    const configs = await loadAgentsList();
-    expect(configs['default']).toBeDefined();
-  });
+    it('should include agents from package', async () => {
+        const pkg = createMockAgentPackage();
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        const configs = await loadAgentsList(pkg);
+        expect(configs['agents/default']).toBeDefined();
+    });
 
-  it('should have valid default agent config', async () => {
-    const configs = await loadAgentsList();
-    const defaultConfig = configs['default'];
+    it('should have valid agent config structure', async () => {
+        const pkg = createMockAgentPackage();
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        const configs = await loadAgentsList(pkg);
 
-    expect(defaultConfig.id).toBe('default');
-    expect(defaultConfig.name).toBeDefined();
-    expect(defaultConfig.description).toBeDefined();
-    expect(Array.isArray(defaultConfig.tools)).toBe(true);
-    expect(typeof defaultConfig.middleware).toBe('object');
-  });
+        for (const [id, config] of Object.entries(configs)) {
+            expect(config.id).toBe(id);
+            expect(config.name).toBeDefined();
+            expect(typeof config.name).toBe('string');
+            expect(config.description).toBeDefined();
+            expect(typeof config.description).toBe('string');
+            expect(config.system_prompt).toBeDefined();
+            expect(typeof config.system_prompt).toBe('string');
+            expect(config.model).toBeDefined();
+            expect(typeof config.model).toBe('string');
+        }
+    });
 
-  it('should have middleware enabled for default agent', async () => {
-    const configs = await loadAgentsList();
-    const defaultConfig = configs['default'];
+    it('should extract basic agent info correctly', async () => {
+        const pkg = createMockAgentPackage();
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        const configs = await loadAgentsList(pkg);
+        const defaultConfig = configs['agents/default'];
 
-    expect(defaultConfig.middleware.agents_md).toBe(true);
-    expect(defaultConfig.middleware.skills).toBe(true);
-    expect(defaultConfig.middleware.memories).toBe(true);
-    expect(defaultConfig.middleware.mcp).toBe(true);
-    expect(defaultConfig.middleware.subagents).toBe(true);
-  });
-
-  it('should have "all" tools for default agent', async () => {
-    const configs = await loadAgentsList();
-    const defaultConfig = configs['default'];
-
-    expect(defaultConfig.tools).toContain('all');
-  });
-
-  it('should have unique agent IDs', async () => {
-    const configs = await loadAgentsList();
-    const ids = Object.keys(configs);
-    const uniqueIds = new Set(ids);
-
-    expect(ids.length).toBe(uniqueIds.size);
-  });
-
-  it('should have valid agent config structure', async () => {
-    const configs = await loadAgentsList();
-
-    for (const [id, config] of Object.entries(configs)) {
-      expect(config.id).toBe(id);
-      expect(config.name).toBeDefined();
-      expect(typeof config.name).toBe('string');
-      expect(config.description).toBeDefined();
-      expect(typeof config.description).toBe('string');
-      expect(Array.isArray(config.tools)).toBe(true);
-      expect(typeof config.middleware).toBe('object');
-    }
-  });
+        expect(defaultConfig.id).toBe('agents/default');
+        expect(defaultConfig.name).toBe('Jarvis');
+        expect(defaultConfig.description).toBe('代码实现助手');
+        expect(defaultConfig.system_prompt).toBe('prompts/default');
+        expect(defaultConfig.model).toBe('glm-4.7');
+    });
 });
 
 describe('getDefaultAgentId', () => {
-  it('should return "default"', () => {
-    const defaultId = getDefaultAgentId();
-    expect(defaultId).toBe('default');
-  });
+    it('should return "default"', () => {
+        const defaultId = getDefaultAgentId();
+        expect(defaultId).toBe('default');
+    });
 
-  it('should return a string', () => {
-    const defaultId = getDefaultAgentId();
-    expect(typeof defaultId).toBe('string');
-  });
-
-  it('should match an agent in loadAgentsList', async () => {
-    const defaultId = getDefaultAgentId();
-    const configs = await loadAgentsList();
-
-    expect(configs[defaultId]).toBeDefined();
-  });
+    it('should return a string', () => {
+        const defaultId = getDefaultAgentId();
+        expect(typeof defaultId).toBe('string');
+    });
 });
 
 describe('validateAgentConfig', () => {
-  let mockConfig: AgentConfig;
-  let mockAvailableTools: Set<string>;
+    let mockConfig: FEAgentConfig;
 
-  beforeEach(() => {
-    mockConfig = {
-      id: 'test-agent',
-      name: 'Test Agent',
-      description: 'A test agent',
-      tools: ['read_file', 'write_file', 'glob_files'],
-      middleware: {
-        agents_md: true,
-        skills: true,
-      },
-    };
+    beforeEach(() => {
+        mockConfig = {
+            id: 'test-agent',
+            name: 'Test Agent',
+            description: 'A test agent',
+            system_prompt: 'prompts/test',
+            model: 'glm-4.7',
+        };
+    });
 
-    mockAvailableTools = new Set([
-      'read_file',
-      'write_file',
-      'glob_files',
-      'search-files-rg',
-      'edit_file',
-    ]);
-  });
+    it('should return empty array for valid config', () => {
+        const errors = validateAgentConfig(mockConfig);
+        expect(errors).toEqual([]);
+    });
 
-  it('should return empty array for valid config', () => {
-    const errors = validateAgentConfig(mockConfig, mockAvailableTools);
-    expect(errors).toEqual([]);
-  });
+    it('should validate required fields', () => {
+        const invalidConfig = {
+            id: '',
+            name: '',
+            description: '',
+            system_prompt: '',
+            model: '',
+        } as FEAgentConfig;
 
-  it('should reject unknown tools', () => {
-    mockConfig.tools = ['read_file', 'unknown_tool', 'write_file'];
+        const errors = validateAgentConfig(invalidConfig);
+        expect(errors.length).toBeGreaterThan(0);
+    });
 
-    const errors = validateAgentConfig(mockConfig, mockAvailableTools);
-    expect(errors).toContain('Unknown tool: unknown_tool');
-  });
+    it('should return error when id is missing', () => {
+        mockConfig.id = '';
+        const errors = validateAgentConfig(mockConfig);
+        expect(errors).toContain('Agent id is required');
+    });
 
-  it('should accept "all" as a valid tool', () => {
-    mockConfig.tools = ['all'];
+    it('should return error when name is missing', () => {
+        mockConfig.name = '';
+        const errors = validateAgentConfig(mockConfig);
+        expect(errors).toContain('Agent name is required');
+    });
 
-    const errors = validateAgentConfig(mockConfig, mockAvailableTools);
-    expect(errors).toEqual([]);
-  });
+    it('should return error when description is missing', () => {
+        mockConfig.description = '';
+        const errors = validateAgentConfig(mockConfig);
+        expect(errors).toContain('Agent description is required');
+    });
 
-  it('should reject multiple unknown tools', () => {
-    mockConfig.tools = ['unknown_1', 'unknown_2'];
+    it('should return error when system_prompt is missing', () => {
+        mockConfig.system_prompt = '';
+        const errors = validateAgentConfig(mockConfig);
+        expect(errors).toContain('Agent system_prompt is required');
+    });
 
-    const errors = validateAgentConfig(mockConfig, mockAvailableTools);
-    expect(errors).toContain('Unknown tool: unknown_1');
-    expect(errors).toContain('Unknown tool: unknown_2');
-  });
-
-  it('should handle empty tools array', () => {
-    mockConfig.tools = [];
-
-    const errors = validateAgentConfig(mockConfig, mockAvailableTools);
-    expect(errors).toEqual([]);
-  });
-
-  it('should handle empty available tools set', () => {
-    mockConfig.tools = ['read_file'];
-    mockAvailableTools = new Set();
-
-    const errors = validateAgentConfig(mockConfig, mockAvailableTools);
-    expect(errors).toContain('Unknown tool: read_file');
-  });
-
-  it('should allow "all" with other tools', () => {
-    mockConfig.tools = ['all', 'read_file', 'write_file'];
-
-    const errors = validateAgentConfig(mockConfig, mockAvailableTools);
-    expect(errors).toEqual([]);
-  });
-
-  it('should not validate middleware settings', () => {
-    mockConfig.middleware = {
-      agents_md: false,
-      skills: false,
-      memories: false,
-      mcp: false,
-      subagents: false,
-    };
-
-    const errors = validateAgentConfig(mockConfig, mockAvailableTools);
-    expect(errors).toEqual([]);
-  });
+    it('should return error when model is missing', () => {
+        mockConfig.model = '';
+        const errors = validateAgentConfig(mockConfig);
+        expect(errors).toContain('Agent model is required');
+    });
 });
 
-describe('AgentConfig interface', () => {
-  it('should have required fields', () => {
-    const config: AgentConfig = {
-      id: 'test',
-      name: 'Test',
-      description: 'Test description',
-      tools: [],
-      middleware: {},
-    };
+describe('FEAgentConfig interface', () => {
+    it('should have required fields', () => {
+        const config: FEAgentConfig = {
+            id: 'test',
+            name: 'Test',
+            description: 'Test description',
+            system_prompt: 'prompts/test',
+            model: 'glm-4.7',
+        };
 
-    expect(config.id).toBeDefined();
-    expect(config.name).toBeDefined();
-    expect(config.description).toBeDefined();
-    expect(config.tools).toBeDefined();
-    expect(config.middleware).toBeDefined();
-  });
-
-  it('should have optional systemPrompt', () => {
-    const config1: AgentConfig = {
-      id: 'test',
-      name: 'Test',
-      description: 'Test',
-      tools: [],
-      middleware: {},
-      systemPrompt: 'Static prompt',
-    };
-
-    const config2: AgentConfig = {
-      id: 'test',
-      name: 'Test',
-      description: 'Test',
-      tools: [],
-      middleware: {},
-      systemPrompt: (state: any) => `Dynamic: ${state.input}`,
-    };
-
-    expect(typeof config1.systemPrompt).toBe('string');
-    expect(typeof config2.systemPrompt).toBe('function');
-  });
+        expect(config.id).toBeDefined();
+        expect(config.name).toBeDefined();
+        expect(config.description).toBeDefined();
+        expect(config.system_prompt).toBeDefined();
+        expect(config.model).toBeDefined();
+    });
 });
