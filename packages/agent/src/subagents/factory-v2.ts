@@ -12,7 +12,7 @@ import { anthropicPromptCachingMiddleware } from '@langgraph-js/standard-agent';
 import { MCPWithConfigMiddleware } from '../middlewares/mcpWithConfig.js';
 import { getEnvInfo } from '../prompts/coding.js';
 import { AgentPackage } from '@langgraph-js/standard-agent';
-import { humanInTheLoopMiddleware } from '@langgraph-js/auk';
+import { humanInTheLoopMiddleware } from '@langgraph-js/standard-agent';
 
 // ============================================
 // Human-in-the-Loop Configuration
