@@ -30,9 +30,8 @@ const StatusBar: React.FC<StatusBarProps> = ({}) => {
                 <Box gap={1}>
                     {chatLoading && (
                         <Text color="yellow" bold>
-                            {/* <Spinner></Spinner> */}
-                            <Text color="red">Loading</Text>
-                            {/* <Shimmer text="LOADING"></Shimmer> */}
+                            {/* <Text color="red">Loading</Text> */}
+                            <Shimmer text="LOADING"></Shimmer>
                         </Text>
                     )}
                     {!chatLoading && (

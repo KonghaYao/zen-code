@@ -25,7 +25,7 @@ const STATUS_SYMBOLS = {
 };
 
 export const todo_tool = createUITool({
-    name: 'TodoWrite',
+    name: 'todo_write',
     description: 'Use this tool to create and manage a structured task list',
     parameters: todoWriteSchema.shape,
     handler: ToolManager.waitForUIDone,

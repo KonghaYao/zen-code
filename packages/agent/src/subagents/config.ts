@@ -47,7 +47,7 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
                 folder_operations: true,
                 terminal: true,
                 ask_user_questions: true,
-                TodoWrite: true,
+                todo_write: true,
             },
             middleware: {
                 agents_md: true,
@@ -73,7 +73,7 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
                 folder_operations: true,
                 terminal: true,
                 ask_user_questions: true,
-                TodoWrite: true,
+                todo_write: true,
             },
             middleware: {
                 agents_md: true,
