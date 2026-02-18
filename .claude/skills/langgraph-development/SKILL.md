@@ -162,21 +162,6 @@ caching, and human-in-the-loop, see:
 
 **[middleware.md](./middleware.md)**
 
-## Configuration-Driven Agents
-
-For a powerful configuration-driven agent system with tool registry, middleware configuration, and storage backends,
-see:
-
-**[standard-agent.md](./standard-agent.md)**
-
-The `@langgraph-js/standard-agent` package provides:
-
--   AgentPackage for centralized configuration
--   Tool and middleware registries
--   Pluggable storage backends (memory, file system)
--   Multi-agent management
--   Configuration validation
-
 ## Agent Invocation
 
 ### Basic Invocation
@@ -189,22 +174,9 @@ const result = await agent.invoke({
 
 ### Streaming
 
-```typescript
-async function* streamAgent() {
-    const stream = await agent.stream({
-        messages: [{ role: 'user', content: 'Hello' }],
-    });
-
-    for await (const chunk of stream) {
-        yield chunk;
-    }
-}
-
-// Usage
-for await (const chunk of streamAgent()) {
-    console.log(chunk);
-}
-```
+When using `@langgraph-js/pure-graph` with `registerGraph()`, the framework automatically exposes streaming endpoints
+via the HTTP API (`/api/langgraph`). No additional streaming code is required—the Hono adapter handles SSE (Server-Sent
+Events) for real-time responses.
 
 ### With Config
 
@@ -225,6 +197,77 @@ const result = await agent.invoke(
 
 ```typescript
 const result = await agent.invoke({ messages: [new HumanMessage('Hello')] }, { recursionLimit: 100 });
+```
+
+## Complete Server Setup
+
+### Full LangGraph Server with Hono
+
+```typescript
+import { registerGraph } from '@langgraph-js/pure-graph';
+import LGApp from '@langgraph-js/pure-graph/dist/adapter/hono';
+import { Hono } from 'hono';
+import { logger } from 'hono/logger';
+import { serve } from 'bun';
+
+// 1. Create your graph
+import { graph } from './graphBuilder.js';
+
+// 2. Register the graph
+registerGraph('code', graph);
+
+// 3. Create Hono app
+const app = new Hono();
+
+// Add middleware
+app.use(logger());
+
+// 4. Mount LangGraph API routes
+app.route('/api/langgraph', LGApp);
+
+// 5. Start server
+const port = 8123;
+console.log(`🚀 Server running on http://127.0.0.1:${port}`);
+
+serve({
+    fetch: app.fetch,
+    port,
+});
+```
+
+### Graph Builder with StateGraph
+
+```typescript
+import { Runtime } from 'langchain';
+import { MyState, MyStateType } from './state.js';
+import { START, StateGraph } from '@langchain/langgraph';
+import { createAgent } from 'langchain';
+
+// Create agent
+const model = await initChatModel('claude-3-5-sonnet');
+const agent = createAgent({
+    name: 'MyAgent',
+    model,
+    systemPrompt: 'You are a helpful assistant',
+    tools: [myTool1, myTool2],
+    stateSchema: MyState,
+});
+
+// Build graph
+export function createMyGraph() {
+    return new StateGraph(MyState)
+        .addNode('agent', async (state: MyStateType, runtime: Runtime) => {
+            const response = await agent.invoke(state, {
+                recursionLimit: 100,
+                configurable: runtime.configurable,
+            });
+            return response;
+        })
+        .addEdge(START, 'agent')
+        .compile();
+}
+
+export const graph = createMyGraph();
 ```
 
 ## Testing
@@ -369,17 +412,6 @@ src/
 const tools = [myTool1 as any, myTool2 as any];
 ```
 
-### Agent not responding
-
-```typescript
-// Check if tools are properly registered
-console.log('Available tools:', tools.map(t => t.name));
-
-// Try with simpler model
-const debugModel = await initChatModel('gpt-4o-mini');
-const debugAgent = createAgent({ ... });
-```
-
 ### State not updating
 
 ```typescript
@@ -408,9 +440,26 @@ npm install langchain @langchain/core @langchain/langgraph @langchain/openai @la
 npm install --save-dev typescript vitest
 ```
 
+## Configuration-Driven Agents (Optional)
+
+For production systems requiring dynamic configuration, tool registries, and multi-agent management from storage, see:
+
+**[standard-agent.md](./standard-agent.md)**
+
+The `@langgraph-js/standard-agent` package provides an abstraction layer with:
+
+- AgentPackage for centralized configuration
+- Tool and middleware registries
+- Pluggable storage backends (memory, file system, database)
+- Multi-agent management from configuration
+
+**When to use**: Database-driven configuration, multi-agent routing, dynamic tool/middleware loading. For simple agents,
+use the patterns above directly.
+
 ## Resources
 
--   [LangChain TypeScript](https://js.langchain.com/)
--   [@langgraph-js](https://open-langgraph-server.agent-aura.top/docs/getting-started/overview)
--   [Middleware Guide](./middleware.md) - Comprehensive middleware patterns
--   [Standard Agent System](./standard-agent.md) - Configuration-driven agents
+- [LangChain TypeScript](https://js.langchain.com/)
+- [@langgraph-js](https://langchain-ai.github.io/langgraph/)
+- [Middleware Guide](./middleware.md) - Comprehensive middleware patterns
+- [Standard Agent System](./standard-agent.md) - Configuration-driven agents
+- [Model Metadata](./model-metadata.md) - Model configuration and metadata management
