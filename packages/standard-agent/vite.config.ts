@@ -7,7 +7,6 @@ export default defineConfig({
         lib: {
             entry: {
                 index: 'src/index.ts',
-                sqlite: 'src/storage/sqlite.ts',
             },
 
             formats: ['es'],

@@ -3,5 +3,5 @@ onlyBuiltDependencies:
 packages:
     - 'packages/**'
     - 'zen-code'
-    - 'zen-worker'
+    - 'zen-swarm'
     - 'agents/**'
