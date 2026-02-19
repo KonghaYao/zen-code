@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import type { Agent, Model, Prompt, Tool, Middleware } from '../../../types/index.js';
 import { trpc } from '../../../api.js';
+import { Select } from '../../ui/Select.js';
 
 interface AgentFormProps {
     agent: Agent | null;
@@ -121,7 +122,7 @@ export function AgentForm(props: AgentFormProps) {
                 <input
                     type="text"
                     value={formData.id}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, id: e.currentTarget.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, id: e.target.value }))}
                     disabled={!!props.agent}
                     required
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
@@ -145,7 +146,7 @@ export function AgentForm(props: AgentFormProps) {
                 <label className="block text-sm font-medium mb-1">Description</label>
                 <textarea
                     value={formData.description}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, description: e.currentTarget.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                     rows={2}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="Describe what this agent does"
@@ -154,25 +155,17 @@ export function AgentForm(props: AgentFormProps) {
 
             <div>
                 <label className="block text-sm font-medium mb-1">Model</label>
-                {!optionsLoaded ? (
-                    <div className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-400">
-                        Loading models...
-                    </div>
-                ) : (
-                    <select
-                        value={formData.model}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, model: e.currentTarget.value }))}
-                        required
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="">Select a model...</option>
-                        {models.map((m) => (
-                            <option key={m.id} value={m.id}>
-                                {m.model_name} ({m.id})
-                            </option>
-                        ))}
-                    </select>
-                )}
+                <Select
+                    value={formData.model}
+                    onChange={(value) => setFormData((prev) => ({ ...prev, model: value }))}
+                    options={[
+                        { value: '', label: 'Select a model...' },
+                        ...models.map((m) => ({ value: m.id, label: `${m.model_name} (${m.id})` })),
+                    ]}
+                    loading={!optionsLoaded}
+                    loadingText="Loading models..."
+                    placeholder="Select a model..."
+                />
                 {formData.model && !isValidModel && (
                     <p className="text-yellow-500 text-xs mt-1">Selected model not found in options</p>
                 )}
@@ -180,25 +173,17 @@ export function AgentForm(props: AgentFormProps) {
 
             <div>
                 <label className="block text-sm font-medium mb-1">System Prompt</label>
-                {!optionsLoaded ? (
-                    <div className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-400">
-                        Loading prompts...
-                    </div>
-                ) : (
-                    <select
-                        value={formData.system_prompt}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, system_prompt: e.currentTarget.value }))}
-                        required
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="">Select a prompt...</option>
-                        {prompts.map((p) => (
-                            <option key={p.id} value={p.id}>
-                                {p.name} ({p.id})
-                            </option>
-                        ))}
-                    </select>
-                )}
+                <Select
+                    value={formData.system_prompt}
+                    onChange={(value) => setFormData((prev) => ({ ...prev, system_prompt: value }))}
+                    options={[
+                        { value: '', label: 'Select a prompt...' },
+                        ...prompts.map((p) => ({ value: p.id, label: `${p.name} (${p.id})` })),
+                    ]}
+                    loading={!optionsLoaded}
+                    loadingText="Loading prompts..."
+                    placeholder="Select a prompt..."
+                />
                 {formData.system_prompt && !isValidPrompt && (
                     <p className="text-yellow-500 text-xs mt-1">Selected prompt not found in options</p>
                 )}
