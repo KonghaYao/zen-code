@@ -3,15 +3,17 @@
  */
 
 interface ErrorDisplayProps {
-    error: string;
+    error: Error | string;
     onRetry?: () => void;
 }
 
 export function ErrorDisplay(props: ErrorDisplayProps) {
+    const errorMessage = typeof props.error === 'string' ? props.error : props.error.message;
+
     return (
         <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 text-center">
             <div className="text-red-400 mb-2">❌ Error</div>
-            <div className="text-red-300 text-sm mb-4">{props.error}</div>
+            <div className="text-red-300 text-sm mb-4">{errorMessage}</div>
             {props.onRetry && (
                 <button
                     onClick={props.onRetry}

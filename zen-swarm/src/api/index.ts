@@ -9,6 +9,7 @@ import { toolsRouter } from './tools.js';
 import { middlewaresRouter } from './middlewares.js';
 import { agentsRouter } from './agents.js';
 import { mcpRouter } from './mcp.js';
+import { skillsRouter } from './skills.js';
 
 // ========================================
 // 主 Router
@@ -21,6 +22,7 @@ export const appRouter = router({
     middlewares: middlewaresRouter,
     agents: agentsRouter,
     mcp: mcpRouter,
+    skills: skillsRouter,
 });
 
 // 导出 API 路由映射供 Hono 使用
@@ -31,6 +33,7 @@ export const apiRoutes = {
     middlewares: middlewaresRouter,
     agents: agentsRouter,
     mcp: mcpRouter,
+    skills: skillsRouter,
 };
 
 // 导出类型供客户端使用

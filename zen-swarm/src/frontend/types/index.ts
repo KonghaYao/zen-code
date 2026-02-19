@@ -34,14 +34,37 @@ export type UpdateModelInput = Partial<ModelInput> & { id: string };
 export interface Prompt {
     id: string;
     name: string;
-    description: string;
+    current_version: number;
+    description?: string;
     content: string;
+    change_note?: string;
     created_at?: string;
     updated_at?: string;
 }
 
-export type PromptInput = Omit<Prompt, 'created_at' | 'updated_at'>;
+export interface PromptVersion {
+    id: string;
+    prompt_id: string;
+    version: number;
+    content: string;
+    metadata?: string;
+    change_note?: string;
+    created_at: string;
+}
+
+export type PromptInput = {
+    id: string;
+    name: string;
+    content: string;
+    description?: string;
+    change_note?: string;
+};
 export type UpdatePromptInput = Partial<PromptInput> & { id: string };
+export type CreateVersionInput = {
+    promptId: string;
+    content: string;
+    changeNote?: string;
+};
 
 // ========================================
 // Tool Types
@@ -123,6 +146,20 @@ export interface MCPServer {
 
 export type MCPServerInput = Omit<MCPServer, 'enabled'> & { enabled?: boolean };
 export type UpdateMCPServerInput = Partial<MCPServerInput> & { id: string };
+
+// ========================================
+// Skill Types
+// ========================================
+export interface Skill {
+    name: string;
+    description: string;
+    path: string;
+    source: 'user' | 'project';
+    license?: string;
+    compatibility?: string;
+    metadata?: Record<string, string>;
+    allowed_tools?: string;
+}
 
 // ========================================
 // UI Types

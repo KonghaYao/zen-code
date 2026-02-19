@@ -10,6 +10,7 @@ import { PromptsPanel } from './components/panels/PromptsPanel/index.js';
 import { ToolsPanel } from './components/panels/ToolsPanel/index.js';
 import { MiddlewaresPanel } from './components/panels/MiddlewaresPanel/index.js';
 import { MCPPanel } from './components/panels/MCPPanel/index.js';
+import { SkillsPanel } from './components/panels/SkillsPanel/index.js';
 import { ChatPanel } from './components/ChatPanel.js';
 
 export function App() {
@@ -31,6 +32,8 @@ export function App() {
                         return <MiddlewaresPanel />;
                     case 'mcp':
                         return <MCPPanel />;
+                    case 'skills':
+                        return <SkillsPanel />;
                     default:
                         return <div>Unknown panel: {tab}</div>;
                 }

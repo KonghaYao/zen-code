@@ -2,72 +2,106 @@
  * PromptsPanel 主组件
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { Prompt } from '../../../types/index.js';
-import { apiClient } from '../../../api.js';
+import { trpc } from '../../../api.js';
 import { PromptCard } from './PromptCard.js';
-import { PromptForm } from './PromptForm.js';
+import { PromptForm, type FormMode } from './PromptForm.js';
 import { Modal } from '../../Modal.js';
-import { LoadingOverlay } from '../../LoadingSpinner.js';
 import { ErrorDisplay, EmptyState } from '../../ErrorDisplay.js';
 
 export function PromptsPanel() {
     const [showModal, setShowModal] = useState(false);
+    const [formMode, setFormMode] = useState<FormMode>('create');
     const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [prompts, setPrompts] = useState<Prompt[]>([]);
 
-    const loadPrompts = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await apiClient.prompts.list.query();
-            setPrompts(data);
-        } catch (e: any) {
-            setError(e.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { data: prompts = [], isLoading, error, refetch } = trpc.prompts.list.useQuery();
+
+    const createMutation = trpc.prompts.create.useMutation({
+        onSuccess: () => {
+            setShowModal(false);
+            refetch();
+        },
+    });
+
+    const updateMutation = trpc.prompts.update.useMutation({
+        onSuccess: () => {
+            setShowModal(false);
+            refetch();
+        },
+    });
+
+    const createVersionMutation = trpc.prompts.createVersion.useMutation({
+        onSuccess: () => {
+            setShowModal(false);
+            refetch();
+        },
+    });
+
+    const deleteMutation = trpc.prompts.delete.useMutation({
+        onSuccess: () => {
+            refetch();
+        },
+    });
+
+    const rollbackMutation = trpc.prompts.rollbackVersion.useMutation({
+        onSuccess: () => {
+            refetch();
+        },
+    });
 
     const handleCreate = () => {
         setEditingPrompt(null);
+        setFormMode('create');
         setShowModal(true);
     };
 
     const handleEdit = (prompt: Prompt) => {
         setEditingPrompt(prompt);
+        setFormMode('edit');
+        setShowModal(true);
+    };
+
+    const handleCreateVersion = (prompt: Prompt) => {
+        setEditingPrompt(prompt);
+        setFormMode('newVersion');
         setShowModal(true);
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this prompt?')) return;
-        try {
-            await apiClient.prompts.delete.mutate({ id });
-            await loadPrompts();
-        } catch (e: any) {
-            setError(e.message);
-        }
+        if (!confirm('Are you sure you want to delete this prompt? All versions will be deleted.')) return;
+        deleteMutation.mutate({ id });
+    };
+
+    const handleRollback = async (promptId: string, version: number) => {
+        rollbackMutation.mutate({ promptId, targetVersion: version });
     };
 
     const handleSave = async (formData: any) => {
-        try {
-            if (editingPrompt) {
-                await apiClient.prompts.update.mutate(formData);
-            } else {
-                await apiClient.prompts.create.mutate(formData);
-            }
-            setShowModal(false);
-            await loadPrompts();
-        } catch (e: any) {
-            setError(e.message);
+        switch (formMode) {
+            case 'create':
+                createMutation.mutate({
+                    id: formData.id,
+                    name: formData.name,
+                    content: formData.content,
+                    change_note: formData.change_note,
+                });
+                break;
+            case 'edit':
+                updateMutation.mutate({
+                    id: formData.id,
+                    name: formData.name,
+                });
+                break;
+            case 'newVersion':
+                createVersionMutation.mutate({
+                    promptId: formData.id,
+                    content: formData.content,
+                    changeNote: formData.change_note,
+                });
+                break;
         }
     };
-
-    useEffect(() => {
-        loadPrompts();
-    }, []);
 
     return (
         <div className="space-y-6">
@@ -81,21 +115,26 @@ export function PromptsPanel() {
                 </button>
             </div>
 
-            {loading && <LoadingOverlay />}
+            {error && <ErrorDisplay error={error.message} onRetry={() => refetch()} />}
 
-            {error && <ErrorDisplay error={error} onRetry={loadPrompts} />}
-
-            {!loading && !error && prompts.length === 0 && (
+            {!isLoading && !error && prompts.length === 0 && (
                 <EmptyState
                     message="No prompts yet. Create your first prompt!"
                     action={{ label: 'Create Prompt', onClick: handleCreate }}
                 />
             )}
 
-            {!loading && !error && prompts.length > 0 && (
+            {!isLoading && !error && prompts.length > 0 && (
                 <div className="grid gap-4">
                     {prompts.map((prompt) => (
-                        <PromptCard key={prompt.id} prompt={prompt} onEdit={handleEdit} onDelete={handleDelete} />
+                        <PromptCard
+                            key={prompt.id}
+                            prompt={prompt}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            onCreateVersion={handleCreateVersion}
+                            onRollback={handleRollback}
+                        />
                     ))}
                 </div>
             )}
@@ -105,7 +144,12 @@ export function PromptsPanel() {
                 onClose={() => setShowModal(false)}
                 title={editingPrompt ? 'Edit Prompt' : 'Create Prompt'}
             >
-                <PromptForm prompt={editingPrompt} onSave={handleSave} onCancel={() => setShowModal(false)} />
+                <PromptForm
+                    prompt={editingPrompt}
+                    mode={formMode}
+                    onSave={handleSave}
+                    onCancel={() => setShowModal(false)}
+                />
             </Modal>
         </div>
     );

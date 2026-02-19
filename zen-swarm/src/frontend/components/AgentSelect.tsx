@@ -3,8 +3,8 @@
  * 选择 Agent 进行对话（深色主题）
  */
 
-import React, { useEffect, useState } from 'react';
-import { apiClient } from '../api.js';
+import React from 'react';
+import { trpc } from '../api.js';
 import type { Agent } from '../types/index.js';
 
 interface AgentSelectProps {
@@ -14,29 +14,9 @@ interface AgentSelectProps {
 }
 
 export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disabled = false }) => {
-    const [agents, setAgents] = useState<Agent[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const { data: agents = [], isLoading, error, refetch } = trpc.agents.list.useQuery();
 
-    useEffect(() => {
-        loadAgents();
-    }, []);
-
-    const loadAgents = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const result = await apiClient.agents.list.query();
-            setAgents(result || []);
-        } catch (err) {
-            setError('Failed to load agents');
-            console.error('Failed to load agents:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-400">Loading agents...</span>
@@ -47,8 +27,8 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
     if (error) {
         return (
             <div className="flex items-center gap-2">
-                <span className="text-sm text-red-400">{error}</span>
-                <button onClick={loadAgents} className="text-xs text-teal-400 hover:underline">
+                <span className="text-sm text-red-400">{error.message}</span>
+                <button onClick={() => refetch()} className="text-xs text-teal-400 hover:underline">
                     Retry
                 </button>
             </div>
@@ -59,7 +39,7 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
         return (
             <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-400">No agents available</span>
-                <button onClick={loadAgents} className="text-xs text-teal-400 hover:underline">
+                <button onClick={() => refetch()} className="text-xs text-teal-400 hover:underline">
                     Refresh
                 </button>
             </div>

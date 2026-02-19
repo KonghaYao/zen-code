@@ -25,8 +25,8 @@ export async function createSwarmAgent(
         throw new Error(`Agent not found: ${agentId}`);
     }
 
-    // 加载提示词
-    const promptConfig = await pkg.getPrompt(agentConfig.systemPromptId);
+    // 加载提示词（包含当前版本内容）
+    const promptConfig = await pkg.repository.getPromptWithContent(agentConfig.systemPromptId);
     if (!promptConfig) {
         throw new Error(`Prompt not found: ${agentConfig.name}`);
     }

@@ -2,9 +2,8 @@
  * AgentCard 组件 - 单个 Agent 卡片展示
  */
 
-import { useState, useEffect } from 'react';
 import type { Agent, Model, Prompt, Tool, Middleware } from '../../../types/index.js';
-import { apiClient } from '../../../api.js';
+import { trpc } from '../../../api.js';
 
 interface AgentCardProps {
     agent: Agent;
@@ -13,31 +12,10 @@ interface AgentCardProps {
 }
 
 export function AgentCard(props: AgentCardProps) {
-    // Direct state with tRPC
-    const [models, setModels] = useState<Model[]>([]);
-    const [prompts, setPrompts] = useState<Prompt[]>([]);
-    const [tools, setTools] = useState<Tool[]>([]);
-    const [middlewares, setMiddlewares] = useState<Middleware[]>([]);
-
-    useEffect(() => {
-        const loadReferenceData = async () => {
-            try {
-                const [modelsData, promptsData, toolsData, middlewaresData] = await Promise.all([
-                    apiClient.models.list.query(),
-                    apiClient.prompts.list.query(),
-                    apiClient.tools.list.query(),
-                    apiClient.middlewares.list.query(),
-                ]);
-                setModels(modelsData);
-                setPrompts(promptsData);
-                setTools(toolsData);
-                setMiddlewares(middlewaresData);
-            } catch (e) {
-                console.error('Failed to load reference data:', e);
-            }
-        };
-        loadReferenceData();
-    }, []);
+    const { data: models = [] } = trpc.models.list.useQuery();
+    const { data: prompts = [] } = trpc.prompts.list.useQuery();
+    const { data: tools = [] } = trpc.tools.list.useQuery();
+    const { data: middlewares = [] } = trpc.middlewares.list.useQuery();
 
     const getModelName = () => {
         const model = models.find((m) => m.id === props.agent.model);

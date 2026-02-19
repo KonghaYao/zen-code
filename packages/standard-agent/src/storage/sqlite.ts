@@ -66,6 +66,7 @@ export class BunSqliteStorage extends BaseStorage {
     async initialize(): Promise<void> {
         this.createTables();
         this.createIndexes();
+        this.runMigrations();
     }
 
     private createTables(): void {
@@ -172,6 +173,99 @@ export class BunSqliteStorage extends BaseStorage {
             CREATE INDEX IF NOT EXISTS idx_agents_model_id ON agents(model_id);
             CREATE INDEX IF NOT EXISTS idx_agents_system_prompt_id ON agents(system_prompt_id);
         `);
+    }
+
+    private runMigrations(): void {
+        // 检查 prompts 表是否有 current_version 列
+        const tableInfo = this.db.prepare('PRAGMA table_info(prompts)').all() as { name: string }[];
+        const hasCurrentVersion = tableInfo.some((col) => col.name === 'current_version');
+
+        if (!hasCurrentVersion) {
+            // 添加 current_version 列（迁移旧数据）
+            this.db.run('ALTER TABLE prompts ADD COLUMN current_version INTEGER NOT NULL DEFAULT 1');
+        }
+
+        // 检查是否存在 content 列（需要迁移）
+        const hasContentColumn = tableInfo.some((col) => col.name === 'content');
+
+        if (!hasContentColumn) {
+            // 已经是新版结构，无需迁移
+            return;
+        }
+
+        // 检查 prompt_versions 表是否存在
+        const hasPromptVersionsTable = this.db
+            .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='prompt_versions'")
+            .get();
+
+        if (!hasPromptVersionsTable) {
+            // 创建 prompt_versions 表
+            this.db.run(`
+                CREATE TABLE IF NOT EXISTS prompt_versions (
+                    id TEXT PRIMARY KEY,
+                    prompt_id TEXT NOT NULL,
+                    version INTEGER NOT NULL,
+                    content TEXT NOT NULL,
+                    metadata TEXT,
+                    change_note TEXT,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (prompt_id) REFERENCES prompts(id) ON DELETE CASCADE,
+                    UNIQUE(prompt_id, version)
+                )
+            `);
+        }
+
+        // 检查是否需要迁移数据（prompts 有 content 但 prompt_versions 为空）
+        const existingVersions = this.db.prepare('SELECT COUNT(*) as count FROM prompt_versions').get() as {
+            count: number;
+        };
+
+        if (existingVersions.count === 0) {
+            const promptsWithContent = this.db
+                .prepare('SELECT id, content, metadata, created_at FROM prompts WHERE content IS NOT NULL')
+                .all() as { id: string; content: string; metadata: string | null; created_at: string }[];
+
+            // 迁移现有数据到 prompt_versions
+            for (const p of promptsWithContent) {
+                this.db.run(
+                    'INSERT INTO prompt_versions (id, prompt_id, version, content, metadata, created_at) VALUES (?, ?, 1, ?, ?, ?)',
+                    `${p.id}-v1`,
+                    p.id,
+                    p.content,
+                    p.metadata,
+                    p.created_at,
+                );
+            }
+        }
+
+        // 删除旧的 content 和 metadata 列（SQLite 不支持 DROP COLUMN，需要重建表）
+        // 临时禁用外键约束
+        this.db.run('PRAGMA foreign_keys = OFF');
+
+        // 清理可能存在的临时表
+        this.db.run('DROP TABLE IF EXISTS prompts_new');
+
+        this.db.run(`
+            CREATE TABLE prompts_new (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                current_version INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        `);
+        this.db.run(`
+            INSERT INTO prompts_new (id, name, current_version, created_at, updated_at)
+            SELECT id, name, COALESCE(current_version, 1), created_at, updated_at FROM prompts
+        `);
+        this.db.run('DROP TABLE prompts');
+        this.db.run('ALTER TABLE prompts_new RENAME TO prompts');
+
+        // 重建索引
+        this.db.run('CREATE INDEX IF NOT EXISTS idx_prompts_name ON prompts(name)');
+
+        // 重新启用外键约束
+        this.db.run('PRAGMA foreign_keys = ON');
     }
 
     close(): Promise<void> {

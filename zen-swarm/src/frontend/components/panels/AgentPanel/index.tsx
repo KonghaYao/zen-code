@@ -2,35 +2,39 @@
  * AgentPanel 主组件
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { Agent } from '../../../types/index.js';
-import { apiClient } from '../../../api.js';
+import { trpc } from '../../../api.js';
 import { AgentCard } from './AgentCard.js';
 import { AgentForm } from './AgentForm.js';
 import { Modal } from '../../Modal.js';
-import { LoadingOverlay } from '../../LoadingSpinner.js';
 import { ErrorDisplay, EmptyState } from '../../ErrorDisplay.js';
 
 export function AgentPanel() {
-    // Direct state management with tRPC
     const [showModal, setShowModal] = useState(false);
     const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [agents, setAgents] = useState<Agent[]>([]);
 
-    const loadAgents = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await apiClient.agents.list.query();
-            setAgents(data);
-        } catch (e: any) {
-            setError(e.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { data: agents = [], isLoading, error, refetch } = trpc.agents.list.useQuery();
+
+    const createMutation = trpc.agents.create.useMutation({
+        onSuccess: () => {
+            setShowModal(false);
+            refetch();
+        },
+    });
+
+    const updateMutation = trpc.agents.update.useMutation({
+        onSuccess: () => {
+            setShowModal(false);
+            refetch();
+        },
+    });
+
+    const deleteMutation = trpc.agents.delete.useMutation({
+        onSuccess: () => {
+            refetch();
+        },
+    });
 
     const handleCreate = () => {
         setEditingAgent(null);
@@ -44,31 +48,16 @@ export function AgentPanel() {
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this agent?')) return;
-        try {
-            await apiClient.agents.delete.mutate({ id });
-            await loadAgents();
-        } catch (e: any) {
-            setError(e.message);
-        }
+        deleteMutation.mutate({ id });
     };
 
     const handleSave = async (formData: any) => {
-        try {
-            if (editingAgent) {
-                await apiClient.agents.update.mutate(formData);
-            } else {
-                await apiClient.agents.create.mutate(formData);
-            }
-            setShowModal(false);
-            await loadAgents();
-        } catch (e: any) {
-            setError(e.message);
+        if (editingAgent) {
+            updateMutation.mutate(formData);
+        } else {
+            createMutation.mutate(formData);
         }
     };
-
-    useEffect(() => {
-        loadAgents();
-    }, []);
 
     return (
         <div className="space-y-6">
@@ -82,18 +71,16 @@ export function AgentPanel() {
                 </button>
             </div>
 
-            {loading && <LoadingOverlay />}
+            {error && <ErrorDisplay error={error.message} onRetry={() => refetch()} />}
 
-            {error && <ErrorDisplay error={error} onRetry={loadAgents} />}
-
-            {!loading && !error && agents.length === 0 && (
+            {!isLoading && !error && agents.length === 0 && (
                 <EmptyState
                     message="No agents yet. Create your first agent!"
                     action={{ label: 'Create Agent', onClick: handleCreate }}
                 />
             )}
 
-            {!loading && !error && agents.length > 0 && (
+            {!isLoading && !error && agents.length > 0 && (
                 <div className="grid gap-4">
                     {agents.map((agent) => (
                         <AgentCard key={agent.id} agent={agent} onEdit={handleEdit} onDelete={handleDelete} />

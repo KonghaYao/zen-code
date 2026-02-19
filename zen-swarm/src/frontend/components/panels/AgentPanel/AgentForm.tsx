@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import type { Agent, Model, Prompt, Tool, Middleware } from '../../../types/index.js';
-import { apiClient } from '../../../api.js';
+import { trpc } from '../../../api.js';
 
 interface AgentFormProps {
     agent: Agent | null;
@@ -25,35 +25,13 @@ export function AgentForm(props: AgentFormProps) {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Direct state with tRPC
-    const [models, setModels] = useState<Model[]>([]);
-    const [prompts, setPrompts] = useState<Prompt[]>([]);
-    const [tools, setTools] = useState<Tool[]>([]);
-    const [middlewares, setMiddlewares] = useState<Middleware[]>([]);
-    const [optionsLoaded, setOptionsLoaded] = useState(false);
+    // 使用 tRPC hooks 获取选项数据
+    const { data: models = [], isLoading: loadingModels } = trpc.models.list.useQuery();
+    const { data: prompts = [], isLoading: loadingPrompts } = trpc.prompts.list.useQuery();
+    const { data: tools = [], isLoading: loadingTools } = trpc.tools.list.useQuery();
+    const { data: middlewares = [], isLoading: loadingMiddlewares } = trpc.middlewares.list.useQuery();
 
-    const loadOptions = async () => {
-        try {
-            const [modelsData, promptsData, toolsData, middlewaresData] = await Promise.all([
-                apiClient.models.list.query(),
-                apiClient.prompts.list.query(),
-                apiClient.tools.list.query(),
-                apiClient.middlewares.list.query(),
-            ]);
-            setModels(modelsData);
-            setPrompts(promptsData);
-            setTools(toolsData);
-            setMiddlewares(middlewaresData);
-            setOptionsLoaded(true);
-        } catch (e: any) {
-            console.error('Failed to load options:', e);
-            setError('Failed to load options');
-        }
-    };
-
-    useEffect(() => {
-        loadOptions();
-    }, []);
+    const optionsLoaded = !loadingModels && !loadingPrompts && !loadingTools && !loadingMiddlewares;
 
     // Initialize form data when options are loaded or agent prop changes
     useEffect(() => {
@@ -228,7 +206,7 @@ export function AgentForm(props: AgentFormProps) {
 
             <div>
                 <label className="block text-sm font-medium mb-1">Tools</label>
-                {!optionsLoaded ? (
+                {!optionsLoaded || !tools ? (
                     <div className="max-h-48 overflow-y-auto bg-gray-900 rounded-lg p-3 text-gray-400">
                         Loading tools...
                     </div>

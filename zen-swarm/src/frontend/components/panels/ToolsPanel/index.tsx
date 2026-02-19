@@ -2,34 +2,13 @@
  * ToolsPanel 主组件 - 只读模式
  */
 
-import { useState, useEffect } from 'react';
 import type { Tool } from '../../../types/index.js';
-import { apiClient } from '../../../api.js';
+import { trpc } from '../../../api.js';
 import { ToolCard } from './ToolCard.js';
-import { LoadingOverlay } from '../../LoadingSpinner.js';
 import { ErrorDisplay, EmptyState } from '../../ErrorDisplay.js';
 
 export function ToolsPanel() {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [tools, setTools] = useState<Tool[]>([]);
-
-    const loadTools = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await apiClient.tools.list.query();
-            setTools(data);
-        } catch (e: any) {
-            setError(e.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        loadTools();
-    }, []);
+    const { data: tools = [], isLoading, error } = trpc.tools.list.useQuery();
 
     return (
         <div className="space-y-6">
@@ -37,13 +16,11 @@ export function ToolsPanel() {
                 <h2 className="text-xl font-semibold">Tools ({tools.length})</h2>
             </div>
 
-            {loading && <LoadingOverlay />}
+            {error && <ErrorDisplay error={error.message} onRetry={() => {}} />}
 
-            {error && <ErrorDisplay error={error} onRetry={loadTools} />}
+            {!isLoading && !error && tools.length === 0 && <EmptyState message="No tools available." />}
 
-            {!loading && !error && tools.length === 0 && <EmptyState message="No tools available." />}
-
-            {!loading && !error && tools.length > 0 && (
+            {!isLoading && !error && tools.length > 0 && (
                 <div className="grid gap-4">
                     {tools.map((tool) => (
                         <ToolCard key={tool.id} tool={tool} />

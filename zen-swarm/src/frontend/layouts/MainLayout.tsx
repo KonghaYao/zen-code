@@ -13,6 +13,7 @@ const tabs: Tab[] = [
     { id: 'tools', label: 'Tools', icon: '🔧' },
     { id: 'middlewares', label: 'Middlewares', icon: '🔌' },
     { id: 'mcp', label: 'MCP', icon: '🔗' },
+    { id: 'skills', label: 'Skills', icon: '🎯' },
 ];
 
 interface MainLayoutProps {
