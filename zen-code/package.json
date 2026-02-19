@@ -1,6 +1,6 @@
 {
     "name": "zen-code",
-    "version": "4.7.2",
+    "version": "4.7.4",
     "description": "",
     "main": "./dist/cli.mjs",
     "bin": "./dist/cli.mjs",
@@ -38,7 +38,7 @@
         "kysely": "^0.28.11",
         "kysely-bun-worker": "^1.2.1",
         "kysely-wasm": "^1.2.1",
-        "langchain": "^1.1.1",
+        "langchain": "1.1.1",
         "lowdb": "^7.0.1",
         "marked": "^16.4.2",
         "marked-terminal": "^7.3.0",

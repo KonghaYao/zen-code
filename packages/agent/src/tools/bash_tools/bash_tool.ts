@@ -1,15 +1,7 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import { execa, type ResultPromise } from 'execa';
-
-// 管理后台进程的状态
-export interface ManagedProcess {
-    process: ResultPromise;
-    stdout: string[];
-    stderr: string[];
-}
-
-export const background_processes = new Map<number, ManagedProcess>();
+import { execa } from 'execa';
+import { background_processes, type ManagedProcess, setProcessTimeout, clearProcessTimeout } from './bash_manager.js';
 
 // 检测操作系统
 const isWindows = process.platform === 'win32';
@@ -79,6 +71,7 @@ export const bash_tool = tool(
                     timeout,
                     reject: false,
                     windowsVerbatimArguments: isWindows, // Windows 特殊处理
+                    detached: false, // 确保子进程可以被正确终止
                 });
 
                 if (!child_process.pid) {
@@ -98,11 +91,21 @@ export const bash_tool = tool(
                 child_process.stderr?.on('data', (data) => {
                     managed_process.stderr.push(data.toString());
                 });
-                child_process.on('close', () => {
-                    // 进程结束后可以在这里做清理，或者保留直到用户手动 kill/read 完
+
+                child_process.on('exit', (code, signal) => {
+                    console.log(
+                        `[bash_tool] Background process ${child_process.pid} exited with code ${code}, signal ${signal}`,
+                    );
+                    // 清除超时定时器
+                    clearProcessTimeout(child_process.pid!);
                 });
 
-                return `Command started in background with ID: ${child_process.pid}`;
+                // 设置超时自动关闭
+                if (timeout && timeout > 0) {
+                    setProcessTimeout(child_process.pid, timeout);
+                }
+
+                return `Command started in background with ID: ${child_process.pid}${timeout ? `, timeout: ${timeout}ms` : ''}`;
             } catch (error) {
                 return `Error starting background command: ${error}`;
             }
@@ -130,9 +133,12 @@ Features:
 - Retrieve background process output
 - Kill background processes
 - Cross-platform support (auto-detects OS)
+- Auto-cleanup: All background processes killed on process exit (SIGINT/SIGTERM)
 
 Usage:
 1. Run Command: Provide \`command\`. Optional: \`run_in_background\`, \`timeout\`.
+   - Foreground: Waits for completion or timeout (default 120s)
+   - Background: Returns PID immediately, auto-kills after timeout if specified
 2. Check Output: Provide \`get_output_id\`. Optional: \`filter\`.
 3. Kill Process: Provide \`kill_process_id\`.
 
