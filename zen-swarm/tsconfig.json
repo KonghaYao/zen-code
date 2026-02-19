@@ -12,6 +12,7 @@
         "outDir": "./dist",
         "rootDir": "./src",
         "declaration": true,
+        "jsx": "react-jsx",
         "declarationMap": true,
         "sourceMap": true
     },

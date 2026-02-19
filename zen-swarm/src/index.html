@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Zen Swarm - Multi-Agent Dashboard</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            }
+            .tab-active {
+                border-bottom: 2px solid #3b82f6;
+                color: #3b82f6;
+            }
+        </style>
+    </head>
+    <body class="bg-gray-900 text-gray-100 min-h-screen">
+        <div id="app"></div>
+
+        <!-- React Application (编译后的 JS) -->
+        <script type="module" src="./frontend/index.js"></script>
+    </body>
+</html>

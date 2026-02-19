@@ -1,0 +1,134 @@
+/**
+ * 前端类型定义
+ * 与后端 tRPC schema 保持一致
+ */
+
+// ========================================
+// Model Types
+// ========================================
+export interface Model {
+    id: string;
+    model_name: string;
+    model_provider: string;
+    stream_usage: boolean;
+    enable_thinking: boolean;
+    temperature: number;
+    max_tokens: number;
+    top_p: number;
+    frequency_penalty: number;
+    presence_penalty: number;
+}
+
+export type ModelInput = Omit<Model, 'stream_usage' | 'enable_thinking'> & {
+    stream_usage?: boolean;
+    enable_thinking?: boolean;
+};
+
+export type UpdateModelInput = Partial<ModelInput> & { id: string };
+
+// ========================================
+// Prompt Types
+// ========================================
+export interface Prompt {
+    id: string;
+    name: string;
+    description: string;
+    content: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export type PromptInput = Omit<Prompt, 'created_at' | 'updated_at'>;
+export type UpdatePromptInput = Partial<PromptInput> & { id: string };
+
+// ========================================
+// Tool Types
+// ========================================
+export interface Tool {
+    id: string;
+    name: string;
+    description: string;
+    schema: string; // JSON string
+    parameters: string | null; // JSON string or null
+    created_at?: string;
+    updated_at?: string;
+}
+
+export type ToolInput = Omit<Tool, 'created_at' | 'updated_at'>;
+export type UpdateToolInput = Partial<ToolInput> & { id: string };
+
+// ========================================
+// Middleware Types
+// ========================================
+export interface Middleware {
+    id: string;
+    name: string;
+    description: string;
+    priority: number;
+    config: string; // JSON string
+    created_at?: string;
+    updated_at?: string;
+}
+
+export type MiddlewareInput = Omit<Middleware, 'created_at' | 'updated_at'>;
+export type UpdateMiddlewareInput = Partial<MiddlewareInput> & { id: string };
+
+// ========================================
+// Agent Types
+// ========================================
+export interface Agent {
+    id: string;
+    name: string;
+    description: string;
+    system_prompt: string; // Prompt ID
+    model: string; // Model ID
+    tools: Record<string, boolean | any>;
+    middlewares: Record<string, boolean | any>;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface AgentWithDependencies extends Agent {
+    modelInfo?: Model;
+    promptInfo?: Prompt;
+}
+
+export type AgentInput = {
+    id: string;
+    name: string;
+    description: string;
+    system_prompt: string;
+    model: string;
+    tools?: Record<string, boolean | any>;
+    middleware?: Record<string, boolean | any>;
+};
+
+export type UpdateAgentInput = Partial<AgentInput> & { id: string };
+
+// ========================================
+// MCP Types
+// ========================================
+export interface MCPServer {
+    id: string;
+    name: string;
+    type: 'stdio' | 'http' | 'ws';
+    command?: string;
+    args?: string[];
+    url?: string;
+    env?: Record<string, string>;
+    enabled: boolean;
+}
+
+export type MCPServerInput = Omit<MCPServer, 'enabled'> & { enabled?: boolean };
+export type UpdateMCPServerInput = Partial<MCPServerInput> & { id: string };
+
+// ========================================
+// UI Types
+// ========================================
+export interface Tab {
+    id: string;
+    label: string;
+    icon: string;
+}
+
+export type PanelType = 'agents' | 'models' | 'prompts' | 'tools' | 'middlewares' | 'mcp';
