@@ -3,7 +3,7 @@
  * 选择 Agent 进行对话（深色主题）
  */
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { trpc } from '../api.js';
 import type { Agent } from '../types/index.js';
 
@@ -15,6 +15,24 @@ interface AgentSelectProps {
 
 export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disabled = false }) => {
     const { data: agents = [], isLoading, error, refetch } = trpc.agents.list.useQuery();
+    const hasAutoSelected = useRef(false);
+
+    // Auto-select first agent when list loads
+    useEffect(() => {
+        // Only auto-select if:
+        // 1. Not loading
+        // 2. Have agents
+        // 3. Haven't auto-selected yet
+        // 4. Current value is empty OR doesn't exist in agents list
+        if (!isLoading && agents.length > 0 && !hasAutoSelected.current) {
+            const valueExists = agents.some((a) => a.id === value);
+
+            if (!value || !valueExists) {
+                onChange(agents[0].id);
+                hasAutoSelected.current = true;
+            }
+        }
+    }, [agents, isLoading, value, onChange]);
 
     if (isLoading) {
         return (

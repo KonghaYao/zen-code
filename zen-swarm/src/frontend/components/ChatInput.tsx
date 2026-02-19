@@ -3,7 +3,7 @@
  * 消息输入框组件（深色主题）
  */
 
-import React, { KeyboardEvent } from 'react';
+import React, { KeyboardEvent, useRef } from 'react';
 
 interface ChatInputProps {
     value: string;
@@ -23,6 +23,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     placeholder = '输入消息...',
 }) => {
     const isDisabled = disabled || loading;
+    const isComposingRef = useRef(false);
 
     const handleSubmit = () => {
         const trimmed = value.trim();
@@ -32,10 +33,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     };
 
     const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        // Only submit on Enter if not in IME composition mode
+        if (e.key === 'Enter' && !e.shiftKey && !isComposingRef.current) {
             e.preventDefault();
             handleSubmit();
         }
+    };
+
+    const handleCompositionStart = () => {
+        isComposingRef.current = true;
+    };
+
+    const handleCompositionEnd = () => {
+        isComposingRef.current = false;
     };
 
     return (
@@ -45,6 +55,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     onKeyDown={handleKeyDown}
+                    onCompositionStart={handleCompositionStart}
+                    onCompositionEnd={handleCompositionEnd}
                     placeholder={loading ? 'AI 响应中...' : placeholder}
                     disabled={isDisabled}
                     rows={3}

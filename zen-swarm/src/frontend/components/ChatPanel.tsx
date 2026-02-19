@@ -23,7 +23,7 @@ interface ChatPanelProps {
     onClose?: () => void;
 }
 
-const ChatPanelContent: React.FC<{ modelName?: string }> = ({ modelName }) => {
+const ChatPanelContent: React.FC<{ modelName?: string; defaultAgent?: string }> = ({ modelName, defaultAgent }) => {
     const chatStore = useChat();
     const {
         userInput,
@@ -39,7 +39,7 @@ const ChatPanelContent: React.FC<{ modelName?: string }> = ({ modelName }) => {
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
-    const [selectedAgentId, setSelectedAgentId] = useState<string | undefined>();
+    const [selectedAgentId, setSelectedAgentId] = useState<string | undefined>(defaultAgent);
     const [isUserNearBottom, setIsUserNearBottom] = useState(true);
 
     // 检测用户是否在底部
@@ -64,12 +64,17 @@ const ChatPanelContent: React.FC<{ modelName?: string }> = ({ modelName }) => {
         }
     }, [renderMessages, isUserNearBottom]);
 
-    // Initialize selected agent from currentAgent
+    // Initialize selected agent - auto-select first available if none selected
     useEffect(() => {
-        if (currentAgent && !selectedAgentId) {
+        // Don't override if user has already selected an agent
+        if (selectedAgentId) return;
+
+        if (currentAgent) {
             setSelectedAgentId(currentAgent);
         }
-    }, [currentAgent]);
+        // Note: Auto-selection will be handled in AgentSelect component
+        // when agents list loads
+    }, [currentAgent, selectedAgentId]);
 
     const handleSubmit = async (inputValue: string) => {
         if (!inputValue.trim()) return;
@@ -134,12 +139,6 @@ const ChatPanelContent: React.FC<{ modelName?: string }> = ({ modelName }) => {
                         <AgentSelect value={selectedAgentId} onChange={handleAgentChange} disabled={loading} />
                     </div>
                     <div className="flex gap-2">
-                        <button
-                            onClick={handleNewChat}
-                            className="px-3 py-1.5 text-sm bg-gray-700 text-gray-200 rounded hover:bg-gray-600 transition-colors"
-                        >
-                            新对话
-                        </button>
                         {loading ? (
                             <button
                                 onClick={handleStop}
@@ -228,7 +227,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             }}
             autoRestoreLastSession={false}
         >
-            <ChatPanelContent modelName={modelName} />
+            <ChatPanelContent modelName={modelName} defaultAgent={defaultAgent} />
         </ChatProvider>
     );
 };
