@@ -9,7 +9,7 @@
 
 import { useState } from 'react';
 import type { Prompt, PromptVersion } from '../../../types/index.js';
-import { trpc } from '../../../api.js';
+import { trpc, apiClient } from '../../../api.js';
 import { PromptCard } from './PromptCard.js';
 import { PromptForm, type FormMode } from './PromptForm.js';
 import { Modal } from '../../Modal.js';
@@ -120,7 +120,7 @@ export function PromptsPanel() {
         if (newShow && !versionsCache[promptId]) {
             setLoadingVersions((prev) => ({ ...prev, [promptId]: true }));
             try {
-                const versions = await trpc.prompts.getVersions.query({ promptId });
+                const versions = await apiClient.prompts.getVersions.query({ promptId });
                 setVersionsCache((prev) => ({ ...prev, [promptId]: versions }));
             } finally {
                 setLoadingVersions((prev) => ({ ...prev, [promptId]: false }));
