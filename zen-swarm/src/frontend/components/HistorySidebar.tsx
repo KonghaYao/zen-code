@@ -40,37 +40,34 @@ export function HistorySidebar(props: HistorySidebarProps) {
     });
 
     return (
-        <div className="w-64 flex-shrink-0 bg-gray-900 text-gray-100 flex flex-col h-full overflow-hidden border-r border-gray-700">
+        <div className="w-64 flex-shrink-0 bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] flex flex-col h-full overflow-hidden border-r border-[var(--color-border-subtle)]">
             {/* New Chat Button */}
-            <div className="p-3 border-b border-gray-700">
+            <div className="p-4 border-b border-[var(--color-border-subtle)]">
                 <button
                     onClick={handleNewChat}
-                    className="w-full flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-sm"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded-lg text-sm font-medium text-white transition-colors duration-150"
                 >
-                    <span className="text-lg">➕</span>
-                    <span>新对话</span>
+                    <span>+</span>
+                    <span>New Chat</span>
                 </button>
             </div>
 
             {/* Search */}
-            <div className="p-3 border-b border-gray-700">
-                <div className="relative">
-                    <input
-                        type="text"
-                        placeholder="搜索对话..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full px-3 py-2 pl-8 bg-gray-800 border border-gray-600 rounded-lg text-sm focus:outline-none focus:border-blue-500 text-white placeholder-gray-400"
-                    />
-                    <span className="absolute left-2.5 top-2.5 text-gray-400 text-xs">🔍</span>
-                </div>
+            <div className="p-4 border-b border-[var(--color-border-subtle)]">
+                <input
+                    type="text"
+                    placeholder="Search conversations..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full px-3 py-2 text-sm"
+                />
             </div>
 
             {/* History List */}
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            <div className="flex-1 overflow-y-auto p-2">
                 {filteredHistory.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500 text-sm">
-                        {searchQuery ? '没有找到匹配的对话' : '暂无历史记录'}
+                    <div className="text-center py-8 text-sm text-[var(--color-text-muted)]">
+                        {searchQuery ? 'No conversations found' : 'No history yet'}
                     </div>
                 ) : (
                     filteredHistory.map((thread) => {
@@ -82,24 +79,28 @@ export function HistorySidebar(props: HistorySidebarProps) {
                                 key={thread.thread_id}
                                 onClick={() => handleSelectThread(thread)}
                                 className={`
-                                    w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200
-                                    ${isCurrent ? 'bg-gray-700 text-white' : 'hover:bg-gray-800 text-gray-300'}
+                                    w-full text-left px-3 py-2.5 rounded-lg transition-colors duration-150
+                                    ${
+                                        isCurrent
+                                            ? 'bg-[var(--color-primary-light)] text-[var(--color-primary-dark)]'
+                                            : 'hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]'
+                                    }
                                 `}
                             >
                                 <div className="flex items-start gap-2">
-                                    <span className="text-xs mt-0.5" title={thread.status || '未知'}>
+                                    <span className="text-xs mt-0.5" title={thread.status || 'Unknown'}>
                                         {statusEmoji}
                                     </span>
                                     <div className="flex-1 min-w-0">
                                         <div className="text-sm truncate">
                                             {thread.title || thread.thread_id.slice(0, 12)}
                                         </div>
-                                        <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                                        <div className="text-xs text-[var(--color-text-muted)] mt-0.5 flex items-center gap-1">
                                             <span className="truncate">{formatDate(thread.updated_at)}</span>
                                             {thread.metadata?.agent_id && (
                                                 <>
-                                                    <span>•</span>
-                                                    <span className="truncate max-w-16">
+                                                    <span>·</span>
+                                                    <span className="truncate max-w-16 font-mono text-[var(--color-primary)]">
                                                         {thread.metadata.agent_id}
                                                     </span>
                                                 </>
@@ -114,15 +115,15 @@ export function HistorySidebar(props: HistorySidebarProps) {
             </div>
 
             {/* Footer */}
-            <div className="p-3 border-t border-gray-700 text-xs text-gray-500">
+            <div className="p-3 border-t border-[var(--color-border-subtle)] text-xs text-[var(--color-text-muted)]">
                 <div className="flex items-center justify-between">
-                    <span>{filteredHistory.length} 条记录</span>
+                    <span>{filteredHistory.length} conversations</span>
                     <button
                         onClick={() => refreshHistoryList()}
-                        className="hover:text-gray-300 transition-colors"
-                        title="刷新"
+                        className="text-[var(--color-primary)] hover:underline"
+                        title="Refresh"
                     >
-                        🔄
+                        Refresh
                     </button>
                 </div>
             </div>

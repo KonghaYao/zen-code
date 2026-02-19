@@ -1,6 +1,6 @@
 /**
  * Chat Input Component
- * 消息输入框组件（深色主题）
+ * 消息输入框组件（极简风格）
  */
 
 import React, { KeyboardEvent, useRef } from 'react';
@@ -20,7 +20,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     onSubmit,
     loading = false,
     disabled = false,
-    placeholder = '输入消息...',
+    placeholder = 'Type your message...',
 }) => {
     const isDisabled = disabled || loading;
     const isComposingRef = useRef(false);
@@ -49,29 +49,25 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     };
 
     return (
-        <div className="border-t border-gray-700 p-4 bg-gray-900">
-            <div className="flex flex-col gap-2">
+        <div className="border-t border-[var(--color-border-subtle)] p-4 bg-white">
+            <div className="flex flex-col gap-3 max-w-4xl mx-auto">
                 <textarea
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     onKeyDown={handleKeyDown}
                     onCompositionStart={handleCompositionStart}
                     onCompositionEnd={handleCompositionEnd}
-                    placeholder={loading ? 'AI 响应中...' : placeholder}
+                    placeholder={loading ? 'AI is thinking...' : placeholder}
                     disabled={isDisabled}
                     rows={3}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-800 disabled:text-gray-500 placeholder-gray-400 text-white"
+                    className="w-full px-4 py-3 bg-[var(--color-bg-primary)] border border-[var(--color-border-default)] rounded-lg resize-none text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] disabled:bg-[var(--color-bg-tertiary)] disabled:text-[var(--color-text-tertiary)] disabled:cursor-not-allowed transition-colors duration-150"
                 />
                 <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-400">
-                        {loading ? '⏳ 响应中...' : '💡 按 Enter 发送，Shift+Enter 换行'}
+                    <span className="text-xs text-[var(--color-text-muted)]">
+                        {loading ? 'AI is thinking...' : 'Press Enter to send, Shift+Enter for new line'}
                     </span>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={isDisabled || !value.trim()}
-                        className="px-4 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-600 disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-                    >
-                        {loading ? '发送中...' : '发送'}
+                    <button onClick={handleSubmit} disabled={isDisabled || !value.trim()} className="btn-primary">
+                        {loading ? 'Sending...' : 'Send'}
                     </button>
                 </div>
             </div>

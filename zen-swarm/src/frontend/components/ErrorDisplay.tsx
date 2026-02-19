@@ -1,5 +1,5 @@
 /**
- * ErrorDisplay 错误展示组件
+ * ErrorDisplay 错误展示组件（极简风格）
  */
 
 interface ErrorDisplayProps {
@@ -11,14 +11,14 @@ export function ErrorDisplay(props: ErrorDisplayProps) {
     const errorMessage = typeof props.error === 'string' ? props.error : props.error.message;
 
     return (
-        <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 text-center">
-            <div className="text-red-400 mb-2">❌ Error</div>
-            <div className="text-red-300 text-sm mb-4">{errorMessage}</div>
+        <div className="bg-white border border-[var(--color-border-subtle)] rounded-lg p-6 text-center shadow-sm">
+            <div className="text-[var(--color-error)] mb-3 flex items-center justify-center gap-2">
+                <span className="text-2xl">⚠️</span>
+                <span className="text-lg font-medium">Error</span>
+            </div>
+            <div className="text-[var(--color-text-secondary)] text-sm mb-4">{errorMessage}</div>
             {props.onRetry && (
-                <button
-                    onClick={props.onRetry}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium transition-colors"
-                >
+                <button onClick={props.onRetry} className="btn-secondary">
                     Retry
                 </button>
             )}
@@ -28,13 +28,11 @@ export function ErrorDisplay(props: ErrorDisplayProps) {
 
 export function EmptyState(props: { message: string; action?: { label: string; onClick: () => void } }) {
     return (
-        <div className="bg-gray-800 rounded-lg p-8 text-center text-gray-400">
-            <p>{props.message}</p>
+        <div className="bg-white border border-[var(--color-border-subtle)] rounded-lg p-8 text-center text-[var(--color-text-muted)]">
+            <div className="text-4xl mb-4">📭</div>
+            <p className="text-[var(--color-text-secondary)]">{props.message}</p>
             {props.action && (
-                <button
-                    onClick={props.action.onClick}
-                    className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors"
-                >
+                <button onClick={props.action.onClick} className="btn-primary mt-6">
                     {props.action.label}
                 </button>
             )}

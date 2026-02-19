@@ -12,42 +12,32 @@ interface MCPServerFormProps {
 }
 
 export function MCPServerForm(props: MCPServerFormProps) {
-    const [formData, setFormData] = useState({
-        id: '',
-        name: '',
-        type: 'stdio' as 'stdio' | 'http' | 'ws',
-        command: '',
-        args: '',
-        url: '',
-        env: '',
-        enabled: true,
-    });
+    const [id, setId] = useState('');
+    const [jsonConfig, setJsonConfig] = useState('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (props.server) {
-            setFormData({
-                id: props.server.id,
-                name: props.server.name,
-                type: props.server.type,
-                command: props.server.command || '',
-                args: props.server.args?.join(' ') || '',
-                url: props.server.url || '',
-                env: props.server.env ? JSON.stringify(props.server.env, null, 2) : '',
-                enabled: props.server.enabled,
-            });
+            setId(props.server.id);
+            const config = props.server.config;
+            // 移除 config 中的 name 字段（使用 id 代替）
+            const { name, ...configWithoutName } = config as any;
+            setJsonConfig(JSON.stringify(configWithoutName, null, 2));
         } else {
-            setFormData({
-                id: '',
-                name: '',
-                type: 'stdio',
-                command: '',
-                args: '',
-                url: '',
-                env: '',
-                enabled: true,
-            });
+            setId('');
+            setJsonConfig(
+                JSON.stringify(
+                    {
+                        type: 'stdio',
+                        command: 'npx',
+                        args: ['@modelcontextprotocol/server-filesystem', '/path/to/dir'],
+                        enabled: true,
+                    },
+                    null,
+                    2,
+                ),
+            );
         }
     }, [props.server]);
 
@@ -57,29 +47,32 @@ export function MCPServerForm(props: MCPServerFormProps) {
         setError(null);
 
         try {
-            // Parse args and env
-            const argsArray = formData.args.trim() ? formData.args.split(/\s+/).filter((arg) => arg.length > 0) : [];
+            const config = JSON.parse(jsonConfig);
 
-            let envObj: Record<string, string> = {};
-            if (formData.env.trim()) {
-                envObj = JSON.parse(formData.env);
+            // Validate required fields
+            if (!config.type || !['stdio', 'http', 'ws'].includes(config.type)) {
+                throw new Error('type must be "stdio", "http", or "ws"');
+            }
+
+            // Validate type-specific fields
+            if (config.type === 'stdio' && !config.command) {
+                throw new Error('command is required for stdio type');
+            }
+            if ((config.type === 'http' || config.type === 'ws') && !config.url) {
+                throw new Error('url is required for http/ws type');
             }
 
             const data = {
-                id: formData.id,
-                name: formData.name,
-                type: formData.type,
-                command: formData.type === 'stdio' ? formData.command : undefined,
-                args: formData.type === 'stdio' ? argsArray : undefined,
-                url: formData.type === 'http' || formData.type === 'ws' ? formData.url : undefined,
-                env: Object.keys(envObj).length > 0 ? envObj : undefined,
-                enabled: formData.enabled,
+                id: id,
+                name: id, // name 从 id 获取
+                config: config,
+                enabled: config.enabled ?? true,
             };
 
             await props.onSave(data);
         } catch (e: any) {
             if (e instanceof SyntaxError) {
-                setError('Invalid JSON in environment variables field');
+                setError('Invalid JSON format');
             } else {
                 setError(e.message);
             }
@@ -88,138 +81,52 @@ export function MCPServerForm(props: MCPServerFormProps) {
         }
     };
 
-    const handleChange =
-        (field: keyof typeof formData) =>
-        (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-            const value =
-                field === 'enabled'
-                    ? (e.target as HTMLInputElement).checked
-                    : field === 'type'
-                      ? (e.target.value as 'stdio' | 'http' | 'ws')
-                      : e.target.value;
-            setFormData({ ...formData, [field]: value });
-        };
-
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-                <div className="bg-red-900/20 border border-red-700 rounded-lg p-3 text-red-300 text-sm">{error}</div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-sm">{error}</div>
             )}
 
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Server ID</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Server ID</label>
                 <input
                     type="text"
-                    value={formData.id}
-                    onChange={handleChange('id')}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={id}
+                    onChange={(e) => setId(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g., my_mcp_server"
                     disabled={!!props.server}
-                />
-            </div>
-
-            <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Server Name</label>
-                <input
-                    type="text"
-                    value={formData.name}
-                    onChange={handleChange('name')}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., My MCP Server"
                     required
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Server Type</label>
-                <select
-                    value={formData.type}
-                    onChange={handleChange('type')}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                >
-                    <option value="stdio">STDIO (Command)</option>
-                    <option value="http">HTTP</option>
-                    <option value="ws">WebSocket</option>
-                </select>
-            </div>
-
-            {formData.type === 'stdio' && (
-                <>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Command</label>
-                        <input
-                            type="text"
-                            value={formData.command}
-                            onChange={handleChange('command')}
-                            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                            placeholder="e.g., npx"
-                            required={formData.type === 'stdio'}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">
-                            Arguments (space-separated)
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.args}
-                            onChange={handleChange('args')}
-                            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                            placeholder="e.g., @modelcontextprotocol/server-filesystem /path/to/dir"
-                        />
-                    </div>
-                </>
-            )}
-
-            {(formData.type === 'http' || formData.type === 'ws') && (
-                <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Server URL</label>
-                    <input
-                        type="text"
-                        value={formData.url}
-                        onChange={handleChange('url')}
-                        className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                        placeholder={formData.type === 'http' ? 'https://example.com/mcp' : 'wss://example.com/mcp'}
-                        required
-                    />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Configuration (JSON)</label>
+                <div className="text-xs text-gray-400 mb-2">
+                    Example:{' '}
+                    {`{"type": "stdio", "command": "npx", "args": ["@modelcontextprotocol/server-filesystem", "/path"], "enabled": true}`}
                 </div>
-            )}
-
-            <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Environment Variables (JSON)</label>
                 <textarea
-                    value={formData.env}
-                    onChange={handleChange('env')}
-                    rows={4}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                    placeholder='{"API_KEY": "value", ...}'
+                    value={jsonConfig}
+                    onChange={(e) => setJsonConfig(e.target.value)}
+                    rows={20}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    placeholder='{"type": "stdio", "command": "npx", ...}'
                 />
             </div>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                    type="checkbox"
-                    checked={formData.enabled}
-                    onChange={handleChange('enabled')}
-                    className="w-4 h-4 rounded"
-                />
-                <span className="text-sm text-gray-300">Enable this server</span>
-            </label>
 
             <div className="flex justify-end gap-3 pt-2">
                 <button
                     type="button"
                     onClick={props.onCancel}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
                 >
                     Cancel
                 </button>
                 <button
                     type="submit"
                     disabled={saving}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 rounded-lg text-sm font-medium transition-colors"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 rounded-lg text-sm font-medium transition-colors"
                 >
                     {saving ? 'Saving...' : props.server ? 'Update' : 'Add'}
                 </button>

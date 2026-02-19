@@ -1,6 +1,6 @@
 /**
  * Tool Message Component
- * 显示工具调用消息（深色主题）
+ * 显示工具调用消息（极简风格）
  */
 
 import React from 'react';
@@ -21,36 +21,33 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({ message, messageNumber
 
     const statusStyles = {
         success: {
-            text: 'text-green-400',
-            bg: 'bg-green-900/30',
-            border: 'border-green-700/50',
+            badge: 'badge-success',
             icon: '✓',
+            label: 'Success',
         },
         running: {
-            text: 'text-yellow-400',
-            bg: 'bg-yellow-900/30',
-            border: 'border-yellow-700/50',
+            badge: 'badge-warning',
             icon: '⏳',
+            label: 'Running',
         },
         error: {
-            text: 'text-red-400',
-            bg: 'bg-red-900/30',
-            border: 'border-red-700/50',
+            badge: 'badge-error',
             icon: '✗',
+            label: 'Error',
         },
     };
 
     const style = statusStyles[status as keyof typeof statusStyles] || statusStyles.running;
 
     return (
-        <div className={`flex flex-col border rounded ${style.bg} ${style.border} mb-2`}>
-            <div className={`font-bold px-3 py-1 flex items-center gap-2 ${style.text}`}>
-                <span>{style.icon}</span>
-                <span>
-                    {messageNumber}. Tool: {toolName}
-                </span>
+        <div className="flex flex-col border border-[var(--color-border-subtle)] rounded-lg bg-[var(--color-bg-secondary)] mb-2 animate-slide-in">
+            <div className="px-4 py-2.5 flex items-center gap-3 border-b border-[var(--color-border-subtle)]">
+                <span className="text-sm">{style.icon}</span>
+                <span className="text-sm text-[var(--color-text-muted)]">#{messageNumber}</span>
+                <span className={style.badge}>{style.label}</span>
+                <span className="ml-auto text-sm font-medium text-[var(--color-text-primary)]">{toolName}</span>
             </div>
-            <div className="px-3 py-2 text-sm font-mono overflow-x-auto text-gray-200">
+            <div className="px-4 py-3 text-sm font-mono overflow-x-auto text-[var(--color-text-secondary)]">
                 {toolOutput && typeof toolOutput === 'string' ? (
                     <pre className="whitespace-pre-wrap">{toolOutput}</pre>
                 ) : (

@@ -159,7 +159,7 @@ export function AgentForm(props: AgentFormProps) {
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">Model</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
                 <Select
                     value={formData.model}
                     onChange={(value) => setFormData((prev) => ({ ...prev, model: value }))}
@@ -172,12 +172,12 @@ export function AgentForm(props: AgentFormProps) {
                     placeholder="Select a model..."
                 />
                 {formData.model && !isValidModel && (
-                    <p className="text-yellow-500 text-xs mt-1">Selected model not found in options</p>
+                    <p className="text-amber-600 text-xs mt-1">Selected model not found in options</p>
                 )}
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">System Prompt</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">System Prompt</label>
                 <Select
                     value={formData.system_prompt}
                     onChange={(value) => setFormData((prev) => ({ ...prev, system_prompt: value }))}
@@ -190,18 +190,18 @@ export function AgentForm(props: AgentFormProps) {
                     placeholder="Select a prompt..."
                 />
                 {formData.system_prompt && !isValidPrompt && (
-                    <p className="text-yellow-500 text-xs mt-1">Selected prompt not found in options</p>
+                    <p className="text-amber-600 text-xs mt-1">Selected prompt not found in options</p>
                 )}
             </div>
 
             <div>
                 <label className="block text-sm font-medium mb-1">Tools</label>
                 {!optionsLoaded || !tools ? (
-                    <div className="max-h-48 overflow-y-auto bg-gray-900 rounded-lg p-3 text-gray-400">
+                    <div className="max-h-48 overflow-y-auto bg-gray-50 rounded-lg p-3 text-gray-400">
                         Loading tools...
                     </div>
                 ) : (
-                    <div className="space-y-2 max-h-48 overflow-y-auto bg-gray-900 rounded-lg p-3">
+                    <div className="space-y-2 max-h-48 overflow-y-auto bg-gray-50 rounded-lg p-3">
                         {tools.length === 0 ? (
                             <p className="text-gray-500 text-sm">No tools available</p>
                         ) : (
@@ -211,10 +211,10 @@ export function AgentForm(props: AgentFormProps) {
                                         type="checkbox"
                                         checked={!!formData.tools[tool.id]}
                                         onChange={() => toggleTool(tool.id)}
-                                        className="w-4 h-4 bg-gray-700 border-gray-600 rounded"
+                                        className="w-4 h-4 border-gray-300 rounded"
                                     />
                                     <span className="text-sm">
-                                        {tool.name} <span className="text-gray-500">({tool.id})</span>
+                                        {tool.name} <span className="text-gray-400">({tool.id})</span>
                                     </span>
                                 </label>
                             ))
@@ -226,11 +226,11 @@ export function AgentForm(props: AgentFormProps) {
             <div>
                 <label className="block text-sm font-medium mb-1">Middlewares</label>
                 {!optionsLoaded ? (
-                    <div className="max-h-48 overflow-y-auto bg-gray-900 rounded-lg p-3 text-gray-400">
+                    <div className="max-h-48 overflow-y-auto bg-gray-50 rounded-lg p-3 text-gray-400">
                         Loading middlewares...
                     </div>
                 ) : (
-                    <div className="space-y-2 max-h-48 overflow-y-auto bg-gray-900 rounded-lg p-3">
+                    <div className="space-y-2 max-h-48 overflow-y-auto bg-gray-50 rounded-lg p-3">
                         {middlewares.length === 0 ? (
                             <p className="text-gray-500 text-sm">No middlewares available</p>
                         ) : (
@@ -240,10 +240,10 @@ export function AgentForm(props: AgentFormProps) {
                                         type="checkbox"
                                         checked={!!formData.middleware[mid.id]}
                                         onChange={() => toggleMiddleware(mid.id)}
-                                        className="w-4 h-4 bg-gray-700 border-gray-600 rounded"
+                                        className="w-4 h-4 border-gray-300 rounded"
                                     />
                                     <span className="text-sm">
-                                        {mid.name} <span className="text-gray-500">({mid.id})</span>
+                                        {mid.name} <span className="text-gray-400">({mid.id})</span>
                                     </span>
                                 </label>
                             ))
@@ -256,14 +256,14 @@ export function AgentForm(props: AgentFormProps) {
                 <button
                     type="button"
                     onClick={props.onCancel}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg"
                 >
                     Cancel
                 </button>
                 <button
                     type="submit"
                     disabled={saving || !optionsLoaded}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
                 >
                     {saving ? 'Saving...' : 'Save'}
                 </button>

@@ -115,53 +115,75 @@ const ChatPanelContent: React.FC<{ modelName?: string; defaultAgent?: string }> 
 
     if (inChatError) {
         return (
-            <div className="flex flex-col h-full bg-gray-800 p-8 items-center justify-center">
-                <div className="bg-gray-700 border border-gray-600 rounded-lg p-6 max-w-md text-gray-100">
-                    <h2 className="text-red-400 font-bold text-xl mb-2">连接错误</h2>
-                    <p className="text-red-300 mb-4">{JSON.stringify(inChatError)}</p>
-                    <p className="text-sm text-gray-400">请检查服务器是否正在运行（默认端口: 8124）</p>
+            <div className="flex flex-col h-full bg-[var(--color-bg-primary)] p-8 items-center justify-center">
+                <div className="bg-white border border-[var(--color-border-subtle)] rounded-xl p-8 max-w-md text-center shadow-sm">
+                    <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-[var(--color-error-light)] flex items-center justify-center">
+                        <span className="text-2xl">⚠️</span>
+                    </div>
+                    <h2 className="text-[var(--color-text-primary)] font-semibold text-lg mb-3">Connection Error</h2>
+                    <p className="text-[var(--color-text-secondary)] mb-4">{JSON.stringify(inChatError)}</p>
+                    <p className="text-sm text-[var(--color-text-muted)]">
+                        Please check if the server is running (default port: 8124)
+                    </p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="flex h-full overflow-hidden bg-gray-800">
+        <div className="flex h-full overflow-hidden bg-white">
             {/* Left Sidebar - History */}
             <HistorySidebar />
 
             {/* Right Side - Chat Area */}
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Header */}
-                <header className="flex-shrink-0 bg-gray-900 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
+                <header className="flex-shrink-0 bg-white border-b border-[var(--color-border-subtle)] px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <h1 className="text-xl font-bold text-white">💬 Chat</h1>
+                        <h1 className="text-lg font-medium text-[var(--color-text-primary)]">Chat</h1>
+                        <div className="w-px h-5 bg-[var(--color-border-subtle)]"></div>
                         <AgentSelect value={selectedAgentId} onChange={handleAgentChange} disabled={loading} />
                     </div>
                     <div className="flex gap-2">
                         {loading ? (
                             <button
                                 onClick={handleStop}
-                                className="px-3 py-1.5 text-sm bg-red-900 text-red-200 rounded hover:bg-red-800 transition-colors"
+                                className="px-4 py-2 text-sm font-medium bg-white border border-[var(--color-border-default)] text-[var(--color-text-primary)] rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-colors duration-150"
                             >
-                                停止
+                                Stop
                             </button>
                         ) : null}
                     </div>
                 </header>
 
                 {/* Messages */}
-                <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-6 py-4">
+                <div
+                    ref={messagesContainerRef}
+                    className="flex-1 overflow-y-auto px-6 py-4 bg-[var(--color-bg-primary)]"
+                >
                     {renderMessages.length === 0 ? (
                         <div className="flex items-center justify-center h-full">
-                            <div className="text-center text-gray-400">
-                                <div className="text-4xl mb-4">👋</div>
-                                <p className="text-lg">开始新的对话吧！</p>
-                                <p className="text-sm mt-2">选择 Agent 并输入消息开始与 AI 交互</p>
+                            <div className="text-center">
+                                <p className="text-lg font-medium text-[var(--color-text-primary)] mb-2">
+                                    Start a conversation
+                                </p>
+                                <p className="text-sm text-[var(--color-text-muted)]">
+                                    Select an agent and type your message below
+                                </p>
+                                <div className="mt-8 flex justify-center gap-4">
+                                    <div className="px-4 py-2 rounded-lg bg-[var(--color-bg-tertiary)] border border-[var(--color-border-subtle)]">
+                                        <div className="text-xs text-[var(--color-primary)]">Enter</div>
+                                        <div className="text-xs text-[var(--color-text-muted)]">to send</div>
+                                    </div>
+                                    <div className="px-4 py-2 rounded-lg bg-[var(--color-bg-tertiary)] border border-[var(--color-border-subtle)]">
+                                        <div className="text-xs text-[var(--color-primary)]">Shift + Enter</div>
+                                        <div className="text-xs text-[var(--color-text-muted)]">for new line</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     ) : (
-                        <div className="space-y-4 max-w-4xl mx-auto">
+                        <div className="space-y-6 max-w-4xl mx-auto">
                             {renderMessages.map((message, index) => {
                                 if (message.type === 'human') {
                                     return (
@@ -201,7 +223,7 @@ const ChatPanelContent: React.FC<{ modelName?: string; defaultAgent?: string }> 
                     onChange={setUserInput}
                     onSubmit={handleSubmit}
                     loading={loading}
-                    placeholder="输入消息与 AI 对话..."
+                    placeholder="Type your message..."
                 />
             </div>
         </div>

@@ -85,7 +85,7 @@ export function ModelForm(props: ModelFormProps) {
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             {errors.general && (
-                <div className="bg-red-900/20 border border-red-700 rounded-lg p-3 text-red-300 text-sm">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-sm">
                     {errors.general}
                 </div>
             )}

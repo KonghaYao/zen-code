@@ -27,32 +27,45 @@ export function MainLayout(props: MainLayoutProps) {
     const isChat = activeTab === 'chat';
 
     return (
-        <div className="h-screen flex flex-col overflow-hidden">
+        <div className="h-screen flex flex-col overflow-hidden bg-[var(--color-bg-primary)]">
             {/* Header */}
-            <header className="flex-shrink-0 bg-gray-800 border-b border-gray-700 px-6 py-4">
+            <header className="flex-shrink-0 bg-white border-b border-[var(--color-border-subtle)] px-6 py-4">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    <h1 className="text-2xl font-bold text-white">Zen Swarm</h1>
-                    <span className="text-sm text-gray-400">Multi-Agent Dashboard</span>
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-[var(--color-primary)] flex items-center justify-center">
+                            <span className="text-lg font-bold text-white">Z</span>
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Zen Swarm</h1>
+                            <p className="text-xs text-[var(--color-text-muted)]">Multi-Agent Dashboard</p>
+                        </div>
+                    </div>
                 </div>
             </header>
 
             {/* Tab Navigation */}
-            <nav className="flex-shrink-0 bg-gray-800 border-b border-gray-700 px-6">
+            <nav className="flex-shrink-0 bg-white border-b border-[var(--color-border-subtle)] px-6">
                 <div className="max-w-7xl mx-auto flex space-x-1">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as PanelType)}
-                            className={`px-4 py-3 text-sm font-medium transition-colors ${
-                                activeTab === tab.id
-                                    ? 'tab-active text-white border-b-2 border-blue-500'
-                                    : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
-                            }`}
-                        >
-                            <span className="mr-2">{tab.icon}</span>
-                            {tab.label}
-                        </button>
-                    ))}
+                    {tabs.map((tab) => {
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as PanelType)}
+                                className={`
+                                    relative px-4 py-3 text-sm font-medium transition-colors duration-150 border-b-2
+                                    ${
+                                        isActive
+                                            ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                                            : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)]'
+                                    }
+                                `}
+                            >
+                                <span className="mr-2">{tab.icon}</span>
+                                {tab.label}
+                            </button>
+                        );
+                    })}
                 </div>
             </nav>
 
@@ -63,7 +76,9 @@ export function MainLayout(props: MainLayoutProps) {
                     <div className="h-full">{props.children(activeTab)}</div>
                 ) : (
                     // Other panels: scrollable content
-                    <div className="h-full overflow-y-auto px-6 py-8">{props.children(activeTab)}</div>
+                    <div className="h-full overflow-y-auto px-6 py-8">
+                        <div className="max-w-7xl mx-auto">{props.children(activeTab)}</div>
+                    </div>
                 )}
             </main>
         </div>

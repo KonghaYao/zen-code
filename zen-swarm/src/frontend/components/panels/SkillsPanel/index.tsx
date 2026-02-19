@@ -41,7 +41,7 @@ export function SkillsPanel() {
                 <select
                     value={filter}
                     onChange={(e) => setFilter(e.target.value as FilterType)}
-                    className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                     <option value="all">All Sources</option>
                     <option value="user">User Only</option>
@@ -66,16 +66,16 @@ export function SkillsPanel() {
                     {filteredSkills.map((skill) => (
                         <div
                             key={skill.name}
-                            className="bg-gray-800 rounded-lg border border-gray-700 p-5 hover:border-gray-600 transition-colors"
+                            className="bg-white rounded-lg border border-gray-200 p-5 hover:border-gray-300 transition-colors"
                         >
                             <div className="flex justify-between items-start">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <h3 className="text-lg font-medium text-white">{skill.name}</h3>
+                                        <h3 className="text-lg font-medium text-gray-900">{skill.name}</h3>
                                         {getSourceBadge(skill.source)}
                                     </div>
-                                    <p className="text-gray-400 text-sm mb-3">{skill.description}</p>
-                                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                                    <p className="text-gray-600 text-sm mb-3">{skill.description}</p>
+                                    <div className="flex items-center gap-4 text-xs text-gray-400">
                                         <span>📁 {skill.path}</span>
                                         {skill.license && <span>📜 {skill.license}</span>}
                                     </div>
@@ -83,15 +83,15 @@ export function SkillsPanel() {
                             </div>
 
                             {skill.metadata && Object.keys(skill.metadata).length > 0 && (
-                                <div className="mt-3 pt-3 border-t border-gray-700">
-                                    <span className="text-xs text-gray-500 font-medium">Metadata:</span>
+                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                    <span className="text-xs text-gray-400 font-medium">Metadata:</span>
                                     <div className="mt-1 flex flex-wrap gap-2">
                                         {Object.entries(skill.metadata).map(([key, value]) => (
                                             <span
                                                 key={key}
-                                                className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-700 text-gray-300"
+                                                className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700"
                                             >
-                                                <span className="text-gray-500">{key}:</span> {value}
+                                                <span className="text-gray-400">{key}:</span> {value}
                                             </span>
                                         ))}
                                     </div>
@@ -99,9 +99,9 @@ export function SkillsPanel() {
                             )}
 
                             {skill.allowed_tools && (
-                                <div className="mt-3 pt-3 border-t border-gray-700">
-                                    <span className="text-xs text-gray-500 font-medium">Allowed Tools:</span>
-                                    <code className="ml-2 px-2 py-0.5 bg-gray-900 rounded text-xs text-blue-400">
+                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                    <span className="text-xs text-gray-400 font-medium">Allowed Tools:</span>
+                                    <code className="ml-2 px-2 py-0.5 bg-gray-100 rounded text-xs text-blue-600">
                                         {skill.allowed_tools}
                                     </code>
                                 </div>

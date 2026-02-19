@@ -102,7 +102,9 @@ export const Select: React.FC<SelectProps> = ({
 
     if (loading) {
         return (
-            <div className={`px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-400 ${className}`}>
+            <div
+                className={`px-3 py-2 bg-white border border-[var(--color-border-subtle)] rounded-lg text-[var(--color-text-muted)] ${className}`}
+            >
                 {loadingText}
             </div>
         );
@@ -119,17 +121,23 @@ export const Select: React.FC<SelectProps> = ({
                 onClick={() => !disabled && setIsOpen(!isOpen)}
                 disabled={disabled}
                 className={`
-                    w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg
-                    text-left text-white focus:outline-none focus:ring-2 focus:ring-blue-500
-                    disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed
+                    w-full px-3 py-2 bg-white border rounded-lg
+                    text-left text-[var(--color-text-primary)] focus:outline-none transition-colors duration-150
+                    disabled:bg-[var(--color-bg-tertiary)] disabled:text-[var(--color-text-tertiary)] disabled:cursor-not-allowed
                     flex items-center justify-between
-                    ${isOpen ? 'ring-2 ring-blue-500 border-blue-500' : ''}
+                    ${
+                        isOpen
+                            ? 'border-[var(--color-primary)]'
+                            : 'border-[var(--color-border-default)] hover:border-[var(--color-border-strong)]'
+                    }
                     ${className}
                 `}
             >
-                <span className={value ? 'text-white' : 'text-gray-400'}>{displayValue}</span>
+                <span className={value ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-muted)]'}>
+                    {displayValue}
+                </span>
                 <svg
-                    className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                    className={`w-4 h-4 text-[var(--color-text-muted)] transition-transform ${isOpen ? 'rotate-180' : ''}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -140,9 +148,9 @@ export const Select: React.FC<SelectProps> = ({
 
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className="absolute z-50 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <div className="absolute z-50 w-full mt-1 bg-white border border-[var(--color-border-subtle)] rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {validOptions.length === 0 ? (
-                        <div className="px-3 py-2 text-gray-500 text-sm">No options available</div>
+                        <div className="px-3 py-2 text-[var(--color-text-muted)] text-sm">No options available</div>
                     ) : (
                         validOptions.map((option, index) => (
                             <button
@@ -150,9 +158,13 @@ export const Select: React.FC<SelectProps> = ({
                                 type="button"
                                 onClick={() => handleSelect(option.value)}
                                 className={`
-                                    w-full px-3 py-2 text-left text-sm transition-colors
-                                    ${option.value === value ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700'}
-                                    ${index === highlightedIndex ? 'bg-gray-700' : ''}
+                                    w-full px-3 py-2 text-left text-sm transition-colors duration-100
+                                    ${
+                                        option.value === value
+                                            ? 'bg-[var(--color-primary-light)] text-[var(--color-primary-dark)]'
+                                            : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)]'
+                                    }
+                                    ${index === highlightedIndex ? 'bg-[var(--color-bg-tertiary)]' : ''}
                                 `}
                             >
                                 {option.label}

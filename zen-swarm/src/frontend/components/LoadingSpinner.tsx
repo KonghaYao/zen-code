@@ -1,5 +1,5 @@
 /**
- * LoadingSpinner 加载状态组件
+ * LoadingSpinner 加载状态组件（极简风格）
  */
 
 interface LoadingSpinnerProps {
@@ -21,16 +21,16 @@ export function LoadingSpinner(props: LoadingSpinnerProps) {
 
     return (
         <div className="flex items-center justify-center space-x-2">
-            <div className={`${sizeClass()} animate-spin rounded-full border-2 border-gray-600 border-t-blue-500`} />
-            {props.text && <span className="text-gray-400 text-sm">{props.text}</span>}
+            <div className={`${sizeClass()} loading-spinner`} />
+            {props.text && <span className="text-[var(--color-text-muted)] text-sm">{props.text}</span>}
         </div>
     );
 }
 
 export function LoadingOverlay() {
     return (
-        <div className="text-center py-8 text-gray-400">
-            <LoadingSpinner />
+        <div className="text-center py-8 text-[var(--color-text-muted)]">
+            <LoadingSpinner size="lg" />
         </div>
     );
 }

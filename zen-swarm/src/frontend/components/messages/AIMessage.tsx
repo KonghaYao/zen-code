@@ -1,6 +1,6 @@
 /**
  * AI Message Component
- * 显示AI回复消息（包含thinking和Markdown内容）- 深色主题
+ * 显示AI回复消息（包含thinking和Markdown内容）- 赛博朋克风格
  *
  * 优化点：
  * - 改进类型安全，移除 @ts-ignore
@@ -17,27 +17,6 @@ interface AIMessageProps {
     messageNumber: number;
     modelName?: string;
 }
-
-// 内联样式提取到组件外部（规则：rendering-hoist-jsx）
-const proseStyles = `
-    .prose-invert h1, .prose-invert h2, .prose-invert h3 {
-        color: #e5e7eb;
-    }
-    .prose-invert code {
-        color: #a5f3fc;
-        background: #1f2937;
-        padding: 0.125rem 0.25rem;
-        border-radius: 0.25rem;
-    }
-    .prose-invert pre {
-        background: #111827;
-        border: 1px solid #374151;
-    }
-    .prose-invert pre code {
-        background: transparent;
-        padding: 0;
-    }
-`;
 
 // 提取文本内容的辅助函数（规则：js-early-exit）
 function extractTextContent(textContent: unknown): string {
@@ -96,30 +75,30 @@ export const AIMessage: React.FC<AIMessageProps> = ({ message, messageNumber, mo
     const thinkingLines = thinkingContent ? thinkingContent.split('\n').length : 0;
 
     return (
-        <div className="flex flex-col">
-            <div className="font-bold text-teal-400 mb-1">
-                {messageNumber}. {modelName}
+        <div className="flex flex-col animate-slide-in">
+            <div className="text-xs text-[var(--color-text-muted)] mb-2">
+                Message #{messageNumber} · {modelName}
             </div>
 
             {/* Thinking区域 */}
             {thinkingContent ? (
                 <details
-                    className="mb-2 cursor-pointer"
+                    className="mb-3 cursor-pointer group"
                     open={showThinking}
                     onToggle={(e) => setShowThinking((e.target as HTMLDetailsElement).open)}
                 >
-                    <summary className="text-gray-400 hover:text-gray-200 select-none mb-1">
-                        💭 Thinking ({thinkingLines} rows)
+                    <summary className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] select-none mb-2 flex items-center gap-2 transition-colors duration-150">
+                        <span>Thinking</span>
+                        <span className="badge badge-primary">{thinkingLines} lines</span>
                     </summary>
-                    <pre className="bg-gray-950 text-green-400 p-3 rounded text-sm overflow-x-auto whitespace-pre-wrap">
+                    <pre className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border-subtle)] p-4 rounded-lg text-sm text-[var(--color-text-secondary)] overflow-x-auto whitespace-pre-wrap font-mono">
                         {thinkingContent}
                     </pre>
                 </details>
             ) : null}
 
             {/* 消息内容 */}
-            <div className="bg-gray-750 p-3 rounded text-gray-100 prose prose-invert prose-sm max-w-none">
-                <style>{proseStyles}</style>
+            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] p-4 rounded-lg text-[var(--color-text-primary)] prose prose-sm max-w-none">
                 {displayContent}
             </div>
         </div>

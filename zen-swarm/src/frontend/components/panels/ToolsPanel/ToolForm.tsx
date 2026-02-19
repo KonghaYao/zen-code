@@ -85,62 +85,62 @@ export function ToolForm(props: ToolFormProps) {
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-                <div className="bg-red-900/20 border border-red-700 rounded-lg p-3 text-red-300 text-sm">{error}</div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-sm">{error}</div>
             )}
 
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Tool ID</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tool ID</label>
                 <input
                     type="text"
                     value={formData.id}
                     onChange={handleChange('id')}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g., my_tool"
                     disabled={!!props.tool}
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Tool Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tool Name</label>
                 <input
                     type="text"
                     value={formData.name}
                     onChange={handleChange('name')}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g., My Tool"
                     required
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
                     value={formData.description}
                     onChange={handleChange('description')}
                     rows={3}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Tool description..."
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Parameters (JSON)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Parameters (JSON)</label>
                 <textarea
                     value={formData.parameters}
                     onChange={handleChange('parameters')}
                     rows={3}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                     placeholder='{"type": "object", "properties": {...}}'
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Schema (JSON)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Schema (JSON)</label>
                 <textarea
                     value={formData.schema}
                     onChange={handleChange('schema')}
                     rows={6}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                     placeholder='{"type": "object", "properties": {...}}'
                 />
             </div>
@@ -149,14 +149,14 @@ export function ToolForm(props: ToolFormProps) {
                 <button
                     type="button"
                     onClick={props.onCancel}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
                 >
                     Cancel
                 </button>
                 <button
                     type="submit"
                     disabled={saving}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 rounded-lg text-sm font-medium transition-colors"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 rounded-lg text-sm font-medium transition-colors"
                 >
                     {saving ? 'Saving...' : props.tool ? 'Update' : 'Create'}
                 </button>

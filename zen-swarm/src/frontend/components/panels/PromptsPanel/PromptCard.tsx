@@ -27,29 +27,29 @@ export function PromptCard(props: PromptCardProps) {
     const contentPreview = getContentPreview(prompt.content);
 
     return (
-        <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors">
+        <div className="bg-white rounded-lg p-6 hover:bg-gray-50 transition-colors border border-gray-200">
             <div className="flex justify-between items-start">
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-lg font-medium text-white">{prompt.name}</h3>
-                        <span className="px-2 py-0.5 bg-blue-600/30 text-blue-300 text-xs rounded-full font-mono">
+                        <h3 className="text-lg font-medium text-gray-900">{prompt.name}</h3>
+                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-mono">
                             v{prompt.current_version}
                         </span>
                     </div>
-                    <p className="text-sm text-gray-500 mb-2">ID: {prompt.id}</p>
+                    <p className="text-sm text-gray-400 mb-2">ID: {prompt.id}</p>
                     {prompt.change_note ? (
-                        <p className="text-sm text-gray-400 mb-2 italic">{prompt.change_note}</p>
+                        <p className="text-sm text-gray-600 mb-2 italic">{prompt.change_note}</p>
                     ) : null}
 
-                    <div className="bg-gray-900 rounded p-3 text-sm mb-3">
-                        <div className="mb-1 text-gray-500 text-xs">Content Preview:</div>
-                        <pre className="whitespace-pre-wrap text-gray-300 font-mono text-xs">{contentPreview}</pre>
+                    <div className="bg-gray-50 rounded p-3 text-sm mb-3 border border-gray-200">
+                        <div className="mb-1 text-gray-400 text-xs">Content Preview:</div>
+                        <pre className="whitespace-pre-wrap text-gray-700 font-mono text-xs">{contentPreview}</pre>
                     </div>
 
                     {/* Version History Toggle */}
                     <button
                         onClick={props.onToggleVersions}
-                        className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                        className="text-sm text-blue-600 hover:text-blue-500 flex items-center gap-1"
                     >
                         <span className={`transform transition-transform ${showVersions ? 'rotate-90' : ''}`}>▶</span>
                         Version History ({versions.length || '?'})
@@ -57,9 +57,9 @@ export function PromptCard(props: PromptCardProps) {
 
                     {/* Version List */}
                     {showVersions ? (
-                        <div className="mt-3 bg-gray-900 rounded p-3 max-h-64 overflow-y-auto">
+                        <div className="mt-3 bg-gray-50 rounded p-3 max-h-64 overflow-y-auto border border-gray-200">
                             {loadingVersions ? (
-                                <div className="text-gray-400 text-sm">Loading versions...</div>
+                                <div className="text-gray-500 text-sm">Loading versions...</div>
                             ) : (
                                 <div className="space-y-2">
                                     {versions.map((v) => (
@@ -67,8 +67,8 @@ export function PromptCard(props: PromptCardProps) {
                                             key={v.id}
                                             className={`p-2 rounded ${
                                                 v.version === prompt.current_version
-                                                    ? 'bg-blue-600/20 border border-blue-500/30'
-                                                    : 'bg-gray-800'
+                                                    ? 'bg-blue-50 border border-blue-200'
+                                                    : 'bg-white border border-gray-200'
                                             }`}
                                         >
                                             <div className="flex items-center justify-between">
@@ -77,14 +77,14 @@ export function PromptCard(props: PromptCardProps) {
                                                         v{v.version}
                                                     </span>
                                                     {v.version === prompt.current_version ? (
-                                                        <span className="text-xs text-blue-400">(current)</span>
+                                                        <span className="text-xs text-blue-600">(current)</span>
                                                     ) : null}
                                                 </div>
                                                 <div className="flex gap-2">
                                                     {v.version !== prompt.current_version ? (
                                                         <button
                                                             onClick={() => props.onRollback(prompt.id, v.version)}
-                                                            className="text-xs text-gray-400 hover:text-blue-400"
+                                                            className="text-xs text-gray-500 hover:text-blue-600"
                                                         >
                                                             Rollback
                                                         </button>
@@ -94,7 +94,7 @@ export function PromptCard(props: PromptCardProps) {
                                             {v.change_note ? (
                                                 <p className="text-xs text-gray-500 mt-1">{v.change_note}</p>
                                             ) : null}
-                                            <p className="text-xs text-gray-600 mt-1">{v.created_at}</p>
+                                            <p className="text-xs text-gray-400 mt-1">{v.created_at}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -106,19 +106,19 @@ export function PromptCard(props: PromptCardProps) {
                 <div className="flex flex-col gap-2 ml-4">
                     <button
                         onClick={() => props.onCreateVersion(prompt)}
-                        className="px-3 py-1 text-sm bg-green-700 hover:bg-green-600 rounded"
+                        className="px-3 py-1 text-sm bg-green-100 hover:bg-green-200 text-green-700 rounded"
                     >
                         New Version
                     </button>
                     <button
                         onClick={() => props.onEdit(prompt)}
-                        className="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded"
+                        className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
                     >
                         Edit
                     </button>
                     <button
                         onClick={() => props.onDelete(prompt.id)}
-                        className="px-3 py-1 text-sm bg-red-900/50 hover:bg-red-800 text-red-300 rounded"
+                        className="px-3 py-1 text-sm bg-red-50 hover:bg-red-100 text-red-600 rounded"
                     >
                         Delete
                     </button>

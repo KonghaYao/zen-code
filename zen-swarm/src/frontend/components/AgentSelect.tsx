@@ -37,7 +37,8 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
     if (isLoading) {
         return (
             <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400">Loading agents...</span>
+                <div className="loading-spinner w-4 h-4"></div>
+                <span className="text-sm text-[var(--color-text-muted)]">Loading agents...</span>
             </div>
         );
     }
@@ -45,8 +46,11 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
     if (error) {
         return (
             <div className="flex items-center gap-2">
-                <span className="text-sm text-red-400">{error.message}</span>
-                <button onClick={() => refetch()} className="text-xs text-teal-400 hover:underline">
+                <span className="text-sm text-[var(--color-error)]">{error.message}</span>
+                <button
+                    onClick={() => refetch()}
+                    className="text-xs text-[var(--color-primary)] hover:underline transition-colors"
+                >
                     Retry
                 </button>
             </div>
@@ -56,8 +60,11 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
     if (agents.length === 0) {
         return (
             <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400">No agents available</span>
-                <button onClick={() => refetch()} className="text-xs text-teal-400 hover:underline">
+                <span className="text-sm text-[var(--color-text-muted)]">No agents available</span>
+                <button
+                    onClick={() => refetch()}
+                    className="text-xs text-[var(--color-primary)] hover:underline transition-colors"
+                >
                     Refresh
                 </button>
             </div>
@@ -66,7 +73,7 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
 
     return (
         <div className="flex items-center gap-2">
-            <label htmlFor="agent-select" className="text-sm font-medium text-gray-300">
+            <label htmlFor="agent-select" className="text-sm font-medium text-[var(--color-text-secondary)]">
                 Agent:
             </label>
             <select
@@ -74,7 +81,7 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
                 value={value || ''}
                 onChange={(e) => onChange(e.target.value)}
                 disabled={disabled}
-                className="px-3 py-1.5 text-sm bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 text-sm bg-white border border-[var(--color-border-default)] rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-primary)] disabled:bg-[var(--color-bg-tertiary)] disabled:text-[var(--color-text-tertiary)] disabled:cursor-not-allowed transition-colors duration-150"
             >
                 <option value="">Select an agent...</option>
                 {agents.map((agent) => (

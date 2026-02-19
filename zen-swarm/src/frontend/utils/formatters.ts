@@ -39,7 +39,7 @@ export function getContentPreview(content: string, maxLength = 200): string {
  * 获取优先级颜色类名
  */
 export function getPriorityColor(priority: number): string {
-    if (priority < 10) return 'bg-green-900/50 text-green-300';
-    if (priority < 50) return 'bg-yellow-900/50 text-yellow-300';
-    return 'bg-red-900/50 text-red-300';
+    if (priority < 10) return 'bg-green-100 text-green-700';
+    if (priority < 50) return 'bg-amber-100 text-amber-700';
+    return 'bg-red-100 text-red-700';
 }

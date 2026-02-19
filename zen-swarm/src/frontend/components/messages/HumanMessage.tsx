@@ -1,6 +1,6 @@
 /**
  * Human Message Component
- * 显示用户消息（深色主题）
+ * 显示用户消息（极简风格）
  */
 
 import React from 'react';
@@ -42,9 +42,11 @@ export const HumanMessage: React.FC<HumanMessageProps> = ({ message, messageNumb
     const content = renderContent();
 
     return (
-        <div className="flex flex-col">
-            <div className="font-bold text-amber-400 mb-1">{messageNumber}. User</div>
-            <div className="bg-gray-700 p-3 rounded text-gray-100">{content}</div>
+        <div className="flex flex-col animate-slide-in">
+            <div className="text-xs text-[var(--color-text-muted)] mb-2">Message #{messageNumber} · You</div>
+            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] p-4 rounded-lg text-[var(--color-text-primary)] leading-relaxed">
+                {content}
+            </div>
         </div>
     );
 };

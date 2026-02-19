@@ -90,19 +90,19 @@ export function PromptForm(props: PromptFormProps) {
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-                <div className="bg-red-900/20 border border-red-700 rounded-lg p-3 text-red-300 text-sm">{error}</div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-sm">{error}</div>
             )}
 
             {/* 新建版本时显示当前版本信息 */}
             {isNewVersion && props.prompt && (
-                <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-3 text-blue-300 text-sm">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-blue-700 text-sm">
                     <div className="flex items-center gap-2">
                         <span className="font-medium">{props.prompt.name}</span>
-                        <span className="px-1.5 py-0.5 bg-blue-600/40 text-xs rounded font-mono">
+                        <span className="px-1.5 py-0.5 bg-blue-200 text-xs rounded font-mono">
                             v{props.prompt.current_version}
                         </span>
                         <span className="text-gray-400">→</span>
-                        <span className="px-1.5 py-0.5 bg-green-600/40 text-xs rounded font-mono">
+                        <span className="px-1.5 py-0.5 bg-green-200 text-xs rounded font-mono">
                             v{props.prompt.current_version + 1}
                         </span>
                     </div>
@@ -111,12 +111,12 @@ export function PromptForm(props: PromptFormProps) {
 
             {/* ID 字段 */}
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Prompt ID</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Prompt ID</label>
                 <input
                     type="text"
                     value={formData.id}
                     onChange={handleChange('id')}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g., my_prompt"
                     disabled={!isCreate}
                 />
@@ -124,12 +124,12 @@ export function PromptForm(props: PromptFormProps) {
 
             {/* Name 字段 */}
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Prompt Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Prompt Name</label>
                 <input
                     type="text"
                     value={formData.name}
                     onChange={handleChange('name')}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g., My Prompt"
                     required={isCreate}
                     disabled={isNewVersion}
@@ -138,14 +138,14 @@ export function PromptForm(props: PromptFormProps) {
 
             {/* Change Note 字段 - 新建版本时必填 */}
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Change Note {isNewVersion && <span className="text-red-400">*</span>}
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Change Note {isNewVersion && <span className="text-red-500">*</span>}
                 </label>
                 <input
                     type="text"
                     value={formData.change_note}
                     onChange={handleChange('change_note')}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={
                         isNewVersion ? 'Describe what changed in this version...' : 'Optional note for this change'
                     }
@@ -155,12 +155,12 @@ export function PromptForm(props: PromptFormProps) {
 
             {/* Content 字段 */}
             <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Content</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
                 <textarea
                     value={formData.content}
                     onChange={handleChange('content')}
                     rows={12}
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                     placeholder="Enter your prompt content here..."
                     required
                 />
@@ -170,14 +170,14 @@ export function PromptForm(props: PromptFormProps) {
                 <button
                     type="button"
                     onClick={props.onCancel}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
                 >
                     Cancel
                 </button>
                 <button
                     type="submit"
                     disabled={saving}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 rounded-lg text-sm font-medium transition-colors"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 rounded-lg text-sm font-medium transition-colors"
                 >
                     {saving ? 'Saving...' : getSubmitLabel()}
                 </button>

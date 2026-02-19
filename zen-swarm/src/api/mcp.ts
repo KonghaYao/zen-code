@@ -39,29 +39,51 @@ export const mcpRouter = router({
      * List all MCP configs
      */
     list: publicProcedure.query(async () => {
-        return await mcpStorage.getAllMcpConfigs();
+        const rows = await mcpStorage.getAllMcpConfigs();
+        return rows.map((row) => ({
+            id: row.id,
+            name: row.name,
+            config: JSON.parse(row.config),
+            enabled: row.enabled === 1,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+        }));
     }),
 
     /**
      * Get MCP config by ID
      */
     get: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
-        const config = await mcpStorage.getMcpConfig(input.id);
-        if (!config) {
+        const row = await mcpStorage.getMcpConfig(input.id);
+        if (!row) {
             handleNotFound('MCP config', input.id);
         }
-        return config;
+        return {
+            id: row.id,
+            name: row.name,
+            config: JSON.parse(row.config),
+            enabled: row.enabled === 1,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+        };
     }),
 
     /**
      * Get MCP config by name
      */
     getByName: publicProcedure.input(z.object({ name: z.string() })).query(async ({ input }) => {
-        const config = await mcpStorage.getMcpConfigByName(input.name);
-        if (!config) {
+        const row = await mcpStorage.getMcpConfigByName(input.name);
+        if (!row) {
             handleNotFound('MCP config', input.name);
         }
-        return config;
+        return {
+            id: row.id,
+            name: row.name,
+            config: JSON.parse(row.config),
+            enabled: row.enabled === 1,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+        };
     }),
 
     /**

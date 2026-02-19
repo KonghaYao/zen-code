@@ -156,15 +156,24 @@ export type UpdateAgentInput = Partial<AgentInput> & { id: string };
 export interface MCPServer {
     id: string;
     name: string;
+    config: Record<string, any>; // MCP server configuration
+    enabled: boolean;
+    created_at?: string;
+    updated_at?: string;
+}
+
+// Helper type for accessing config fields
+export interface McpServerConfig {
+    name: string;
     type: 'stdio' | 'http' | 'ws';
     command?: string;
     args?: string[];
     url?: string;
     env?: Record<string, string>;
-    enabled: boolean;
+    enabled?: boolean;
 }
 
-export type MCPServerInput = Omit<MCPServer, 'enabled'> & { enabled?: boolean };
+export type MCPServerInput = MCPServer;
 export type UpdateMCPServerInput = Partial<MCPServerInput> & { id: string };
 
 // ========================================

@@ -1,5 +1,5 @@
 /**
- * 通用 Panel 组件 - 减少各个 Panel 的重复代码
+ * 通用 Panel 组件 - 减少各个 Panel 的重复代码（极简风格）
  *
  * 用途：
  * - 统一的 Panel 结构（标题、创建按钮、列表、空状态、错误显示）
@@ -70,13 +70,11 @@ export function GenericPanel<T>(props: PanelProps<T>) {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">
-                    {resourceName} ({items.length})
+                <h2 className="text-xl font-semibold text-[var(--color-text-primary)] flex items-center gap-3">
+                    {resourceName}
+                    <span className="badge badge-primary">{items.length}</span>
                 </h2>
-                <button
-                    onClick={onCreate}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors"
-                >
+                <button onClick={onCreate} className="btn-primary">
                     {createButtonText}
                 </button>
             </div>
@@ -112,10 +110,10 @@ export function GenericPanel<T>(props: PanelProps<T>) {
             {deleteModal && (
                 <ConfirmModal
                     open={deleteModal.open}
-                    title={`删除 ${resourceName}`}
+                    title={`Delete ${resourceName}`}
                     message={deleteConfirmMessage}
-                    confirmText="删除"
-                    cancelText="取消"
+                    confirmText="Delete"
+                    cancelText="Cancel"
                     confirmVariant="danger"
                     onConfirm={deleteModal.onConfirm}
                     onCancel={deleteModal.onCancel}
