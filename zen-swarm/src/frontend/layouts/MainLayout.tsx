@@ -22,10 +22,13 @@ interface MainLayoutProps {
 export function MainLayout(props: MainLayoutProps) {
     const [activeTab, setActiveTab] = useState<PanelType>('chat');
 
+    // Chat panel is full-screen, no padding/scroll wrapper
+    const isChat = activeTab === 'chat';
+
     return (
-        <div className="min-h-screen">
+        <div className="h-screen flex flex-col overflow-hidden">
             {/* Header */}
-            <header className="bg-gray-800 border-b border-gray-700 px-6 py-4">
+            <header className="flex-shrink-0 bg-gray-800 border-b border-gray-700 px-6 py-4">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <h1 className="text-2xl font-bold text-white">Zen Swarm</h1>
                     <span className="text-sm text-gray-400">Multi-Agent Dashboard</span>
@@ -33,7 +36,7 @@ export function MainLayout(props: MainLayoutProps) {
             </header>
 
             {/* Tab Navigation */}
-            <nav className="bg-gray-800 border-b border-gray-700 px-6">
+            <nav className="flex-shrink-0 bg-gray-800 border-b border-gray-700 px-6">
                 <div className="max-w-7xl mx-auto flex space-x-1">
                     {tabs.map((tab) => (
                         <button
@@ -53,7 +56,15 @@ export function MainLayout(props: MainLayoutProps) {
             </nav>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-6 py-8">{props.children(activeTab)}</main>
+            <main className="flex-1 overflow-hidden">
+                {isChat ? (
+                    // Chat panel: full height, no wrapper
+                    <div className="h-full">{props.children(activeTab)}</div>
+                ) : (
+                    // Other panels: scrollable content
+                    <div className="h-full overflow-y-auto px-6 py-8">{props.children(activeTab)}</div>
+                )}
+            </main>
         </div>
     );
 }

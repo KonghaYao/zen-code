@@ -16,11 +16,6 @@ export const SwarmStateSchema = AgentState.extend(SubAgentStateSchema.shape).ext
     agent_id: z.string().default('default'),
     model_id: z.string().default('gpt-4o-mini'),
     provider_type: z.string().default('openai'),
-
-    // Swarm 协作状态
-    swarm_id: z.string().default(''),
-    task_queue: z.array(z.string()).default([]),
-    completed_tasks: z.array(z.string()).default([]),
 });
 
 /**
@@ -31,11 +26,6 @@ export const SwarmState = createState(SubAgentAnnotation, MessagesAnnotation).bu
     agent_id: createDefaultAnnotation(() => 'default'),
     model_id: createDefaultAnnotation(() => 'gpt-4o-mini'),
     provider_type: createDefaultAnnotation(() => 'openai'),
-
-    // Swarm 协作状态
-    swarm_id: createDefaultAnnotation(() => ''),
-    task_queue: createDefaultAnnotation(() => [] as string[]),
-    completed_tasks: createDefaultAnnotation(() => [] as string[]),
 });
 
 export type SwarmStateType = typeof SwarmState.State;

@@ -18,11 +18,11 @@ export function ModelForm(props: ModelFormProps) {
         model_provider: '',
         stream_usage: false,
         enable_thinking: false,
-        temperature: 0.7,
-        max_tokens: 4096,
-        top_p: 1.0,
-        frequency_penalty: 0.0,
-        presence_penalty: 0.0,
+        temperature: '',
+        max_tokens: '',
+        top_p: '',
+        frequency_penalty: '',
+        presence_penalty: '',
     });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -48,11 +48,11 @@ export function ModelForm(props: ModelFormProps) {
                 model_provider: '',
                 stream_usage: false,
                 enable_thinking: false,
-                temperature: 0.7,
-                max_tokens: 4096,
-                top_p: 1.0,
-                frequency_penalty: 0.0,
-                presence_penalty: 0.0,
+                temperature: '',
+                max_tokens: '',
+                top_p: '',
+                frequency_penalty: '',
+                presence_penalty: '',
             });
         }
     }, [props.model]);
@@ -77,7 +77,9 @@ export function ModelForm(props: ModelFormProps) {
                 e.target.type === 'checkbox'
                     ? (e.target as HTMLInputElement).checked
                     : e.target.type === 'number'
-                      ? parseFloat(e.target.value)
+                      ? e.target.value === ''
+                          ? ''
+                          : parseFloat(e.target.value)
                       : e.target.value;
             setFormData({ ...formData, [field]: value });
         };
@@ -129,17 +131,16 @@ export function ModelForm(props: ModelFormProps) {
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
-                        Temperature ({formData.temperature})
-                    </label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Temperature</label>
                     <input
-                        type="range"
+                        type="number"
                         min="0"
                         max="2"
                         step="0.1"
                         value={formData.temperature}
                         onChange={handleChange('temperature')}
-                        className="w-full"
+                        placeholder="Optional"
+                        className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                 </div>
                 <div>
@@ -149,6 +150,7 @@ export function ModelForm(props: ModelFormProps) {
                         min="1"
                         value={formData.max_tokens}
                         onChange={handleChange('max_tokens')}
+                        placeholder="Optional"
                         className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                 </div>
@@ -156,15 +158,16 @@ export function ModelForm(props: ModelFormProps) {
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Top P ({formData.top_p})</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Top P</label>
                     <input
-                        type="range"
+                        type="number"
                         min="0"
                         max="1"
                         step="0.1"
                         value={formData.top_p}
                         onChange={handleChange('top_p')}
-                        className="w-full"
+                        placeholder="Optional"
+                        className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                 </div>
                 <div>
@@ -176,6 +179,7 @@ export function ModelForm(props: ModelFormProps) {
                         step="0.1"
                         value={formData.frequency_penalty}
                         onChange={handleChange('frequency_penalty')}
+                        placeholder="Optional"
                         className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                 </div>
@@ -190,6 +194,7 @@ export function ModelForm(props: ModelFormProps) {
                     step="0.1"
                     value={formData.presence_penalty}
                     onChange={handleChange('presence_penalty')}
+                    placeholder="Optional"
                     className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
             </div>

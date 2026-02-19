@@ -1,6 +1,6 @@
 /**
  * Agent Select Component
- * 选择 Agent 进行对话
+ * 选择 Agent 进行对话（深色主题）
  */
 
 import React, { useEffect, useState } from 'react';
@@ -39,7 +39,7 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
     if (loading) {
         return (
             <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">Loading agents...</span>
+                <span className="text-sm text-gray-400">Loading agents...</span>
             </div>
         );
     }
@@ -47,8 +47,8 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
     if (error) {
         return (
             <div className="flex items-center gap-2">
-                <span className="text-sm text-red-500">{error}</span>
-                <button onClick={loadAgents} className="text-xs text-blue-600 hover:underline">
+                <span className="text-sm text-red-400">{error}</span>
+                <button onClick={loadAgents} className="text-xs text-teal-400 hover:underline">
                     Retry
                 </button>
             </div>
@@ -58,8 +58,8 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
     if (agents.length === 0) {
         return (
             <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">No agents available</span>
-                <button onClick={loadAgents} className="text-xs text-blue-600 hover:underline">
+                <span className="text-sm text-gray-400">No agents available</span>
+                <button onClick={loadAgents} className="text-xs text-teal-400 hover:underline">
                     Refresh
                 </button>
             </div>
@@ -68,7 +68,7 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
 
     return (
         <div className="flex items-center gap-2">
-            <label htmlFor="agent-select" className="text-sm font-medium text-gray-700">
+            <label htmlFor="agent-select" className="text-sm font-medium text-gray-300">
                 Agent:
             </label>
             <select
@@ -76,7 +76,7 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
                 value={value || ''}
                 onChange={(e) => onChange(e.target.value)}
                 disabled={disabled}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 text-sm bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed"
             >
                 <option value="">Select an agent...</option>
                 {agents.map((agent) => (

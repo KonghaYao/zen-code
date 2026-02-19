@@ -6,8 +6,8 @@ import type { Middleware } from '../../../types/index.js';
 
 interface MiddlewareCardProps {
     middleware: Middleware;
-    onEdit: (middleware: Middleware) => void;
-    onDelete: (id: string) => void;
+    onEdit?: (middleware: Middleware) => void;
+    onDelete?: (id: string) => void;
 }
 
 export function MiddlewareCard(props: MiddlewareCardProps) {
@@ -40,7 +40,9 @@ export function MiddlewareCard(props: MiddlewareCardProps) {
                         </span>
                     </div>
                     <p className="text-sm text-gray-500 mb-2">ID: {props.middleware.id}</p>
-                    <p className="text-sm text-gray-400 mb-3">{props.middleware.description || 'No description'}</p>
+                    <p className="text-sm text-gray-400 mb-3 line-clamp-2">
+                        {props.middleware.description || 'No description'}
+                    </p>
 
                     <div className="bg-gray-900 rounded p-3 text-xs font-mono text-gray-300 overflow-x-auto">
                         <div className="mb-1 text-gray-500">Config:</div>
@@ -48,20 +50,22 @@ export function MiddlewareCard(props: MiddlewareCardProps) {
                     </div>
                 </div>
 
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => props.onEdit(props.middleware)}
-                        className="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded"
-                    >
-                        Edit
-                    </button>
-                    <button
-                        onClick={() => props.onDelete(props.middleware.id)}
-                        className="px-3 py-1 text-sm bg-red-900/50 hover:bg-red-800 text-red-300 rounded"
-                    >
-                        Delete
-                    </button>
-                </div>
+                {props.onEdit && props.onDelete && (
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => props.onEdit(props.middleware)}
+                            className="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded"
+                        >
+                            Edit
+                        </button>
+                        <button
+                            onClick={() => props.onDelete(props.middleware.id)}
+                            className="px-3 py-1 text-sm bg-red-900/50 hover:bg-red-800 text-red-300 rounded"
+                        >
+                            Delete
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

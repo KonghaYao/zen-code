@@ -1,6 +1,6 @@
 /**
  * Tool Message Component
- * 显示工具调用消息
+ * 显示工具调用消息（深色主题）
  */
 
 import React from 'react';
@@ -19,30 +19,38 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({ message, messageNumber
     /** @ts-ignore */
     const toolOutput = message.content;
 
-    const statusColors = {
-        success: 'text-green-600 bg-green-50 border-green-200',
-        running: 'text-yellow-600 bg-yellow-50 border-yellow-200',
-        error: 'text-red-600 bg-red-50 border-red-200',
+    const statusStyles = {
+        success: {
+            text: 'text-green-400',
+            bg: 'bg-green-900/30',
+            border: 'border-green-700/50',
+            icon: '✓',
+        },
+        running: {
+            text: 'text-yellow-400',
+            bg: 'bg-yellow-900/30',
+            border: 'border-yellow-700/50',
+            icon: '⏳',
+        },
+        error: {
+            text: 'text-red-400',
+            bg: 'bg-red-900/30',
+            border: 'border-red-700/50',
+            icon: '✗',
+        },
     };
 
-    const statusIcons = {
-        success: '✓',
-        running: '⏳',
-        error: '✗',
-    };
-
-    const colorClass = statusColors[status as keyof typeof statusColors] || statusColors.running;
-    const statusIcon = statusIcons[status as keyof typeof statusIcons] || statusIcons.running;
+    const style = statusStyles[status as keyof typeof statusStyles] || statusStyles.running;
 
     return (
-        <div className={`flex flex-col border rounded ${colorClass} mb-2`}>
-            <div className="font-bold px-3 py-1 flex items-center gap-2">
-                <span>{statusIcon}</span>
+        <div className={`flex flex-col border rounded ${style.bg} ${style.border} mb-2`}>
+            <div className={`font-bold px-3 py-1 flex items-center gap-2 ${style.text}`}>
+                <span>{style.icon}</span>
                 <span>
                     {messageNumber}. Tool: {toolName}
                 </span>
             </div>
-            <div className="px-3 py-2 text-sm font-mono overflow-x-auto">
+            <div className="px-3 py-2 text-sm font-mono overflow-x-auto text-gray-200">
                 {toolOutput && typeof toolOutput === 'string' ? (
                     <pre className="whitespace-pre-wrap">{toolOutput}</pre>
                 ) : (

@@ -30,6 +30,7 @@ export function AgentForm(props: AgentFormProps) {
     const [prompts, setPrompts] = useState<Prompt[]>([]);
     const [tools, setTools] = useState<Tool[]>([]);
     const [middlewares, setMiddlewares] = useState<Middleware[]>([]);
+    const [optionsLoaded, setOptionsLoaded] = useState(false);
 
     const loadOptions = async () => {
         try {
@@ -43,8 +44,10 @@ export function AgentForm(props: AgentFormProps) {
             setPrompts(promptsData);
             setTools(toolsData);
             setMiddlewares(middlewaresData);
+            setOptionsLoaded(true);
         } catch (e: any) {
             console.error('Failed to load options:', e);
+            setError('Failed to load options');
         }
     };
 
@@ -52,8 +55,10 @@ export function AgentForm(props: AgentFormProps) {
         loadOptions();
     }, []);
 
-    // Initialize form data when agent prop changes
+    // Initialize form data when options are loaded or agent prop changes
     useEffect(() => {
+        if (!optionsLoaded) return;
+
         if (props.agent) {
             setFormData({
                 id: props.agent.id,
@@ -65,17 +70,23 @@ export function AgentForm(props: AgentFormProps) {
                 middleware: { ...props.agent.middlewares } || {},
             });
         } else {
+            // Default: select all tools and middlewares
+            const defaultTools: Record<string, boolean> = {};
+            const defaultMiddleware: Record<string, boolean> = {};
+            tools.forEach((tool) => (defaultTools[tool.id] = true));
+            middlewares.forEach((mid) => (defaultMiddleware[mid.id] = true));
+
             setFormData({
                 id: '',
                 name: '',
                 description: '',
                 system_prompt: '',
                 model: '',
-                tools: {},
-                middleware: {},
+                tools: defaultTools,
+                middleware: defaultMiddleware,
             });
         }
-    }, [props.agent]);
+    }, [props.agent, optionsLoaded, tools, middlewares]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -114,6 +125,12 @@ export function AgentForm(props: AgentFormProps) {
             return { ...prev, middleware: newMiddleware };
         });
     };
+
+    // Check if model ID exists in options
+    const isValidModel = models.some((m) => m.id === formData.model);
+
+    // Check if prompt ID exists in options
+    const isValidPrompt = prompts.some((p) => p.id === formData.system_prompt);
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -159,82 +176,112 @@ export function AgentForm(props: AgentFormProps) {
 
             <div>
                 <label className="block text-sm font-medium mb-1">Model</label>
-                <select
-                    value={formData.model}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, model: e.currentTarget.value }))}
-                    required
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                    <option value="">Select a model...</option>
-                    {models.map((m) => (
-                        <option key={m.id} value={m.id}>
-                            {m.model_name} ({m.id})
-                        </option>
-                    ))}
-                </select>
+                {!optionsLoaded ? (
+                    <div className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-400">
+                        Loading models...
+                    </div>
+                ) : (
+                    <select
+                        value={formData.model}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, model: e.currentTarget.value }))}
+                        required
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">Select a model...</option>
+                        {models.map((m) => (
+                            <option key={m.id} value={m.id}>
+                                {m.model_name} ({m.id})
+                            </option>
+                        ))}
+                    </select>
+                )}
+                {formData.model && !isValidModel && (
+                    <p className="text-yellow-500 text-xs mt-1">Selected model not found in options</p>
+                )}
             </div>
 
             <div>
                 <label className="block text-sm font-medium mb-1">System Prompt</label>
-                <select
-                    value={formData.system_prompt}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, system_prompt: e.currentTarget.value }))}
-                    required
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                    <option value="">Select a prompt...</option>
-                    {prompts.map((p) => (
-                        <option key={p.id} value={p.id}>
-                            {p.name} ({p.id})
-                        </option>
-                    ))}
-                </select>
+                {!optionsLoaded ? (
+                    <div className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-400">
+                        Loading prompts...
+                    </div>
+                ) : (
+                    <select
+                        value={formData.system_prompt}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, system_prompt: e.currentTarget.value }))}
+                        required
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">Select a prompt...</option>
+                        {prompts.map((p) => (
+                            <option key={p.id} value={p.id}>
+                                {p.name} ({p.id})
+                            </option>
+                        ))}
+                    </select>
+                )}
+                {formData.system_prompt && !isValidPrompt && (
+                    <p className="text-yellow-500 text-xs mt-1">Selected prompt not found in options</p>
+                )}
             </div>
 
             <div>
                 <label className="block text-sm font-medium mb-1">Tools</label>
-                <div className="space-y-2 max-h-48 overflow-y-auto bg-gray-900 rounded-lg p-3">
-                    {tools.length === 0 ? (
-                        <p className="text-gray-500 text-sm">No tools available</p>
-                    ) : (
-                        tools.map((tool) => (
-                            <label key={tool.id} className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={!!formData.tools[tool.id]}
-                                    onChange={() => toggleTool(tool.id)}
-                                    className="w-4 h-4 bg-gray-700 border-gray-600 rounded"
-                                />
-                                <span className="text-sm">
-                                    {tool.name} <span className="text-gray-500">({tool.id})</span>
-                                </span>
-                            </label>
-                        ))
-                    )}
-                </div>
+                {!optionsLoaded ? (
+                    <div className="max-h-48 overflow-y-auto bg-gray-900 rounded-lg p-3 text-gray-400">
+                        Loading tools...
+                    </div>
+                ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto bg-gray-900 rounded-lg p-3">
+                        {tools.length === 0 ? (
+                            <p className="text-gray-500 text-sm">No tools available</p>
+                        ) : (
+                            tools.map((tool) => (
+                                <label key={tool.id} className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={!!formData.tools[tool.id]}
+                                        onChange={() => toggleTool(tool.id)}
+                                        className="w-4 h-4 bg-gray-700 border-gray-600 rounded"
+                                    />
+                                    <span className="text-sm">
+                                        {tool.name} <span className="text-gray-500">({tool.id})</span>
+                                    </span>
+                                </label>
+                            ))
+                        )}
+                    </div>
+                )}
             </div>
 
             <div>
                 <label className="block text-sm font-medium mb-1">Middlewares</label>
-                <div className="space-y-2 max-h-48 overflow-y-auto bg-gray-900 rounded-lg p-3">
-                    {middlewares.length === 0 ? (
-                        <p className="text-gray-500 text-sm">No middlewares available</p>
-                    ) : (
-                        middlewares.map((mid) => (
-                            <label key={mid.id} className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={!!formData.middleware[mid.id]}
-                                    onChange={() => toggleMiddleware(mid.id)}
-                                    className="w-4 h-4 bg-gray-700 border-gray-600 rounded"
-                                />
-                                <span className="text-sm">
-                                    {mid.name} <span className="text-gray-500">({mid.id})</span>
-                                </span>
-                            </label>
-                        ))
-                    )}
-                </div>
+                {!optionsLoaded ? (
+                    <div className="max-h-48 overflow-y-auto bg-gray-900 rounded-lg p-3 text-gray-400">
+                        Loading middlewares...
+                    </div>
+                ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto bg-gray-900 rounded-lg p-3">
+                        {middlewares.length === 0 ? (
+                            <p className="text-gray-500 text-sm">No middlewares available</p>
+                        ) : (
+                            middlewares.map((mid) => (
+                                <label key={mid.id} className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={!!formData.middleware[mid.id]}
+                                        onChange={() => toggleMiddleware(mid.id)}
+                                        className="w-4 h-4 bg-gray-700 border-gray-600 rounded"
+                                    />
+                                    <span className="text-sm">
+                                        {mid.name} <span className="text-gray-500">({mid.id})</span>
+                                    </span>
+                                </label>
+                            ))
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
@@ -247,7 +294,7 @@ export function AgentForm(props: AgentFormProps) {
                 </button>
                 <button
                     type="submit"
-                    disabled={saving}
+                    disabled={saving || !optionsLoaded}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
                 >
                     {saving ? 'Saving...' : 'Save'}

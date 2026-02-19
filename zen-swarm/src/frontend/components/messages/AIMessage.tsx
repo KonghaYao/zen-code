@@ -1,6 +1,6 @@
 /**
  * AI Message Component
- * 显示AI回复消息（包含thinking和Markdown内容）
+ * 显示AI回复消息（包含thinking和Markdown内容）- 深色主题
  */
 
 import React, { useState } from 'react';
@@ -57,7 +57,7 @@ export const AIMessage: React.FC<AIMessageProps> = ({ message, messageNumber, mo
 
     return (
         <div className="flex flex-col">
-            <div className="font-bold text-teal-600 mb-1">
+            <div className="font-bold text-teal-400 mb-1">
                 {messageNumber}. {modelName}
             </div>
 
@@ -68,17 +68,36 @@ export const AIMessage: React.FC<AIMessageProps> = ({ message, messageNumber, mo
                     open={showThinking}
                     onToggle={(e) => setShowThinking((e.target as HTMLDetailsElement).open)}
                 >
-                    <summary className="text-gray-500 hover:text-gray-700 select-none mb-1">
+                    <summary className="text-gray-400 hover:text-gray-200 select-none mb-1">
                         💭 Thinking ({thinkingContent.split('\n').length} rows)
                     </summary>
-                    <pre className="bg-gray-900 text-green-400 p-3 rounded text-sm overflow-x-auto whitespace-pre-wrap">
+                    <pre className="bg-gray-950 text-green-400 p-3 rounded text-sm overflow-x-auto whitespace-pre-wrap">
                         {thinkingContent}
                     </pre>
                 </details>
             )}
 
             {/* 消息内容 */}
-            <div className="bg-teal-50 p-3 rounded text-gray-800 prose prose-sm max-w-none">
+            <div className="bg-gray-750 p-3 rounded text-gray-100 prose prose-invert prose-sm max-w-none">
+                <style>{`
+                    .prose-invert h1, .prose-invert h2, .prose-invert h3 {
+                        color: #e5e7eb;
+                    }
+                    .prose-invert code {
+                        color: #a5f3fc;
+                        background: #1f2937;
+                        padding: 0.125rem 0.25rem;
+                        border-radius: 0.25rem;
+                    }
+                    .prose-invert pre {
+                        background: #111827;
+                        border: 1px solid #374151;
+                    }
+                    .prose-invert pre code {
+                        background: transparent;
+                        padding: 0;
+                    }
+                `}</style>
                 {displayContent || '<Thinking...>'}
             </div>
         </div>
