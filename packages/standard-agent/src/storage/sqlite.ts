@@ -22,6 +22,8 @@ import {
     BaseStorage,
     ModelRow,
     PromptRow,
+    PromptVersionRow,
+    PromptWithVersion,
     ToolRow,
     MiddlewareRow,
     AgentToolRow,
@@ -29,7 +31,7 @@ import {
     AgentWithRelations,
     AgentRow,
 } from './abstract.js';
-import { ModelSchema, PromptSchema, ToolSchema, MiddlewareSchema, AgentSchema } from '../index.js';
+import { ModelSchema, PromptSchema, PromptVersionSchema, ToolSchema, MiddlewareSchema, AgentSchema } from '../index.js';
 import { join } from 'path';
 
 export class BunSqliteStorage extends BaseStorage {
@@ -84,14 +86,26 @@ export class BunSqliteStorage extends BaseStorage {
                 updated_at TEXT NOT NULL
             );
 
-            -- Prompts table
+            -- Prompts table (main table)
             CREATE TABLE IF NOT EXISTS prompts (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL UNIQUE,
-                content TEXT NOT NULL,
-                metadata TEXT,
+                current_version INTEGER NOT NULL DEFAULT 1,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
+            );
+
+            -- Prompt versions table (content storage)
+            CREATE TABLE IF NOT EXISTS prompt_versions (
+                id TEXT PRIMARY KEY,
+                prompt_id TEXT NOT NULL,
+                version INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                metadata TEXT,
+                change_note TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (prompt_id) REFERENCES prompts(id) ON DELETE CASCADE,
+                UNIQUE(prompt_id, version)
             );
 
             -- Tools table
@@ -154,6 +168,7 @@ export class BunSqliteStorage extends BaseStorage {
     private createIndexes(): void {
         this.db.run(`
             CREATE INDEX IF NOT EXISTS idx_prompts_name ON prompts(name);
+            CREATE INDEX IF NOT EXISTS idx_prompt_versions ON prompt_versions(prompt_id, version DESC);
             CREATE INDEX IF NOT EXISTS idx_agents_model_id ON agents(model_id);
             CREATE INDEX IF NOT EXISTS idx_agents_system_prompt_id ON agents(system_prompt_id);
         `);
@@ -263,14 +278,22 @@ export class BunSqliteStorage extends BaseStorage {
     // ========================================
     // Prompts
     // ========================================
-    insertPrompt(data: z.infer<typeof PromptSchema>): Promise<void> {
-        const stmt = this.db.prepare(`
-            INSERT INTO prompts (id, name, content, metadata, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `);
+    insertPrompt(data: z.infer<typeof PromptSchema>, content: string, changeNote?: string): Promise<void> {
+        return this.transaction(() => {
+            // Insert prompt main record
+            const promptStmt = this.db.prepare(`
+                INSERT INTO prompts (id, name, current_version, created_at, updated_at)
+                VALUES (?, ?, 1, ?, ?)
+            `);
+            promptStmt.run(data.id, data.name, this.now(), this.now());
 
-        return Promise.resolve().then(() => {
-            stmt.run(data.id, data.name, data.content, this.safeStringify(data.metadata), this.now(), this.now());
+            // Insert initial version
+            const versionStmt = this.db.prepare(`
+                INSERT INTO prompt_versions (id, prompt_id, version, content, change_note, created_at)
+                VALUES (?, ?, 1, ?, ?, ?)
+            `);
+            const versionId = `${data.id}-v1`;
+            versionStmt.run(versionId, data.id, content, changeNote || null, this.now());
         });
     }
 
@@ -286,20 +309,50 @@ export class BunSqliteStorage extends BaseStorage {
         return Promise.resolve(row);
     }
 
+    getPromptWithCurrentVersion(id: string): Promise<PromptWithVersion | undefined> {
+        const stmt = this.db.prepare(`
+            SELECT p.*, pv.content, pv.metadata, pv.change_note
+            FROM prompts p
+            JOIN prompt_versions pv ON p.id = pv.prompt_id AND p.current_version = pv.version
+            WHERE p.id = ?
+        `);
+        const row = stmt.get(id) as PromptWithVersion | undefined;
+        return Promise.resolve(row);
+    }
+
+    getPromptWithCurrentVersionByName(name: string): Promise<PromptWithVersion | undefined> {
+        const stmt = this.db.prepare(`
+            SELECT p.*, pv.content, pv.metadata, pv.change_note
+            FROM prompts p
+            JOIN prompt_versions pv ON p.id = pv.prompt_id AND p.current_version = pv.version
+            WHERE p.name = ?
+        `);
+        const row = stmt.get(name) as PromptWithVersion | undefined;
+        return Promise.resolve(row);
+    }
+
     getAllPrompts(): Promise<PromptRow[]> {
         const stmt = this.db.prepare('SELECT * FROM prompts ORDER BY created_at DESC');
         const rows = stmt.all() as PromptRow[];
         return Promise.resolve(rows);
     }
 
+    getAllPromptsWithCurrentVersion(): Promise<PromptWithVersion[]> {
+        const stmt = this.db.prepare(`
+            SELECT p.*, pv.content, pv.metadata, pv.change_note
+            FROM prompts p
+            JOIN prompt_versions pv ON p.id = pv.prompt_id AND p.current_version = pv.version
+            ORDER BY p.created_at DESC
+        `);
+        const rows = stmt.all() as PromptWithVersion[];
+        return Promise.resolve(rows);
+    }
+
     updatePrompt(data: z.infer<typeof PromptSchema>): Promise<void> {
         const stmt = this.db.prepare(`
-            UPDATE prompts
-            SET name = ?, content = ?, metadata = ?, updated_at = ?
-            WHERE id = ?
+            UPDATE prompts SET name = ?, updated_at = ? WHERE id = ?
         `);
-
-        const result = stmt.run(data.name, data.content, this.safeStringify(data.metadata), this.now(), data.id);
+        const result = stmt.run(data.name, this.now(), data.id);
 
         if (result.changes === 0) {
             throw new Error(`Prompt with id ${data.id} not found`);
@@ -322,6 +375,89 @@ export class BunSqliteStorage extends BaseStorage {
 
             if (result.changes === 0) {
                 throw new Error(`Prompt with id ${id} not found`);
+            }
+        });
+    }
+
+    // ========================================
+    // Prompt Versions
+    // ========================================
+    createPromptVersion(promptId: string, content: string, changeNote?: string): Promise<PromptVersionRow> {
+        return this.transaction(() => {
+            // Get current prompt
+            const prompt = this.db.prepare('SELECT * FROM prompts WHERE id = ?').get(promptId) as PromptRow | undefined;
+            if (!prompt) {
+                throw new Error(`Prompt with id ${promptId} not found`);
+            }
+
+            const newVersion = prompt.current_version + 1;
+            const versionId = `${promptId}-v${newVersion}`;
+            const now = this.now();
+
+            // Insert new version
+            const versionStmt = this.db.prepare(`
+                INSERT INTO prompt_versions (id, prompt_id, version, content, change_note, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            `);
+            versionStmt.run(versionId, promptId, newVersion, content, changeNote || null, now);
+
+            // Update prompt's current_version
+            const updateStmt = this.db.prepare(`
+                UPDATE prompts SET current_version = ?, updated_at = ? WHERE id = ?
+            `);
+            updateStmt.run(newVersion, now, promptId);
+
+            return {
+                id: versionId,
+                prompt_id: promptId,
+                version: newVersion,
+                content,
+                metadata: null,
+                change_note: changeNote || null,
+                created_at: now,
+            };
+        });
+    }
+
+    getPromptVersion(promptId: string, version: number): Promise<PromptVersionRow | undefined> {
+        const stmt = this.db.prepare(`
+            SELECT * FROM prompt_versions WHERE prompt_id = ? AND version = ?
+        `);
+        const row = stmt.get(promptId, version) as PromptVersionRow | undefined;
+        return Promise.resolve(row);
+    }
+
+    getPromptVersions(promptId: string): Promise<PromptVersionRow[]> {
+        const stmt = this.db.prepare(`
+            SELECT * FROM prompt_versions WHERE prompt_id = ? ORDER BY version DESC
+        `);
+        const rows = stmt.all(promptId) as PromptVersionRow[];
+        return Promise.resolve(rows);
+    }
+
+    rollbackPromptVersion(promptId: string, targetVersion: number): Promise<void> {
+        return this.transaction(() => {
+            // Check if target version exists
+            const version = this.db
+                .prepare(
+                    `
+                SELECT * FROM prompt_versions WHERE prompt_id = ? AND version = ?
+            `,
+                )
+                .get(promptId, targetVersion) as PromptVersionRow | undefined;
+
+            if (!version) {
+                throw new Error(`Version ${targetVersion} not found for prompt ${promptId}`);
+            }
+
+            // Update current_version
+            const stmt = this.db.prepare(`
+                UPDATE prompts SET current_version = ?, updated_at = ? WHERE id = ?
+            `);
+            const result = stmt.run(targetVersion, this.now(), promptId);
+
+            if (result.changes === 0) {
+                throw new Error(`Prompt with id ${promptId} not found`);
             }
         });
     }
@@ -613,8 +749,15 @@ export class BunSqliteStorage extends BaseStorage {
         if (!model) throw new Error(`Model ${agent.model_id} not found`);
 
         const systemPrompt = this.db
-            .prepare('SELECT * FROM prompts WHERE id = ?')
-            .get(agent.system_prompt_id) as PromptRow;
+            .prepare(
+                `
+            SELECT p.*, pv.content, pv.metadata, pv.change_note
+            FROM prompts p
+            JOIN prompt_versions pv ON p.id = pv.prompt_id AND p.current_version = pv.version
+            WHERE p.id = ?
+        `,
+            )
+            .get(agent.system_prompt_id) as PromptWithVersion;
         if (!systemPrompt) throw new Error(`Prompt ${agent.system_prompt_id} not found`);
 
         return { agent, model, systemPrompt };

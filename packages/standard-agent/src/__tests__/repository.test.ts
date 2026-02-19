@@ -57,47 +57,82 @@ describe('AgentRepository', () => {
     });
 
     describe('Prompts', () => {
-        const mockPrompt = {
+        const mockPromptData = {
             id: 'prompt-1',
             name: 'system-prompt',
-            content: 'You are a helpful assistant',
-            metadata: { version: 1 },
         };
+        const mockContent = 'You are a helpful assistant';
 
         it('should add and get a prompt', async () => {
-            await repository.addPrompt(mockPrompt);
+            await repository.addPrompt(mockPromptData, mockContent);
             const result = await repository.getPrompt('prompt-1');
             expect(result).toBeDefined();
             expect(result?.name).toBe('system-prompt');
-            expect(result?.metadata).toEqual({ version: 1 });
+        });
+
+        it('should get prompt with content', async () => {
+            await repository.addPrompt(mockPromptData, mockContent);
+            const result = await repository.getPromptWithContent('prompt-1');
+            expect(result).toBeDefined();
+            expect(result?.name).toBe('system-prompt');
+            expect(result?.content).toBe(mockContent);
         });
 
         it('should get prompt by name', async () => {
-            await repository.addPrompt(mockPrompt);
+            await repository.addPrompt(mockPromptData, mockContent);
             const result = await repository.getPromptByName('system-prompt');
             expect(result).toBeDefined();
             expect(result?.id).toBe('prompt-1');
         });
 
+        it('should get prompt by name with content', async () => {
+            await repository.addPrompt(mockPromptData, mockContent);
+            const result = await repository.getPromptByNameWithContent('system-prompt');
+            expect(result).toBeDefined();
+            expect(result?.id).toBe('prompt-1');
+            expect(result?.content).toBe(mockContent);
+        });
+
         it('should list all prompts', async () => {
-            await repository.addPrompt(mockPrompt);
-            await repository.addPrompt({ ...mockPrompt, id: 'prompt-2', name: 'prompt-2' });
+            await repository.addPrompt(mockPromptData, mockContent);
+            await repository.addPrompt({ id: 'prompt-2', name: 'prompt-2' }, 'Content 2');
             const prompts = await repository.listPrompts();
             expect(prompts).toHaveLength(2);
         });
 
-        it('should update a prompt', async () => {
-            await repository.addPrompt(mockPrompt);
-            await repository.updatePrompt({ ...mockPrompt, content: 'Updated content' });
-            const result = await repository.getPrompt('prompt-1');
-            expect(result?.content).toBe('Updated content');
+        it('should update prompt name', async () => {
+            await repository.addPrompt(mockPromptData, mockContent);
+            await repository.updatePrompt({ ...mockPromptData, name: 'new-name' });
+            const result = await repository.getPromptByName('new-name');
+            expect(result).toBeDefined();
         });
 
         it('should delete a prompt', async () => {
-            await repository.addPrompt(mockPrompt);
+            await repository.addPrompt(mockPromptData, mockContent);
             await repository.deletePrompt('prompt-1');
             const result = await repository.getPrompt('prompt-1');
             expect(result).toBeUndefined();
+        });
+
+        it('should create new version', async () => {
+            await repository.addPrompt(mockPromptData, mockContent);
+            const v2 = await repository.createPromptVersion('prompt-1', 'Updated content', 'v2');
+            expect(v2.version).toBe(2);
+
+            const withContent = await repository.getPromptWithContent('prompt-1');
+            expect(withContent?.content).toBe('Updated content');
+        });
+
+        it('should rollback to previous version', async () => {
+            await repository.addPrompt(mockPromptData, mockContent);
+            await repository.createPromptVersion('prompt-1', 'Version 2');
+            await repository.createPromptVersion('prompt-1', 'Version 3');
+
+            await repository.rollbackPromptVersion('prompt-1', 1);
+
+            const withContent = await repository.getPromptWithContent('prompt-1');
+            expect(withContent?.content).toBe(mockContent);
+            expect(withContent?.current_version).toBe(1);
         });
     });
 
@@ -187,11 +222,7 @@ describe('AgentRepository', () => {
                 frequency_penalty: 0.0,
                 presence_penalty: 0.0,
             });
-            await repository.addPrompt({
-                id: 'prompt-1',
-                name: 'system',
-                content: 'You are helpful',
-            });
+            await repository.addPrompt({ id: 'prompt-1', name: 'system' }, 'You are helpful');
             await repository.addTool({
                 id: 'tool-1',
                 name: 'read_file',

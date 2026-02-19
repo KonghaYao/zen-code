@@ -1,6 +1,44 @@
 import { z } from 'zod';
-import { AgentPackageSchema } from './schemas.js';
 import type { IStorage } from './storage/abstract.js';
+
+/**
+ * Extended schema for serialization (includes content)
+ */
+const PromptExportSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    content: z.string(),
+    change_note: z.string().optional(),
+});
+
+const AgentPackageExportSchema = z.object({
+    models: z.array(
+        z.object({
+            id: z.string(),
+            model_name: z.string(),
+            model_provider: z.string(),
+            stream_usage: z.boolean(),
+            enable_thinking: z.boolean(),
+            temperature: z.number(),
+            max_tokens: z.number(),
+            top_p: z.number(),
+            frequency_penalty: z.number(),
+            presence_penalty: z.number(),
+        }),
+    ),
+    prompts: z.array(PromptExportSchema),
+    agents: z.array(
+        z.object({
+            id: z.string(),
+            name: z.string(),
+            description: z.string(),
+            system_prompt: z.string(),
+            model: z.string(),
+            tools: z.record(z.string(), z.unknown()),
+            middleware: z.record(z.string(), z.unknown()),
+        }),
+    ),
+});
 
 /**
  * Agent Serializer
@@ -13,10 +51,10 @@ export class AgentSerializer {
     /**
      * Export all agents, models, and prompts to JSON
      */
-    async toJSON(): Promise<z.infer<typeof AgentPackageSchema>> {
+    async toJSON(): Promise<z.infer<typeof AgentPackageExportSchema>> {
         const [models, prompts, agents] = await Promise.all([
             this.storage.getAllModels(),
-            this.storage.getAllPrompts(),
+            this.storage.getAllPromptsWithCurrentVersion(),
             this.storage.getAllAgents(),
         ]);
 
@@ -37,7 +75,7 @@ export class AgentSerializer {
                 id: p.id,
                 name: p.name,
                 content: p.content,
-                metadata: p.metadata ? JSON.parse(p.metadata) : undefined,
+                change_note: p.change_note || undefined,
             })),
             agents: agents.map((a) => ({
                 id: a.id,
@@ -54,8 +92,8 @@ export class AgentSerializer {
     /**
      * Import agents, models, and prompts from JSON
      */
-    async fromJSON(data: z.infer<typeof AgentPackageSchema>): Promise<void> {
-        const result = AgentPackageSchema.safeParse(data);
+    async fromJSON(data: unknown): Promise<void> {
+        const result = AgentPackageExportSchema.safeParse(data);
         if (!result.success) {
             throw new Error(`Invalid AgentPackage data: ${result.error.message}`);
         }
@@ -66,7 +104,7 @@ export class AgentSerializer {
                 await this.storage.insertModel(m);
             }
             for (const p of result.data.prompts) {
-                await this.storage.insertPrompt(p);
+                await this.storage.insertPrompt({ id: p.id, name: p.name }, p.content, p.change_note);
             }
             for (const a of result.data.agents) {
                 await this.storage.insertAgent(a);

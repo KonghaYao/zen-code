@@ -17,8 +17,16 @@ export const ModelSchema = z.object({
 export const PromptSchema = z.object({
     id: z.string(),
     name: z.string().describe('prompt name, must be unique'),
-    content: z.string().describe('prompt content'),
-    metadata: z.any().optional().describe('prompt metadata'),
+    // Note: content moved to PromptVersionSchema
+});
+
+export const PromptVersionSchema = z.object({
+    id: z.string(),
+    prompt_id: z.string().describe('reference to prompt'),
+    version: z.number().int().positive().describe('version number, starts from 1'),
+    content: z.string().describe('prompt content for this version'),
+    metadata: z.any().optional().describe('version-specific metadata'),
+    change_note: z.string().optional().describe('description of changes in this version'),
 });
 
 export const ToolSchema = z.object({

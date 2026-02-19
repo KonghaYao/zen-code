@@ -68,30 +68,29 @@ describe('AgentPackage', () => {
     });
 
     describe('Prompt Operations', () => {
-        const mockPrompt = {
+        const mockPromptData = {
             id: 'prompt-1',
             name: 'system-prompt',
-            content: 'You are a helpful assistant',
-            metadata: { version: 1 },
         };
+        const mockContent = 'You are a helpful assistant';
 
         it('should add and get prompt', async () => {
-            await pkg.addPrompt(mockPrompt);
+            await pkg.addPrompt(mockPromptData, mockContent);
             const result = await pkg.getPrompt('prompt-1');
             expect(result).toBeDefined();
             expect(result?.name).toBe('system-prompt');
         });
 
         it('should get prompt by name', async () => {
-            await pkg.addPrompt(mockPrompt);
+            await pkg.addPrompt(mockPromptData, mockContent);
             const result = await pkg.getPromptByName('system-prompt');
             expect(result).toBeDefined();
             expect(result?.id).toBe('prompt-1');
         });
 
         it('should list all prompts', async () => {
-            await pkg.addPrompt(mockPrompt);
-            await pkg.addPrompt({ ...mockPrompt, id: 'prompt-2', name: 'prompt-2' });
+            await pkg.addPrompt(mockPromptData, mockContent);
+            await pkg.addPrompt({ id: 'prompt-2', name: 'prompt-2' }, 'Content 2');
             const prompts = await pkg.listPrompts();
             expect(prompts).toHaveLength(2);
         });
@@ -169,11 +168,7 @@ describe('AgentPackage', () => {
                 frequency_penalty: 0.0,
                 presence_penalty: 0.0,
             });
-            await pkg.addPrompt({
-                id: 'prompt-1',
-                name: 'system',
-                content: 'You are helpful',
-            });
+            await pkg.addPrompt({ id: 'prompt-1', name: 'system' }, 'You are helpful');
             await pkg.addTool({
                 id: 'tool-1',
                 name: 'read_file',
@@ -243,11 +238,7 @@ describe('AgentPackage', () => {
                 frequency_penalty: 0.0,
                 presence_penalty: 0.0,
             });
-            await pkg.addPrompt({
-                id: 'prompt-1',
-                name: 'system',
-                content: 'test',
-            });
+            await pkg.addPrompt({ id: 'prompt-1', name: 'system' }, 'test');
             await pkg.addTool({
                 id: 'tool-1',
                 name: 'read_file',
@@ -296,11 +287,7 @@ describe('AgentPackage', () => {
                 frequency_penalty: 0.0,
                 presence_penalty: 0.0,
             });
-            await pkg.addPrompt({
-                id: 'prompt-1',
-                name: 'system',
-                content: 'test',
-            });
+            await pkg.addPrompt({ id: 'prompt-1', name: 'system' }, 'test');
             await pkg.addTool({
                 id: 'tool-1',
                 name: 'read_file',

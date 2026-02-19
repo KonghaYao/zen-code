@@ -77,48 +77,60 @@ describe('MemoryStorage', () => {
     });
 
     describe('Prompts', () => {
-        const mockPrompt = {
+        const mockPromptData = {
             id: 'prompt-1',
             name: 'system-prompt',
-            content: 'You are a helpful assistant',
-            metadata: { version: 1 },
         };
+        const mockContent = 'You are a helpful assistant';
 
-        it('should insert a prompt', async () => {
-            await storage.insertPrompt(mockPrompt);
+        it('should insert a prompt with initial version', async () => {
+            await storage.insertPrompt(mockPromptData, mockContent);
             const result = await storage.getPrompt('prompt-1');
             expect(result).toBeDefined();
             expect(result?.name).toBe('system-prompt');
+            expect(result?.current_version).toBe(1);
         });
 
-        it('should get prompt by name', async () => {
-            await storage.insertPrompt(mockPrompt);
-            const result = await storage.getPromptByName('system-prompt');
+        it('should get prompt with current version content', async () => {
+            await storage.insertPrompt(mockPromptData, mockContent, 'Initial version');
+            const result = await storage.getPromptWithCurrentVersion('prompt-1');
+            expect(result).toBeDefined();
+            expect(result?.content).toBe(mockContent);
+            expect(result?.change_note).toBe('Initial version');
+        });
+
+        it('should get prompt by name with content', async () => {
+            await storage.insertPrompt(mockPromptData, mockContent);
+            const result = await storage.getPromptWithCurrentVersionByName('system-prompt');
             expect(result).toBeDefined();
             expect(result?.id).toBe('prompt-1');
+            expect(result?.content).toBe(mockContent);
         });
 
         it('should throw on duplicate prompt name', async () => {
-            await storage.insertPrompt(mockPrompt);
-            await expect(storage.insertPrompt({ ...mockPrompt, id: 'prompt-2' })).rejects.toThrow(
+            await storage.insertPrompt(mockPromptData, mockContent);
+            await expect(storage.insertPrompt({ ...mockPromptData, id: 'prompt-2' }, mockContent)).rejects.toThrow(
                 'name system-prompt already exists',
             );
         });
 
-        it('should update prompt and name index', async () => {
-            await storage.insertPrompt(mockPrompt);
-            await storage.updatePrompt({ ...mockPrompt, name: 'new-name' });
+        it('should update prompt name and name index', async () => {
+            await storage.insertPrompt(mockPromptData, mockContent);
+            await storage.updatePrompt({ ...mockPromptData, name: 'new-name' });
             const result = await storage.getPromptByName('new-name');
             expect(result).toBeDefined();
             const oldResult = await storage.getPromptByName('system-prompt');
             expect(oldResult).toBeUndefined();
         });
 
-        it('should delete a prompt', async () => {
-            await storage.insertPrompt(mockPrompt);
+        it('should delete a prompt and all its versions', async () => {
+            await storage.insertPrompt(mockPromptData, mockContent);
+            await storage.createPromptVersion('prompt-1', 'Version 2 content');
             await storage.deletePrompt('prompt-1');
             const result = await storage.getPrompt('prompt-1');
             expect(result).toBeUndefined();
+            const versions = await storage.getPromptVersions('prompt-1');
+            expect(versions).toHaveLength(0);
         });
 
         it('should prevent deleting referenced prompt', async () => {
@@ -134,7 +146,7 @@ describe('MemoryStorage', () => {
                 frequency_penalty: 0.0,
                 presence_penalty: 0.0,
             });
-            await storage.insertPrompt(mockPrompt);
+            await storage.insertPrompt(mockPromptData, mockContent);
             await storage.insertAgent({
                 id: 'agent-1',
                 name: 'test-agent',
@@ -146,6 +158,68 @@ describe('MemoryStorage', () => {
             });
 
             await expect(storage.deletePrompt('prompt-1')).rejects.toThrow('is referenced by agent');
+        });
+    });
+
+    describe('Prompt Versions', () => {
+        const mockPromptData = {
+            id: 'prompt-1',
+            name: 'system-prompt',
+        };
+        const mockContent = 'You are a helpful assistant';
+
+        beforeEach(async () => {
+            await storage.insertPrompt(mockPromptData, mockContent, 'Initial version');
+        });
+
+        it('should create a new version', async () => {
+            const newVersion = await storage.createPromptVersion('prompt-1', 'Updated content', 'Version 2');
+            expect(newVersion.version).toBe(2);
+            expect(newVersion.content).toBe('Updated content');
+            expect(newVersion.change_note).toBe('Version 2');
+
+            const prompt = await storage.getPrompt('prompt-1');
+            expect(prompt?.current_version).toBe(2);
+        });
+
+        it('should get specific version', async () => {
+            await storage.createPromptVersion('prompt-1', 'Version 2 content');
+            const v1 = await storage.getPromptVersion('prompt-1', 1);
+            const v2 = await storage.getPromptVersion('prompt-1', 2);
+
+            expect(v1?.content).toBe(mockContent);
+            expect(v2?.content).toBe('Version 2 content');
+        });
+
+        it('should get all versions sorted by version desc', async () => {
+            await storage.createPromptVersion('prompt-1', 'Version 2');
+            await storage.createPromptVersion('prompt-1', 'Version 3');
+
+            const versions = await storage.getPromptVersions('prompt-1');
+            expect(versions).toHaveLength(3);
+            expect(versions[0].version).toBe(3);
+            expect(versions[1].version).toBe(2);
+            expect(versions[2].version).toBe(1);
+        });
+
+        it('should rollback to previous version', async () => {
+            await storage.createPromptVersion('prompt-1', 'Version 2');
+            await storage.createPromptVersion('prompt-1', 'Version 3');
+
+            // Rollback to version 1
+            await storage.rollbackPromptVersion('prompt-1', 1);
+
+            const prompt = await storage.getPrompt('prompt-1');
+            expect(prompt?.current_version).toBe(1);
+
+            const withContent = await storage.getPromptWithCurrentVersion('prompt-1');
+            expect(withContent?.content).toBe(mockContent);
+        });
+
+        it('should throw when rolling back to non-existent version', async () => {
+            await expect(storage.rollbackPromptVersion('prompt-1', 999)).rejects.toThrow(
+                'Version 999 not found for prompt prompt-1',
+            );
         });
     });
 

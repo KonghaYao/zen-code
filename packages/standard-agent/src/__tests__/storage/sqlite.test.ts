@@ -168,12 +168,7 @@ describe('BunSqliteStorage', () => {
                 presence_penalty: 0.0,
             });
 
-            await storage.insertPrompt({
-                id: promptId,
-                name: 'system-prompt',
-                content: 'You are a helpful assistant',
-                metadata: null,
-            });
+            await storage.insertPrompt({ id: promptId, name: 'system-prompt' }, 'You are a helpful assistant');
 
             await storage.insertAgent({
                 id: agentId,
@@ -190,62 +185,103 @@ describe('BunSqliteStorage', () => {
     });
 
     describe('Prompts', () => {
-        it('should insert and retrieve prompt', async () => {
+        it('should insert and retrieve prompt with initial version', async () => {
             await storage.initialize();
 
             const promptId = randomId('prompt');
-            const prompt = {
-                id: promptId,
-                name: 'system-prompt',
-                content: 'You are a helpful assistant',
-                metadata: null,
-            };
+            await storage.insertPrompt(
+                { id: promptId, name: 'system-prompt' },
+                'You are a helpful assistant',
+                'Initial version',
+            );
 
-            await storage.insertPrompt(prompt);
             const retrieved = await storage.getPrompt(promptId);
-
             expect(retrieved).toBeDefined();
             expect(retrieved?.id).toBe(promptId);
             expect(retrieved?.name).toBe('system-prompt');
+            expect(retrieved?.current_version).toBe(1);
         });
 
-        it('should get prompt by name', async () => {
+        it('should get prompt with current version content', async () => {
             await storage.initialize();
 
-            const prompt = {
-                id: randomId('prompt'),
-                name: 'system-prompt',
-                content: 'You are a helpful assistant',
-                metadata: null,
-            };
+            const promptId = randomId('prompt');
+            await storage.insertPrompt({ id: promptId, name: 'system-prompt' }, 'You are a helpful assistant');
 
-            await storage.insertPrompt(prompt);
-            const retrieved = await storage.getPromptByName('system-prompt');
+            const withContent = await storage.getPromptWithCurrentVersion(promptId);
+            expect(withContent).toBeDefined();
+            expect(withContent?.content).toBe('You are a helpful assistant');
+        });
 
+        it('should get prompt by name with content', async () => {
+            await storage.initialize();
+
+            const promptId = randomId('prompt');
+            await storage.insertPrompt({ id: promptId, name: 'system-prompt' }, 'You are a helpful assistant');
+
+            const retrieved = await storage.getPromptWithCurrentVersionByName('system-prompt');
             expect(retrieved).toBeDefined();
             expect(retrieved?.name).toBe('system-prompt');
+            expect(retrieved?.content).toBe('You are a helpful assistant');
         });
 
         it('should prevent duplicate prompt names', async () => {
             await storage.initialize();
 
-            const prompt1 = {
-                id: randomId('prompt'),
-                name: 'system-prompt',
-                content: 'You are a helpful assistant',
-                metadata: null,
-            };
+            await storage.insertPrompt(
+                { id: randomId('prompt'), name: 'system-prompt' },
+                'You are a helpful assistant',
+            );
 
-            const prompt2 = {
-                id: randomId('prompt'),
-                name: 'system-prompt', // Same name
-                content: 'You are another assistant',
-                metadata: null,
-            };
+            await expect(
+                storage.insertPrompt({ id: randomId('prompt'), name: 'system-prompt' }, 'You are another assistant'),
+            ).rejects.toThrow();
+        });
+    });
 
-            await storage.insertPrompt(prompt1);
+    describe('Prompt Versions', () => {
+        it('should create new version and update current_version', async () => {
+            await storage.initialize();
 
-            await expect(storage.insertPrompt(prompt2)).rejects.toThrow();
+            const promptId = randomId('prompt');
+            await storage.insertPrompt({ id: promptId, name: 'system-prompt' }, 'Version 1 content');
+
+            const v2 = await storage.createPromptVersion(promptId, 'Version 2 content', 'Added new features');
+            expect(v2.version).toBe(2);
+
+            const prompt = await storage.getPrompt(promptId);
+            expect(prompt?.current_version).toBe(2);
+        });
+
+        it('should get specific version', async () => {
+            await storage.initialize();
+
+            const promptId = randomId('prompt');
+            await storage.insertPrompt({ id: promptId, name: 'test' }, 'V1');
+            await storage.createPromptVersion(promptId, 'V2');
+
+            const v1 = await storage.getPromptVersion(promptId, 1);
+            const v2 = await storage.getPromptVersion(promptId, 2);
+
+            expect(v1?.content).toBe('V1');
+            expect(v2?.content).toBe('V2');
+        });
+
+        it('should rollback to previous version', async () => {
+            await storage.initialize();
+
+            const promptId = randomId('prompt');
+            await storage.insertPrompt({ id: promptId, name: 'test' }, 'V1');
+            await storage.createPromptVersion(promptId, 'V2');
+            await storage.createPromptVersion(promptId, 'V3');
+
+            await storage.rollbackPromptVersion(promptId, 1);
+
+            const prompt = await storage.getPrompt(promptId);
+            expect(prompt?.current_version).toBe(1);
+
+            const withContent = await storage.getPromptWithCurrentVersion(promptId);
+            expect(withContent?.content).toBe('V1');
         });
     });
 
@@ -312,12 +348,7 @@ describe('BunSqliteStorage', () => {
                 presence_penalty: 0.0,
             });
 
-            await storage.insertPrompt({
-                id: promptId,
-                name: 'system-prompt',
-                content: 'You are a helpful assistant',
-                metadata: null,
-            });
+            await storage.insertPrompt({ id: promptId, name: 'system-prompt' }, 'You are a helpful assistant');
 
             await storage.insertTool({
                 id: toolId,
