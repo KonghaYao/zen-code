@@ -4,13 +4,8 @@
     "type": "module",
     "scripts": {
         "dev": "bun run src/server.ts",
-        "dev:frontend": "bun --watch src/server.ts & bun run serve",
-        "serve": "bun run public/server.ts",
-        "build": "tsc",
-        "watch": "tsc --watch",
-        "test": "bun test",
-        "seed": "bun run scripts/seed-default-agent.ts",
-        "start": "bun run dist/server.js"
+        "build": "bun build src/server.ts --outdir ./dist --target bun --format esm --minify",
+        "test": "bun test"
     },
     "dependencies": {
         "@codegraph/config": "workspace:*",

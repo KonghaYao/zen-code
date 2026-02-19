@@ -34,11 +34,10 @@ export function AgentForm(props: AgentFormProps) {
 
     const optionsLoaded = !loadingModels && !loadingPrompts && !loadingTools && !loadingMiddlewares;
 
-    // Initialize form data when options are loaded or agent prop changes
+    // Initialize form data when agent prop changes
     useEffect(() => {
-        if (!optionsLoaded) return;
-
         if (props.agent) {
+            console.log('Editing agent:', props.agent);
             setFormData({
                 id: props.agent.id,
                 name: props.agent.name,
@@ -49,23 +48,29 @@ export function AgentForm(props: AgentFormProps) {
                 middleware: { ...props.agent.middlewares } || {},
             });
         } else {
-            // Default: select all tools and middlewares
-            const defaultTools: Record<string, boolean> = {};
-            const defaultMiddleware: Record<string, boolean> = {};
-            tools.forEach((tool) => (defaultTools[tool.id] = true));
-            middlewares.forEach((mid) => (defaultMiddleware[mid.id] = true));
-
+            // Reset form for create mode
             setFormData({
                 id: '',
                 name: '',
                 description: '',
                 system_prompt: '',
                 model: '',
-                tools: defaultTools,
-                middleware: defaultMiddleware,
+                tools: {},
+                middleware: {},
             });
         }
-    }, [props.agent, optionsLoaded, tools, middlewares]);
+    }, [props.agent]);
+
+    // Initialize default tools/middlewares when options are loaded and in create mode
+    useEffect(() => {
+        if (!props.agent && optionsLoaded) {
+            setFormData((prev) => ({
+                ...prev,
+                tools: Object.fromEntries(tools.map((t) => [t.id, true])),
+                middleware: Object.fromEntries(middlewares.map((m) => [m.id, true])),
+            }));
+        }
+    }, [optionsLoaded, tools, middlewares, props.agent]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -135,7 +140,7 @@ export function AgentForm(props: AgentFormProps) {
                 <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, name: e.currentTarget.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                     required
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g., Code Assistant"

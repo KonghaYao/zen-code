@@ -5,20 +5,58 @@
 import { z } from 'zod';
 import { router, publicProcedure, handleNotFound } from './trpc.js';
 
-// Schema 定义
-export const AgentInputSchema = z.object({
+// Schema 定义 - base schema without refinements for partial()
+const AgentInputBaseSchema = z.object({
     id: z.string(),
     name: z.string().min(1),
     description: z.string().min(1),
-    system_prompt: z.string(), // Prompt ID
-    model: z.string(), // Model ID
-    tools: z.record(z.string(), z.union([z.boolean(), z.any()])).default({}),
-    middleware: z.record(z.string(), z.union([z.boolean(), z.any()])).default({}),
+    system_prompt: z.string().min(1), // Prompt ID - must be non-empty
+    model: z.string().min(1), // Model ID - must be non-empty
+    tools: z.record(z.string(), z.union([z.boolean(), z.any()])),
+    middleware: z.record(z.string(), z.union([z.boolean(), z.any()])),
 });
 
-export const UpdateAgentSchema = AgentInputSchema.partial().extend({
-    id: z.string(),
+// Schema for create with refinements
+export const AgentInputSchema = AgentInputBaseSchema.superRefine((data, ctx) => {
+    // Validate that tools record has at least one key
+    if (!data.tools || Object.keys(data.tools).length === 0) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Agent must have at least one tool',
+            path: ['tools'],
+        });
+    }
+
+    // Validate that middleware record has at least one key
+    if (!data.middleware || Object.keys(data.middleware).length === 0) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Agent must have at least one middleware',
+            path: ['middleware'],
+        });
+    }
 });
+
+// Schema for update using base schema (allows partial)
+export const UpdateAgentSchema = AgentInputBaseSchema.partial()
+    .extend({
+        id: z.string(),
+    })
+    .refine(
+        (data) => {
+            // When updating, if tools/middleware are provided, they must not be empty
+            if (data.tools && Object.keys(data.tools).length === 0) {
+                return false;
+            }
+            if (data.middleware && Object.keys(data.middleware).length === 0) {
+                return false;
+            }
+            return true;
+        },
+        {
+            message: 'tools and middleware must have at least one entry when provided',
+        },
+    );
 
 // ========================================
 // Router
@@ -28,7 +66,14 @@ export const agentsRouter = router({
     // 列出所有 Agents（包含关联的 Tools 和 Middlewares）
     list: publicProcedure.query(async ({ ctx }) => {
         const agents = await ctx.agentPackage.storage.getAllAgents();
-        return agents;
+
+        // Transform database row format to frontend expected format
+        // DB: system_prompt_id, model_id -> Frontend: system_prompt, model
+        return agents.map((agent) => ({
+            ...agent,
+            system_prompt: agent.system_prompt_id,
+            model: agent.model_id,
+        }));
     }),
 
     // 获取单个 Agent（包含关联的 Tools 和 Middlewares）
@@ -37,7 +82,12 @@ export const agentsRouter = router({
         if (!agent) {
             handleNotFound('Agent', input.id);
         }
-        return agent;
+        // Transform database row format to frontend expected format
+        return {
+            ...agent,
+            system_prompt: agent.system_prompt_id,
+            model: agent.model_id,
+        };
     }),
 
     // 获取 Agent 及其依赖关系（包含 Model 和 System Prompt 详情）
@@ -50,8 +100,13 @@ export const agentsRouter = router({
         // 获取完整的 tools 和 middlewares 配置
         const agentFull = await ctx.agentPackage.storage.getAgent(input.id);
 
+        // Transform database row format to frontend expected format
         return {
-            ...agentWithDeps,
+            ...agentWithDeps.agent,
+            system_prompt: agentWithDeps.agent.system_prompt_id,
+            model: agentWithDeps.agent.model_id,
+            modelInfo: agentWithDeps.model,
+            promptInfo: agentWithDeps.systemPrompt,
             tools: agentFull!.tools,
             middlewares: agentFull!.middlewares,
         };
@@ -70,16 +125,18 @@ export const agentsRouter = router({
             handleNotFound('Prompt', input.system_prompt);
         }
 
-        // 验证关联的 Tools 是否存在
+        // 验证关联的 Tools 是否存在（跳过空键）
         for (const toolId of Object.keys(input.tools)) {
+            if (toolId.trim() === '') continue; // Skip empty keys
             const tool = await ctx.agentPackage.storage.getTool(toolId);
             if (!tool) {
                 handleNotFound('Tool', toolId);
             }
         }
 
-        // 验证关联的 Middlewares 是否存在
+        // 验证关联的 Middlewares 是否存在（跳过空键）
         for (const midId of Object.keys(input.middleware)) {
+            if (midId.trim() === '') continue; // Skip empty keys
             const middleware = await ctx.agentPackage.storage.getMiddleware(midId);
             if (!middleware) {
                 handleNotFound('Middleware', midId);
@@ -113,9 +170,10 @@ export const agentsRouter = router({
             }
         }
 
-        // 如果更新了 tools，验证它们是否存在
+        // 如果更新了 tools，验证它们是否存在（跳过空键）
         if (input.tools) {
             for (const toolId of Object.keys(input.tools)) {
+                if (toolId.trim() === '') continue; // Skip empty keys
                 const tool = await ctx.agentPackage.storage.getTool(toolId);
                 if (!tool) {
                     handleNotFound('Tool', toolId);
@@ -123,9 +181,10 @@ export const agentsRouter = router({
             }
         }
 
-        // 如果更新了 middleware，验证它们是否存在
+        // 如果更新了 middleware，验证它们是否存在（跳过空键）
         if (input.middleware) {
             for (const midId of Object.keys(input.middleware)) {
+                if (midId.trim() === '') continue; // Skip empty keys
                 const middleware = await ctx.agentPackage.storage.getMiddleware(midId);
                 if (!middleware) {
                     handleNotFound('Middleware', midId);

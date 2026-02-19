@@ -667,6 +667,14 @@ export class BunSqliteStorage extends BaseStorage {
     // ========================================
     insertAgent(data: z.infer<typeof AgentSchema>): Promise<void> {
         return this.transaction(() => {
+            // Validate required fields
+            if (!data.system_prompt || data.system_prompt.trim() === '') {
+                throw new Error('system_prompt is required and cannot be empty');
+            }
+            if (!data.model || data.model.trim() === '') {
+                throw new Error('model is required and cannot be empty');
+            }
+
             const stmt = this.db.prepare(`
                 INSERT INTO agents (id, name, description, system_prompt_id, model_id, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -674,13 +682,14 @@ export class BunSqliteStorage extends BaseStorage {
 
             stmt.run(data.id, data.name, data.description, data.system_prompt, data.model, this.now(), this.now());
 
-            // Insert tools
+            // Insert tools (skip empty keys)
             const toolStmt = this.db.prepare(`
-                INSERT OR REPLACE INTO agent_tools (agent_id, tool_id, enabled, custom_params)
+                INSERT INTO agent_tools (agent_id, tool_id, enabled, custom_params)
                 VALUES (?, ?, ?, ?)
             `);
 
             for (const [toolId, value] of Object.entries(data.tools)) {
+                if (toolId.trim() === '') continue; // Skip empty tool IDs
                 toolStmt.run(
                     data.id,
                     toolId,
@@ -689,13 +698,14 @@ export class BunSqliteStorage extends BaseStorage {
                 );
             }
 
-            // Insert middlewares
+            // Insert middlewares (skip empty keys)
             const middlewareStmt = this.db.prepare(`
-                INSERT OR REPLACE INTO agent_middlewares (agent_id, middleware_id, enabled, custom_params)
+                INSERT INTO agent_middlewares (agent_id, middleware_id, enabled, custom_params)
                 VALUES (?, ?, ?, ?)
             `);
 
             for (const [midId, value] of Object.entries(data.middleware)) {
+                if (midId.trim() === '') continue; // Skip empty middleware IDs
                 middlewareStmt.run(
                     data.id,
                     midId,
@@ -770,6 +780,14 @@ export class BunSqliteStorage extends BaseStorage {
 
     updateAgent(data: z.infer<typeof AgentSchema>): Promise<void> {
         return this.transaction(() => {
+            // Validate required fields
+            if (!data.system_prompt || data.system_prompt.trim() === '') {
+                throw new Error('system_prompt is required and cannot be empty');
+            }
+            if (!data.model || data.model.trim() === '') {
+                throw new Error('model is required and cannot be empty');
+            }
+
             const stmt = this.db.prepare(`
                 UPDATE agents
                 SET name = ?, description = ?, system_prompt_id = ?, model_id = ?, updated_at = ?
@@ -792,6 +810,7 @@ export class BunSqliteStorage extends BaseStorage {
             `);
 
             for (const [toolId, value] of Object.entries(data.tools)) {
+                if (toolId.trim() === '') continue; // Skip empty tool IDs
                 toolStmt.run(
                     data.id,
                     toolId,
@@ -810,6 +829,7 @@ export class BunSqliteStorage extends BaseStorage {
             `);
 
             for (const [midId, value] of Object.entries(data.middleware)) {
+                if (midId.trim() === '') continue; // Skip empty middleware IDs
                 middlewareStmt.run(
                     data.id,
                     midId,
