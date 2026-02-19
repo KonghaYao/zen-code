@@ -10,7 +10,7 @@ import { logger } from 'hono/logger';
 import { serve } from 'bun';
 import { swarmGraph } from './graphBuilder.js';
 import { createTRPCHonoRoute } from './api/hono.js';
-import { agentPackage } from './config/loader.js';
+import { agentPackage, cronStorage, cronScheduler } from './config/loader.js';
 import dashboard from './index.html';
 // 1. 注册 graph（自动提供 HTTP API 和流式支持）
 registerGraph('swarm', swarmGraph);
@@ -24,7 +24,7 @@ app.use(logger());
 // 3. API 路由（优先处理）
 app.route('/api/langgraph', LGApp);
 
-const trpcRoute = createTRPCHonoRoute(agentPackage);
+const trpcRoute = createTRPCHonoRoute(agentPackage, cronStorage, cronScheduler);
 app.route('/api/trpc', trpcRoute);
 
 app.get('/health', (c) => {
@@ -32,6 +32,10 @@ app.get('/health', (c) => {
         status: 'ok',
         service: 'zen-swarm',
         graph: 'swarm',
+        cron: {
+            isRunning: cronScheduler.isActive(),
+            scheduledCount: cronScheduler.getScheduledCount(),
+        },
     });
 });
 

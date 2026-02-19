@@ -9,6 +9,9 @@ import { ZenSwarmMcpStorage } from './storage.js';
 import { setMcpConfigStorage } from './mcpProvider.js';
 import { createMiddlewareRegistry } from '../middlewares/registry.js';
 import { createToolRegistry } from '../tools/registry.js';
+import { CronStorage } from '../cron/storage.js';
+import { CronScheduler } from '../cron/scheduler.js';
+import { CronExecutor } from '../cron/executor.js';
 
 // Agent 存储实例
 const agentStorage = new BunSqliteStorage('./data/index.db');
@@ -29,6 +32,23 @@ await createMiddlewareRegistry(agentPackage);
 
 // 注册工具实现
 await createToolRegistry(agentPackage);
+
+// ========================================
+// Cron 系统
+// ========================================
+
+// Cron 存储实例
+export const cronStorage = new CronStorage('./data/index.db');
+await cronStorage.initialize();
+
+// Cron 执行器
+export const cronExecutor = new CronExecutor(cronStorage);
+
+// Cron 调度器
+export const cronScheduler = new CronScheduler(cronStorage, cronExecutor);
+
+// 启动调度器
+await cronScheduler.start();
 
 // 导出存储实例供外部使用
 export { agentStorage, mcpStorage };

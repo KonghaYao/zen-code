@@ -10,6 +10,7 @@ import { middlewaresRouter } from './middlewares.js';
 import { agentsRouter } from './agents.js';
 import { mcpRouter } from './mcp.js';
 import { skillsRouter } from './skills.js';
+import { cronRouter } from './cron.js';
 
 // ========================================
 // 主 Router
@@ -23,6 +24,7 @@ export const appRouter = router({
     agents: agentsRouter,
     mcp: mcpRouter,
     skills: skillsRouter,
+    cron: cronRouter,
 });
 
 // 导出 API 路由映射供 Hono 使用
@@ -34,6 +36,7 @@ export const apiRoutes = {
     agents: agentsRouter,
     mcp: mcpRouter,
     skills: skillsRouter,
+    cron: cronRouter,
 };
 
 // 导出类型供客户端使用

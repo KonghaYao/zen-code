@@ -2,13 +2,13 @@
  * Modal 模态框组件（极简风格）
  */
 
-import { useEffect, ReactElement } from 'react';
+import { useEffect, ReactNode } from 'react';
 
 interface ModalProps {
     open: boolean;
     onClose: () => void;
     title: string;
-    children: ReactElement;
+    children: ReactNode;
 }
 
 export function Modal(props: ModalProps) {

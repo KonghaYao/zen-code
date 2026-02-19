@@ -5,7 +5,7 @@
 import type { RenderMessage } from '@langgraph-js/sdk';
 
 // 扩展 PanelType 添加 chat 选项
-export type PanelType = 'agents' | 'models' | 'prompts' | 'tools' | 'middlewares' | 'mcp' | 'skills' | 'chat';
+export type PanelType = 'dashboard' | 'agent-config' | 'resources' | 'cron' | 'chat';
 
 // 聊天消息类型
 export type ChatMessage = RenderMessage;

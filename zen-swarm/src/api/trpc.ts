@@ -4,6 +4,8 @@
 
 import { initTRPC, TRPCError } from '@trpc/server';
 import type { AgentPackage } from '@langgraph-js/standard-agent';
+import type { CronStorage } from '../cron/storage.js';
+import type { CronScheduler } from '../cron/scheduler.js';
 
 // ========================================
 // Context
@@ -11,11 +13,19 @@ import type { AgentPackage } from '@langgraph-js/standard-agent';
 
 export interface Context {
     agentPackage: AgentPackage;
+    cronStorage: CronStorage;
+    cronScheduler: CronScheduler;
 }
 
-export async function createContext(agentPackage: AgentPackage): Promise<Context> {
+export async function createContext(
+    agentPackage: AgentPackage,
+    cronStorage: CronStorage,
+    cronScheduler: CronScheduler,
+): Promise<Context> {
     return {
         agentPackage,
+        cronStorage,
+        cronScheduler,
     };
 }
 
