@@ -198,3 +198,9 @@ export interface Tab {
     label: string;
     icon: string;
 }
+
+// 卡片统计信息
+export interface CardStat {
+    label: string;
+    value: string | number;
+}

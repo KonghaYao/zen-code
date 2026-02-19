@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import type { Model } from '../../../types/index.js';
+import type { Model } from '../../types/index.js';
 import { FormField, FormInput, FormSelect, FormCheckbox } from '../../ui/form/FormField.js';
 import { FormButtons } from '../../ui/form/FormButtons.js';
 

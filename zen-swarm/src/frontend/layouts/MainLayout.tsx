@@ -1,19 +1,21 @@
 /**
  * 主布局组件
+ *
+ * 使用卡片网格布局，包含 4 个主要视图：
+ * - Dashboard: 概览仪表盘
+ * - Agent Config: Agent 配置（Agents + Models + Prompts）
+ * - Resources: 资源管理（Tools + Middlewares + MCP + Skills）
+ * - Chat: 聊天界面（全屏模式）
  */
 
 import { useState, ReactElement } from 'react';
 import type { PanelType, Tab } from '../types/index.js';
 
 const tabs: Tab[] = [
+    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'agent-config', label: 'Agent Config', icon: '🤖' },
+    { id: 'resources', label: 'Resources', icon: '📦' },
     { id: 'chat', label: 'Chat', icon: '💬' },
-    { id: 'agents', label: 'Agents', icon: '🤖' },
-    { id: 'models', label: 'Models', icon: '🧠' },
-    { id: 'prompts', label: 'Prompts', icon: '📝' },
-    { id: 'tools', label: 'Tools', icon: '🔧' },
-    { id: 'middlewares', label: 'Middlewares', icon: '🔌' },
-    { id: 'mcp', label: 'MCP', icon: '🔗' },
-    { id: 'skills', label: 'Skills', icon: '🎯' },
 ];
 
 interface MainLayoutProps {

@@ -13,26 +13,29 @@ interface MCPServerFormProps {
 
 export function MCPServerForm(props: MCPServerFormProps) {
     const [id, setId] = useState('');
+    const [name, setName] = useState('');
     const [jsonConfig, setJsonConfig] = useState('');
+    const [enabled, setEnabled] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (props.server) {
             setId(props.server.id);
+            setName(props.server.name);
+            setEnabled(props.server.enabled);
             const config = props.server.config;
-            // 移除 config 中的 name 字段（使用 id 代替）
-            const { name, ...configWithoutName } = config as any;
-            setJsonConfig(JSON.stringify(configWithoutName, null, 2));
+            setJsonConfig(JSON.stringify(config, null, 2));
         } else {
             setId('');
+            setName('');
+            setEnabled(true);
             setJsonConfig(
                 JSON.stringify(
                     {
                         type: 'stdio',
                         command: 'npx',
                         args: ['@modelcontextprotocol/server-filesystem', '/path/to/dir'],
-                        enabled: true,
                     },
                     null,
                     2,
@@ -63,10 +66,10 @@ export function MCPServerForm(props: MCPServerFormProps) {
             }
 
             const data = {
-                id: id,
-                name: id, // name 从 id 获取
+                id: id || undefined,
+                name: name,
                 config: config,
-                enabled: config.enabled ?? true,
+                enabled: enabled,
             };
 
             await props.onSave(data);
@@ -94,17 +97,41 @@ export function MCPServerForm(props: MCPServerFormProps) {
                     value={id}
                     onChange={(e) => setId(e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., my_mcp_server"
+                    placeholder="e.g., mcp-filesystem"
                     disabled={!!props.server}
+                />
+                <p className="text-xs text-gray-400 mt-1">Leave empty to auto-generate a unique ID</p>
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Server Name</label>
+                <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Filesystem Server"
                     required
                 />
+            </div>
+
+            <div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={enabled}
+                        onChange={(e) => setEnabled(e.target.checked)}
+                        className="w-4 h-4 border-gray-300 rounded"
+                    />
+                    <span className="text-sm text-gray-700">Enable this server</span>
+                </label>
             </div>
 
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Configuration (JSON)</label>
                 <div className="text-xs text-gray-400 mb-2">
                     Example:{' '}
-                    {`{"type": "stdio", "command": "npx", "args": ["@modelcontextprotocol/server-filesystem", "/path"], "enabled": true}`}
+                    {`{"type": "stdio", "command": "npx", "args": ["@modelcontextprotocol/server-filesystem", "/path"]}`}
                 </div>
                 <textarea
                     value={jsonConfig}

@@ -63,6 +63,14 @@ export class ZenSwarmMcpStorage {
     }
 
     insertMcpConfig(data: McpConfigData): Promise<void> {
+        // Check if name already exists
+        const checkStmt = this.db.prepare('SELECT id FROM mcp_config WHERE name = ?');
+        const existing = checkStmt.get(data.name) as { id: string } | null | undefined;
+
+        if (existing) {
+            throw new Error(`MCP config with name "${data.name}" already exists`);
+        }
+
         const stmt = this.db.prepare(`
             INSERT INTO mcp_config (id, name, config, enabled, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -98,6 +106,14 @@ export class ZenSwarmMcpStorage {
     }
 
     updateMcpConfig(data: McpConfigData): Promise<void> {
+        // Check if the new name already exists for a different id
+        const checkStmt = this.db.prepare('SELECT id FROM mcp_config WHERE name = ? AND id != ?');
+        const existing = checkStmt.get(data.name, data.id) as { id: string } | null | undefined;
+
+        if (existing) {
+            throw new Error(`MCP config with name "${data.name}" already exists`);
+        }
+
         const stmt = this.db.prepare(`
             UPDATE mcp_config
             SET name = ?, config = ?, enabled = ?, updated_at = ?

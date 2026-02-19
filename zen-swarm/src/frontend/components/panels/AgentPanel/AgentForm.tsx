@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import type { Agent, Model, Prompt, Tool, Middleware } from '../../../types/index.js';
-import { trpc } from '../../../api.js';
+import { apiClient } from '../../../api.js';
 import { Select } from '../../ui/Select.js';
 
 interface AgentFormProps {
@@ -25,14 +25,38 @@ export function AgentForm(props: AgentFormProps) {
     });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [models, setModels] = useState<Model[]>([]);
+    const [prompts, setPrompts] = useState<Prompt[]>([]);
+    const [tools, setTools] = useState<Tool[]>([]);
+    const [middlewares, setMiddlewares] = useState<Middleware[]>([]);
+    const [optionsLoading, setOptionsLoading] = useState(false);
 
-    // 使用 tRPC hooks 获取选项数据
-    const { data: models = [], isLoading: loadingModels } = trpc.models.list.useQuery();
-    const { data: prompts = [], isLoading: loadingPrompts } = trpc.prompts.list.useQuery();
-    const { data: tools = [], isLoading: loadingTools } = trpc.tools.list.useQuery();
-    const { data: middlewares = [], isLoading: loadingMiddlewares } = trpc.middlewares.list.useQuery();
+    // 使用 apiClient 获取选项数据
+    useEffect(() => {
+        const loadOptions = async () => {
+            setOptionsLoading(true);
+            try {
+                const [modelsData, promptsData, toolsData, middlewaresData] = await Promise.all([
+                    apiClient.models.list.query(),
+                    apiClient.prompts.list.query(),
+                    apiClient.tools.list.query(),
+                    apiClient.middlewares.list.query(),
+                ]);
+                setModels(modelsData);
+                setPrompts(promptsData);
+                setTools(toolsData);
+                setMiddlewares(middlewaresData);
+            } catch (e: any) {
+                setError(e.message);
+            } finally {
+                setOptionsLoading(false);
+            }
+        };
 
-    const optionsLoaded = !loadingModels && !loadingPrompts && !loadingTools && !loadingMiddlewares;
+        loadOptions();
+    }, []);
+
+    const optionsLoaded = !optionsLoading && models.length > 0;
 
     // Initialize form data when agent prop changes
     useEffect(() => {
@@ -119,41 +143,41 @@ export function AgentForm(props: AgentFormProps) {
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-                <div className="bg-red-900/20 border border-red-700 rounded-lg p-3 text-red-400 text-sm">{error}</div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-sm">{error}</div>
             )}
 
             <div>
-                <label className="block text-sm font-medium mb-1">ID</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ID</label>
                 <input
                     type="text"
                     value={formData.id}
                     onChange={(e) => setFormData((prev) => ({ ...prev, id: e.target.value }))}
                     disabled={!!props.agent}
                     required
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                     placeholder="e.g., agent-coder"
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                 <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                     required
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g., Code Assistant"
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
                     value={formData.description}
                     onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                     rows={2}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Describe what this agent does"
                 />
             </div>
@@ -195,7 +219,7 @@ export function AgentForm(props: AgentFormProps) {
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">Tools</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tools</label>
                 {!optionsLoaded || !tools ? (
                     <div className="max-h-48 overflow-y-auto bg-gray-50 rounded-lg p-3 text-gray-400">
                         Loading tools...
@@ -224,7 +248,7 @@ export function AgentForm(props: AgentFormProps) {
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">Middlewares</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Middlewares</label>
                 {!optionsLoaded ? (
                     <div className="max-h-48 overflow-y-auto bg-gray-50 rounded-lg p-3 text-gray-400">
                         Loading middlewares...
@@ -256,14 +280,14 @@ export function AgentForm(props: AgentFormProps) {
                 <button
                     type="button"
                     onClick={props.onCancel}
-                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
                 >
                     Cancel
                 </button>
                 <button
                     type="submit"
                     disabled={saving || !optionsLoaded}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:bg-blue-300"
                 >
                     {saving ? 'Saving...' : 'Save'}
                 </button>

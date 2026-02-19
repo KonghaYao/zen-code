@@ -1,39 +1,33 @@
 /**
  * App 主组件
+ *
+ * 路由 4 个主要视图：
+ * - dashboard: DashboardView
+ * - agent-config: AgentConfigView
+ * - resources: ResourcesView
+ * - chat: ChatView (全屏模式)
  */
 
 import type { PanelType } from './types/index.js';
 import { MainLayout } from './layouts/MainLayout.js';
-import { AgentPanel } from './components/panels/AgentPanel/index.js';
-import { ModelsPanel } from './components/panels/ModelsPanel/index.js';
-import { PromptsPanel } from './components/panels/PromptsPanel/index.js';
-import { ToolsPanel } from './components/panels/ToolsPanel/index.js';
-import { MiddlewaresPanel } from './components/panels/MiddlewaresPanel/index.js';
-import { MCPPanel } from './components/panels/MCPPanel/index.js';
-import { SkillsPanel } from './components/panels/SkillsPanel/index.js';
-import { ChatPanel } from './components/ChatPanel.js';
+import { DashboardView } from './views/DashboardView.js';
+import { AgentConfigView } from './views/AgentConfigView.js';
+import { ResourcesView } from './views/ResourcesView.js';
+import { ChatView } from './views/ChatView.js';
 
 export function App() {
     return (
         <MainLayout>
             {(tab: PanelType) => {
                 switch (tab) {
+                    case 'dashboard':
+                        return <DashboardView />;
+                    case 'agent-config':
+                        return <AgentConfigView />;
+                    case 'resources':
+                        return <ResourcesView />;
                     case 'chat':
-                        return <ChatPanel />;
-                    case 'agents':
-                        return <AgentPanel />;
-                    case 'models':
-                        return <ModelsPanel />;
-                    case 'prompts':
-                        return <PromptsPanel />;
-                    case 'tools':
-                        return <ToolsPanel />;
-                    case 'middlewares':
-                        return <MiddlewaresPanel />;
-                    case 'mcp':
-                        return <MCPPanel />;
-                    case 'skills':
-                        return <SkillsPanel />;
+                        return <ChatView />;
                     default:
                         return <div>Unknown panel: {tab}</div>;
                 }

@@ -24,12 +24,12 @@ export function FormField(props: FormFieldProps) {
 
     return (
         <div className={className}>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
                 {label}
-                {required && <span className="text-red-400 ml-1">*</span>}
+                {required && <span className="text-red-500 ml-1">*</span>}
             </label>
             {children}
-            {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+            {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
         </div>
     );
 }
@@ -44,8 +44,8 @@ export function FormInput(props: InputProps) {
     return (
         <input
             {...rest}
-            className={`w-full px-3 py-2 bg-gray-900 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-800 disabled:text-gray-500 placeholder-gray-400 ${
-                error ? 'border-red-600 focus:border-red-600' : 'border-gray-700 focus:border-transparent'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 placeholder-gray-400 ${
+                error ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-transparent'
             }`}
         />
     );
@@ -61,8 +61,8 @@ export function FormTextarea(props: TextareaProps) {
     return (
         <textarea
             {...rest}
-            className={`w-full px-3 py-2 bg-gray-900 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-800 disabled:text-gray-500 placeholder-gray-400 resize-none ${
-                error ? 'border-red-600 focus:border-red-600' : 'border-gray-700 focus:border-transparent'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 placeholder-gray-400 resize-none ${
+                error ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-transparent'
             }`}
         />
     );
@@ -102,10 +102,10 @@ export function FormCheckbox(props: CheckboxProps) {
                 id={id}
                 checked={checked}
                 onChange={onChange}
-                className="w-4 h-4 rounded"
+                className="w-4 h-4 rounded border-gray-300"
                 {...rest}
             />
-            <span className="text-sm text-gray-300">{label}</span>
+            <span className="text-sm text-gray-700">{label}</span>
         </label>
     );
 }

@@ -23,12 +23,15 @@ function randomId(prefix: string): string {
 export const McpConfigInputSchema = z.object({
     id: z.string().optional(),
     name: z.string().describe('MCP config name'),
-    config: z.record(z.string(), z.any()).describe('MCP server configuration'),
-    enabled: z.boolean().default(true),
+    config: z.any().describe('MCP server configuration object'),
+    enabled: z.boolean().optional().default(true),
 });
 
-export const UpdateMcpConfigSchema = McpConfigInputSchema.partial().extend({
+export const UpdateMcpConfigSchema = z.object({
     id: z.string(),
+    name: z.string(),
+    config: z.any(),
+    enabled: z.boolean().optional().default(true),
 });
 
 /**
@@ -115,8 +118,8 @@ export const mcpRouter = router({
     update: publicProcedure.input(UpdateMcpConfigSchema).mutation(async ({ input }) => {
         const data: McpConfigData = {
             id: input.id,
-            name: input.name!,
-            config: input.config!,
+            name: input.name,
+            config: input.config,
             enabled: input.enabled ?? true,
         };
 

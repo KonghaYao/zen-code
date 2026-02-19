@@ -323,11 +323,40 @@ export function useMcpStore() {
         }
     }, []);
 
+    const createMcpServer = useCallback(
+        async (input: any) => {
+            const server = await apiClient.mcp.create.mutate(input);
+            await loadMcpServers();
+            return server;
+        },
+        [loadMcpServers],
+    );
+
+    const updateMcpServer = useCallback(
+        async (input: any) => {
+            const server = await apiClient.mcp.update.mutate(input);
+            await loadMcpServers();
+            return server;
+        },
+        [loadMcpServers],
+    );
+
+    const deleteMcpServer = useCallback(
+        async (id: string) => {
+            await apiClient.mcp.delete.mutate({ id });
+            await loadMcpServers();
+        },
+        [loadMcpServers],
+    );
+
     return {
         mcpServers,
         mcpLoading: loading,
         mcpError: error,
         mcpCount: mcpServers.length,
         loadMcpServers,
+        createMcpServer,
+        updateMcpServer,
+        deleteMcpServer,
     };
 }
