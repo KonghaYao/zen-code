@@ -3,6 +3,8 @@
  * 与后端 tRPC schema 保持一致
  */
 
+export type { PanelType } from './chat.js';
+
 // ========================================
 // Model Types
 // ========================================
@@ -130,5 +132,3 @@ export interface Tab {
     label: string;
     icon: string;
 }
-
-export type PanelType = 'agents' | 'models' | 'prompts' | 'tools' | 'middlewares' | 'mcp';

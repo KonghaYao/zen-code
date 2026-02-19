@@ -6,6 +6,7 @@ import { useState, ReactElement } from 'react';
 import type { PanelType, Tab } from '../types/index.js';
 
 const tabs: Tab[] = [
+    { id: 'chat', label: 'Chat', icon: '💬' },
     { id: 'agents', label: 'Agents', icon: '🤖' },
     { id: 'models', label: 'Models', icon: '🧠' },
     { id: 'prompts', label: 'Prompts', icon: '📝' },
@@ -19,7 +20,7 @@ interface MainLayoutProps {
 }
 
 export function MainLayout(props: MainLayoutProps) {
-    const [activeTab, setActiveTab] = useState<PanelType>('agents');
+    const [activeTab, setActiveTab] = useState<PanelType>('chat');
 
     return (
         <div className="min-h-screen">

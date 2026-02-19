@@ -503,9 +503,15 @@ importers:
             '@langgraph-js/pure-graph':
                 specifier: ^3.2.0
                 version: 3.2.0(@opentelemetry/api@1.9.0)(bun-types@1.3.6)(openai@6.16.0(ws@8.19.0)(zod@4.3.5))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(ws@8.19.0)(zod-to-json-schema@3.25.1(zod@4.3.5))
+            '@langgraph-js/sdk':
+                specifier: ^4.6.3
+                version: 4.6.3(@langchain/core@1.1.26(@opentelemetry/api@1.9.0)(openai@6.16.0(ws@8.19.0)(zod@4.3.5)))(@nanostores/react@1.0.0(nanostores@1.1.0)(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(solid-js@1.9.11)
             '@langgraph-js/standard-agent':
                 specifier: workspace:*
                 version: link:../packages/standard-agent
+            '@nanostores/react':
+                specifier: ^1.0.0
+                version: 1.0.0(nanostores@1.1.0)(react@19.2.3)
             '@trpc/client':
                 specifier: ^11.10.0
                 version: 11.10.0(@trpc/server@11.10.0(typescript@5.9.3))(typescript@5.9.3)

@@ -3,13 +3,11 @@
  * 使用 LangGraph standard-agent 创建 agents
  */
 
-import { createAgent, anthropicPromptCachingMiddleware, humanInTheLoopMiddleware } from 'langchain';
+import { createAgent } from 'langchain';
 import { AgentPackage } from '@langgraph-js/standard-agent';
 import { SwarmState } from '../state.js';
 import { initChatModel } from '../utils/initChatModel.js';
-import { MCPWithConfigMiddleware } from '../middlewares/mcp.js';
-import { MemoriesMiddleware } from '../middlewares/memories.js';
-
+import { humanInTheLoopMiddleware, anthropicPromptCachingMiddleware } from '@langgraph-js/standard-agent';
 /**
  * 创建 Swarm Agent
  */

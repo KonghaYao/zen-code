@@ -10,12 +10,15 @@ import { PromptsPanel } from './components/panels/PromptsPanel/index.js';
 import { ToolsPanel } from './components/panels/ToolsPanel/index.js';
 import { MiddlewaresPanel } from './components/panels/MiddlewaresPanel/index.js';
 import { MCPPanel } from './components/panels/MCPPanel/index.js';
+import { ChatPanel } from './components/ChatPanel.js';
 
 export function App() {
     return (
         <MainLayout>
             {(tab: PanelType) => {
                 switch (tab) {
+                    case 'chat':
+                        return <ChatPanel />;
                     case 'agents':
                         return <AgentPanel />;
                     case 'models':

@@ -160,6 +160,8 @@ export const fetchDataTool = tool(
 For comprehensive middleware patterns including request/response interception, prompt enhancement, Anthropic prompt
 caching, and human-in-the-loop, see:
 
+Never use LangChain middleware directly, use standard-agent middleware instead!
+
 **[middleware.md](./middleware.md)**
 
 ## Agent Invocation
@@ -439,6 +441,22 @@ npm install langchain @langchain/core @langchain/langgraph @langchain/openai @la
 ```bash
 npm install --save-dev typescript vitest
 ```
+
+## Frontend Development
+
+For building chat interfaces and UI components that connect to LangGraph backend, see:
+
+**[frontend-sdk.md](./frontend-sdk.md)**
+
+The `@langgraph-js/sdk` package provides:
+
+- `ChatProvider` React component for wrapping your app
+- `useChat()` hook for accessing chat state and mutations
+- Message rendering components (human, AI, tool messages)
+- Agent selection and dynamic switching
+- Streaming support via Server-Sent Events
+
+**When to use**: Building web UIs, chat interfaces, or dashboards for LangGraph agents.
 
 ## Configuration-Driven Agents (Optional)
 
