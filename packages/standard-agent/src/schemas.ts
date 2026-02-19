@@ -5,13 +5,13 @@ export const ModelSchema = z.object({
     id: z.string(),
     model_name: z.string(),
     model_provider: z.string(),
-    stream_usage: z.boolean(),
-    enable_thinking: z.boolean(),
-    temperature: z.number(),
-    max_tokens: z.number(),
-    top_p: z.number(),
-    frequency_penalty: z.number(),
-    presence_penalty: z.number(),
+    stream_usage: z.boolean().default(false),
+    enable_thinking: z.boolean().default(false),
+    temperature: z.number().default(0.7),
+    max_tokens: z.number().default(4096),
+    top_p: z.number().default(1.0),
+    frequency_penalty: z.number().default(0.0),
+    presence_penalty: z.number().default(0.0),
 });
 
 export const PromptSchema = z.object({

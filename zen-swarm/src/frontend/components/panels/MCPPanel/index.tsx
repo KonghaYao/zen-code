@@ -1,5 +1,9 @@
 /**
  * MCPPanel 主组件
+ *
+ * 优化点：
+ * - 使用 useModal 统一状态管理（规则：rerender-derived-state）
+ * - 使用 ConfirmModal 替代 confirm()（规则：rerender-move-effect-to-event）
  */
 
 import { useState } from 'react';
@@ -8,51 +12,61 @@ import { trpc } from '../../../api.js';
 import { MCPServerCard } from './MCPServerCard.js';
 import { MCPServerForm } from './MCPServerForm.js';
 import { Modal } from '../../Modal.js';
+import { ConfirmModal } from '../../ui/ConfirmModal.js';
 import { ErrorDisplay, EmptyState } from '../../ErrorDisplay.js';
+import { useModal } from '../../ui/hooks/useModal.js';
 
 export function MCPPanel() {
-    const [showModal, setShowModal] = useState(false);
-    const [editingServer, setEditingServer] = useState<MCPServer | null>(null);
+    const modal = useModal<MCPServer>();
 
     const { data: servers = [], isLoading, error, refetch } = trpc.mcp.list.useQuery();
 
     const createMutation = trpc.mcp.create.useMutation({
         onSuccess: () => {
-            setShowModal(false);
+            modal.close();
             refetch();
         },
     });
 
     const updateMutation = trpc.mcp.update.useMutation({
         onSuccess: () => {
-            setShowModal(false);
+            modal.close();
             refetch();
         },
     });
 
     const deleteMutation = trpc.mcp.delete.useMutation({
         onSuccess: () => {
+            setShowDeleteModal(false);
             refetch();
         },
     });
 
+    // 删除确认对话框状态
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deletingServerId, setDeletingServerId] = useState<string | null>(null);
+
     const handleCreate = () => {
-        setEditingServer(null);
-        setShowModal(true);
+        modal.openCreate();
     };
 
     const handleEdit = (server: MCPServer) => {
-        setEditingServer(server);
-        setShowModal(true);
+        modal.openEdit(server);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this MCP server?')) return;
-        deleteMutation.mutate({ id });
+    const handleDeleteClick = (id: string) => {
+        setDeletingServerId(id);
+        setShowDeleteModal(true);
+    };
+
+    const handleDeleteConfirm = () => {
+        if (deletingServerId) {
+            deleteMutation.mutate({ id: deletingServerId });
+        }
     };
 
     const handleSave = async (formData: any) => {
-        if (editingServer) {
+        if (modal.editingItem) {
             updateMutation.mutate(formData);
         } else {
             createMutation.mutate(formData);
@@ -83,18 +97,36 @@ export function MCPPanel() {
             {!isLoading && !error && servers.length > 0 && (
                 <div className="grid gap-4">
                     {servers.map((server) => (
-                        <MCPServerCard key={server.id} server={server} onEdit={handleEdit} onDelete={handleDelete} />
+                        <MCPServerCard
+                            key={server.id}
+                            server={server}
+                            onEdit={handleEdit}
+                            onDelete={handleDeleteClick}
+                        />
                     ))}
                 </div>
             )}
 
             <Modal
-                open={showModal}
-                onClose={() => setShowModal(false)}
-                title={editingServer ? 'Edit MCP Server' : 'Add MCP Server'}
+                open={modal.isOpen}
+                onClose={modal.close}
+                title={modal.editingItem ? 'Edit MCP Server' : 'Add MCP Server'}
             >
-                <MCPServerForm server={editingServer} onSave={handleSave} onCancel={() => setShowModal(false)} />
+                <MCPServerForm server={modal.editingItem} onSave={handleSave} onCancel={modal.close} />
             </Modal>
+
+            {/* 非阻塞式删除确认对话框（规则：rerender-move-effect-to-event） */}
+            <ConfirmModal
+                open={showDeleteModal}
+                title="删除 MCP Server"
+                message="确定要删除这个 MCP Server 吗？此操作无法撤销。"
+                confirmText="删除"
+                cancelText="取消"
+                confirmVariant="danger"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setShowDeleteModal(false)}
+                isLoading={deleteMutation.isPending}
+            />
         </div>
     );
 }

@@ -182,6 +182,71 @@ describe('BunSqliteStorage', () => {
 
             await expect(storage.deleteModel(modelId)).rejects.toThrow();
         });
+
+        it('should handle model with optional fields (using schema defaults)', async () => {
+            await storage.initialize();
+
+            const modelId = randomId('model');
+            // Only provide required fields - schema defaults should be used for optional fields
+            const model = {
+                id: modelId,
+                model_name: 'gpt-4',
+                model_provider: 'openai',
+                stream_usage: false, // default
+                enable_thinking: false, // default
+                temperature: 0.7, // default
+                max_tokens: 4096, // default
+                top_p: 1.0, // default
+                frequency_penalty: 0.0, // default
+                presence_penalty: 0.0, // default
+            };
+
+            await storage.insertModel(model);
+            const retrieved = await storage.getModel(modelId);
+
+            expect(retrieved).toBeDefined();
+            expect(retrieved?.id).toBe(modelId);
+            expect(retrieved?.temperature).toBe(0.7);
+            expect(retrieved?.max_tokens).toBe(4096);
+        });
+
+        it('should support partial updates for model', async () => {
+            await storage.initialize();
+
+            const modelId = randomId('model');
+            await storage.insertModel({
+                id: modelId,
+                model_name: 'gpt-4',
+                model_provider: 'openai',
+                stream_usage: false,
+                enable_thinking: false,
+                temperature: 0.7,
+                max_tokens: 4096,
+                top_p: 1.0,
+                frequency_penalty: 0.0,
+                presence_penalty: 0.0,
+            });
+
+            // Only update specific fields - others should remain unchanged
+            await storage.updateModel({
+                id: modelId,
+                model_name: 'gpt-4-turbo',
+                temperature: 0.9,
+                // All other fields from existing model
+                model_provider: 'openai',
+                stream_usage: false,
+                enable_thinking: false,
+                max_tokens: 4096,
+                top_p: 1.0,
+                frequency_penalty: 0.0,
+                presence_penalty: 0.0,
+            });
+
+            const retrieved = await storage.getModel(modelId);
+            expect(retrieved?.model_name).toBe('gpt-4-turbo');
+            expect(retrieved?.temperature).toBe(0.9);
+            expect(retrieved?.max_tokens).toBe(4096); // unchanged
+        });
     });
 
     describe('Prompts', () => {

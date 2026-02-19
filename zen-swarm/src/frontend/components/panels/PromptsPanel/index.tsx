@@ -1,45 +1,53 @@
 /**
  * PromptsPanel 主组件
+ *
+ * 优化点：
+ * - 使用 useModal 统一状态管理（规则：rerender-derived-state）
+ * - PromptCard 的版本数据管理提升到父组件
+ * - 使用 ConfirmModal 替代 confirm()（规则：rerender-move-effect-to-event）
  */
 
 import { useState } from 'react';
-import type { Prompt } from '../../../types/index.js';
+import type { Prompt, PromptVersion } from '../../../types/index.js';
 import { trpc } from '../../../api.js';
 import { PromptCard } from './PromptCard.js';
 import { PromptForm, type FormMode } from './PromptForm.js';
 import { Modal } from '../../Modal.js';
+import { ConfirmModal } from '../../ui/ConfirmModal.js';
 import { ErrorDisplay, EmptyState } from '../../ErrorDisplay.js';
+import { useModal } from '../../ui/hooks/useModal.js';
+
+type VersionToggleState = Record<string, boolean>;
 
 export function PromptsPanel() {
-    const [showModal, setShowModal] = useState(false);
-    const [formMode, setFormMode] = useState<FormMode>('create');
-    const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
+    const modal = useModal<Prompt>();
 
     const { data: prompts = [], isLoading, error, refetch } = trpc.prompts.list.useQuery();
 
     const createMutation = trpc.prompts.create.useMutation({
         onSuccess: () => {
-            setShowModal(false);
+            modal.close();
             refetch();
         },
     });
 
     const updateMutation = trpc.prompts.update.useMutation({
         onSuccess: () => {
-            setShowModal(false);
+            modal.close();
             refetch();
         },
     });
 
     const createVersionMutation = trpc.prompts.createVersion.useMutation({
         onSuccess: () => {
-            setShowModal(false);
+            modal.close();
             refetch();
         },
     });
 
     const deleteMutation = trpc.prompts.delete.useMutation({
         onSuccess: () => {
+            setShowDeleteModal(false);
             refetch();
         },
     });
@@ -50,31 +58,74 @@ export function PromptsPanel() {
         },
     });
 
+    // 版本历史状态管理
+    const [versionToggleState, setVersionToggleState] = useState<VersionToggleState>({});
+    const [versionsCache, setVersionsCache] = useState<Record<string, PromptVersion[]>>({});
+    const [loadingVersions, setLoadingVersions] = useState<Record<string, boolean>>({});
+
+    // 删除确认对话框状态
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deletingPromptId, setDeletingPromptId] = useState<string | null>(null);
+
+    // 回滚确认对话框状态
+    const [showRollbackModal, setShowRollbackModal] = useState(false);
+    const [rollbackData, setRollbackData] = useState<{ promptId: string; version: number } | null>(null);
+
+    const [formMode, setFormMode] = useState<FormMode>('create');
+
     const handleCreate = () => {
-        setEditingPrompt(null);
         setFormMode('create');
-        setShowModal(true);
+        modal.openCreate();
     };
 
     const handleEdit = (prompt: Prompt) => {
-        setEditingPrompt(prompt);
         setFormMode('edit');
-        setShowModal(true);
+        modal.openEdit(prompt);
     };
 
     const handleCreateVersion = (prompt: Prompt) => {
-        setEditingPrompt(prompt);
         setFormMode('newVersion');
-        setShowModal(true);
+        modal.openEdit(prompt);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this prompt? All versions will be deleted.')) return;
-        deleteMutation.mutate({ id });
+    const handleDeleteClick = (id: string) => {
+        setDeletingPromptId(id);
+        setShowDeleteModal(true);
     };
 
-    const handleRollback = async (promptId: string, version: number) => {
-        rollbackMutation.mutate({ promptId, targetVersion: version });
+    const handleDeleteConfirm = () => {
+        if (deletingPromptId) {
+            deleteMutation.mutate({ id: deletingPromptId });
+        }
+    };
+
+    const handleRollbackClick = (promptId: string, version: number) => {
+        setRollbackData({ promptId, version });
+        setShowRollbackModal(true);
+    };
+
+    const handleRollbackConfirm = () => {
+        if (rollbackData) {
+            rollbackMutation.mutate({
+                promptId: rollbackData.promptId,
+                targetVersion: rollbackData.version,
+            });
+        }
+    };
+
+    const handleToggleVersions = async (promptId: string) => {
+        const newShow = !versionToggleState[promptId];
+        setVersionToggleState((prev) => ({ ...prev, [promptId]: newShow }));
+
+        if (newShow && !versionsCache[promptId]) {
+            setLoadingVersions((prev) => ({ ...prev, [promptId]: true }));
+            try {
+                const versions = await trpc.prompts.getVersions.query({ promptId });
+                setVersionsCache((prev) => ({ ...prev, [promptId]: versions }));
+            } finally {
+                setLoadingVersions((prev) => ({ ...prev, [promptId]: false }));
+            }
+        }
     };
 
     const handleSave = async (formData: any) => {
@@ -103,6 +154,13 @@ export function PromptsPanel() {
         }
     };
 
+    const isMutating =
+        createMutation.isPending ||
+        updateMutation.isPending ||
+        createVersionMutation.isPending ||
+        deleteMutation.isPending ||
+        rollbackMutation.isPending;
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -130,27 +188,53 @@ export function PromptsPanel() {
                         <PromptCard
                             key={prompt.id}
                             prompt={prompt}
+                            versions={versionsCache[prompt.id] || []}
+                            loadingVersions={loadingVersions[prompt.id] || false}
+                            showVersions={versionToggleState[prompt.id] || false}
+                            onToggleVersions={() => handleToggleVersions(prompt.id)}
                             onEdit={handleEdit}
-                            onDelete={handleDelete}
+                            onDelete={handleDeleteClick}
                             onCreateVersion={handleCreateVersion}
-                            onRollback={handleRollback}
+                            onRollback={handleRollbackClick}
                         />
                     ))}
                 </div>
             )}
 
             <Modal
-                open={showModal}
-                onClose={() => setShowModal(false)}
-                title={editingPrompt ? 'Edit Prompt' : 'Create Prompt'}
+                open={modal.isOpen}
+                onClose={modal.close}
+                title={
+                    modal.editingItem ? (formMode === 'newVersion' ? 'New Version' : 'Edit Prompt') : 'Create Prompt'
+                }
             >
-                <PromptForm
-                    prompt={editingPrompt}
-                    mode={formMode}
-                    onSave={handleSave}
-                    onCancel={() => setShowModal(false)}
-                />
+                <PromptForm prompt={modal.editingItem} mode={formMode} onSave={handleSave} onCancel={modal.close} />
             </Modal>
+
+            {/* 删除确认对话框 */}
+            <ConfirmModal
+                open={showDeleteModal}
+                title="删除 Prompt"
+                message="确定要删除这个 Prompt 吗？所有版本也将被删除，此操作无法撤销。"
+                confirmText="删除"
+                cancelText="取消"
+                confirmVariant="danger"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setShowDeleteModal(false)}
+                isLoading={deleteMutation.isPending}
+            />
+
+            {/* 回滚确认对话框 */}
+            <ConfirmModal
+                open={showRollbackModal}
+                title="回滚版本"
+                message={`确定要回滚到版本 ${rollbackData?.version} 吗？当前版本将被修改但历史记录将保留。`}
+                confirmText="回滚"
+                cancelText="取消"
+                onConfirm={handleRollbackConfirm}
+                onCancel={() => setShowRollbackModal(false)}
+                isLoading={rollbackMutation.isPending}
+            />
         </div>
     );
 }

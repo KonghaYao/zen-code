@@ -21,12 +21,32 @@ export interface Model {
     presence_penalty: number;
 }
 
-export type ModelInput = Omit<Model, 'stream_usage' | 'enable_thinking'> & {
+export type ModelInput = {
+    id: string;
+    model_name: string;
+    model_provider: string;
     stream_usage?: boolean;
     enable_thinking?: boolean;
+    temperature?: number;
+    max_tokens?: number;
+    top_p?: number;
+    frequency_penalty?: number;
+    presence_penalty?: number;
 };
 
-export type UpdateModelInput = Partial<ModelInput> & { id: string };
+export type UpdateModelInput = Omit<ModelInput, 'id'> & {
+    id: string;
+    // 所有字段都是可选的，除了 id
+    model_name?: string;
+    model_provider?: string;
+    stream_usage?: boolean;
+    enable_thinking?: boolean;
+    temperature?: number;
+    max_tokens?: number;
+    top_p?: number;
+    frequency_penalty?: number;
+    presence_penalty?: number;
+};
 
 // ========================================
 // Prompt Types
