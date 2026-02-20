@@ -22,10 +22,11 @@ export const glob_files = createUITool({
                 <Text>
                     <Text color="cyan">Glob </Text>
                     <Text dimColor>(</Text>
-                    <Link path={input.pattern} color="cyan" />
+                    <Link path={input.pattern} rainbow />
                     <Text dimColor>)</Text>
                     <Text color="gray" dimColor>
-                        {' '}({count} files)
+                        {' '}
+                        ({count} files)
                     </Text>
                 </Text>
             </Box>

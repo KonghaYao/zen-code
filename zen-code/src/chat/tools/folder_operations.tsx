@@ -79,7 +79,7 @@ export const folder_operations = createUITool({
                         {input.operation}Folder
                     </Text>
                     <Text dimColor> (</Text>
-                    <Link path={input.folder_path} color={operationColor} />
+                    <Link path={input.folder_path} rainbow />
                     <Text dimColor>)</Text>
                 </Box>
                 {/* <Box flexDirection="column">

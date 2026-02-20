@@ -25,7 +25,7 @@ export const write_file = createUITool({
                 <Box>
                     <Text color="green">Write </Text>
                     <Text dimColor>(</Text>
-                    <Link path={input.file_path} color="green" />
+                    <Link path={input.file_path} rainbow />
                     <Text dimColor>)</Text>
                     <Text dimColor> ({lineCount} lines)</Text>
                 </Box>

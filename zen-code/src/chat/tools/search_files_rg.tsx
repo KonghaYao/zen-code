@@ -47,7 +47,7 @@ export const search_files_rg = createUITool({
                     {path && path !== './' && (
                         <>
                             <Text dimColor> in </Text>
-                            <Link path={path} color="cyan" />
+                            <Link path={path} rainbow />
                         </>
                     )}
                     <Text color="gray" dimColor>
