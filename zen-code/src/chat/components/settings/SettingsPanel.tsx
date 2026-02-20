@@ -38,7 +38,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
             else if (key.leftArrow && key.alt) cycleTab(-1);
             else if (key.rightArrow && key.alt) cycleTab(1);
         },
-        { isActive: true },
+        { isActive: config !== null },
     );
 
     if (!config) {
