@@ -166,14 +166,12 @@ function registerCleanupHandlers(): void {
         cleanupAllBackgroundProcessesSync();
     });
 
-    // 信号处理
+    // 信号处理 - 只清理后台进程，不退出进程（由主程序控制）
     process.on('SIGINT', () => {
         cleanupAllBackgroundProcessesSync();
-        process.exit(0);
     });
     process.on('SIGTERM', () => {
         cleanupAllBackgroundProcessesSync();
-        process.exit(0);
     });
 }
 
