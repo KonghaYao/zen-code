@@ -6,20 +6,27 @@
  *
  * Features:
  * - Detects `#` trigger in input
- * - Prefix matching for skill names
+ * - Fuzzy matching for skill names using fuzzysort
  * - Right-arrow completion support
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import fuzzysort from 'fuzzysort';
 import type { Skill } from '@codegraph/config';
+
+export interface FuzzyMatch {
+    skill: Skill;
+    /** fuzzysort result for highlighting */
+    result: Fuzzysort.Result | null;
+}
 
 export interface SkillAutocompleteState {
     /** Whether autocomplete list is visible */
     visible: boolean;
     /** Current query text (without #) */
     query: string;
-    /** Filtered skills list */
-    filteredSkills: Skill[];
+    /** Filtered skills with fuzzy match info */
+    filteredSkills: FuzzyMatch[];
     /** The start position of the # trigger in the input */
     triggerPosition: number;
 }
@@ -69,18 +76,35 @@ function extractQuery(input: string, hashPosition: number): string {
 }
 
 /**
- * Filter skills by prefix matching on name
+ * Filter skills using fuzzy search
  */
-function filterSkills(skills: Skill[], query: string, maxResults: number): Skill[] {
-    const lowerQuery = query.toLowerCase();
+function filterSkillsFuzzy(skills: Skill[], query: string, maxResults: number): FuzzyMatch[] {
+    if (!query) {
+        // No query - return all skills (up to maxResults)
+        return skills.slice(0, maxResults).map((skill) => ({ skill, result: null }));
+    }
 
-    // Prefix matches first
-    const prefixMatches = skills.filter((skill) => skill.name.toLowerCase().startsWith(lowerQuery));
+    // Prepare skills for fuzzy search
+    const targets = skills.map((skill) => ({
+        skill,
+        name: fuzzysort.prepare(skill.name.toLowerCase()),
+        description: fuzzysort.prepare((skill.description || '').toLowerCase()),
+    }));
 
-    // Sort by name length (shorter = more relevant for prefix match)
-    prefixMatches.sort((a, b) => a.name.localeCompare(b.name));
+    // Search by name (primary) and description (secondary)
+    const nameResults = fuzzysort.go(query.toLowerCase(), targets, {
+        key: 'name',
+        limit: maxResults,
+        threshold: -10000, // Allow more matches
+    });
 
-    return prefixMatches.slice(0, maxResults);
+    // Convert results to FuzzyMatch array
+    const matches: FuzzyMatch[] = nameResults.map((result) => ({
+        skill: result.obj.skill,
+        result: result,
+    }));
+
+    return matches;
 }
 
 /**
@@ -130,12 +154,12 @@ export function useSkillAutocomplete({
             // Extract query after #
             const query = extractQuery(input, lastHashIndex);
 
-            // Filter skills
-            const filteredSkills = filterSkills(skills, query, maxSuggestions);
+            // Filter skills using fuzzy search
+            const filteredSkills = filterSkillsFuzzy(skills, query, maxSuggestions);
 
             // If query exactly matches a skill name, hide autocomplete
             // This prevents re-triggering after completion
-            if (filteredSkills.length === 1 && filteredSkills[0].name.toLowerCase() === query.toLowerCase()) {
+            if (filteredSkills.length === 1 && filteredSkills[0].skill.name.toLowerCase() === query.toLowerCase()) {
                 setState((prev) => ({
                     ...prev,
                     visible: false,
@@ -160,7 +184,7 @@ export function useSkillAutocomplete({
     // Get first matching skill
     const getFirstSkill = useCallback((): Skill | null => {
         if (!state.visible || state.filteredSkills.length === 0) return null;
-        return state.filteredSkills[0] ?? null;
+        return state.filteredSkills[0]?.skill ?? null;
     }, [state.visible, state.filteredSkills]);
 
     // Complete the input with first skill

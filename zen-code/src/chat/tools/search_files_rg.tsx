@@ -18,8 +18,8 @@ export const search_files_rg = createUITool({
         const count = lines.length;
 
         // 优先从新格式的结构化参数中提取
-        let pattern = input.pattern as string;
-        let path = input.path as string;
+        let pattern = input.pattern!;
+        let path = input.path!;
 
         // 如果没有结构化参数，则从 args 数组中解析（兼容旧格式）
         if (!pattern) {

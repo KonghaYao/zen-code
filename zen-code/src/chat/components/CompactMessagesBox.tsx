@@ -126,7 +126,6 @@ const MessageItem = memo(function MessageItem({
             {/* 如果有工具组，显示摘要 */}
             {message.type === 'group' && (
                 <>
-                    {/* 延迟渲染工具额外内容，避免预计算 */}
                     <ToolGroupExtraRender
                         toolGroup={message.toolGroup}
                         groupId={message.id}
