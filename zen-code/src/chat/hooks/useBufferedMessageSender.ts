@@ -6,9 +6,10 @@
  *
  * Follows Vercel best practices:
  * - Effect with minimal dependencies
+ * - Use ref to prevent race conditions
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useChat } from '@langgraph-js/sdk/react';
 import { useChatInputBuffer } from '@codegraph/union-client';
 import { notify } from '../../utils/notify';
@@ -35,14 +36,16 @@ export function useBufferedMessageSender({ extraParams }: UseBufferedMessageSend
                 },
             ];
 
+            // 直接清理,不需要管异步流程
+            clearBuffer();
             sendMessage(content, { extraParams })
                 .then(() => {
                     notify('Zen Code 完成任务');
-                    clearBuffer();
                 })
                 .catch((error) => {
                     console.error('Failed to send buffered message:', error);
-                });
+                })
+                .finally(() => {});
         }
     }, [loading, bufferedMessage, sendMessage, extraParams, clearBuffer]);
 }
