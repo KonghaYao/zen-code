@@ -1,5 +1,5 @@
 import { Box, Static } from 'ink';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import MessageHuman from './MessageHuman';
 import MessageAI from './MessageAI';
 import MessageTool from './MessageTool';
@@ -14,7 +14,7 @@ export const MessagesBox = ({
     renderMessages: RenderMessage[];
     startIndex: number;
 }) => {
-    const { currentChatId } = useChat()
+    const { currentChatId } = useChat();
     // 修复 Static 首次渲染问题：强制重新渲染
     const [ready, setReady] = useState(false);
 
@@ -24,11 +24,16 @@ export const MessagesBox = ({
         return () => clearTimeout(timer);
     }, []);
 
+    // MEM FIX: Create a granular key that changes when messages change
+    const staticKey = useMemo(() => {
+        return `${currentChatId}-${renderMessages.length}-${startIndex}`;
+    }, [currentChatId, renderMessages.length, startIndex]);
+
     const renderMessage = (message: RenderMessage, index: number, isCurrent: boolean) => (
         <Box
             key={message.id || index}
             flexDirection="column"
-            borderStyle={isCurrent ? 'double' : "single"}
+            borderStyle={isCurrent ? 'double' : 'single'}
             borderLeft
             paddingLeft={1}
             paddingBottom={1}
@@ -36,11 +41,7 @@ export const MessagesBox = ({
             borderTop={false}
             borderRight={false}
             borderLeftColor={
-                message.type === 'ai'
-                    ? getColor('teal')
-                    : message.type === 'human'
-                        ? getColor('amber')
-                        : 'yellow'
+                message.type === 'ai' ? getColor('teal') : message.type === 'human' ? getColor('amber') : 'yellow'
             }
         >
             {message.type === 'human' ? (
@@ -54,7 +55,7 @@ export const MessagesBox = ({
     );
 
     let index = renderMessages.findIndex((cur) => {
-        if (cur.type === 'tool' && (!cur.done && (!['success', 'error'].includes(cur.status!)))) {
+        if (cur.type === 'tool' && !cur.done && !['success', 'error'].includes(cur.status!)) {
             return true;
         }
         return false;
@@ -79,11 +80,8 @@ export const MessagesBox = ({
 
     return (
         <Box flexDirection="column">
-            {/* 历史消息：用 Static 固定，使用 key 强制重新挂载 */}
-            <Static
-                items={histories}
-                key={currentChatId} // MODIFIED: 切换聊天时强制重新挂载，清除旧内容
-            >
+            {/* 历史消息：用 Static 固定，使用 granular key 清除旧内容 */}
+            <Static items={histories} key={staticKey}>
                 {(message, i) => renderMessage(message, i, false)}
             </Static>
 

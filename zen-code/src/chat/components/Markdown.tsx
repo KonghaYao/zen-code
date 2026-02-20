@@ -37,12 +37,17 @@ type MarkdownProps = {
 };
 
 const Markdown: React.FC<MarkdownProps> = memo(({ children }) => {
-    // Memoize parsed text to avoid re-parsing on every render
-    const parsedText = useMemo(() => {
-        return parse(children || '', { renderer: renderer as any }) as string;
-    }, [children]);
-
     const { loading } = useChat();
+
+    // MEM FIX: Only parse markdown when loading is complete (not during streaming)
+    // This prevents creating large parsed strings on every character update
+    const parsedText = useMemo(() => {
+        if (!children || loading) {
+            // Return raw text during streaming
+            return children || '';
+        }
+        return parse(children, { renderer: renderer as any }) as string;
+    }, [children, loading]);
 
     // Show full text only when not loading (allows viewing complete responses)
     const displayText = useMemo(() => {

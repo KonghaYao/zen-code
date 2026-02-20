@@ -411,6 +411,7 @@ const ChatWrapper: React.FC = () => {
             }}
             fetch={LangGraphFetch as any}
             autoRestoreLastSession
+            /** @ts-ignore */
             historyFilter={{
                 metadata: {
                     path: process.cwd(),
