@@ -22,12 +22,14 @@
         "@trpc/client": "^11.10.0",
         "@trpc/react-query": "^11.10.0",
         "@trpc/server": "^11.10.0",
+        "mime-types": "^3.0.2",
         "node-cron": "^4.2.1",
         "react": "^19.2.3",
         "react-dom": "^19.2.3",
         "uuid": "^13.0.0"
     },
     "devDependencies": {
+        "@types/mime-types": "^3",
         "@types/node-cron": "^3.0.11",
         "@types/react": "^19.2.14",
         "@types/react-dom": "^19.2.3",

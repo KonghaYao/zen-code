@@ -76,6 +76,10 @@ const ChatControllerInternal: React.FC<ChatControllerProps> = ({ children }) => 
                 }
             } else if (key.ctrl && input === 'o' && isChatView && !loading) {
                 toggleCompactMode();
+            } else if (key.ctrl && input === 'z' && globalThis.Bun) {
+                import('v8').then((res) => {
+                    res.writeHeapSnapshot('my-application.heapsnapshot');
+                });
             }
         },
         { isActive: isChatView },
