@@ -54,12 +54,12 @@ const queryClient = new QueryClient({
         },
     },
 
-    // Logger for development debugging
-    logger: {
-        log: console.log,
-        warn: console.warn,
-        error: console.error,
-    },
+    // // Logger for development debugging
+    // logger: {
+    //     log: console.log,
+    //     warn: console.warn,
+    //     error: console.error,
+    // },
 });
 
 /**
