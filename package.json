@@ -4,24 +4,28 @@
     "version": "1.0.0",
     "private": true,
     "type": "module",
+    "workspaces": [
+        "packages/*",
+        "zen-code",
+        "zen-swarm"
+    ],
     "scripts": {
         "dev:docs": "bunx --bun xyd-js@0.1.0-alpha.5",
         "dev:server": "bun run ./packages/agent/src/server.ts",
         "dev:tui": "bun run zen-code/src/cli.ts",
         "dev:web": "cd zen-worker && bun run dev",
-        "dev:all": "pnpm-run-all --parallel dev:server dev:web",
-        "dev": "pnpm dev:server",
+        "dev:all": "bun run --parallel dev:server dev:web",
+        "dev": "bun run dev:server",
         "preview:bun": "bun run zen-code/dist/cli.mjs",
         "preview": "node --env-file=.env zen-code/dist/cli.mjs",
-        "build": "pnpm -r --filter './packages/*' build && pnpm --filter zen-code build && pnpm --filter zen-worker build",
-        "build:packages": "pnpm -r --filter './packages/*' build",
-        "build:zen-code": "pnpm --filter zen-code build",
-        "build:zen-worker": "pnpm --filter zen-worker build",
-        "test": "vitest",
-        "test:run": "vitest run",
-        "test:coverage": "vitest run --coverage",
-        "test:ui": "vitest --ui",
-        "test:watch": "vitest --watch",
+        "build": "bun run --filter './packages/*' build && bun run --filter zen-code build && bun run --filter zen-worker build",
+        "build:packages": "bun run --filter './packages/*' build",
+        "build:zen-code": "bun run --filter zen-code build",
+        "build:zen-worker": "bun run --filter zen-worker build",
+        "test": "bun test",
+        "test:run": "bun test --run",
+        "test:coverage": "bun test --coverage",
+        "test:watch": "bun test --watch",
         "prepare": "husky",
         "format": "prettier --write .",
         "format:check": "prettier --check ."
@@ -34,7 +38,7 @@
         "@langchain/mcp-adapters": "^1.1.1",
         "@langchain/openai": "^1.2.2",
         "@langgraph-js/pro": "^2.2.0",
-        "@langgraph-js/pure-graph": "^3.2.2",
+        "@langgraph-js/pure-graph": "^3.2.3",
         "@langgraph-js/sdk": "^4.6.3",
         "eventemitter3": "^5.0.1",
         "execa": "^9.6.1",
@@ -70,17 +74,11 @@
     "lint-staged": {
         "*.{js,jsx,ts,tsx,json,md,yml,yaml}": "prettier --write"
     },
-    "pnpm": {
-        "onlyBuiltDependencies": [
-            "@lvce-editor/ripgrep",
-            "esbuild"
-        ],
-        "overrides": {
-            "react": "^19.2.3",
-            "react-dom": "^19.2.3",
-            "@langchain/core": "^1.1.26",
-            "@langchain/langgraph": "^1.1.5",
-            "langchain": "1.1.1"
-        }
+    "overrides": {
+        "react": "^19.2.3",
+        "react-dom": "^19.2.3",
+        "@langchain/core": "^1.1.26",
+        "@langchain/langgraph": "^1.1.5",
+        "langchain": "1.1.1"
     }
 }

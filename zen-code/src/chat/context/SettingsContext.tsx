@@ -15,6 +15,7 @@
  */
 
 import { createContext, useContext, useMemo, ReactNode, useEffect, useState } from 'react';
+import { Box, Text } from 'ink';
 import { useQuery } from '@tanstack/react-query';
 import type { AppConfig, MCPConfig, ConfigManager } from '@codegraph/config';
 import { createFSManager } from '@codegraph/config';
@@ -117,7 +118,11 @@ const SettingsProviderInternal = ({
     };
 
     if (configLoading || modelsLoading) {
-        return null;
+        return (
+            <Box padding={2}>
+                <Text>Loading configuration...</Text>
+            </Box>
+        );
     }
 
     return (
@@ -156,7 +161,11 @@ export const SettingsProvider = ({ get_allowed_models, children }: SettingsProvi
 
     // 等待 manager 初始化，然后渲染内部组件
     if (!manager) {
-        return null;
+        return (
+            <Box padding={2}>
+                <Text>Initializing configuration manager...</Text>
+            </Box>
+        );
     }
 
     return (

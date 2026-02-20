@@ -1,7 +1,0 @@
-onlyBuiltDependencies:
-    - esbuild
-packages:
-    - 'packages/**'
-    - 'zen-code'
-    - 'zen-swarm'
-    - 'agents/**'

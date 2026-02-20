@@ -34,9 +34,9 @@ bun run dev:web             # Web UI worker
 bun run dev:all             # Server + Web in parallel
 
 # Build
-pnpm build                  # Build all packages
-pnpm build:packages         # Build packages only
-pnpm build:zen-code         # Build TUI only
+bun run build                  # Build all packages
+bun run build:packages         # Build packages only
+bun run build:zen-code         # Build TUI only
 ```
 
 ## Configuration

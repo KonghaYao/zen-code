@@ -8,7 +8,7 @@
     "scripts": {
         "build": "vite build",
         "watch": "vite build --watch",
-        "prepublish": "pnpm build",
+        "prepublish": "bun run build",
         "test": "vitest run",
         "test:watch": "vitest watch",
         "test:coverage": "vitest run --coverage"
