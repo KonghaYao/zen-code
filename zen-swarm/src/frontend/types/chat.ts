@@ -4,8 +4,8 @@
 
 import type { RenderMessage } from '@langgraph-js/sdk';
 
-// 扩展 PanelType 添加 chat 选项
-export type PanelType = 'dashboard' | 'agent-config' | 'resources' | 'cron' | 'chat';
+// 扩展 PanelType 添加 chat 和 files 选项
+export type PanelType = 'dashboard' | 'agent-config' | 'resources' | 'files' | 'cron' | 'chat';
 
 // 聊天消息类型
 export type ChatMessage = RenderMessage;

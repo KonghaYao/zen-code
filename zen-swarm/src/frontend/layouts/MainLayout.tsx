@@ -1,10 +1,11 @@
 /**
  * 主布局组件
  *
- * 使用卡片网格布局，包含 5 个主要视图：
+ * 使用卡片网格布局，包含 6 个主要视图：
  * - Dashboard: 概览仪表盘
  * - Agent Config: Agent 配置（Agents + Models + Prompts）
  * - Resources: 资源管理（Tools + Middlewares + MCP + Skills）
+ * - Files: 文件浏览器
  * - Cron: 定时任务管理
  * - Chat: 聊天界面（全屏模式）
  */
@@ -16,6 +17,7 @@ const tabs: Tab[] = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'agent-config', label: 'Agent Config', icon: '🤖' },
     { id: 'resources', label: 'Resources', icon: '📦' },
+    { id: 'files', label: 'Files', icon: '📁' },
     { id: 'cron', label: 'Cron', icon: '⏰' },
     { id: 'chat', label: 'Chat', icon: '💬' },
 ];

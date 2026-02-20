@@ -29,7 +29,7 @@ async function swarmNode(state: SwarmStateType, runtime: Runtime) {
 
     // 执行 agent
     const response = await agent.invoke(state, {
-        recursionLimit: 100,
+        recursionLimit: 500,
         configurable: runtime.configurable,
     });
 
