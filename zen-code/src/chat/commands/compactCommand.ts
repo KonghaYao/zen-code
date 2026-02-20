@@ -13,8 +13,8 @@ export const compactCommand: CommandDefinition = {
 
     execute: async (args: string[], context: CommandContext) => {
         try {
-            // 获取当前的紧凑模式状态
-            const { updateConfig } = context;
+            // 从 context 获取当前的紧凑模式状态
+            const { updateConfig, compactMode } = context;
             if (!updateConfig) {
                 return {
                     success: false,
@@ -22,12 +22,8 @@ export const compactCommand: CommandDefinition = {
                 };
             }
 
-            // 获取当前配置
-            const { configStore } = await import('../store');
-            const currentConfig = await configStore.getConfig();
-            const currentMode = currentConfig.compact_mode ?? false;
-
-            // 切换模式
+            // 使用 context 中的当前状态切换模式
+            const currentMode = compactMode ?? false;
             await updateConfig({ compact_mode: !currentMode });
 
             const newMode = !currentMode;

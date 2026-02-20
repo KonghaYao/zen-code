@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Box, useFocusManager } from 'ink';
 import { MessagesBox } from './components/MessageBox';
 import { CompactMessagesBox } from './components/CompactMessagesBox';
@@ -29,8 +29,7 @@ import { useAgents } from './hooks/useAgents';
 import { InteractionProvider, useInteractionContext, UnifiedUIPanel } from './interaction';
 import { useRalphLoop } from './hooks/useRalphLoop';
 import { get_allowed_models } from '@codegraph/agent/src/utils/get_allowed_models';
-import { configStore } from './store';
-import { TaskNode } from '@codegraph/config';
+import { type TaskNode } from '@codegraph/config';
 import { metadataOfChat } from '../utils/metadata';
 import SetupWizard from './components/SetupWizard';
 import { validateConfig } from './utils/configValidation';
@@ -420,7 +419,7 @@ const ChatWrapper: React.FC = () => {
         >
             <TanStackQueryProvider>
                 <ChatInputBufferProvider>
-                    <SettingsProvider get_allowed_models={get_allowed_models} manager={configStore}>
+                    <SettingsProvider get_allowed_models={get_allowed_models}>
                         <ApprovalProvider>
                             <InteractionProvider>
                                 <Chat />
