@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text, useInput, useFocus } from 'ink';
+import { Box, Text, useFocus } from 'ink';
+import { useInput } from 'ink-pro';
 
 export interface SliderProps {
     min?: number;
@@ -84,9 +85,7 @@ export const Slider: React.FC<SliderProps> = ({
                     {afterThumb}
                 </Text>
                 <Text color={isFocused && !disabled ? 'green' : 'gray'}>{'>'}</Text>
-                {showValue && (
-                    <Text color={isFocused && !disabled ? 'green' : 'gray'}> {value}</Text>
-                )}
+                {showValue && <Text color={isFocused && !disabled ? 'green' : 'gray'}> {value}</Text>}
             </Box>
         </Box>
     );

@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { parseKeypress, nonAlphanumericKeys } from './keypress';
-
 import { useStdin } from 'ink';
 
 /**

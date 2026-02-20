@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Box, Text, useInput, useFocus } from 'ink';
+import { Box, Text, useFocus } from 'ink';
+import { useInput } from '../../utils/useInput';
 
 export interface MultiSelectOption {
     label: string;

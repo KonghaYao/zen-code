@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { Box, Text, useInput, useFocus } from 'ink';
+import { Box, Text, useFocus } from 'ink';
+import { useInput } from 'ink-pro';
 
 export interface TabItem {
     id: string;
@@ -129,12 +130,7 @@ export const Tabs: React.FC<TabsProps> = ({
         if (!selectedItem?.content) return null;
 
         return (
-            <Box
-                marginTop={1}
-                paddingX={2}
-                paddingY={1}
-                flexDirection="column"
-            >
+            <Box marginTop={1} paddingX={2} paddingY={1} flexDirection="column">
                 {selectedItem.content}
             </Box>
         );

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Text, useInput, useFocus } from 'ink';
+import { Box, Text, useFocus } from 'ink';
+import { useInput } from 'ink-pro';
 
 export interface DatePickerProps {
     label?: string;

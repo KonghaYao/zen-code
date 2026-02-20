@@ -295,6 +295,37 @@ YOLO_MODE=true              # Disable HITL (dangerous)
 - **Architecture**: Single responsibility, dependency injection, composition
 - **File Structure**: Group by feature (middlewares/, tools/, subagents/)
 
+### ink-pro Package Import Rules
+
+**IMPORTANT**: `useInput` hook must be imported from `ink-pro`, NOT from `ink`.
+
+The `ink-pro` package provides an enhanced `useInput` with additional features:
+
+- Extended key information (including raw keypress object)
+- Better cross-platform compatibility
+- Custom event handling
+
+**Correct Usage:**
+
+```tsx
+// zen-code application (use package name)
+import { Box, Text } from 'ink';
+import { useInput } from 'ink-pro';
+
+// packages/ink-pro internal (use relative path)
+import { Box, Text, useFocus } from 'ink';
+import { useInput } from '../../utils/useInput';
+```
+
+**Incorrect Usage:**
+
+```tsx
+// ❌ WRONG - Do not import useInput from ink
+import { Box, Text, useInput } from 'ink';
+```
+
+**Reference**: `packages/ink-pro/src/utils/useInput.ts`
+
 ## Adding Features
 
 ### Add New Tool
