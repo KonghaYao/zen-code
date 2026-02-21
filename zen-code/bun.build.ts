@@ -1,0 +1,152 @@
+import { build } from 'bun';
+import path from 'path';
+import { promises as fs } from 'fs';
+
+// Create a mock module for react-devtools-core
+const mockReactDevtools = `
+// Mock react-devtools-core for production builds
+export const connectToDevTools = () => {};
+export const setupDevTools = () => {};
+export default {};
+`;
+
+async function buildZenCode() {
+    // Check for --compile flag
+    const compileMode = process.argv.includes('--compile');
+
+    console.log('🔨 Building zen-code with Bun...');
+
+    // Clean dist directory
+    await fs.rm('./dist', { recursive: true, force: true });
+    await fs.mkdir('./dist', { recursive: true });
+
+    // Create a mock react-devtools-core module in the project's node_modules
+    const nodeModulesPath = '../node_modules/react-devtools-core';
+    const packageJsonPath = path.join(nodeModulesPath, 'package.json');
+    const indexPath = path.join(nodeModulesPath, 'index.js');
+
+    try {
+        await fs.mkdir(nodeModulesPath, { recursive: true });
+        await fs.writeFile(packageJsonPath, JSON.stringify({ type: 'module', main: 'index.js' }));
+        await fs.writeFile(indexPath, mockReactDevtools);
+        console.log('  Created mock react-devtools-core');
+    } catch (e) {
+        console.log('  Warning: Could not create mock react-devtools-core:', e);
+    }
+
+    // Build all entry points together with code splitting
+    console.log('  Building with code splitting...');
+
+    const result = await build({
+        entrypoints: ['./src/cli.ts', './src/app.tsx', './src/zen-keyboard.tsx', './src/nonInteractive.ts'],
+        outdir: './dist',
+        target: 'bun',
+        format: 'esm',
+        minify: true,
+        sourcemap: false,
+        // Enable code splitting
+        splitting: true,
+        // Force .mjs extension for all files
+        root: './src',
+        external: [
+            // Node.js built-ins
+            'bun:sqlite',
+            'bun:*',
+
+            // Node.js core modules
+            'path',
+            'crypto',
+            'util',
+            'stream',
+            'fs',
+            'os',
+            'events',
+
+            // Dependencies that should remain external
+            'chalk',
+            'extract-zip',
+            'fs-extra',
+            'path-exists',
+            'tempy',
+            'xdg-basedir',
+            'openai',
+            'yaml',
+            'zod',
+            'ink-markdown-es',
+            '@anthropic-ai/sdk',
+            '@langchain/anthropic',
+            '@langchain/google-genai',
+            '@google/generative-ai',
+            '@langchain/core',
+            '@langchain/langgraph',
+            '@langchain/mcp-adapters',
+            '@langgraph-js/standard-agent',
+            '@langchain/openai',
+            'langchain',
+            'node-notifier',
+            'micromatch',
+            'kysely-bun-worker',
+            'kysely-wasm',
+            'kysely',
+            'lowdb',
+            'lowdb/node',
+            'execa',
+            'diff-match-patch',
+            'proper-lockfile',
+            'string-width',
+            'usehooks-ts',
+            'node-sqlite3-wasm',
+            'fuzzysort',
+        ],
+        // Define global variables
+        define: {
+            __filename: 'import.meta.filename',
+            'window.FormData': 'globalThis.FormData',
+        },
+    });
+
+    if (!result.success) {
+        console.error('❌ Build failed');
+        for (const error of result.logs) {
+            console.error(error);
+        }
+        process.exit(1);
+    }
+
+    // Make sure all entry files are logged
+    const entryFiles = ['cli.js', 'app.js', 'zen-keyboard.js', 'nonInteractive.js'];
+
+    for (const file of entryFiles) {
+        const filePath = path.join('./dist', file);
+        if (await fileExists(filePath)) {
+            console.log(`  ✓ ${file} built`);
+        }
+    }
+
+    // Clean up the mock module
+    try {
+        await fs.rm('../node_modules/react-devtools-core', { recursive: true, force: true });
+    } catch (e) {
+        // Ignore cleanup errors
+    }
+
+    // Show build summary
+    const distFilesFinal = await fs.readdir('./dist');
+    const chunkFiles = distFilesFinal.filter((f) => f.startsWith('chunk-'));
+    console.log(`  Generated ${chunkFiles.length} shared chunk(s) for code splitting`);
+    console.log('✅ Build complete!');
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+    try {
+        await fs.access(filePath);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+buildZenCode().catch((error) => {
+    console.error('❌ Build failed:', error);
+    process.exit(1);
+});

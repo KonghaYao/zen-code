@@ -2,14 +2,14 @@
     "name": "zen-code",
     "version": "4.7.4",
     "description": "",
-    "main": "./dist/cli.mjs",
-    "bin": "./dist/cli.mjs",
+    "main": "./dist/app.js",
+    "bin": "./dist/cli.js",
     "files": [
         "dist"
     ],
     "scripts": {
         "dev": "bun run --smol src/cli.ts",
-        "build": "vite build",
+        "build": "bun run bun.build.ts",
         "prepublish": "bun run build",
         "test": "vitest",
         "test:ui": "vitest --ui",

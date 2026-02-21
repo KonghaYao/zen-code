@@ -52,7 +52,7 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
     }
 
     return (
-        <>
+        <Box flexDirection="column">
             {toolGroup.map((msg, idx) => {
                 const render = msg.name ? getToolUIRender(msg.name!) : null;
                 if (!render) return null;
@@ -86,7 +86,7 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
                     </Fragment>
                 );
             })}
-        </>
+        </Box>
     );
 });
 interface MessageItemProps {
@@ -113,20 +113,21 @@ const MessageItem = memo(function MessageItem({
     depth = 0,
     loading,
 }: MessageItemProps) {
-    const messageId = message.id || `message-${displayIndex}`;
-
     return (
         <Box
             flexDirection="column"
             borderStyle={isCurrent ? 'double' : 'single'}
-            borderLeft
-            paddingLeft={1}
             paddingBottom={1}
+            borderLeft={false}
             borderBottom={false}
-            borderTop={false}
+            borderTop={message.type === 'group' ? false : true}
             borderRight={false}
-            borderLeftColor={
-                message.type === 'ai' ? getColor('teal') : message.type === 'human' ? getColor('amber') : 'yellow'
+            borderTopColor={
+                message.type === 'ai'
+                    ? getColor('teal')
+                    : message.type === 'human'
+                      ? getColor('amber')
+                      : getColor('rose')
             }
         >
             {/* 如果不是 skipMessage，显示消息内容 */}
@@ -198,7 +199,9 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
             .reduce((col, cur) => {
                 if (cur.type === 'tool') {
                     const last = col[col.length - 1];
-                    if (last && last.type === 'group') {
+                    // 如果上一个元素是 group 且未满 10 个，添加到现有 group
+                    // 否则创建新的 group
+                    if (last && last.type === 'group' && last.toolGroup.length < 10) {
                         last.toolGroup.push(cur);
                     } else {
                         col.push({
@@ -220,6 +223,11 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
     // 没有未完成的消息，最后一个作为 current
     if (currentDisplayIndex === -1) {
         currentDisplayIndex = processedMessages.length - 1;
+    }
+
+    // 如果不 loading 时, 直接全部静态渲染
+    if (!loading) {
+        currentDisplayIndex = processedMessages.length;
     }
 
     const histories = processedMessages.slice(0, currentDisplayIndex);

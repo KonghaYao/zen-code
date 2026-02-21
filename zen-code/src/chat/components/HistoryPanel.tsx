@@ -61,10 +61,31 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
             const isCurrent = thread.thread_id === currentChatId;
             const updatedTime = formatTime(new Date(thread.updated_at));
 
+            // 计算标记符号
+            const cursorSymbol = isSelected ? '>' : ' ';
+            const currentSymbol = isCurrent ? '▶' : ' ';
+
+            // 计算颜色和样式
+            const getDisplayStyle = () => {
+                if (isCurrent) {
+                    // 当前对话始终高亮（绿色粗体）
+                    return { color: 'green' as const, bold: true };
+                } else if (isSelected) {
+                    // 选中项用亮青色粗体
+                    return { color: 'cyanBright' as const, bold: true };
+                } else {
+                    // 普通项使用状态颜色
+                    return { color: statusInfo.color, bold: false };
+                }
+            };
+
+            const style = getDisplayStyle();
+
             return (
                 <Box key={thread.thread_id}>
-                    <Text bold color={isSelected ? 'cyan' : statusInfo.color}>
-                        {index + 1}. {thread.thread_id.slice(-8)}
+                    <Text bold={style.bold} color={style.color}>
+                        {cursorSymbol}
+                        {currentSymbol} {index + 1}. {thread.thread_id.slice(-8)}
                     </Text>
                     <Box flexGrow={1} />
                     <Text dimColor>{updatedTime}</Text>
@@ -102,7 +123,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
             return current ? (
                 <Text color="gray" dimColor>
                     当前: <Text color="green">{current.thread_id.substring(0, 8)}</Text>
-                    <Text>{historyFilter?.metadata?.path}</Text>
+                    <Text> {historyFilter?.metadata?.path}</Text>
                 </Text>
             ) : null;
         },

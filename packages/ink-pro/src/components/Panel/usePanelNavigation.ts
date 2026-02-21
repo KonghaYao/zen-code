@@ -46,6 +46,11 @@ export function usePanelNavigation<T>(options: UsePanelNavigationOptions<T>): Us
     const [selectedIndex, setSelectedIndex] = useState(initialIndex);
     const [searchMode, setSearchMode] = useState(false);
 
+    // 当 initialIndex 变化时，更新 selectedIndex（例如数据加载完成后）
+    useEffect(() => {
+        setSelectedIndex(initialIndex);
+    }, [initialIndex]);
+
     // 使用 ref 存储可变函数，避免在 buildContext 中依赖它们造成循环
     const setSelectedIndexRef = useRef(setSelectedIndex);
     const onCloseRef = useRef(onClose);
