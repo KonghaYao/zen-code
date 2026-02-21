@@ -24,16 +24,17 @@ import { useInteractionContext } from '../../interaction/context';
 import { ChatInput } from '../input/ChatInput';
 import { RenderMessage } from '@langgraph-js/sdk';
 import { ChatInputBufferProvider } from '@codegraph/union-client';
+import { useDebounceValue } from 'usehooks-ts';
 
 /**
  * ChatMessages - displays the message list
  */
 const ChatMessages: React.FC = () => {
-    const { renderMessages: debouncedRenderMessages, currentChatId, getToolUIRender, loading } = useChat();
+    const { renderMessages, currentChatId, getToolUIRender, loading } = useChat();
     const { compactMode } = useSettings();
 
     // Debounce renderMessages updates to 500ms to reduce re-renders during fast updates
-    // const [debouncedRenderMessages] = useDebounceValue(renderMessages, 500);
+    const [debouncedRenderMessages] = useDebounceValue(renderMessages, 100);
 
     // Stable key for Static component re-mount
     const staticKey = useMemo(() => {
