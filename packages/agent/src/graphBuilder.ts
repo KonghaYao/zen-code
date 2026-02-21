@@ -38,7 +38,7 @@ async function invokeAgent(agentId: string, pkg: AgentPackage, state: CodeStateT
     const response = await agent.invoke(state, {
         recursionLimit: 500,
         configurable: runtime.configurable,
-        context: runtime.context,
+        context: runtime.context as any,
     });
     return {
         switch_command: '',
@@ -62,14 +62,10 @@ export function createCodeGraph() {
 
             // Determine agent ID (from command or default)
             const availableAgents = await getAvailableAgentIds(pkg);
-            const agentId = cmd ? `agents/${cmd}` : 'agents/default';
+            const agentId = cmd || '@agent/default';
 
             if (!availableAgents.includes(agentId)) {
-                throw new Error(
-                    `Unknown agent: ${cmd || 'default'}. Available: ${availableAgents
-                        .map((id) => id.split('/').pop())
-                        .join(', ')}`,
-                );
+                throw new Error(`Unknown agent: ${cmd || 'default'}. Available: ${availableAgents.join(', ')}`);
             }
             const result = await invokeAgent(agentId, pkg, state, runtime);
             return result;

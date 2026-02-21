@@ -33,23 +33,31 @@ interface UseModelsOptions {
 const REQUEST_TIMEOUT = 30000; // 30 seconds timeout
 
 /**
- * Create AbortController for timeout
+ * Create AbortController for timeout with proper cleanup
+ * Returns both controller and cleanup function to prevent memory leak
  */
-function createTimeoutController(): AbortController {
+function createTimeoutController(): { controller: AbortController; cleanup: () => void } {
     const controller = new AbortController();
-
-    setTimeout(() => {
+    let timeoutId: NodeJS.Timeout | null = setTimeout(() => {
         controller.abort();
+        timeoutId = null;
     }, REQUEST_TIMEOUT);
 
-    return controller;
+    const cleanup = () => {
+        if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+        }
+    };
+
+    return { controller, cleanup };
 }
 
 /**
  * Fetch OpenAI models from API
  */
 async function getOpenAIModels(apiKey: string, baseUrl: string): Promise<ModelConfig[]> {
-    const controller = createTimeoutController();
+    const { controller, cleanup } = createTimeoutController();
 
     try {
         const response = await fetch(`${baseUrl}/models`, {
@@ -79,6 +87,8 @@ async function getOpenAIModels(apiKey: string, baseUrl: string): Promise<ModelCo
             throw new Error('OpenAI API request timeout (30s)');
         }
         throw error;
+    } finally {
+        cleanup();
     }
 }
 
@@ -86,7 +96,7 @@ async function getOpenAIModels(apiKey: string, baseUrl: string): Promise<ModelCo
  * Fetch Anthropic models from API
  */
 async function getAnthropicModels(apiKey: string, baseUrl: string): Promise<ModelConfig[]> {
-    const controller = createTimeoutController();
+    const { controller, cleanup } = createTimeoutController();
 
     try {
         const response = await fetch(`${baseUrl}/v1/models`, {
@@ -115,6 +125,8 @@ async function getAnthropicModels(apiKey: string, baseUrl: string): Promise<Mode
             throw new Error('Anthropic API request timeout (30s)');
         }
         throw error;
+    } finally {
+        cleanup();
     }
 }
 
@@ -123,29 +135,34 @@ async function getAnthropicModels(apiKey: string, baseUrl: string): Promise<Mode
  * Returns a curated list of available Gemini models
  */
 async function getGeminiModels(apiKey: string, _baseUrl: string): Promise<ModelConfig[]> {
-    // Optionally verify API key by making a simple request
+    const { controller, cleanup } = createTimeoutController();
+
     try {
         const response = await fetch(_baseUrl + `/v1beta/models`, {
             method: 'GET',
             headers: {
                 Authorization: 'Bearer ' + apiKey,
             },
+            signal: controller.signal,
         });
 
         if (!response.ok) {
             throw new Error(`Gemini API error (${response.status}): Invalid API key`);
         }
 
-        return response.json().then((res) => {
-            return res.models.map((model) => {
-                return { id: model.name, name: model.displayName || model.id, provider: 'gemini' as const };
-            });
-        });
+        const data = await response.json();
+        return data.models.map((model: { name: string; displayName?: string }) => ({
+            id: model.name,
+            name: model.displayName || model.name,
+            provider: 'gemini' as const,
+        }));
     } catch (error: any) {
         if (error.name === 'AbortError') {
             throw new Error('Gemini API request timeout (30s)');
         }
         throw error;
+    } finally {
+        cleanup();
     }
 }
 

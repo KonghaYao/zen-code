@@ -15,6 +15,8 @@ interface GlobalApprovalPanelProps {
     showHeader?: boolean;
     /** 是否紧凑模式（减少间距） */
     compact?: boolean;
+    /** 是否处于活跃状态（接收键盘输入）- 内存泄漏修复：默认只在有请求时活跃 */
+    isActive?: boolean;
 }
 
 /**
@@ -41,6 +43,7 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
             autoShow = true,
             showHeader = true,
             compact = false,
+            isActive: isActiveProp,
         }: GlobalApprovalPanelProps,
         ref,
     ) => {
@@ -49,6 +52,10 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
 
         // 本地状态：当前激活的 tab
         const [activeTab, setActiveTab] = useState<string | null>(null);
+
+        // 内存泄漏修复：默认只在有 pending 请求时活跃
+        const hasPendingRequests = requests.some((r) => r.status === ApprovalStatus.Pending);
+        const isActive = isActiveProp ?? hasPendingRequests;
 
         // 暴露方法给父组件
         useImperativeHandle(
@@ -143,7 +150,7 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
                     executeApproved();
                 }
             },
-            { isActive: true },
+            { isActive },
         );
 
         // 生成 Tab items

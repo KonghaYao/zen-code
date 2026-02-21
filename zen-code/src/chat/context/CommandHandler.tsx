@@ -4,6 +4,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Box, Text } from 'ink';
+import { useTimeout } from 'usehooks-ts';
 import { commandRegistry } from '../commands';
 import { CommandContext } from '../commands/types';
 import { useChat } from '@langgraph-js/sdk/react';
@@ -73,6 +74,21 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
     const [commandError, setCommandError] = useState<string | null>(null);
     const [commandSuccessMessage, setCommandSuccessMessage] = useState<string | null>(null);
 
+    // 使用 usehooks-ts 的 useTimeout 替代原生 setTimeout，自动处理组件卸载清理
+    useTimeout(
+        () => {
+            setCommandError(null);
+        },
+        commandError ? 3000 : null,
+    );
+
+    useTimeout(
+        () => {
+            setCommandSuccessMessage(null);
+        },
+        commandSuccessMessage ? 5000 : null,
+    );
+
     // 检查是否为命令输入并获取建议
     const isCommandInput = userInput.startsWith('/');
     const commandSuggestions = isCommandInput ? commandRegistry.getSuggestions(userInput) : [];
@@ -123,11 +139,9 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
 
                 if (!result.success) {
                     setCommandError(result.message || '命令执行失败');
-                    setTimeout(() => setCommandError(null), 3000); // 3秒后清除错误
                 } else {
                     if (result.message) {
                         setCommandSuccessMessage(result.message);
-                        setTimeout(() => setCommandSuccessMessage(null), 5000); // 3秒后清除成功消息
                     }
                 }
 
@@ -150,7 +164,6 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
                 return true; // 命令已处理
             } catch (error) {
                 setCommandError(`命令执行错误: ${error instanceof Error ? error.message : String(error)}`);
-                setTimeout(() => setCommandError(null), 3000);
                 return true; // 即使出错也认为命令已处理
             }
         },

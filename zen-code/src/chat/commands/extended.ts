@@ -94,10 +94,8 @@ ${templateList}
             };
         }
 
-        setTimeout(() => {
-            // 将模板内容设置到输入框
-            context.setUserInput(template.content);
-        }, 300);
+        // 直接设置输入框内容，不需要 setTimeout
+        context.setUserInput(template.content);
 
         return {
             success: true,

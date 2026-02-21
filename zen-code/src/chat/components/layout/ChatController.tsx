@@ -52,9 +52,6 @@ const ChatControllerInternal: React.FC<ChatControllerProps> = ({ children }) => 
     // Validate config state (derived state in render)
     const { needsSetup, validation } = useConfigValidation({ config });
 
-    // Handle buffered message sending
-    useBufferedMessageSender({ extraParams });
-
     // Auto-focus logic
     useAutoFocus({ shouldFocus: !loading });
 

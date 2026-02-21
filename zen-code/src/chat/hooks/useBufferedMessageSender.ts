@@ -6,25 +6,25 @@
  *
  * Follows Vercel best practices:
  * - Effect with minimal dependencies
- * - Use ref to prevent race conditions
+ * - Use useIsMounted to prevent race conditions
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
+import { useIsMounted } from 'usehooks-ts';
 import { useChat } from '@langgraph-js/sdk/react';
 import { useChatInputBuffer } from '@codegraph/union-client';
 import { notify } from '../../utils/notify';
-
-interface UseBufferedMessageSenderOptions {
-    extraParams: Record<string, unknown>;
-}
+import { useSettings } from '../context/SettingsContext';
 
 /**
  * Send buffered message when loading completes.
  * This hook handles the case where a message is buffered before the chat is ready.
  */
-export function useBufferedMessageSender({ extraParams }: UseBufferedMessageSenderOptions) {
+export function useBufferedMessageSender() {
+    const { extraParams } = useSettings();
     const { sendMessage, loading } = useChat();
     const { bufferedMessage, clearBuffer } = useChatInputBuffer();
+    const isMounted = useIsMounted();
 
     useEffect(() => {
         // Only send when not loading and there's a buffered message
@@ -40,12 +40,15 @@ export function useBufferedMessageSender({ extraParams }: UseBufferedMessageSend
             clearBuffer();
             sendMessage(content, { extraParams })
                 .then(() => {
-                    notify('Zen Code 完成任务');
+                    if (isMounted()) {
+                        notify('Zen Code 完成任务');
+                    }
                 })
                 .catch((error) => {
-                    console.error('Failed to send buffered message:', error);
-                })
-                .finally(() => {});
+                    if (isMounted()) {
+                        console.error('Failed to send buffered message:', error);
+                    }
+                });
         }
-    }, [loading, bufferedMessage, sendMessage, extraParams, clearBuffer]);
+    }, [loading, bufferedMessage, sendMessage, extraParams, clearBuffer, isMounted]);
 }

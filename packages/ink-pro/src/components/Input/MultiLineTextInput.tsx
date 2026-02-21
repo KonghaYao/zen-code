@@ -1,8 +1,7 @@
 import { useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { Box, Text, useFocus } from 'ink';
 import chalk from 'chalk';
-import { Key } from 'ink';
-import useInput from '../../utils/useInput';
+import useInput, { Key } from '../../utils/useInput';
 import { useMultiLineInput } from '../../hooks/useMultiLineInput';
 import { calculateVisibleRange, ensureCursorVisible } from '../../utils/textInputUtils';
 

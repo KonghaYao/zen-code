@@ -6,12 +6,16 @@
  * - 新增/编辑/删除 MCP 服务器
  * - JSON 格式配置编辑
  * - 测试服务器连接
+ *
+ * 内存泄漏修复：
+ * - 使用 useSafeTimeout 处理消息自动清除
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { Box, Spacer, Text } from 'ink';
 import { useInput } from 'ink-pro';
 import { useSettings } from '../../../context/SettingsContext';
+import { useTimeout } from 'usehooks-ts';
 import type { MCPConfig } from '@codegraph/config';
 import McpJsonEditor from '../../forms/McpJsonEditor';
 import { useMcpConfig } from '../../../hooks/useMcpConfig';
@@ -45,20 +49,16 @@ const McpPanel: React.FC<McpPanelProps> = ({ onClose }) => {
     const [testingServer, setTestingServer] = useState<string | null>(null);
     const [testResult, setTestResult] = useState<TestResult | null>(null);
 
+    // 内存泄漏修复：使用安全的 timeout hook
+    const clearMessage = useCallback(() => setMessage(null), []);
+    useTimeout(clearMessage, message ? 3000 : null);
+
     // 服务器名称列表
     const serverNames = Object.keys(mcpConfig);
 
     // 当前选中的服务器
     const selectedServerName = serverNames[selectedIndex];
     const selectedServerConfig = selectedServerName ? mcpConfig[selectedServerName] : null;
-
-    // 显示消息后自动清除
-    React.useEffect(() => {
-        if (message) {
-            const timer = setTimeout(() => setMessage(null), 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [message]);
 
     // 判断服务器类型
     const getServerType = useCallback((config: any): 'stdio' | 'SSE' | 'unknown' => {

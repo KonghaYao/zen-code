@@ -5,6 +5,9 @@
  * 1. Provider 配置（添加/编辑 Provider）
  * 2. Model 选择（从 Provider 获取模型列表）
  * 3. 完成
+ *
+ * 内存泄漏修复：
+ * - 使用 useSafeTimeout 处理消息自动清除
  */
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
@@ -12,6 +15,7 @@ import { Box, Text } from 'ink';
 import { useInput } from 'ink-pro';
 import { useSettings } from '../../context/SettingsContext';
 import { useModels } from '../../hooks/useModels';
+import { useTimeout } from 'usehooks-ts';
 import type { ProviderConfig } from '@codegraph/config';
 import type { ConfigValidationResult } from '../../utils/configValidation';
 import ProviderForm from '../forms/ProviderForm';
@@ -50,12 +54,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ validation, onComplete }) => 
 
     const selectedProvider = providers[selectedIndex];
 
-    // 显示消息后自动清除
-    useEffect(() => {
-        if (!message) return;
-        const timer = setTimeout(() => setMessage(null), 3000);
-        return () => clearTimeout(timer);
-    }, [message]);
+    // 内存泄漏修复：使用安全的 timeout hook 处理消息自动清除
+    const clearMessage = useCallback(() => setMessage(null), []);
+    useTimeout(clearMessage, message ? 3000 : null);
 
     // 进入新增表单
     const goToAddForm = useCallback(() => {

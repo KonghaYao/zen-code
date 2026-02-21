@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useInterval } from 'usehooks-ts';
 import { RenderMessage } from '@langgraph-js/sdk';
 
 export interface SystemResources {
@@ -109,37 +110,25 @@ export function formatDuration(ms: number): string {
 export function useLoadingTimer(isLoading: boolean): number {
     const [loadingDuration, setLoadingDuration] = useState(0);
     const startTimeRef = useRef<number | null>(null);
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         if (isLoading) {
-            // 开始 loading
-            if (startTimeRef.current === null) {
-                startTimeRef.current = Date.now();
-                setLoadingDuration(0);
-            }
-            // 每秒更新一次
-            intervalRef.current = setInterval(() => {
-                if (startTimeRef.current) {
-                    setLoadingDuration(Date.now() - startTimeRef.current);
-                }
-            }, 1000);
+            startTimeRef.current = Date.now();
+            setLoadingDuration(0);
         } else {
-            // 停止 loading
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-            }
             startTimeRef.current = null;
             setLoadingDuration(0);
         }
-
-        return () => {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-            }
-        };
     }, [isLoading]);
+
+    useInterval(
+        () => {
+            if (startTimeRef.current) {
+                setLoadingDuration(Date.now() - startTimeRef.current);
+            }
+        },
+        isLoading ? 1000 : null,
+    );
 
     return loadingDuration;
 }
@@ -156,42 +145,41 @@ export function useSystemResources(): SystemResources {
         memoryHeapTotal: 0,
     });
 
+    const lastCpuUsageRef = useRef(process.cpuUsage());
+    const lastTimeRef = useRef(Date.now());
+
+    const updateResources = () => {
+        const currentTime = Date.now();
+        const currentCpuUsage = process.cpuUsage();
+        const memoryUsage = process.memoryUsage();
+
+        // 计算 CPU 使用率
+        const elapsedTimeMs = currentTime - lastTimeRef.current;
+        const elapsedCpuUser = currentCpuUsage.user - lastCpuUsageRef.current.user;
+        const elapsedCpuSystem = currentCpuUsage.system - lastCpuUsageRef.current.system;
+        const totalCpuMicroseconds = elapsedCpuUser + elapsedCpuSystem;
+        // CPU 使用率 = (CPU 时间 / 经过时间) * 100
+        const cpuPercent = (totalCpuMicroseconds / 1000 / elapsedTimeMs) * 100;
+
+        setResources({
+            cpuPercent: Math.min(100, Math.max(0, cpuPercent)),
+            memoryRSS: memoryUsage.rss,
+            memoryHeapUsed: memoryUsage.heapUsed,
+            memoryHeapTotal: memoryUsage.heapTotal,
+        });
+
+        lastCpuUsageRef.current = currentCpuUsage;
+        lastTimeRef.current = currentTime;
+    };
+
+    // 初始更新
     useEffect(() => {
-        let lastCpuUsage = process.cpuUsage();
-        let lastTime = Date.now();
-
-        const updateResources = () => {
-            const currentTime = Date.now();
-            const currentCpuUsage = process.cpuUsage();
-            const memoryUsage = process.memoryUsage();
-
-            // 计算 CPU 使用率
-            const elapsedTimeMs = currentTime - lastTime;
-            const elapsedCpuUser = currentCpuUsage.user - lastCpuUsage.user;
-            const elapsedCpuSystem = currentCpuUsage.system - lastCpuUsage.system;
-            const totalCpuMicroseconds = elapsedCpuUser + elapsedCpuSystem;
-            // CPU 使用率 = (CPU 时间 / 经过时间) * 100
-            const cpuPercent = (totalCpuMicroseconds / 1000 / elapsedTimeMs) * 100;
-
-            setResources({
-                cpuPercent: Math.min(100, Math.max(0, cpuPercent)),
-                memoryRSS: memoryUsage.rss,
-                memoryHeapUsed: memoryUsage.heapUsed,
-                memoryHeapTotal: memoryUsage.heapTotal,
-            });
-
-            lastCpuUsage = currentCpuUsage;
-            lastTime = currentTime;
-        };
-
-        // 初始更新
         updateResources();
-
-        // 每 2 秒更新一次
-        const interval = setInterval(updateResources, 2000);
-
-        return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // 每 2 秒更新一次
+    useInterval(updateResources, 2000);
 
     return resources;
 }

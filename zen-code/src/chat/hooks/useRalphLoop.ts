@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useTimeout } from 'usehooks-ts';
 import { getTextContent, Message, RenderMessage } from '@langgraph-js/sdk';
 import { notify } from '../../utils/notify';
 import { metadataOfChat } from '../../utils/metadata';
@@ -13,6 +14,7 @@ interface UseRalphLoopParams {
 
 export function useRalphLoop({ loading, renderMessages, sendMessage, setUserInput, extraParams }: UseRalphLoopParams) {
     const [ralphLoopText, setRalphLoopText] = useState<string | null>(null);
+    const [shouldStartLoop, setShouldStartLoop] = useState(false);
     const ralphLoopRunningRef = useRef(false);
     const prevMessagesLengthRef = useRef(0);
 
@@ -38,20 +40,24 @@ export function useRalphLoop({ loading, renderMessages, sendMessage, setUserInpu
         [sendMessage, extraParams],
     );
 
-    // Ralph 循环模式启动函数
-    const startRalphLoop = useCallback(
-        (text: string) => {
-            setRalphLoopText(text);
-            ralphLoopRunningRef.current = true;
-            prevMessagesLengthRef.current = 0;
-
-            // 立即发送第一条消息
-            setTimeout(() => {
-                sendTextMessage(text);
-            }, 100);
+    // 使用 useTimeout 替代手动 setTimeout 管理
+    useTimeout(
+        () => {
+            if (ralphLoopText) {
+                sendTextMessage(ralphLoopText);
+            }
+            setShouldStartLoop(false);
         },
-        [sendTextMessage],
+        shouldStartLoop ? 100 : null,
     );
+
+    // Ralph 循环模式启动函数
+    const startRalphLoop = useCallback((text: string) => {
+        setRalphLoopText(text);
+        ralphLoopRunningRef.current = true;
+        prevMessagesLengthRef.current = 0;
+        setShouldStartLoop(true);
+    }, []);
 
     // Ralph 循环逻辑：监控消息变化
     useEffect(() => {

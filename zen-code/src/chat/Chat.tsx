@@ -2,7 +2,7 @@ import React from 'react';
 import { Box } from 'ink';
 import { ChatProvider } from '@langgraph-js/sdk/react';
 import { TanStackQueryProvider } from './QueryClientProvider';
-import { ChatInputBufferProvider, ApprovalProvider } from '@codegraph/union-client';
+import { ApprovalProvider } from '@codegraph/union-client';
 import { LangGraphFetch } from '@codegraph/agent/src/export';
 import { InteractionProvider } from './interaction/context';
 import { SettingsProvider } from './context/SettingsContext';
@@ -68,15 +68,13 @@ const ChatWrapper: React.FC = () => {
             debounceTime={500}
         >
             <TanStackQueryProvider>
-                <ChatInputBufferProvider>
-                    <SettingsProvider get_allowed_models={get_allowed_models}>
-                        <ApprovalProvider>
-                            <InteractionProvider>
-                                <Chat />
-                            </InteractionProvider>
-                        </ApprovalProvider>
-                    </SettingsProvider>
-                </ChatInputBufferProvider>
+                <SettingsProvider get_allowed_models={get_allowed_models}>
+                    <ApprovalProvider>
+                        <InteractionProvider>
+                            <Chat />
+                        </InteractionProvider>
+                    </ApprovalProvider>
+                </SettingsProvider>
             </TanStackQueryProvider>
         </ChatProvider>
     );

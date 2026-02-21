@@ -24,6 +24,7 @@ import { useInteractionContext } from '../../interaction/context';
 import { ChatInput } from '../input/ChatInput';
 import { RenderMessage } from '@langgraph-js/sdk';
 import { useDebounceValue } from 'usehooks-ts';
+import { ChatInputBufferProvider } from '@codegraph/union-client';
 
 // Memoize heavy components to prevent unnecessary re-renders
 const MemoizedWelcomeHeader = memo(WelcomeHeader);
@@ -81,16 +82,18 @@ export const ChatMain: React.FC = () => {
     const { hasPendingInteractions } = useInteractionContext();
 
     return (
-        <Box flexDirection="column" flexGrow={1}>
-            <ChatMessages key={currentChatId} />
-            {hasPendingInteractions ? (
-                <Box paddingX={0} paddingY={0}>
-                    <MemoizedUnifiedUIPanel />
-                </Box>
-            ) : (
-                <MemoizedChatInput />
-            )}
-        </Box>
+        <ChatInputBufferProvider>
+            <Box flexDirection="column" flexGrow={1}>
+                <ChatMessages key={currentChatId} />
+                {hasPendingInteractions ? (
+                    <Box paddingX={0} paddingY={0}>
+                        <MemoizedUnifiedUIPanel />
+                    </Box>
+                ) : (
+                    <MemoizedChatInput />
+                )}
+            </Box>
+        </ChatInputBufferProvider>
     );
 };
 

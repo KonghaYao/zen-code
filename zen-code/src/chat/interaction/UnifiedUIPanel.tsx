@@ -6,6 +6,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Box, Text, useFocusManager } from 'ink';
+import { useTimeout, useEventCallback } from 'usehooks-ts';
 import { Tabs, TabItem } from '../components/input/Tabs';
 import { useInteractionContext } from './context';
 import { InteractionRendererWrapper } from './InteractionRendererWrapper';
@@ -25,7 +26,7 @@ const truncateTabTitle = (title: string): string => {
 export const UnifiedUIPanel: React.FC = () => {
     const ctx = useInteractionContext();
     const [activeTab, setActiveTab] = useState<string | null>(null);
-    const { focusNext } = useFocusManager();
+    const { focusNext, focus } = useFocusManager();
 
     // 获取所有交互
     const allInteractions = useMemo(() => {
@@ -71,22 +72,31 @@ export const UnifiedUIPanel: React.FC = () => {
     // 跳转到下一个交互
     const nextTab = useCallback(
         (currentId: string) => {
+            // 检查是否所有交互都已完成
+            const allFinished = allInteractions.every(
+                (i) => i.state === 'submitted' || i.state === 'edited' || i.state === 'cancelled',
+            );
+
+            if (allFinished) {
+                // 所有交互都完成了，聚焦到 global-input
+                focus('global-input');
+                return;
+            }
+
+            // 否则跳转到下一个未完成的交互
             const currentIndex = allInteractions.findIndex((i) => i.id === currentId);
             const nextIndex = (currentIndex + 1) % allInteractions.length;
             setActiveTab(allInteractions[nextIndex].id);
         },
-        [allInteractions],
+        [allInteractions, focus],
     );
 
     // 当 activeTab 变化时，延迟调用 focusNext
-    useEffect(() => {
-        if (activeTab) {
-            const timer = setTimeout(() => {
-                focusNext();
-            }, 100);
-            return () => clearTimeout(timer);
-        }
-    }, [activeTab, focusNext]);
+    const handleFocusNext = useEventCallback(() => {
+        focusNext();
+    });
+
+    useTimeout(handleFocusNext, activeTab ? 100 : null);
 
     // 渲染当前激活的交互
     const renderCurrentInteraction = () => {

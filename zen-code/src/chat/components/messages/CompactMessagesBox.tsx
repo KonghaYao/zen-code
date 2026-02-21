@@ -1,6 +1,7 @@
 import { Box, Text } from 'ink';
 
-import { useState, useEffect, useMemo, Fragment, memo, useCallback } from 'react';
+import { useState, useMemo, Fragment, memo, useCallback } from 'react';
+import { useTimeout } from 'usehooks-ts';
 import MessageHuman from './MessageHuman';
 import MessageAI from './MessageAI';
 import { RenderMessage } from '@langgraph-js/sdk';
@@ -178,11 +179,8 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
     // 修复 Static 首次渲染问题：强制重新渲染
     const [ready, setReady] = useState(false);
 
-    useEffect(() => {
-        // 延迟一帧确保 Static 已挂载
-        const timer = setTimeout(() => setReady(true), 0);
-        return () => clearTimeout(timer);
-    }, []);
+    // 使用 useTimeout 替代原生 setTimeout
+    useTimeout(() => setReady(true), ready ? null : 0);
 
     // 检查 AI 消息是否有文本内容
     const hasAITextContent = useCallback((message: RenderMessage): boolean => {

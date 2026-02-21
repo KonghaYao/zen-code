@@ -4,9 +4,12 @@
  * Centralized export for all custom hooks using TanStack Query.
  * Import from this file for better IDE support and tree-shaking.
  *
+ * Note: useIsMounted, useTimeout, useInterval are now imported from 'usehooks-ts'
+ *
  * Example:
  * ```tsx
  * import { useConfig, useSkills, useTasks } from './hooks';
+ * import { useIsMounted, useTimeout, useInterval } from 'usehooks-ts';
  * ```
  */
 

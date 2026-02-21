@@ -2,12 +2,16 @@
  * Provider 配置面板 - 管理 Provider
  *
  * 使用 TanStack Query 优化配置更新
+ *
+ * 内存泄漏修复：
+ * - 使用 useSafeTimeout 处理消息自动清除
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Box, Spacer, Text } from 'ink';
 import { useInput } from 'ink-pro';
 import { useSettings } from '../../context/SettingsContext';
+import { useTimeout } from 'usehooks-ts';
 import type { ProviderConfig } from '@codegraph/config';
 import ProviderForm from '../forms/ProviderForm';
 
@@ -23,6 +27,10 @@ const ProviderPanel: React.FC<ProviderPanelProps> = ({ onClose }) => {
     const [editingProvider, setEditingProvider] = useState<ProviderConfig | null>(null);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [message, setMessage] = useState<string | null>(null);
+
+    // 内存泄漏修复：使用安全的 timeout hook
+    const clearMessage = useCallback(() => setMessage(null), []);
+    useTimeout(clearMessage, message ? 3000 : null);
 
     // 使用 ref 稳定状态引用
     const viewRef = useRef(view);
@@ -46,15 +54,6 @@ const ProviderPanel: React.FC<ProviderPanelProps> = ({ onClose }) => {
     useEffect(() => {
         providersRef.current = providers;
     }, [providers]);
-
-    // 显示消息后自动清除
-    useEffect(() => {
-        if (message) {
-            const timer = setTimeout(() => setMessage(null), 3000);
-            return () => clearTimeout(timer);
-        }
-        return undefined;
-    }, [message]);
 
     // 进入新增表单
     const goToAddForm = useCallback(() => {

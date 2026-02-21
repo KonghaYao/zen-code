@@ -1,9 +1,10 @@
-import { Box, Text } from 'ink';
+import { Box, Text, useFocusManager } from 'ink';
 import { useInput } from 'ink-pro';
-import { useState } from 'react';
+import { useBoolean } from 'usehooks-ts';
 import { MultiSelectPro } from 'ink-pro';
 import { EnhancedTextInput } from '../input/EnhancedTextInput';
 import { ApprovalRequest, ApprovalStatus } from '@codegraph/union-client';
+import { useState } from 'react';
 
 /**
  * Color scheme for approval actions
@@ -43,8 +44,9 @@ export const ApprovalItem = ({
     autoFocus = true,
 }: ApprovalItemProps) => {
     const [selectState, setSelectState] = useState('approve');
-    const [isEditing, setEditing] = useState(false);
+    const { value: isEditing, setTrue: startEditing, setFalse: stopEditing } = useBoolean(false);
     const [editValue, setEditValue] = useState('');
+    const focusManager = useFocusManager();
 
     // 从 request 中获取附加信息
     const messageIndex = request.messageIndex;
@@ -76,23 +78,24 @@ export const ApprovalItem = ({
             onReject(message);
         }
 
-        setEditing(false);
+        stopEditing();
         setEditValue('');
     };
 
     const handleEditCancel = () => {
-        setEditing(false);
+        stopEditing();
         setEditValue('');
     };
 
     const handleActionSelect = ([item]: string[]) => {
         if (item === 'approve') {
             onApprove();
+            focusManager.focus('global-input');
             return;
         }
 
         setSelectState(item);
-        setEditing(true);
+        startEditing();
 
         if (item === 'edit') {
             setEditValue(JSON.stringify(request.toolCall.args, null, 2));

@@ -1,5 +1,6 @@
 import { Box, Static } from 'ink';
-import { useState, useEffect, memo } from 'react';
+import { useState, memo } from 'react';
+import { useTimeout } from 'usehooks-ts';
 import MessageHuman from './MessageHuman';
 import MessageAI from './MessageAI';
 import MessageTool from './MessageTool';
@@ -23,11 +24,8 @@ export const MessagesBox = memo(function MessagesBox({ renderMessages, startInde
     // 修复 Static 首次渲染问题：强制重新渲染
     const [ready, setReady] = useState(false);
 
-    useEffect(() => {
-        // 延迟一帧确保 Static 已挂载
-        const timer = setTimeout(() => setReady(true), 0);
-        return () => clearTimeout(timer);
-    }, []);
+    // 使用 useTimeout 替代原生 setTimeout
+    useTimeout(() => setReady(true), ready ? null : 0);
 
     const renderMessage = (message: RenderMessage, index: number, isCurrent: boolean, prefix: string) => (
         <Box

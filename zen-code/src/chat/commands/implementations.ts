@@ -18,20 +18,19 @@ export const initCommand: CommandDefinition = {
         const topic = args.join(' ');
 
         // 创建新聊天
-        context.createNewChat();
+        await context.createNewChat();
 
         // 如果提供了主题，发送初始化消息
         if (topic) {
             const initMessage = `我想开始一个关于 "${topic}" 的新对话。`;
 
-            setTimeout(() => {
-                context.sendMessage([
-                    {
-                        type: 'human',
-                        content: initMessage,
-                    },
-                ]);
-            }, 100); // 小延迟确保新聊天创建完成
+            // 直接发送消息，不需要 setTimeout（createNewChat 已经 await）
+            context.sendMessage([
+                {
+                    type: 'human',
+                    content: initMessage,
+                },
+            ]);
 
             return {
                 success: true,

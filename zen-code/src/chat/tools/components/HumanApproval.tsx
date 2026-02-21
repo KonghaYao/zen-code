@@ -1,5 +1,6 @@
 import { Box, Text, useFocusManager } from 'ink';
 import { useState } from 'react';
+import { useBoolean } from 'usehooks-ts';
 import { useInput } from 'ink-pro';
 import { MultiSelectPro } from 'ink-pro';
 import { EnhancedTextInput } from '../../components/input/EnhancedTextInput';
@@ -28,7 +29,7 @@ interface HumanApprovalProps {
 export const HumanApproval = ({ tool, onApprove, onEdit, onReject }: HumanApprovalProps) => {
     const interrupt = tool.getHumanInTheLoopData();
     const [selectState, setSelectState] = useState('approve');
-    const [isEditing, setEditing] = useState(false);
+    const { value: isEditing, setTrue: startEditing, setFalse: stopEditing } = useBoolean(false);
     const [editValue, setEditValue] = useState('');
     const focusManager = useFocusManager();
 
@@ -65,13 +66,13 @@ export const HumanApproval = ({ tool, onApprove, onEdit, onReject }: HumanApprov
             onReject?.(message);
         }
 
-        setEditing(false);
+        stopEditing();
         setEditValue('');
         focusManager.focus('global-input');
     };
 
     const handleEditCancel = () => {
-        setEditing(false);
+        stopEditing();
         setEditValue('');
         focusManager.focus('global-input');
     };
@@ -86,7 +87,7 @@ export const HumanApproval = ({ tool, onApprove, onEdit, onReject }: HumanApprov
         }
 
         setSelectState(item);
-        setEditing(true);
+        startEditing();
 
         if (item === 'edit') {
             setEditValue(JSON.stringify(tool.getInputRepaired(), null, 2));

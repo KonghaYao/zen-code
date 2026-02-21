@@ -7,6 +7,7 @@ import { useAgentAutocomplete } from '../../hooks/useAgentAutocomplete';
 import { SkillAutocompleteHintUI } from './SkillAutocompleteUI';
 import { AgentAutocompleteHintUI } from './AgentAutocompleteUI';
 import type { Skill, Agent } from '@codegraph/config';
+import { useBufferedMessageSender } from '../../hooks/useBufferedMessageSender';
 
 export interface ChatInputBufferProps {
     value: string;
@@ -35,6 +36,7 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
     skills = [],
     agents = [],
 }) => {
+    useBufferedMessageSender();
     const { bufferedMessage, setBufferedMessage, clearBuffer } = useChatInputBuffer();
     const [internalValue, setInternalValue] = useState(value);
 
