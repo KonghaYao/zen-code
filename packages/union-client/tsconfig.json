@@ -1,12 +1,20 @@
 {
-    "extends": "../../tsconfig.json",
+    "extends": "../../tsconfig.base.json",
     "compilerOptions": {
-        "outDir": "./dist",
-        "rootDir": "./src",
+        // 项目引用配置
         "composite": true,
-        "declaration": true,
+
+        // 生成声明映射（用于调试，可禁用以提升性能）
         "declarationMap": true,
-        "sourceMap": true
+
+        // 生成源映射（用于调试，可禁用以提升性能）
+        "sourceMap": true,
+
+        // 引用其他包
+        "paths": {
+            "@codegraph/config": ["../config/src"],
+            "@codegraph/ink-pro": ["../ink-pro/src"]
+        }
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "dist"]

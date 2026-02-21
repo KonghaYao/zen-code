@@ -1,26 +1,15 @@
 {
-    "compilerOptions": {
-        "outDir": "./dist",
-        "rootDir": ".",
-        "baseUrl": ".",
-        "target": "esnext",
-        "module": "esnext",
-        "moduleResolution": "bundler",
-        "esModuleInterop": true,
-        "declaration": true,
-        "noImplicitReturns": true,
-        "noFallthroughCasesInSwitch": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "useDefineForClassFields": true,
-        "strictPropertyInitialization": false,
-        "emitDecoratorMetadata": true,
-        "experimentalDecorators": true,
-        "jsx": "react-jsx",
-        "allowJs": true,
-        "skipLibCheck": true,
-        "strict": true
-    },
-    "include": ["zen-code/", "agents/"],
-    "exclude": ["node_modules/", "dist"]
+    // 根目录 TypeScript 配置（用于全局类型检查）
+    // 注意：开发时建议使用包级别的 tsconfig 以获得更好性能
+
+    "files": [],
+    "references": [
+        { "path": "./packages/config" },
+        { "path": "./packages/ink-pro" },
+        { "path": "./packages/union-client" },
+        { "path": "./packages/agent" },
+        { "path": "./packages/standard-agent" },
+        { "path": "./zen-code" },
+        { "path": "./zen-swarm" }
+    ]
 }

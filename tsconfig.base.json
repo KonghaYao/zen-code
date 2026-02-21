@@ -1,0 +1,106 @@
+{
+    "compilerOptions": {
+        // ==================== 性能优化 ====================
+
+        // 跳过所有类型检查文件的库检查（显著提升性能）
+        "skipLibCheck": true,
+
+        // 启用增量编译，只编译变更的文件
+        "incremental": true,
+
+        // 控制增量编译信息的文件位置
+        "tsBuildInfoFile": "./dist/.tsbuildinfo",
+
+        // 优化模块解析性能
+        "moduleResolution": "bundler",
+        "preserveSymlinks": false,
+
+        // ==================== 语言选项 ====================
+
+        // 目标环境
+        "target": "esnext",
+
+        // 模块系统
+        "module": "esnext",
+
+        // 允许从没有默认导出的模块中导入
+        "allowSyntheticDefaultImports": true,
+
+        // ES 模块互操作性
+        "esModuleInterop": true,
+
+        // 强制文件名大小写一致
+        "forceConsistentCasingInFileNames": true,
+
+        // 允许导入 JSON 模块
+        "resolveJsonModule": true,
+
+        // ==================== 类型检查选项 ====================
+
+        // 启用所有严格类型检查选项
+        "strict": true,
+
+        // 不允许隐式返回
+        "noImplicitReturns": true,
+
+        // 不允许 switch 语句中的贯穿情况
+        "noFallthroughCasesInSwitch": true,
+
+        // 不允许未使用的局部变量（注释以提升性能）
+        // "noUnusedLocals": true,
+
+        // 不允许未使用的参数（注释以提升性能）
+        // "noUnusedParameters": true,
+
+        // 严格属性初始化检查
+        "strictPropertyInitialization": false,
+
+        // ==================== 编译选项 ====================
+
+        // 生成声明文件
+        "declaration": true,
+
+        // 输出目录
+        "outDir": "./dist",
+
+        // 根目录
+        "rootDir": "./src",
+
+        // 基础 URL 用于解析非相对模块名
+        "baseUrl": ".",
+
+        // ==================== JSX 选项 ====================
+
+        // JSX 转换
+        "jsx": "react-jsx",
+
+        // 启用装饰器元数据
+        "emitDecoratorMetadata": true,
+
+        // 启用实验性装饰器
+        "experimentalDecorators": true,
+
+        // ==================== 其他选项 ====================
+
+        // 允许 JavaScript 文件
+        "allowJs": true,
+
+        // 使用 define 定义类字段
+        "useDefineForClassFields": true,
+
+        // 解析非相对模块的基准目录
+        "paths": {
+            "@codegraph/*": ["packages/*/src"]
+        }
+    },
+    "exclude": [
+        "node_modules",
+        "dist",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "**/__tests__/**",
+        "coverage",
+        ".langgraph_api",
+        ".next"
+    ]
+}

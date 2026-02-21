@@ -1,0 +1,37 @@
+{
+    // 性能优化的 TypeScript 配置
+    // 用于开发时快速类型检查，跳过源映射生成以提升性能
+    // 使用方法：tsc --project tsconfig.performance.json --noEmit
+
+    "files": [],
+    "references": [
+        {
+            "path": "./packages/config",
+            "tsconfig": "tsconfig.json"
+        },
+        {
+            "path": "./packages/ink-pro",
+            "tsconfig": "tsconfig.json"
+        },
+        {
+            "path": "./packages/union-client",
+            "tsconfig": "tsconfig.json"
+        },
+        {
+            "path": "./packages/agent",
+            "tsconfig": "tsconfig.json"
+        },
+        {
+            "path": "./packages/standard-agent",
+            "tsconfig": "tsconfig.json"
+        },
+        {
+            "path": "./zen-code",
+            "tsconfig": "tsconfig.json"
+        },
+        {
+            "path": "./zen-swarm",
+            "tsconfig": "tsconfig.json"
+        }
+    ]
+}

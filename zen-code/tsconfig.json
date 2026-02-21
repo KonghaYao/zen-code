@@ -1,27 +1,23 @@
 {
-    "extends": "../tsconfig.json",
+    "extends": "../tsconfig.base.json",
     "compilerOptions": {
-        "outDir": "./dist",
-        "rootDir": ".",
-        "baseUrl": ".",
-        "target": "esnext",
-        "module": "esnext",
-        "moduleResolution": "bundler",
-        "esModuleInterop": true,
-        "declaration": true,
-        "noImplicitReturns": true,
-        "noFallthroughCasesInSwitch": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "useDefineForClassFields": true,
-        "strictPropertyInitialization": false,
-        "emitDecoratorMetadata": true,
-        "experimentalDecorators": true,
-        "jsx": "react-jsx",
-        "allowJs": true,
-        "skipLibCheck": true,
-        "strict": true
+        // 项目引用配置
+        "composite": true,
+
+        // 生成声明映射（用于调试，可禁用以提升性能）
+        "declarationMap": true,
+
+        // 生成源映射（用于调试，可禁用以提升性能）
+        "sourceMap": true,
+
+        // 引用其他包
+        "paths": {
+            "@codegraph/config": ["../packages/config/src"],
+            "@codegraph/ink-pro": ["../packages/ink-pro/src"],
+            "@codegraph/union-client": ["../packages/union-client/src"],
+            "@codegraph/agent": ["../packages/agent/src"]
+        }
     },
-    "include": ["src/"],
-    "exclude": ["node_modules/", "dist"]
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist"]
 }

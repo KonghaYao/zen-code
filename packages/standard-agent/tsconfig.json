@@ -1,25 +1,14 @@
 {
+    "extends": "../../tsconfig.base.json",
     "compilerOptions": {
-        "outDir": "./dist",
-        "rootDir": "./src",
-        "baseUrl": ".",
-        "target": "esnext",
-        "module": "esnext",
-        "moduleResolution": "bundler",
-        "esModuleInterop": true,
-        "declaration": true,
-        "noImplicitReturns": true,
-        "noFallthroughCasesInSwitch": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "useDefineForClassFields": true,
-        "strictPropertyInitialization": false,
-        "emitDecoratorMetadata": true,
-        "experimentalDecorators": true,
-        "jsx": "react-jsx",
-        "allowJs": true,
-        "skipLibCheck": true,
-        "strict": true
+        // 项目引用配置
+        "composite": true,
+
+        // 生成声明映射（用于调试，可禁用以提升性能）
+        "declarationMap": true,
+
+        // 生成源映射（用于调试，可禁用以提升性能）
+        "sourceMap": true
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "dist", "**/__tests__/**", "**/*.test.ts"]

@@ -93,8 +93,6 @@ const StatusBar: React.FC = () => {
                         {renderMessages.length}
                     </Text>
                     <Text color="blue">{currentFolderName}</Text>
-                    {/* Ctrl+C 提示 */}
-                    <Text color="gray">{chatLoading ? 'Ctrl+C: Stop' : 'Ctrl+C: Quit'}</Text>
                 </Box>
                 {/* Loading 计时 */}
                 {chatLoading && (
