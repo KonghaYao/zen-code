@@ -26,7 +26,6 @@ import { useInteractionContext } from '../../interaction/context';
 import { useInput } from 'ink-pro';
 import { useToolInitialization } from '../../hooks/useToolInitialization';
 import { useConfigValidation } from '../../hooks/useConfigValidation';
-import { useBufferedMessageSender } from '../../hooks/useBufferedMessageSender';
 import { useAutoFocus } from '../../hooks/useAutoFocus';
 import { useChatPanels } from '../../hooks/useChatPanels';
 import { useTaskExecutor } from '../../hooks/useTaskExecutor';

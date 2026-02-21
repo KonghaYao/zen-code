@@ -40,14 +40,10 @@ export function useBufferedMessageSender() {
             clearBuffer();
             sendMessage(content, { extraParams })
                 .then(() => {
-                    if (isMounted()) {
-                        notify('Zen Code 完成任务');
-                    }
+                    notify('Zen Code 完成任务');
                 })
                 .catch((error) => {
-                    if (isMounted()) {
-                        console.error('Failed to send buffered message:', error);
-                    }
+                    console.error('Failed to send buffered message:', error);
                 });
         }
     }, [loading, bufferedMessage, sendMessage, extraParams, clearBuffer, isMounted]);
