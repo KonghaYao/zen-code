@@ -1,18 +1,19 @@
-import { Box, Static, Text } from 'ink';
+import { Box, Text } from 'ink';
+
 import { useState, useEffect, useMemo, Fragment, memo, useCallback } from 'react';
 import MessageHuman from './MessageHuman';
 import MessageAI from './MessageAI';
 import { RenderMessage } from '@langgraph-js/sdk';
 import { getTextContent } from '@langgraph-js/sdk';
 import { getColor } from '@codegraph/union-client';
-import { useChat } from '@langgraph-js/sdk/react';
+import { PlatformStatic } from './PlatformStatic';
 
 interface CompactMessagesBoxProps {
     renderMessages: RenderMessage[];
     startIndex: number;
+    staticKey: string;
     depth?: number;
-    // 类型断言：SDK 返回 Object，但实际是 ReactNode
-    getToolUIRender?: (toolName: string) => ((msg: RenderMessage) => React.ReactNode) | null;
+    getToolUIRender: (toolName: string) => ((msg: RenderMessage) => React.ReactNode) | null;
 }
 
 type CompactRenderMessages =
@@ -69,7 +70,13 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
                                     </Box>
                                 )}
                                 {/* 递归渲染，但传入 depth 参数限制深度 */}
-                                <CompactMessagesBox renderMessages={submessages} startIndex={1} depth={depth + 1} />
+                                <CompactMessagesBox
+                                    renderMessages={submessages}
+                                    startIndex={1}
+                                    depth={depth + 1}
+                                    staticKey={`${groupId}-sub-${idx}`}
+                                    getToolUIRender={getToolUIRender}
+                                />
                             </>
                         ) : null}
                     </Fragment>
@@ -141,27 +148,17 @@ const MessageItem = memo(function MessageItem({
 /**
  * CompactMessagesBox - 紧凑消息显示组件
  *
- * 性能优化：
- * 1. 使用 memo 包装组件避免不必要的重新渲染
- * 2. 移除 extraRender 预计算，改为延迟渲染（ToolGroupExtraRender）
- * 3. 使用 useCallback 缓存渲染函数
- * 4. processedMessages 不再存储渲染结果，只存储数据
- * 5. getToolUIRender 通过 props 传递，避免在子组件中使用 useChat() 导致 memo 失效
- * 6. 限制 submessages 递归深度最多 1 层
+ * Fully props-driven for better memoization:
+ * - No internal useChat() calls
+ * - Relies on staticKey from parent for Static component
  */
 export const CompactMessagesBox = memo(function CompactMessagesBox({
     renderMessages,
     startIndex,
+    staticKey,
     depth = 0,
-    getToolUIRender: propGetToolUIRender,
+    getToolUIRender,
 }: CompactMessagesBoxProps) {
-    const { currentChatId, getToolUIRender: contextGetToolUIRender } = useChat();
-
-    // 如果外部传入了 getToolUIRender，使用外部的；否则使用 context 中的
-    // 使用 any 类型绕过 Object vs ReactNode 的类型差异
-    const getToolUIRender = (propGetToolUIRender || contextGetToolUIRender) as (
-        toolName: string,
-    ) => ((msg: RenderMessage) => React.ReactNode) | null;
     // 修复 Static 首次渲染问题：强制重新渲染
     const [ready, setReady] = useState(false);
 
@@ -241,8 +238,8 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
 
     return (
         <Box flexDirection="column">
-            {/* 历史消息：用 Static 固定，使用 key 强制重新挂载 */}
-            <Static items={histories} key={currentChatId}>
+            {/* 历史消息：用 PlatformStatic 固定，仅在 Windows 上启用 Static 能力 */}
+            <PlatformStatic items={histories}>
                 {(item, i) => (
                     <MessageItem
                         key={item.id || `message-${i}`}
@@ -254,7 +251,7 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
                         depth={depth}
                     />
                 )}
-            </Static>
+            </PlatformStatic>
 
             {/* 当前消息 */}
             {current.map((item, i) => (

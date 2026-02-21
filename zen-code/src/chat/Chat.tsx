@@ -88,6 +88,7 @@ const ChatWrapper: React.FC = () => {
                     path: process.cwd(),
                 },
             }}
+            debounceTime={500}
         >
             <TanStackQueryProvider>
                 <ChatInputBufferProvider>

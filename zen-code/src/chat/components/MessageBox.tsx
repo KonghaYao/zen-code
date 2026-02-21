@@ -1,20 +1,25 @@
 import { Box, Static } from 'ink';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, memo } from 'react';
 import MessageHuman from './MessageHuman';
 import MessageAI from './MessageAI';
 import MessageTool from './MessageTool';
 import { RenderMessage } from '@langgraph-js/sdk';
 import { getColor } from '@codegraph/union-client';
-import { useChat } from '@langgraph-js/sdk/react';
 
-export const MessagesBox = ({
-    renderMessages,
-    startIndex,
-}: {
+interface MessagesBoxProps {
     renderMessages: RenderMessage[];
     startIndex: number;
-}) => {
-    const { currentChatId } = useChat();
+    staticKey: string;
+}
+
+/**
+ * MessagesBox - Standard message display component
+ *
+ * Fully props-driven for better memoization:
+ * - No internal useChat() calls
+ * - Relies on staticKey from parent for Static component
+ */
+export const MessagesBox = memo(function MessagesBox({ renderMessages, startIndex, staticKey }: MessagesBoxProps) {
     // 修复 Static 首次渲染问题：强制重新渲染
     const [ready, setReady] = useState(false);
 
@@ -23,11 +28,6 @@ export const MessagesBox = ({
         const timer = setTimeout(() => setReady(true), 0);
         return () => clearTimeout(timer);
     }, []);
-
-    // MEM FIX: Create a granular key that changes when messages change
-    const staticKey = useMemo(() => {
-        return `${currentChatId}-${renderMessages.length}-${startIndex}`;
-    }, [currentChatId, renderMessages.length, startIndex]);
 
     const renderMessage = (message: RenderMessage, index: number, isCurrent: boolean) => (
         <Box
@@ -89,4 +89,4 @@ export const MessagesBox = ({
             {current.map((message, i) => renderMessage(message, histories.length + i, true))}
         </Box>
     );
-};
+});
