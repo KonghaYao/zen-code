@@ -69,7 +69,7 @@ export const todo_tool = createUITool({
 
         // Main render
         return (
-            <Box flexDirection="column" paddingX={0}>
+            <Box flexDirection="column" paddingY={1}>
                 {/* Todo List */}
                 <Box flexDirection="column" marginTop={0}>
                     {renderTodoList()}

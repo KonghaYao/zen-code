@@ -35,7 +35,7 @@ const MemoizedUnifiedUIPanel = memo(UnifiedUIPanel);
  * ChatMessages - displays the message list
  */
 const ChatMessages: React.FC = () => {
-    const { renderMessages, currentChatId, getToolUIRender } = useChat();
+    const { renderMessages, currentChatId, getToolUIRender, loading } = useChat();
     const { compactMode } = useSettings();
 
     // Stable key for Static component re-mount
@@ -59,6 +59,7 @@ const ChatMessages: React.FC = () => {
                     startIndex={0}
                     staticKey={staticKey}
                     getToolUIRender={stableGetToolUIRender}
+                    loading={loading}
                 />
             ) : (
                 <MemoizedMessagesBox renderMessages={renderMessages} startIndex={0} staticKey={staticKey} />

@@ -13,6 +13,7 @@ interface CompactMessagesBoxProps {
     startIndex: number;
     staticKey: string;
     depth?: number;
+    loading: boolean;
     getToolUIRender: (toolName: string) => ((msg: RenderMessage) => React.ReactNode) | null;
 }
 
@@ -37,11 +38,13 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
     groupId,
     getToolUIRender,
     depth = 0,
+    loading,
 }: {
     toolGroup: RenderMessage[];
     groupId: string;
     getToolUIRender: (toolName: string) => ((msg: RenderMessage) => React.ReactNode) | null;
     depth?: number;
+    loading: boolean;
 }) {
     // 限制递归深度，防止无限嵌套导致内存泄漏
     if (depth > 1) {
@@ -76,6 +79,7 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
                                     depth={depth + 1}
                                     staticKey={`${groupId}-sub-${idx}`}
                                     getToolUIRender={getToolUIRender}
+                                    loading={loading}
                                 />
                             </>
                         ) : null}
@@ -92,6 +96,7 @@ interface MessageItemProps {
     startIndex?: number;
     getToolUIRender: (toolName: string) => ((msg: RenderMessage) => React.ReactNode) | null;
     depth?: number;
+    loading: boolean;
 }
 
 /**
@@ -106,6 +111,7 @@ const MessageItem = memo(function MessageItem({
     startIndex = 0,
     getToolUIRender,
     depth = 0,
+    loading,
 }: MessageItemProps) {
     const messageId = message.id || `message-${displayIndex}`;
 
@@ -138,6 +144,7 @@ const MessageItem = memo(function MessageItem({
                         groupId={message.id}
                         getToolUIRender={getToolUIRender}
                         depth={depth}
+                        loading={loading}
                     />
                 </>
             )}
@@ -158,6 +165,7 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
     staticKey,
     depth = 0,
     getToolUIRender,
+    loading,
 }: CompactMessagesBoxProps) {
     // 修复 Static 首次渲染问题：强制重新渲染
     const [ready, setReady] = useState(false);
@@ -230,6 +238,7 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
                         startIndex={startIndex}
                         getToolUIRender={getToolUIRender}
                         depth={depth}
+                        loading={loading}
                     />
                 ))}
             </Box>
@@ -239,7 +248,7 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
     return (
         <Box flexDirection="column">
             {/* 历史消息：用 PlatformStatic 固定，仅在 Windows 上启用 Static 能力 */}
-            <PlatformStatic items={histories}>
+            <PlatformStatic items={histories} forceStatic={loading}>
                 {(item, i) => (
                     <MessageItem
                         key={item.id || `message-${i}`}
@@ -249,6 +258,7 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
                         startIndex={startIndex}
                         getToolUIRender={getToolUIRender}
                         depth={depth}
+                        loading={loading}
                     />
                 )}
             </PlatformStatic>
@@ -263,6 +273,7 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
                     startIndex={startIndex}
                     getToolUIRender={getToolUIRender}
                     depth={depth}
+                    loading={loading}
                 />
             ))}
         </Box>
