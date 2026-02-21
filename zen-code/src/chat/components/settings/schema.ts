@@ -16,7 +16,15 @@ export const SETTINGS_SCHEMA: SettingField[] = [
         type: 'toggle',
         group: '显示',
         tab: 'General',
-        help: '紧凑显示消息',
+        help: '紧凑显示消息 (Ctrl+O)',
+    },
+    {
+        key: 'show_detailed_info',
+        label: '系统信息',
+        type: 'toggle',
+        group: '显示',
+        tab: 'General',
+        help: '显示系统资源信息',
     },
     {
         key: 'enable_thinking',

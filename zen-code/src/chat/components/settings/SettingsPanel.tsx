@@ -70,7 +70,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
             <SettingsForm schema={SETTINGS_SCHEMA} config={config} onUpdate={handleUpdate} activeTab={activeTab} />
 
             <Box paddingX={2} borderTop borderColor="gray">
-                <Text dimColor>Esc: Close | Auto-save</Text>
+                <Text dimColor>Esc: Close | Auto-save | Global: Ctrl+O (Compact)</Text>
             </Box>
         </Box>
     );

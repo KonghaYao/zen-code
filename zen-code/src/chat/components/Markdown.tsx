@@ -1,11 +1,16 @@
 import React, { useMemo, memo } from 'react';
 import { parse } from 'marked';
 import MarkedTerminal from 'marked-terminal';
-import { Text } from 'ink';
-import { useChat } from '@langgraph-js/sdk/react';
+import { Box, Text } from 'ink';
 
 // Singleton renderer instance to avoid repeated instantiation
-const renderer = new MarkedTerminal({}, {});
+const renderer = new MarkedTerminal(
+    {
+        showSectionPrefix: false,
+        tab: 2,
+    },
+    {},
+);
 
 /**
  * Truncates long text to fit within terminal bounds.
@@ -37,7 +42,7 @@ type MarkdownProps = {
 };
 
 const Markdown: React.FC<MarkdownProps> = memo(({ children }) => {
-    const { loading } = useChat();
+    const loading = false;
 
     // MEM FIX: Only parse markdown when loading is complete (not during streaming)
     // This prevents creating large parsed strings on every character update
@@ -46,7 +51,9 @@ const Markdown: React.FC<MarkdownProps> = memo(({ children }) => {
             // Return raw text during streaming
             return children || '';
         }
-        return parse(children, { renderer: renderer as any }) as string;
+        return parse(children, {
+            renderer: renderer as any,
+        }) as string;
     }, [children, loading]);
 
     // Show full text only when not loading (allows viewing complete responses)
@@ -54,7 +61,19 @@ const Markdown: React.FC<MarkdownProps> = memo(({ children }) => {
         return safeLongText(parsedText.trim(), !loading);
     }, [parsedText, loading]);
 
-    return <Text>{displayText}</Text>;
+    // Split text into lines and render each as separate Text component
+    // Using line index as key to cache each line component
+    const lines = useMemo(() => {
+        return displayText.split('\n').map((i) => (i === '' ? '\n' : i));
+    }, [displayText]);
+
+    return (
+        <Box flexDirection="column">
+            {lines.map((line, index) => (
+                <Text key={`line-${index}`}>{line}</Text>
+            ))}
+        </Box>
+    );
 });
 
 export default Markdown;

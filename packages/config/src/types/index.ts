@@ -55,6 +55,8 @@ export interface AppConfig {
     switch_command?: string;
     /** 紧凑模式 */
     compact_mode?: boolean;
+    /** 显示详细信息（系统资源等） */
+    show_detailed_info?: boolean;
     /** 权限配置 */
     permissions?: PermissionConfig;
 }

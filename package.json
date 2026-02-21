@@ -12,7 +12,7 @@
     "scripts": {
         "dev:docs": "bunx --bun xyd-js@0.1.0-alpha.5",
         "dev:server": "bun run ./packages/agent/src/server.ts",
-        "dev:tui": "bun run zen-code/src/cli.ts",
+        "dev:tui": "bun --smol run zen-code/src/cli.ts",
         "dev:web": "cd zen-worker && bun run dev",
         "dev:all": "bun run --parallel dev:server dev:web",
         "dev": "bun run dev:server",

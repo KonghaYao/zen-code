@@ -59,6 +59,8 @@ interface SettingsContextType {
     manager: ConfigManager;
     compactMode: boolean;
     toggleCompactMode: () => Promise<void>;
+    showDetailedInfo: boolean;
+    toggleDetailedInfo: () => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -113,6 +115,14 @@ const SettingsProviderInternal = ({
         await updateConfigMutation.mutateAsync({ compact_mode: !compactMode });
     };
 
+    const showDetailedInfo = useMemo(() => {
+        return config?.show_detailed_info ?? false;
+    }, [config?.show_detailed_info]);
+
+    const toggleDetailedInfo = async () => {
+        await updateConfigMutation.mutateAsync({ show_detailed_info: !showDetailedInfo });
+    };
+
     const updateConfig = async (newConfig: Partial<AppConfig>) => {
         await updateConfigMutation.mutateAsync(newConfig);
     };
@@ -135,6 +145,8 @@ const SettingsProviderInternal = ({
                 manager,
                 compactMode,
                 toggleCompactMode,
+                showDetailedInfo,
+                toggleDetailedInfo,
             }}
         >
             {children}
