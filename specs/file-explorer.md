@@ -1,152 +1,353 @@
-# zen-swarm File Explorer - 需求文档
+# zen-swarm File Explorer - VSCode 风格三栏布局
 
 ## 一、项目概述
 
-为 zen-swarm 创建一个类似 Windows 文件管理器的文件夹视图，能够访问当前服务器上的文件系统。
+将 zen-swarm 的文件系统改造为类似 VSCode 的三栏布局工具：
+
+- **左侧**：文件夹展示区（文件树）
+- **中间**：预览区（文件内容预览）
+- **右侧**：多功能展示区（搜索结果等）
 
 ## 二、需求收集结果
 
-| 需求项    | 用户选择                                                      |
-| --------- | ------------------------------------------------------------- |
-| 核心功能  | 浏览文件夹/子文件夹、创建/删除/重命名文件、文件上传/下载      |
-| 设计风格  | Organic/Natural（温暖浅色、赤陶色品牌色、圆角、自然弹性动画） |
-| 文件范围  | 整个服务器文件系统（需安全限制）                              |
-| 展示方式  | 支持列表/网格切换                                             |
-| 上传/下载 | 拖拽上传 + 点击下载                                           |
-| 搜索功能  | 不需要                                                        |
-| 后端 API  | zen-swarm 现有的 tRPC 路由                                    |
-| 图标      | 基础图标（按文件类型），使用外部 CDN                          |
+| 需求项     | 用户选择                                           |
+| ---------- | -------------------------------------------------- |
+| 目标平台   | zen-swarm Web UI                                   |
+| 预览内容   | 文件内容（代码/文本），超过 1MB 显示"超过大小"提示 |
+| 右侧面板   | 搜索结果（使用现有的 search-file-rg）              |
+| 搜索范围   | 仅当前项目文件                                     |
+| 文件树功能 | 多级目录展开/折叠                                  |
+| 文件树信息 | 仅显示文件名                                       |
+| 设计风格   | Organic/Natural（温暖浅色、赤陶色品牌色）          |
 
-## 三、功能规格
-
-### 3.1 文件浏览
-
-- **路径导航**: 面包屑导航，支持快速跳转
-- **文件列表**: 显示文件名、大小、修改时间、类型
-- **文件夹进入**: 双击或单击进入子文件夹
-- **视图切换**: 列表视图 / 网格视图切换按钮
-- **排序**: 按名称/大小/修改时间/类型排序
-
-### 3.2 文件操作
-
-- **创建**: 创建新文件夹、创建新文件
-- **删除**: 删除文件或文件夹（需确认）
-- **重命名**: 重命名文件或文件夹
-
-### 3.3 文件上传/下载
-
-- **拖拽上传**: 拖拽文件到指定区域上传
-- **点击下载**: 点击文件触发下载
-
-### 3.4 安全策略
-
-- **根目录限制**: 默认限制在项目根目录，可配置允许的根目录列表
-- **路径验证**: 阻止路径遍历攻击（`../`）
-- **隐藏文件**: 可选择是否显示隐藏文件（以 `.` 开头）
-
-## 四、技术架构
-
-### 4.1 后端 API (tRPC)
+## 三、布局结构
 
 ```
-zen-swarm/src/api/files.ts
+┌─────────────────────────────────────────────────────────────────────┐
+│ [Toolbar: 视图切换、新建、刷新等]                                     │
+├────────────────┬─────────────────────────────┬──────────────────────┤
+│                │                             │                      │
+│   File Tree    │       Preview Panel         │    Search Panel      │
+│   (左侧)       │       (中间预览区)           │    (右侧)            │
+│                │                             │                      │
+│   📁 src       │  ┌─────────────────────┐    │  🔍 搜索结果          │
+│   ├─📁 api     │  │                     │    │  ├─ file1.ts:10      │
+│   │ └─📄 x.ts  │  │   文件内容预览       │    │  ├─ file2.ts:25      │
+│   ├─📁 views   │  │   (代码高亮)         │    │  └─ file3.ts:42      │
+│   └─📄 main.ts │  │                     │    │                      │
+│                │  │   超过1MB显示:       │    │  [search-file-rg]    │
+│                │  │   "文件过大无法预览"  │    │                      │
+│                │  └─────────────────────┘    │                      │
+│                │                             │                      │
+│  Width: 15-25% │  Width: 50-60%              │  Width: 15-25%       │
+│  (可拖拽调整)   │  (自适应)                   │  (可拖拽调整)         │
+└────────────────┴─────────────────────────────┴──────────────────────┘
 ```
 
-#### Router 结构
+## 四、功能规格
+
+### 4.1 左侧：文件树面板 (File Tree Panel)
+
+#### 4.1.1 文件树展示
+
+- **多级目录结构**: 递归展示文件夹和文件
+- **展开/折叠**: 点击文件夹图标展开或折叠子目录
+- **仅显示文件名**: 不显示文件大小、修改时间等额外信息
+- **文件图标**: 根据文件类型显示不同图标（使用现有图标系统）
+
+#### 4.1.2 交互功能
+
+- **单击选中**: 选中文件/文件夹，中间区显示预览
+- **双击展开**: 双击文件夹展开/折叠
+- **虚拟滚动**: 处理大型目录的性能问题
+
+#### 4.1.3 状态管理
 
 ```typescript
-filesRouter = router({
-  // 浏览
-  list: procedure.input({ path: string }).query(...),     // 列出目录内容
-  stat: procedure.input({ path: string }).query(...),     // 获取文件信息
-
-  // 操作
-  createFolder: procedure.input({ path: string }).mutation(...),
-  createFile: procedure.input({ path: string, content?: string }).mutation(...),
-  delete: procedure.input({ path: string }).mutation(...),
-  rename: procedure.input({ oldPath: string, newPath: string }).mutation(...),
-
-  // 上传/下载
-  upload: procedure.input({ path: string, content: string, encoding?: string }).mutation(...),
-  download: procedure.input({ path: string }).query(...),
-})
+interface FileTreeState {
+    expandedPaths: Set<string>; // 已展开的路径
+    selectedPath: string | null; // 当前选中的路径
+    rootPath: string; // 项目根路径
+}
 ```
 
-### 4.2 前端组件
+### 4.2 中间：预览面板 (Preview Panel)
+
+#### 4.2.1 文件内容预览
+
+- **代码高亮**: 使用代码高亮库（如 Prism.js / Shiki）
+- **文本文件**: 直接显示内容
+- **文件大小限制**: 超过 1MB 显示"文件过大，无法预览"提示
+- **不支持类型**: 显示"该文件类型不支持预览"
+
+#### 4.2.2 预览状态
+
+```typescript
+interface PreviewState {
+    content: string | null; // 文件内容
+    language: string; // 语言类型（用于高亮）
+    fileSize: number; // 文件大小（字节）
+    isLargeFile: boolean; // 是否超过大小限制
+    isBinary: boolean; // 是否为二进制文件
+    isLoading: boolean; // 加载状态
+}
+```
+
+#### 4.2.3 文件大小处理逻辑
+
+```typescript
+const MAX_PREVIEW_SIZE = 1 * 1024 * 1024; // 1MB
+
+function shouldPreviewFile(file: FileItem): boolean {
+    // 不预览的情况
+    if (file.size > MAX_PREVIEW_SIZE) return false;
+    if (isBinaryFile(file)) return false;
+    return true;
+}
+```
+
+### 4.3 右侧：搜索面板 (Search Panel)
+
+#### 4.3.1 搜索功能
+
+- **使用现有 search-file-rg**: 集成 ripgrep 搜索工具
+- **搜索范围**: 仅当前项目文件
+- **实时搜索**: 输入时自动搜索（带防抖）
+
+#### 4.3.2 搜索结果展示
+
+- **文件路径**: 显示匹配文件路径
+- **行号**: 显示匹配行的行号
+- **上下文**: 可选显示匹配行的上下文
+- **点击跳转**: 点击结果跳转到对应位置
+
+#### 4.3.3 搜索状态
+
+```typescript
+interface SearchState {
+    query: string; // 搜索关键词
+    results: SearchResult[]; // 搜索结果
+    isSearching: boolean; // 搜索状态
+    selectedResult: SearchResult | null; // 选中的结果
+}
+
+interface SearchResult {
+    filePath: string;
+    lineNumber: number;
+    lineContent: string;
+    matchStart: number;
+    matchEnd: number;
+}
+```
+
+### 4.4 工具栏 (Toolbar)
+
+- **新建文件**: 创建新文件
+- **新建文件夹**: 创建新文件夹
+- **刷新**: 刷新文件树
+- **面板切换**: 显示/隐藏左右面板
+
+## 五、技术架构
+
+### 5.1 后端 API (tRPC)
+
+扩展现有的 `files` router：
+
+```typescript
+// zen-swarm/src/api/files.ts
+filesRouter = router({
+  // 现有 API
+  list: procedure.input(ListInput).query(...),
+  stat: procedure.input(StatInput).query(...),
+
+  // 新增 API
+  tree: procedure.input(TreeInput).query(...)      // 获取文件树（递归）
+  readFile: procedure.input(ReadInput).query(...)  // 读取文件内容（用于预览）
+  search: procedure.input(SearchInput).query(...)  // 搜索文件（调用 search-file-rg）
+})
+
+// 类型定义
+interface TreeInput {
+  path: string;
+  maxDepth?: number;        // 最大递归深度
+  excludePatterns?: string[]; // 排除模式（node_modules 等）
+}
+
+interface ReadInput {
+  path: string;
+  maxSize?: number;         // 最大读取大小，默认 1MB
+}
+
+interface SearchInput {
+  query: string;
+  path: string;             // 搜索根路径
+  filePattern?: string;     // 文件名模式
+}
+```
+
+### 5.2 前端组件
 
 ```
 zen-swarm/src/frontend/
 ├── views/
-│   └── FileExplorerView.tsx      # 主视图
+│   └── FileExplorerView.tsx        # 主视图（三栏布局）
 ├── components/
 │   └── fileExplorer/
-│       ├── FileList.tsx          # 文件列表（支持列表/网格）
-│       ├── FileGrid.tsx          # 网格视图
-│       ├── BreadcrumbNav.tsx     # 面包屑导航
-│       ├── FileItem.tsx          # 文件项
-│       ├── FileIcon.tsx          # 文件图标组件
-│       ├── DropZone.tsx          # 拖拽上传区域
-│       ├── CreateFileDialog.tsx  # 创建文件对话框
-│       └── Toolbar.tsx           # 工具栏（视图切换、排序等）
+│       ├── FileTree/
+│       │   ├── FileTree.tsx        # 文件树主组件
+│       │   ├── TreeNode.tsx        # 树节点组件
+│       │   └── TreeIcon.tsx        # 文件/文件夹图标
+│       ├── Preview/
+│       │   ├── PreviewPanel.tsx    # 预览面板主组件
+│       │   ├── CodePreview.tsx     # 代码预览（带高亮）
+│       │   └── LargeFileTip.tsx    # 大文件提示组件
+│       ├── Search/
+│       │   ├── SearchPanel.tsx     # 搜索面板主组件
+│       │   ├── SearchInput.tsx     # 搜索输入框
+│       │   └── SearchResult.tsx    # 搜索结果列表
+│       └── Toolbar.tsx             # 工具栏
 ```
 
-### 4.3 类型定义
+### 5.3 布局组件
+
+```tsx
+// FileExplorerView.tsx
+function FileExplorerView() {
+    return (
+        <div className="file-explorer-layout">
+            <Toolbar />
+            <div className="file-explorer-content">
+                <ResizablPanel defaultWidth={20} minWidth={15} maxWidth={30}>
+                    <FileTree />
+                </ResizablPanel>
+                <div className="preview-container">
+                    <PreviewPanel />
+                </div>
+                <ResizablPanel defaultWidth={20} minWidth={15} maxWidth={30} side="right">
+                    <SearchPanel />
+                </ResizablPanel>
+            </div>
+        </div>
+    );
+}
+```
+
+### 5.4 状态管理
+
+使用 React Context 或 Zustand 管理全局状态：
 
 ```typescript
-interface FileItem {
-    name: string;
-    path: string;
-    type: 'file' | 'directory';
-    size: number;
-    modifiedAt: Date;
-    isHidden: boolean;
-    extension?: string;
-}
+// stores/fileExplorerStore.ts
+interface FileExplorerStore {
+    // 文件树状态
+    tree: TreeNode[];
+    expandedPaths: Set<string>;
+    selectedPath: string | null;
 
-interface FileListOptions {
-    path: string;
-    showHidden?: boolean;
-    sortBy?: 'name' | 'size' | 'modifiedAt' | 'type';
-    sortOrder?: 'asc' | 'desc';
+    // 预览状态
+    preview: PreviewState;
+
+    // 搜索状态
+    search: SearchState;
+
+    // 面板状态
+    leftPanelVisible: boolean;
+    rightPanelVisible: boolean;
+
+    // Actions
+    expandPath: (path: string) => void;
+    collapsePath: (path: string) => void;
+    selectPath: (path: string) => void;
+    setSearchQuery: (query: string) => void;
+    togglePanel: (panel: 'left' | 'right') => void;
 }
 ```
 
-## 五、设计风格 (Organic/Natural)
+## 六、设计规范
 
-| 元素   | 样式           |
-| ------ | -------------- |
-| 主色调 | 温暖浅色背景   |
-| 品牌色 | 赤陶色 #d4765c |
-| 圆角   | 0.5-2rem       |
-| 阴影   | 温暖琥珀色阴影 |
-| 动画   | 自然弹性动画   |
-| 字体   | Nunito         |
+### 6.1 Organic/Natural 风格
 
-## 六、实现计划
+| 元素     | 样式                   |
+| -------- | ---------------------- |
+| 主色调   | 温暖浅色背景 `#faf8f5` |
+| 品牌色   | 赤陶色 `#d4765c`       |
+| 面板背景 | `#f5f3f0`              |
+| 边框色   | `#e8e4df`              |
+| 圆角     | `0.5rem - 1rem`        |
+| 阴影     | 温暖琥珀色阴影         |
+| 动画     | 自然弹性动画           |
 
-1. **Phase 1: 后端 API**
-    - 创建 files.ts router
-    - 实现文件系统操作
-    - 添加安全验证
+### 6.2 布局尺寸
 
-2. **Phase 2: 基础前端**
-    - 创建 FileExplorerView
-    - 实现文件列表展示
-    - 面包屑导航
+| 元素       | 尺寸                    |
+| ---------- | ----------------------- |
+| 左侧面板   | 15-25% 宽度，可拖拽调整 |
+| 中间面板   | 自适应剩余空间          |
+| 右侧面板   | 15-25% 宽度，可拖拽调整 |
+| 工具栏高度 | 48px                    |
+| 文件树行高 | 28px                    |
 
-3. **Phase 3: 交互功能**
-    - 视图切换
-    - 创建/删除/重命名
-    - 上传/下载
+## 七、实现状态
 
-4. **Phase 4: 优化**
-    - 拖拽上传
-    - 加载状态
-    - 错误处理
+### ✅ Phase 1: 基础架构（已完成）
 
-## 七、安全考虑
+- [x] 创建 FileExplorerView 主视图
+- [x] 实现三栏布局结构（VSCode 风格）
+- [x] 添加可拖拽调整大小的面板组件（ResizablePanel）
+- [x] 支持布局模式切换（VSCode / Legacy）
 
-- **路径遍历防护**: 验证所有路径，阻止 `../` 攻击
-- **根目录限制**: 配置允许访问的根目录白名单
-- **文件大小限制**: 限制上传文件大小
-- **权限检查**: 检查文件系统权限
+### ✅ Phase 2: 文件树功能（已完成）
+
+- [x] 实现 FileTree 组件（多级目录展开/折叠）
+- [x] 后端添加 `tree` API（递归获取文件树）
+- [x] 实现展开/折叠功能
+- [x] 添加文件图标
+
+### ✅ Phase 3: 预览功能（已完成）
+
+- [x] 实现 PreviewPanel 组件
+- [x] 后端添加 `readFile` API
+- [x] 集成代码预览（行号显示）
+- [x] 处理大文件提示（超过 1MB）
+- [x] 处理二进制文件提示
+
+### ✅ Phase 4: 搜索功能（已完成）
+
+- [x] 实现 SearchPanel 组件
+- [x] 集成 ripgrep 搜索（后端 `search` API）
+- [x] 实现搜索结果展示（高亮匹配）
+- [x] 添加点击跳转功能
+- [x] 支持键盘导航（上下键 + Enter）
+
+### ✅ Phase 5: 优化（已完成）
+
+- [x] 构建检查通过
+- [x] 面板可见性切换
+- [x] 防抖搜索
+
+## 八、已创建的文件
+
+### 后端 API
+
+- `zen-swarm/src/api/files.ts` - 新增 `tree`, `readFile`, `search` API
+
+### 前端组件
+
+- `zen-swarm/src/frontend/views/FileExplorerView.tsx` - 主视图（三栏布局）
+- `zen-swarm/src/frontend/components/fileExplorer/FileTree/FileTree.tsx` - 文件树组件
+- `zen-swarm/src/frontend/components/fileExplorer/Preview/PreviewPanel.tsx` - 预览面板
+- `zen-swarm/src/frontend/components/fileExplorer/Search/SearchPanel.tsx` - 搜索面板
+
+## 九、后续扩展（可选）
+
+- 现有文件 API: `zen-swarm/src/api/files.ts`
+- 搜索工具: `search-file-rg`
+- 设计系统: `.claude/memories/zen-swarm-frontend-design/MEMORY.md`
+
+## 九、后续扩展（可选）
+
+- [ ] 右键菜单（新建/删除/重命名）
+- [ ] 文件拖拽移动
+- [ ] 多标签页预览
+- [ ] 文件搜索过滤
+- [ ] Git 状态显示

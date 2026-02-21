@@ -183,6 +183,24 @@ const DownloadInputSchema = z.object({
     path: z.string().min(1),
 });
 
+const TreeInputSchema = z.object({
+    path: z.string().default('/'),
+    maxDepth: z.number().min(1).max(10).default(3),
+    excludePatterns: z.array(z.string()).optional(),
+});
+
+const ReadFileInputSchema = z.object({
+    path: z.string().min(1),
+    maxSize: z.number().optional(),
+});
+
+const SearchInputSchema = z.object({
+    query: z.string().min(1),
+    path: z.string().default('/'),
+    filePattern: z.string().optional(),
+    maxResults: z.number().min(1).max(1000).default(100),
+});
+
 // ========================================
 // Router
 // ========================================
@@ -409,6 +427,177 @@ export const filesRouter = router({
             content: content.toString('base64'),
             mimeType,
             size: content.length,
+        };
+    }),
+
+    // 获取文件树（递归）
+    tree: publicProcedure.input(TreeInputSchema).query(async ({ input }) => {
+        const targetPath = await validatePath(input.path);
+        const exists = await pathExists(targetPath);
+
+        if (!exists) {
+            handleNotFound('Directory', input.path);
+        }
+
+        const stats = await fs.stat(targetPath);
+        if (!stats.isDirectory()) {
+            handleBadRequest('Path is not a directory');
+        }
+
+        // 默认排除的目录
+        const defaultExcludes = ['node_modules', '.git', 'dist', 'build', '.next', '__pycache__', '.venv', 'venv'];
+        const excludePatterns = [...defaultExcludes, ...(input.excludePatterns || [])];
+
+        // 递归构建树
+        async function buildTree(dirPath: string, relativePath: string, depth: number): Promise<any[]> {
+            if (depth > input.maxDepth) return [];
+
+            const entries = await fs.readdir(dirPath, { withFileTypes: true });
+            const result: any[] = [];
+
+            for (const entry of entries) {
+                // 跳过隐藏文件
+                if (entry.name.startsWith('.')) continue;
+                // 跳过排除的目录
+                if (excludePatterns.includes(entry.name)) continue;
+
+                const entryPath = path.join(dirPath, entry.name);
+                const entryRelativePath = path.join(relativePath, entry.name);
+                const isDirectory = entry.isDirectory();
+                const extension = isDirectory ? undefined : path.extname(entry.name);
+
+                const node: any = {
+                    name: entry.name,
+                    path: entryRelativePath,
+                    type: isDirectory ? 'directory' : 'file',
+                    extension,
+                    icon: getFileIcon(isDirectory, extension),
+                };
+
+                if (isDirectory && depth < input.maxDepth) {
+                    node.children = await buildTree(entryPath, entryRelativePath, depth + 1);
+                }
+
+                result.push(node);
+            }
+
+            // 排序：目录在前，然后按名称
+            result.sort((a, b) => {
+                if (a.type !== b.type) {
+                    return a.type === 'directory' ? -1 : 1;
+                }
+                return a.name.localeCompare(b.name);
+            });
+
+            return result;
+        }
+
+        const tree = await buildTree(targetPath, input.path, 1);
+
+        return {
+            path: input.path,
+            tree,
+        };
+    }),
+
+    // 读取文件内容（用于预览）
+    readFile: publicProcedure.input(ReadFileInputSchema).query(async ({ input }) => {
+        const targetPath = await validatePath(input.path);
+        const maxSize = input.maxSize || 1024 * 1024; // 默认 1MB
+
+        if (!(await pathExists(targetPath))) {
+            handleNotFound('File', input.path);
+        }
+
+        const stat = await fs.stat(targetPath);
+        if (stat.isDirectory()) {
+            handleBadRequest('Cannot read a directory');
+        }
+
+        // 检查文件大小
+        if (stat.size > maxSize) {
+            return {
+                path: input.path,
+                content: null,
+                size: stat.size,
+                isLarge: true,
+            };
+        }
+
+        const content = await fs.readFile(targetPath, 'utf-8');
+
+        return {
+            path: input.path,
+            content,
+            size: stat.size,
+            isLarge: false,
+        };
+    }),
+
+    // 搜索文件内容（调用 ripgrep）
+    search: publicProcedure.input(SearchInputSchema).query(async ({ input }) => {
+        const targetPath = await validatePath(input.path);
+
+        if (!(await pathExists(targetPath))) {
+            handleNotFound('Directory', input.path);
+        }
+
+        const stats = await fs.stat(targetPath);
+        if (!stats.isDirectory()) {
+            handleBadRequest('Path is not a directory');
+        }
+
+        // 动态导入 ripgrep 工具
+        // 这里简化实现，实际可以调用系统的 rg 命令
+        const { exec } = await import('child_process');
+        const { promisify } = await import('util');
+        const execAsync = promisify(exec);
+
+        const results: any[] = [];
+
+        try {
+            // 构建搜索命令
+            let command = `rg --json --max-count=${input.maxResults}`;
+            if (input.filePattern) {
+                command += ` --glob="${input.filePattern}"`;
+            }
+            command += ` "${input.query.replace(/"/g, '\\"')}" "${targetPath}"`;
+
+            const { stdout } = await execAsync(command, {
+                maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+            });
+
+            // 解析 ripgrep JSON 输出
+            const lines = stdout.split('\n').filter(Boolean);
+            for (const line of lines) {
+                try {
+                    const data = JSON.parse(line);
+                    if (data.type === 'match') {
+                        const match = data.data;
+                        results.push({
+                            filePath: path.relative(DEFAULT_ROOT, match.path.text),
+                            lineNumber: match.line_number,
+                            lineContent: match.lines.text,
+                            matchStart: match.submatches[0]?.start || 0,
+                            matchEnd: match.submatches[0]?.end || 0,
+                        });
+                    }
+                } catch {
+                    // 忽略解析错误
+                }
+            }
+        } catch (error: any) {
+            // rg 返回非零退出码时表示没有匹配
+            if (error.code !== 1) {
+                throw new Error(`Search failed: ${error.message}`);
+            }
+        }
+
+        return {
+            query: input.query,
+            path: input.path,
+            results,
+            total: results.length,
         };
     }),
 
