@@ -32,7 +32,6 @@ export function useToolInitialization({ tools, setTools }: UseToolInitialization
     useEffect(() => {
         // Only initialize once
         if (!initializedRef.current) {
-            console.clear();
             setTools(tools);
             initializedRef.current = true;
         }
