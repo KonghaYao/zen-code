@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useRef, ReactNode, useEffect, useMemo } from 'react';
+import { useUnmount, useIsMounted } from 'usehooks-ts';
 import type { AppConfig, MCPConfig, ConfigManager } from '@codegraph/config';
 
 export interface ModelConfig {
@@ -35,6 +36,12 @@ export const SettingsProvider = ({ manager, get_allowed_models, children }: Sett
     const [loading, setLoading] = useState(true);
     const [AVAILABLE_MODELS, setModels] = useState<ModelConfig[]>([]);
 
+    // 使用 usehooks-ts 的 useIsMounted 检查组件是否已挂载
+    const isMounted = useIsMounted();
+
+    // AbortController 引用，用于取消异步操作
+    const abortControllerRef = useRef<AbortController | null>(null);
+
     // 使用 useRef 避免循环依赖：extraParams.model_id 使用 AVAILABLE_MODELS[0] 导致 models 变化时 extraParams 变化
     const availableModelsRef = useRef<ModelConfig[]>([]);
     availableModelsRef.current = AVAILABLE_MODELS;
@@ -57,40 +64,96 @@ export const SettingsProvider = ({ manager, get_allowed_models, children }: Sett
         await updateConfig({ compact_mode: !compactMode });
     };
 
-    const loadConfig = async () => {
-        // 使用 ConfigManager 初始化和获取配置
-        await manager.initialize();
-        const loadedConfig = await manager.getConfig();
+    const loadConfig = async (signal?: AbortSignal) => {
+        // 检查是否已取消或组件已卸载
+        if (signal?.aborted || !isMounted()) return;
 
-        // 并行加载模型列表
-        const models = await get_allowed_models().catch(() => []);
-        setModels(models);
+        try {
+            await manager.initialize();
 
-        // 如果配置中没有 provider_id/model_id，使用第一个可用模型
-        if ((!loadedConfig.provider_id || !loadedConfig.model_id) && models[0]) {
-            const newConfig: Partial<AppConfig> = {
-                provider_id: models[0].provider,
-                model_id: models[0].id,
-            };
-            await manager.updateConfig(newConfig);
-            const updatedConfig = await manager.getConfig();
-            setConfig(updatedConfig);
-        } else {
-            setConfig(loadedConfig);
+            if (signal?.aborted || !isMounted()) return;
+            const loadedConfig = await manager.getConfig();
+
+            // 并行加载模型列表
+            const models = await get_allowed_models().catch(() => []);
+
+            if (signal?.aborted || !isMounted()) return;
+            setModels(models);
+
+            // 如果配置中没有 provider_id/model_id，使用第一个可用模型
+            if ((!loadedConfig.provider_id || !loadedConfig.model_id) && models[0]) {
+                const newConfig: Partial<AppConfig> = {
+                    provider_id: models[0].provider,
+                    model_id: models[0].id,
+                };
+
+                if (signal?.aborted || !isMounted()) return;
+                await manager.updateConfig(newConfig);
+
+                if (signal?.aborted || !isMounted()) return;
+                const updatedConfig = await manager.getConfig();
+
+                if (signal?.aborted || !isMounted()) return;
+                setConfig(updatedConfig);
+            } else {
+                if (signal?.aborted || !isMounted()) return;
+                setConfig(loadedConfig);
+            }
+
+            if (signal?.aborted || !isMounted()) return;
+            setLoading(false);
+        } catch (error) {
+            if (!signal?.aborted && isMounted()) {
+                console.error('Failed to load config:', error);
+                setLoading(false);
+            }
         }
-
-        setLoading(false);
     };
 
     useEffect(() => {
-        loadConfig();
-    }, [manager]);
+        // 创建新的 AbortController
+        abortControllerRef.current = new AbortController();
 
-    const updateConfig = async (newConfig: Partial<AppConfig>) => {
-        await manager.updateConfig(newConfig);
-        const updatedConfig = await manager.getConfig();
-        setConfig(updatedConfig);
+        loadConfig(abortControllerRef.current.signal);
+
+        // 清理函数
+        return () => {
+            // 取消进行中的异步操作
+            abortControllerRef.current?.abort();
+            abortControllerRef.current = null;
+        };
+    }, [manager]); // 只依赖 manager
+
+    const updateConfig = async (newConfig: Partial<AppConfig>, signal?: AbortSignal) => {
+        // 检查是否已取消或组件已卸载
+        if (signal?.aborted || !isMounted()) return;
+
+        try {
+            await manager.updateConfig(newConfig);
+
+            if (signal?.aborted || !isMounted()) return;
+            const updatedConfig = await manager.getConfig();
+
+            if (signal?.aborted || !isMounted()) return;
+            setConfig(updatedConfig);
+        } catch (error) {
+            if (!signal?.aborted && isMounted()) {
+                console.error('Failed to update config:', error);
+            }
+        }
     };
+
+    // 组件卸载时的清理
+    useUnmount(() => {
+        // 取消所有进行中的异步操作
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = null;
+
+        // 可选：清理 manager 资源
+        // if (manager?.cleanup) {
+        //     manager.cleanup();
+        // }
+    });
 
     if (loading) {
         return null; // 或者显示加载指示器

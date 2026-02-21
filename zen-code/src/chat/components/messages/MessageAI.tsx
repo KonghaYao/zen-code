@@ -32,8 +32,8 @@ const MessageAI: React.FC<MessageAIProps> = ({ message, messageNumber }) => {
             {thinkingContent && (
                 <Reasoning thinking={thinkingContent} visible={rawTextContents.trim().length === 0}></Reasoning>
             )}
-            {/* <Text>{JSON.stringify(message.content)}</Text> */}
-            <Markdown>{rawTextContents}</Markdown>
+            <Text>{rawTextContents}</Text>
+            {/* <Markdown>{rawTextContents}</Markdown> */}
         </Box>
     );
 };

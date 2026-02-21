@@ -21,6 +21,7 @@ import { useChatPanel } from '../../context/ChatPanelContext';
 import { ChatInputBuffer } from './ChatInputBuffer';
 
 import { notify } from '../../../utils/notify';
+import { metadataOfChat } from '../../../utils';
 
 /**
  * Chat input component with command handling and autocomplete.
@@ -49,7 +50,7 @@ export const ChatInput: React.FC = memo(() => {
     const { data: agents = [] } = useAgents();
 
     // Use Ralph Loop hook
-    const { startRalphLoop, sendTextMessage } = useRalphLoop({
+    const { startRalphLoop } = useRalphLoop({
         loading,
         renderMessages,
         sendMessage,
@@ -86,10 +87,18 @@ export const ChatInput: React.FC = memo(() => {
             }
 
             // 普通消息处理
-            await sendTextMessage(inputValue);
+            await sendMessage(
+                [
+                    {
+                        type: 'human',
+                        content: inputValue,
+                    },
+                ],
+                { extraParams, metadata: metadataOfChat },
+            );
             notify('Zen Code 完成任务');
         },
-        [commandHandler, setUserInput, sendTextMessage],
+        [commandHandler, setUserInput],
     );
 
     return (

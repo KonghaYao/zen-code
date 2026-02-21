@@ -65,12 +65,25 @@ function performGC(): {
             message: `GC 执行成功，释放了 ${formatBytes(Math.max(0, freed))} 内存`,
         };
     }
+    if (globalThis.global && typeof globalThis.global.gc === 'function') {
+        globalThis.global.gc();
+        const after = getMemoryStats();
+        const freed = before.heapUsed - after.heapUsed;
+
+        return {
+            success: true,
+            before,
+            after,
+            freed,
+            message: `GC 执行成功，释放了 ${formatBytes(Math.max(0, freed))} 内存`,
+        };
+    }
 
     return {
         success: false,
         before,
         message:
-            '/gc 命令仅在 Bun 运行时可用\n' +
+            '/gc 命令仅在 Bun 或者 node --expose-gc 可用\n' +
             '当前内存使用: ' +
             formatBytes(before.heapUsed) +
             ' / ' +

@@ -65,7 +65,6 @@ const ChatWrapper: React.FC = () => {
                     path: process.cwd(),
                 },
             }}
-            debounceTime={500}
         >
             <TanStackQueryProvider>
                 <SettingsProvider get_allowed_models={get_allowed_models}>

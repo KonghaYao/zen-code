@@ -23,25 +23,17 @@ import { UnifiedUIPanel } from '../../interaction/UnifiedUIPanel';
 import { useInteractionContext } from '../../interaction/context';
 import { ChatInput } from '../input/ChatInput';
 import { RenderMessage } from '@langgraph-js/sdk';
-import { useDebounceValue } from 'usehooks-ts';
 import { ChatInputBufferProvider } from '@codegraph/union-client';
-
-// Memoize heavy components to prevent unnecessary re-renders
-const MemoizedWelcomeHeader = memo(WelcomeHeader);
-const MemoizedMessagesBox = memo(MessagesBox);
-const MemoizedCompactMessagesBox = memo(CompactMessagesBox);
-const MemoizedChatInput = memo(ChatInput);
-const MemoizedUnifiedUIPanel = memo(UnifiedUIPanel);
 
 /**
  * ChatMessages - displays the message list
  */
 const ChatMessages: React.FC = () => {
-    const { renderMessages, currentChatId, getToolUIRender, loading } = useChat();
+    const { renderMessages: debouncedRenderMessages, currentChatId, getToolUIRender, loading } = useChat();
     const { compactMode } = useSettings();
 
     // Debounce renderMessages updates to 500ms to reduce re-renders during fast updates
-    const [debouncedRenderMessages] = useDebounceValue(renderMessages, 500);
+    // const [debouncedRenderMessages] = useDebounceValue(renderMessages, 500);
 
     // Stable key for Static component re-mount
     const staticKey = useMemo(() => {
@@ -57,9 +49,9 @@ const ChatMessages: React.FC = () => {
 
     return (
         <Box flexDirection="column" flexGrow={1} paddingX={0} paddingY={0}>
-            {debouncedRenderMessages.length === 0 && <MemoizedWelcomeHeader />}
+            {debouncedRenderMessages.length === 0 && <WelcomeHeader />}
             {compactMode ? (
-                <MemoizedCompactMessagesBox
+                <CompactMessagesBox
                     renderMessages={debouncedRenderMessages}
                     startIndex={0}
                     staticKey={staticKey}
@@ -67,7 +59,7 @@ const ChatMessages: React.FC = () => {
                     loading={loading}
                 />
             ) : (
-                <MemoizedMessagesBox renderMessages={debouncedRenderMessages} startIndex={0} staticKey={staticKey} />
+                <MessagesBox renderMessages={debouncedRenderMessages} startIndex={0} staticKey={staticKey} />
             )}
         </Box>
     );
@@ -87,10 +79,10 @@ export const ChatMain: React.FC = () => {
                 <ChatMessages key={currentChatId} />
                 {hasPendingInteractions ? (
                     <Box paddingX={0} paddingY={0}>
-                        <MemoizedUnifiedUIPanel />
+                        <UnifiedUIPanel />
                     </Box>
                 ) : (
-                    <MemoizedChatInput />
+                    <ChatInput />
                 )}
             </Box>
         </ChatInputBufferProvider>

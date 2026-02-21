@@ -157,7 +157,15 @@ const MessageItem = memo(function MessageItem({
         </Box>
     );
 });
-
+const hasAITextContent = (message: RenderMessage): boolean => {
+    if (message.type !== 'ai') return true;
+    try {
+        const content = getTextContent(message);
+        return !!(content && content.trim().length > 0);
+    } catch {
+        return false;
+    }
+};
 /**
  * CompactMessagesBox - 紧凑消息显示组件
  *
@@ -181,17 +189,6 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
 
     // 使用 useTimeout 替代原生 setTimeout
     useTimeout(() => setReady(true), ready ? null : 0);
-
-    // 检查 AI 消息是否有文本内容
-    const hasAITextContent = useCallback((message: RenderMessage): boolean => {
-        if (message.type !== 'ai') return true;
-        try {
-            const content = getTextContent(message);
-            return !!(content && content.trim().length > 0);
-        } catch {
-            return false;
-        }
-    }, []);
 
     // 预处理消息：收集连续的 tool 消息并标记
     // 注意：不再预计算 extraRender，只存储数据
@@ -241,24 +238,24 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
     const current = processedMessages.slice(currentDisplayIndex);
 
     // 首次渲染时直接显示，后续使用 Static
-    if (!ready) {
-        return (
-            <Box flexDirection="column">
-                {processedMessages.map((item, i) => (
-                    <MessageItem
-                        key={item.id ? `init-${item.id}` : `init-msg-${depth}-${i}`}
-                        message={item}
-                        displayIndex={i}
-                        isCurrent={i === currentDisplayIndex}
-                        startIndex={startIndex}
-                        getToolUIRender={getToolUIRender}
-                        depth={depth}
-                        loading={loading}
-                    />
-                ))}
-            </Box>
-        );
-    }
+    // if (!ready) {
+    //     return (
+    //         <Box flexDirection="column">
+    //             {processedMessages.map((item, i) => (
+    //                 <MessageItem
+    //                     key={item.id ? `init-${item.id}` : `init-msg-${depth}-${i}`}
+    //                     message={item}
+    //                     displayIndex={i}
+    //                     isCurrent={i === currentDisplayIndex}
+    //                     startIndex={startIndex}
+    //                     getToolUIRender={getToolUIRender}
+    //                     depth={depth}
+    //                     loading={loading}
+    //                 />
+    //             ))}
+    //         </Box>
+    //     );
+    // }
 
     return (
         <Box flexDirection="column">
