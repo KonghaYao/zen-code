@@ -42,7 +42,7 @@ interface ChatControllerProps {
  */
 const ChatControllerInternal: React.FC<ChatControllerProps> = ({ children }) => {
     const { extraParams, toggleCompactMode, config } = useSettings();
-    const { setTools, loading, stopGeneration } = useChat();
+    const { setTools, loading } = useChat();
     const { hasPendingInteractions } = useInteractionContext();
 
     // Initialize tools once
@@ -64,13 +64,7 @@ const ChatControllerInternal: React.FC<ChatControllerProps> = ({ children }) => 
     // Global keyboard shortcuts
     useInput(
         (input, key) => {
-            if (key.ctrl && input === 'c') {
-                if (loading) {
-                    stopGeneration();
-                } else {
-                    process.exit();
-                }
-            } else if (key.ctrl && input === 'o' && isChatView && !loading) {
+            if (key.ctrl && input === 'o' && isChatView && !loading) {
                 toggleCompactMode();
             } else if (key.ctrl && input === 'z' && globalThis.Bun) {
                 import('v8').then((res) => {
