@@ -16,3 +16,14 @@ export { FileTree } from './FileTree/index.js';
 export type { TreeNode } from './FileTree/FileTree.js';
 export { PreviewPanel } from './Preview/index.js';
 export { SearchPanel } from './Search/index.js';
+
+// 右侧面板系统（Tab 切换）
+export {
+    RightPanelContainer,
+    ChatPanelMini,
+    ChatHeader,
+    ChatHistoryButton,
+    ChatHistoryDrawer,
+    TabBar,
+    Tab,
+} from './RightPanel/index.js';

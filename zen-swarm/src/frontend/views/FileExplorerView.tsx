@@ -18,13 +18,15 @@ import type { FileItem } from '../types/files.js';
 import {
     FileTree,
     PreviewPanel,
-    SearchPanel,
+    RightPanelContainer,
     CreateFolderDialog,
     CreateFileDialog,
     RenameDialog,
     DeleteConfirmDialog,
 } from '../components/fileExplorer/index.js';
 import type { TreeNode } from '../components/fileExplorer/FileTree/FileTree.js';
+import type { RightPanelType, RightPanelState } from '../components/fileExplorer/RightPanel/index.js';
+import { RIGHT_PANEL_STATE_KEY } from '../types/rightPanel.js';
 
 // ========================================
 // Types
@@ -197,6 +199,19 @@ export function FileExplorerView() {
     const [rightPanelWidth, setRightPanelWidth] = useState(280);
     const [leftPanelVisible, setLeftPanelVisible] = useState(true);
     const [rightPanelVisible, setRightPanelVisible] = useState(true);
+    const [activeRightPanel, setActiveRightPanel] = useState<RightPanelType>(() => {
+        // 从 localStorage 加载上次的面板状态
+        try {
+            const saved = localStorage.getItem(RIGHT_PANEL_STATE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved) as RightPanelState;
+                return parsed.activePanel || 'search';
+            }
+        } catch (e) {
+            // ignore
+        }
+        return 'search';
+    });
     const [resizeState, setResizeState] = useState<PanelResizeState>({
         isResizing: false,
         panel: null,
@@ -221,7 +236,7 @@ export function FileExplorerView() {
     // Computed - 统计信息
     // ========================================
 
-    const { fileCount, folderCount } = useMemo(() => {
+    const { files: fileCount, folders: folderCount } = useMemo(() => {
         const countNodes = (nodes: TreeNode[]): { files: number; folders: number } => {
             let files = 0;
             let folders = 0;
@@ -418,6 +433,34 @@ export function FileExplorerView() {
         });
     }, []);
 
+    // ========================================
+    // Handlers - 键盘快捷键
+    // ========================================
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Cmd+Shift+F (Mac) / Ctrl+Shift+F (Windows/Linux) - 切换到 Search
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+                e.preventDefault();
+                setActiveRightPanel('search');
+                if (!rightPanelVisible) {
+                    setRightPanelVisible(true);
+                }
+            }
+            // Cmd+Shift+I (Mac) / Ctrl+Shift+I (Windows/Linux) - 切换到 Chat
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'i') {
+                e.preventDefault();
+                setActiveRightPanel('chat');
+                if (!rightPanelVisible) {
+                    setRightPanelVisible(true);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [rightPanelVisible]);
+
     useEffect(() => {
         if (resizeState.isResizing) {
             window.addEventListener('mousemove', handleMouseMove);
@@ -577,29 +620,16 @@ export function FileExplorerView() {
                     </div>
                 </div>
 
-                {/* 右侧：搜索 */}
+                {/* 右侧：Tab 切换面板系统 */}
                 {rightPanelVisible && (
-                    <div
-                        className="relative flex flex-col h-full bg-[var(--color-bg-secondary)] border-l border-[var(--color-border-subtle)]"
-                        style={{ width: rightPanelWidth }}
-                    >
-                        {/* 面板标题 */}
-                        <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-tertiary)] shrink-0">
-                            <span className="text-sm font-medium text-[var(--color-text-secondary)]">SEARCH</span>
-                        </div>
-
-                        {/* 搜索面板 - 独立滚动 */}
-                        <div className="flex-1 overflow-hidden">
-                            <SearchPanel rootPath="/" onResultClick={handleSearchResultClick} />
-                        </div>
-
-                        {/* 拖拽调整手柄 */}
-                        <div
-                            className="absolute top-0 bottom-0 w-1 cursor-col-resize hover:bg-[var(--color-primary)] hover:opacity-50 transition-colors duration-150"
-                            style={{ left: 0 }}
-                            onMouseDown={(e) => handleResizeStart('right', e.clientX, rightPanelWidth)}
-                        />
-                    </div>
+                    <RightPanelContainer
+                        width={rightPanelWidth}
+                        rootPath="/"
+                        activePanel={activeRightPanel}
+                        onActivePanelChange={setActiveRightPanel}
+                        onSearchResultClick={handleSearchResultClick}
+                        onResizeStart={(startX, startWidth) => handleResizeStart('right', startX, startWidth)}
+                    />
                 )}
             </div>
 

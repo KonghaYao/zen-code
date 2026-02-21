@@ -51,6 +51,6 @@ serve({
         '/ui': dashboard,
     },
     fetch: app.fetch,
-    idleTimeout: 300,
+    idleTimeout: 120,
     port,
 });
