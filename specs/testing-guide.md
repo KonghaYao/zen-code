@@ -6,11 +6,11 @@
 
 ```bash
 # 根目录
-pnpm add -D -w vitest v8 @vitest/ui
+bun add -d vitest v8 @vitest/ui
 
 # 各包
-pnpm --filter @codegraph/agent add -D vitest
-pnpm --filter zen-code add -D vitest @testing-library/react @testing-library/user-event happy-dom
+bun add -d vitest --filter @codegraph/agent
+bun add -d vitest @testing-library/react @testing-library/user-event happy-dom --filter zen-code
 ```
 
 ### 2️⃣ 创建配置
@@ -82,30 +82,30 @@ export default defineConfig({
 ### 4️⃣ 验证
 
 ```bash
-pnpm test -- --run
+bun test --run
 ```
 
 ---
 
 ## 技术选型
 
-| 工具 | 用途 | 理由 |
-|------|------|------|
-| **Vitest** ^2.x | 测试框架 | 原生 ESM、比 Jest 快 2-10x |
-| **v8** ^10.x | 覆盖率 | 轻量、Node.js 原生支持 |
-| **@testing-library/react** ^16.x | React 组件 | 行为驱动测试 |
-| **happy-dom** ^15.x | DOM 环境 | 比 jsdom 更快 |
+| 工具                             | 用途       | 理由                       |
+| -------------------------------- | ---------- | -------------------------- |
+| **Vitest** ^2.x                  | 测试框架   | 原生 ESM、比 Jest 快 2-10x |
+| **v8** ^10.x                     | 覆盖率     | 轻量、Node.js 原生支持     |
+| **@testing-library/react** ^16.x | React 组件 | 行为驱动测试               |
+| **happy-dom** ^15.x              | DOM 环境   | 比 jsdom 更快              |
 
 ---
 
 ## 覆盖率目标
 
-| 包 | 目标 | 最低 |
-|---|------|------|
-| `@codegraph/config` | 70% | 70% |
-| `@codegraph/agent` | 70% | 70% |
-| `@codegraph/union-client` | 60% | 60% |
-| `zen-code` | 60% | 60% |
+| 包                        | 目标 | 最低 |
+| ------------------------- | ---- | ---- |
+| `@codegraph/config`       | 70%  | 70%  |
+| `@codegraph/agent`        | 70%  | 70%  |
+| `@codegraph/union-client` | 60%  | 60%  |
+| `zen-code`                | 60%  | 60%  |
 
 ---
 
@@ -115,18 +115,18 @@ pnpm test -- --run
 
 ```typescript
 describe('ModuleName', () => {
-  describe('functionName', () => {
-    it('should do X when Y', () => {
-      // Arrange - 准备测试数据
-      const input = { value: 42 };
+    describe('functionName', () => {
+        it('should do X when Y', () => {
+            // Arrange - 准备测试数据
+            const input = { value: 42 };
 
-      // Act - 执行被测试代码
-      const result = doubleValue(input.value);
+            // Act - 执行被测试代码
+            const result = doubleValue(input.value);
 
-      // Assert - 验证结果
-      expect(result).toBe(84);
+            // Assert - 验证结果
+            expect(result).toBe(84);
+        });
     });
-  });
 });
 ```
 
@@ -136,7 +136,7 @@ describe('ModuleName', () => {
 
 ```typescript
 vi.mock('@langchain/core', () => ({
-  AgentState: { extend: vi.fn((schema) => schema) },
+    AgentState: { extend: vi.fn((schema) => schema) },
 }));
 ```
 
@@ -144,15 +144,15 @@ vi.mock('@langchain/core', () => ({
 
 ```typescript
 describe('File Operations', () => {
-  const testDir = `/tmp/test-${Date.now()}`;
+    const testDir = `/tmp/test-${Date.now()}`;
 
-  beforeEach(async () => {
-    await fs.mkdir(testDir, { recursive: true });
-  });
+    beforeEach(async () => {
+        await fs.mkdir(testDir, { recursive: true });
+    });
 
-  afterEach(async () => {
-    await fs.rm(testDir, { recursive: true, force: true });
-  });
+    afterEach(async () => {
+        await fs.rm(testDir, { recursive: true, force: true });
+    });
 });
 ```
 
@@ -160,12 +160,12 @@ describe('File Operations', () => {
 
 ```typescript
 it('should handle async', async () => {
-  const result = await asyncFunction();
-  expect(result).toBe('expected');
+    const result = await asyncFunction();
+    expect(result).toBe('expected');
 });
 
 it('should handle errors', async () => {
-  await expect(asyncFunction()).rejects.toThrow('Error message');
+    await expect(asyncFunction()).rejects.toThrow('Error message');
 });
 ```
 
@@ -194,13 +194,13 @@ import { renderHook, act } from '@testing-library/react';
 import { useCounter } from './useCounter';
 
 it('should increment counter', () => {
-  const { result } = renderHook(() => useCounter());
+    const { result } = renderHook(() => useCounter());
 
-  act(() => {
-    result.current.increment();
-  });
+    act(() => {
+        result.current.increment();
+    });
 
-  expect(result.current.count).toBe(1);
+    expect(result.current.count).toBe(1);
 });
 ```
 
@@ -210,8 +210,8 @@ it('should increment counter', () => {
 
 ```typescript
 // 相等性
-expect(value).toBe(42);              // 严格相等
-expect(value).toEqual({ a: 1 });     // 深度相等
+expect(value).toBe(42); // 严格相等
+expect(value).toEqual({ a: 1 }); // 深度相等
 expect(value).toMatchObject({ a: 1 }); // 部分匹配
 
 // 真值
@@ -243,25 +243,25 @@ await expect(promise).resolves.toBe('value');
 
 ```bash
 # 运行所有测试
-pnpm test
+bun test
 
 # 只运行一次
-pnpm test:run
+bun test --run
 
 # 覆盖率报告
-pnpm test:coverage
+bun test --coverage
 
 # UI 调试器
-pnpm test:ui
+bun test --ui
 
 # 运行特定文件
-pnpm test path/to/test.test.ts
+bun test path/to/test.test.ts
 
 # 只运行失败的测试
-pnpm test -- --bail 1
+bun test --bail 1
 
 # 运行匹配的测试
-pnpm test -- --grep "should validate"
+bun test --grep "should validate"
 ```
 
 ---
@@ -269,27 +269,31 @@ pnpm test -- --grep "should validate"
 ## 实施检查清单
 
 ### Phase 1: 基础设施（1-2 天）
+
 - [ ] 安装所有依赖
 - [ ] 创建 `vitest.workspace.ts`
 - [ ] 为每个包创建 `vitest.config.ts`
 - [ ] 更新 `package.json` 脚本
-- [ ] 验证 `pnpm test` 运行成功
+- [ ] 验证 `bun test` 运行成功
 
 ### Phase 2: 核心包测试（2-3 天）
+
 - [ ] `@codegraph/agent` 测试
-  - [ ] `state.test.ts`
-  - [ ] `middlewares/*.test.ts`
-  - [ ] `subagents/config.test.ts`
+    - [ ] `state.test.ts`
+    - [ ] `middlewares/*.test.ts`
+    - [ ] `subagents/config.test.ts`
 - [ ] 验证覆盖率 >= 70%
 
 ### Phase 3: UI 应用测试（2-3 天）
+
 - [ ] `zen-code` 组件测试
-  - [ ] `Chat.test.tsx`
-  - [ ] `MessageBox.test.tsx`
-  - [ ] `TaskPanel.test.tsx`
+    - [ ] `Chat.test.tsx`
+    - [ ] `MessageBox.test.tsx`
+    - [ ] `TaskPanel.test.tsx`
 - [ ] 验证覆盖率 >= 60%
 
 ### Phase 4: 客户端测试（1-2 天）
+
 - [ ] `@codegraph/union-client` Hooks 测试
 - [ ] 全量测试运行
 
@@ -297,11 +301,11 @@ pnpm test -- --grep "should validate"
 
 ## 常见陷阱
 
-| 问题 | 解决方案 |
-|------|---------|
-| 忘记 await | 所有异步操作都加 `await` |
+| 问题         | 解决方案                 |
+| ------------ | ------------------------ |
+| 忘记 await   | 所有异步操作都加 `await` |
 | 测试相互依赖 | 每个测试独立，不共享状态 |
-| 过度 mock | 只 mock 外部依赖 |
+| 过度 mock    | 只 mock 外部依赖         |
 | 测试实现细节 | 测试公开行为而非私有属性 |
 
 ---
@@ -317,20 +321,20 @@ import { describe, it, expect } from 'vitest';
 import { validateString } from './validation';
 
 describe('validateString', () => {
-  it('should pass when value meets all rules', () => {
-    const result = validateString('hello', {
-      required: true,
-      minLength: 3,
-      maxLength: 10,
+    it('should pass when value meets all rules', () => {
+        const result = validateString('hello', {
+            required: true,
+            minLength: 3,
+            maxLength: 10,
+        });
+        expect(result.valid).toBe(true);
     });
-    expect(result.valid).toBe(true);
-  });
 
-  it('should fail when value is too short', () => {
-    const result = validateString('hi', { minLength: 5 });
-    expect(result.valid).toBe(false);
-    expect(result.errors).toContain('Minimum length is 5');
-  });
+    it('should fail when value is too short', () => {
+        const result = validateString('hi', { minLength: 5 });
+        expect(result.valid).toBe(false);
+        expect(result.errors).toContain('Minimum length is 5');
+    });
 });
 ```
 

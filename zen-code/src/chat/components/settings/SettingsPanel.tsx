@@ -3,7 +3,8 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import { useInput } from 'ink-pro';
 import { useSettings } from '../../context/SettingsContext';
 import type { SettingsPanelProps } from './types';
 import SettingsForm from './SettingsForm';
@@ -37,7 +38,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
             else if (key.leftArrow && key.alt) cycleTab(-1);
             else if (key.rightArrow && key.alt) cycleTab(1);
         },
-        { isActive: true },
+        { isActive: config !== null },
     );
 
     if (!config) {

@@ -1,4 +1,5 @@
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import { useInput } from 'ink-pro';
 import { useState } from 'react';
 import { MultiSelectPro } from 'ink-pro';
 import { EnhancedTextInput } from '../input/EnhancedTextInput';

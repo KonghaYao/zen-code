@@ -3,8 +3,11 @@
  * 这个文件可以作为添加新命令的参考
  */
 
-import { configStore } from '../store/index';
 import { type CommandDefinition } from './types';
+
+/**
+ * /status 命令 - 显示系统状态
+ */
 
 /**
  * /status 命令 - 显示系统状态
@@ -116,32 +119,13 @@ export const configCommand: CommandDefinition = {
     execute: async (args: string[], context) => {
         // 无参数：显示所有配置
         if (args.length === 0) {
-            const config = await configStore.getConfig();
-
             const configLines = [
                 '当前配置:',
-                configStore.getConfigPath(),
-                `  model_id: ${config.model_id || 'N/A'}`,
-                `  provider_id: ${config.provider_id || 'N/A'}`,
-                `  enable_thinking: ${config.enable_thinking ?? true}`,
-                `  compact_mode: ${config.compact_mode ?? false}`,
-                `  stream_refresh_interval: ${config.stream_refresh_interval}`,
-                '',
-                '可用 Provider:',
-            ];
-
-            if (config.providers && config.providers.length > 0) {
-                config.providers.forEach((p) => {
-                    const hasKey = !!p.apiKey;
-                    configLines.push(
-                        `  - [${p.id}] type: ${p.type}, url: ${p.baseUrl}, key: ${hasKey ? '***已设置***' : '未设置'}`,
-                    );
-                });
-            } else {
-                configLines.push('  (无已配置的 Provider)');
-            }
-
-            configLines.push(
+                `  model_id: ${context.extraParams?.model_id || 'N/A'}`,
+                `  provider_id: ${context.extraParams?.provider_id || 'N/A'}`,
+                `  enable_thinking: ${context.extraParams?.enable_thinking ?? true}`,
+                `  compact_mode: ${context.compactMode ?? false}`,
+                `  stream_refresh_interval: ${context.extraParams?.stream_refresh_interval}`,
                 '',
                 '使用方法:',
                 '  /config <key> <value>  - 设置配置项',
@@ -153,7 +137,7 @@ export const configCommand: CommandDefinition = {
                 '  enable_thinking        - 启用思考模式 (true, false)',
                 '  compact_mode           - 紧凑模式 (true, false)',
                 '  stream_refresh_interval - 流刷新间隔',
-            );
+            ];
 
             return {
                 success: true,
@@ -161,6 +145,7 @@ export const configCommand: CommandDefinition = {
                 shouldClearInput: true,
             };
         }
+
         const key = args[0];
         const validKeys = ['enable_thinking', 'stream_refresh_interval', 'provider_id', 'model_id', 'compact_mode'];
 
@@ -175,8 +160,24 @@ export const configCommand: CommandDefinition = {
 
         // 只有一个参数：查看配置项
         if (args.length === 1) {
-            const config = (await configStore.getConfig()) as any;
-            let value = config[key];
+            let value;
+            switch (key) {
+                case 'model_id':
+                    value = context.extraParams?.model_id;
+                    break;
+                case 'provider_id':
+                    value = context.extraParams?.provider_id;
+                    break;
+                case 'enable_thinking':
+                    value = context.extraParams?.enable_thinking ?? true;
+                    break;
+                case 'compact_mode':
+                    value = context.compactMode ?? false;
+                    break;
+                case 'stream_refresh_interval':
+                    value = context.extraParams?.stream_refresh_interval;
+                    break;
+            }
 
             return {
                 success: true,

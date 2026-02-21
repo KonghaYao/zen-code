@@ -18,11 +18,10 @@ export interface NotifyOptions {
 export function notify(options: NotifyOptions | string): void {
     if (typeof options === 'string') {
         notifier.notify({
-            title: options
+            title: 'Notification',
+            message: options,
         });
-
     } else {
-
         notifier.notify({
             title: options.title || 'Notification',
             message: options.message,

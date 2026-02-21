@@ -1315,8 +1315,8 @@ Phase 6: 清理和优化 (1 天)
 
 ```bash
 # zen-code
-pnpm add @tanstack/react-query@5
-pnpm add -D @tanstack/react-query-devtools@5
+bun add @tanstack/react-query@5
+bun add -d @tanstack/react-query-devtools@5
 ```
 
 ### ⚙️ QueryClient 配置

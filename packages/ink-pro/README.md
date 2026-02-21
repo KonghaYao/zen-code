@@ -1,6 +1,7 @@
 # ink-pro
 
-TUI components for Ink.js. Includes multi-line input, panels, and utilities for building terminal applications with React.
+TUI components for Ink.js. Includes multi-line input, panels, and utilities for building terminal applications with
+React.
 
 ## Components
 
@@ -20,12 +21,12 @@ Multi-line text input with cursor navigation.
 import { MultiLineTextInput } from 'ink-pro';
 
 <MultiLineTextInput
-  value={value}
-  onChange={setValue}
-  placeholder="Type something..."
-  onSubmit={(v) => console.log(v)}
-  maxVisibleLines={10}
-/>
+    value={value}
+    onChange={setValue}
+    placeholder="Type something..."
+    onSubmit={(v) => console.log(v)}
+    maxVisibleLines={10}
+/>;
 ```
 
 ### UniversalPanel
@@ -40,20 +41,16 @@ List panel with search, filters, and keyboard navigation.
 
 ```tsx
 <UniversalPanel
-  config={{
-    id: 'tasks',
-    title: 'Tasks',
-    dataSource: async () => fetchTasks(),
-    searchFields: ['title'],
-    filters: [
-      { id: 'pending', label: 'Pending', predicate: (t) => t.status === 'pending' },
-    ],
-    renderItem: (item, index, isSelected) => (
-      <Text color={isSelected ? 'green' : 'white'}>{item.title}</Text>
-    ),
-    onSelect: (item) => console.log(item),
-  }}
-  onClose={onClose}
+    config={{
+        id: 'tasks',
+        title: 'Tasks',
+        dataSource: async () => fetchTasks(),
+        searchFields: ['title'],
+        filters: [{ id: 'pending', label: 'Pending', predicate: (t) => t.status === 'pending' }],
+        renderItem: (item, index, isSelected) => <Text color={isSelected ? 'green' : 'white'}>{item.title}</Text>,
+        onSelect: (item) => console.log(item),
+    }}
+    onClose={onClose}
 />
 ```
 
@@ -63,13 +60,13 @@ Multi-select dropdown.
 
 ```tsx
 <MultiSelectPro
-  options={[
-    { label: 'Option 1', value: 'opt1' },
-    { label: 'Option 2', value: 'opt2' },
-  ]}
-  values={values}
-  onChange={setValues}
-  onSubmit={(v) => console.log(v)}
+    options={[
+        { label: 'Option 1', value: 'opt1' },
+        { label: 'Option 2', value: 'opt2' },
+    ]}
+    values={values}
+    onChange={setValues}
+    onSubmit={(v) => console.log(v)}
 />
 ```
 
@@ -86,12 +83,7 @@ Animated text highlight.
 Display last N lines in a bordered box.
 
 ```tsx
-<LimitedOutput
-  content={longText}
-  maxLines={10}
-  borderColor="cyan"
-  showOmittedInfo
-/>
+<LimitedOutput content={longText} maxLines={10} borderColor="cyan" showOmittedInfo />
 ```
 
 ## Hooks
@@ -114,7 +106,7 @@ Parse keyboard events across platforms (macOS/Linux/Windows).
 import { parseKeypress } from 'ink-pro';
 
 input.on('keypress', (str, key) => {
-  const result = parseKeypress(key);
+    const result = parseKeypress(key);
 });
 ```
 
@@ -125,20 +117,21 @@ Text processing utilities: cursor position, display width, scrolling calculation
 ## Installation
 
 ```bash
-pnpm add ink-pro
+bun add ink-pro
 ```
 
 **Peer dependencies:**
+
 - `ink` ^6
 - `react` ^18||^19
 
 ## Development
 
 ```bash
-pnpm build    # Build
-pnpm watch    # Watch mode
-pnpm test     # Run tests
-pnpm tsc      # Type check
+bun run build    # Build
+bun run watch    # Watch mode
+bun test         # Run tests
+bun run tsc      # Type check
 ```
 
 ## License

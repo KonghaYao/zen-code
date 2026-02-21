@@ -26,6 +26,9 @@ import { settingsCommand } from './settingsCommand';
 // NEW: Import Memory-clear command
 import { memoryCommands } from './memoryClearCommand';
 
+// NEW: Import GC command
+import { gcCommand } from './gcCommand';
+
 // 注册内置命令
 [
     ...builtinCommands,
@@ -38,6 +41,7 @@ import { memoryCommands } from './memoryClearCommand';
     compactCommand,
     mcpPanelCommand,
     settingsCommand,
+    gcCommand,
 ].forEach((command) => {
     commandRegistry.register(command);
 });

@@ -5,7 +5,8 @@
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { Box, Spacer, Text, useInput } from 'ink';
+import { Box, Spacer, Text } from 'ink';
+import { useInput } from 'ink-pro';
 import { useSettings } from '../context/SettingsContext';
 import type { ProviderConfig } from '@codegraph/config';
 import ProviderForm from './forms/ProviderForm';

@@ -9,7 +9,8 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { Box, Spacer, Text, useInput } from 'ink';
+import { Box, Spacer, Text } from 'ink';
+import { useInput } from 'ink-pro';
 import { useSettings } from '../context/SettingsContext';
 import type { MCPConfig } from '@codegraph/config';
 import McpJsonEditor from './forms/McpJsonEditor';

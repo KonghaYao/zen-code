@@ -22,7 +22,7 @@ export const read_file = createUITool({
                 <Box>
                     <Text color="blue">Read </Text>
                     <Text dimColor>(</Text>
-                    <Link path={input.file_path} color="blue" />
+                    <Link path={input.file_path} rainbow />
                     <Text dimColor>)</Text>
                     <Text color="gray" dimColor>
                         {' '}

@@ -29,7 +29,7 @@
         "watch": "tsc --watch"
     },
     "dependencies": {
-        "@codegraph/config": "workspace:*",
+        "@codegraph/config": "workspace:^",
         "micromatch": "^4.0.0"
     },
     "peerDependencies": {

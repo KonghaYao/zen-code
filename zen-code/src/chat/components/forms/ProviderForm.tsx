@@ -3,7 +3,8 @@
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import { useInput } from 'ink-pro';
 import { MultiLineTextInput } from 'ink-pro';
 import { useSettings } from '../../context/SettingsContext';
 import type { ProviderConfig } from '@codegraph/config';

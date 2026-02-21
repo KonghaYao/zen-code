@@ -39,7 +39,7 @@ export const replace_in_file = createUITool({
                 <Box>
                     <Text color="yellow">Edit </Text>
                     <Text dimColor>(</Text>
-                    <Link path={input.file_path} color="yellow" />
+                    <Link path={input.file_path} rainbow />
                     <Text dimColor>)</Text>
                     {hasDiff && (
                         <>

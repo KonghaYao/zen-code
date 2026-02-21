@@ -22,6 +22,8 @@ import {
     BaseStorage,
     ModelRow,
     PromptRow,
+    PromptVersionRow,
+    PromptWithVersion,
     ToolRow,
     MiddlewareRow,
     AgentToolRow,
@@ -29,11 +31,11 @@ import {
     AgentWithRelations,
     AgentRow,
 } from './abstract.js';
-import { ModelSchema, PromptSchema, ToolSchema, MiddlewareSchema, AgentSchema } from '../index.js';
+import { ModelSchema, PromptSchema, PromptVersionSchema, ToolSchema, MiddlewareSchema, AgentSchema } from '../index.js';
 import { join } from 'path';
 
 export class BunSqliteStorage extends BaseStorage {
-    private db: Database;
+    protected db: Database;
     private dbPath: string;
 
     constructor(dbPath?: string) {
@@ -64,6 +66,7 @@ export class BunSqliteStorage extends BaseStorage {
     async initialize(): Promise<void> {
         this.createTables();
         this.createIndexes();
+        this.runMigrations();
     }
 
     private createTables(): void {
@@ -84,14 +87,26 @@ export class BunSqliteStorage extends BaseStorage {
                 updated_at TEXT NOT NULL
             );
 
-            -- Prompts table
+            -- Prompts table (main table)
             CREATE TABLE IF NOT EXISTS prompts (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL UNIQUE,
-                content TEXT NOT NULL,
-                metadata TEXT,
+                current_version INTEGER NOT NULL DEFAULT 1,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
+            );
+
+            -- Prompt versions table (content storage)
+            CREATE TABLE IF NOT EXISTS prompt_versions (
+                id TEXT PRIMARY KEY,
+                prompt_id TEXT NOT NULL,
+                version INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                metadata TEXT,
+                change_note TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (prompt_id) REFERENCES prompts(id) ON DELETE CASCADE,
+                UNIQUE(prompt_id, version)
             );
 
             -- Tools table
@@ -154,9 +169,103 @@ export class BunSqliteStorage extends BaseStorage {
     private createIndexes(): void {
         this.db.run(`
             CREATE INDEX IF NOT EXISTS idx_prompts_name ON prompts(name);
+            CREATE INDEX IF NOT EXISTS idx_prompt_versions ON prompt_versions(prompt_id, version DESC);
             CREATE INDEX IF NOT EXISTS idx_agents_model_id ON agents(model_id);
             CREATE INDEX IF NOT EXISTS idx_agents_system_prompt_id ON agents(system_prompt_id);
         `);
+    }
+
+    private runMigrations(): void {
+        // 检查 prompts 表是否有 current_version 列
+        const tableInfo = this.db.prepare('PRAGMA table_info(prompts)').all() as { name: string }[];
+        const hasCurrentVersion = tableInfo.some((col) => col.name === 'current_version');
+
+        if (!hasCurrentVersion) {
+            // 添加 current_version 列（迁移旧数据）
+            this.db.run('ALTER TABLE prompts ADD COLUMN current_version INTEGER NOT NULL DEFAULT 1');
+        }
+
+        // 检查是否存在 content 列（需要迁移）
+        const hasContentColumn = tableInfo.some((col) => col.name === 'content');
+
+        if (!hasContentColumn) {
+            // 已经是新版结构，无需迁移
+            return;
+        }
+
+        // 检查 prompt_versions 表是否存在
+        const hasPromptVersionsTable = this.db
+            .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='prompt_versions'")
+            .get();
+
+        if (!hasPromptVersionsTable) {
+            // 创建 prompt_versions 表
+            this.db.run(`
+                CREATE TABLE IF NOT EXISTS prompt_versions (
+                    id TEXT PRIMARY KEY,
+                    prompt_id TEXT NOT NULL,
+                    version INTEGER NOT NULL,
+                    content TEXT NOT NULL,
+                    metadata TEXT,
+                    change_note TEXT,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (prompt_id) REFERENCES prompts(id) ON DELETE CASCADE,
+                    UNIQUE(prompt_id, version)
+                )
+            `);
+        }
+
+        // 检查是否需要迁移数据（prompts 有 content 但 prompt_versions 为空）
+        const existingVersions = this.db.prepare('SELECT COUNT(*) as count FROM prompt_versions').get() as {
+            count: number;
+        };
+
+        if (existingVersions.count === 0) {
+            const promptsWithContent = this.db
+                .prepare('SELECT id, content, metadata, created_at FROM prompts WHERE content IS NOT NULL')
+                .all() as { id: string; content: string; metadata: string | null; created_at: string }[];
+
+            // 迁移现有数据到 prompt_versions
+            for (const p of promptsWithContent) {
+                this.db.run(
+                    'INSERT INTO prompt_versions (id, prompt_id, version, content, metadata, created_at) VALUES (?, ?, 1, ?, ?, ?)',
+                    `${p.id}-v1`,
+                    p.id,
+                    p.content,
+                    p.metadata,
+                    p.created_at,
+                );
+            }
+        }
+
+        // 删除旧的 content 和 metadata 列（SQLite 不支持 DROP COLUMN，需要重建表）
+        // 临时禁用外键约束
+        this.db.run('PRAGMA foreign_keys = OFF');
+
+        // 清理可能存在的临时表
+        this.db.run('DROP TABLE IF EXISTS prompts_new');
+
+        this.db.run(`
+            CREATE TABLE prompts_new (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                current_version INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        `);
+        this.db.run(`
+            INSERT INTO prompts_new (id, name, current_version, created_at, updated_at)
+            SELECT id, name, COALESCE(current_version, 1), created_at, updated_at FROM prompts
+        `);
+        this.db.run('DROP TABLE prompts');
+        this.db.run('ALTER TABLE prompts_new RENAME TO prompts');
+
+        // 重建索引
+        this.db.run('CREATE INDEX IF NOT EXISTS idx_prompts_name ON prompts(name)');
+
+        // 重新启用外键约束
+        this.db.run('PRAGMA foreign_keys = ON');
     }
 
     close(): Promise<void> {
@@ -263,14 +372,22 @@ export class BunSqliteStorage extends BaseStorage {
     // ========================================
     // Prompts
     // ========================================
-    insertPrompt(data: z.infer<typeof PromptSchema>): Promise<void> {
-        const stmt = this.db.prepare(`
-            INSERT INTO prompts (id, name, content, metadata, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `);
+    insertPrompt(data: z.infer<typeof PromptSchema>, content: string, changeNote?: string): Promise<void> {
+        return this.transaction(() => {
+            // Insert prompt main record
+            const promptStmt = this.db.prepare(`
+                INSERT INTO prompts (id, name, current_version, created_at, updated_at)
+                VALUES (?, ?, 1, ?, ?)
+            `);
+            promptStmt.run(data.id, data.name, this.now(), this.now());
 
-        return Promise.resolve().then(() => {
-            stmt.run(data.id, data.name, data.content, this.safeStringify(data.metadata), this.now(), this.now());
+            // Insert initial version
+            const versionStmt = this.db.prepare(`
+                INSERT INTO prompt_versions (id, prompt_id, version, content, change_note, created_at)
+                VALUES (?, ?, 1, ?, ?, ?)
+            `);
+            const versionId = `${data.id}-v1`;
+            versionStmt.run(versionId, data.id, content, changeNote || null, this.now());
         });
     }
 
@@ -286,20 +403,50 @@ export class BunSqliteStorage extends BaseStorage {
         return Promise.resolve(row);
     }
 
+    getPromptWithCurrentVersion(id: string): Promise<PromptWithVersion | undefined> {
+        const stmt = this.db.prepare(`
+            SELECT p.*, pv.content, pv.metadata, pv.change_note
+            FROM prompts p
+            JOIN prompt_versions pv ON p.id = pv.prompt_id AND p.current_version = pv.version
+            WHERE p.id = ?
+        `);
+        const row = stmt.get(id) as PromptWithVersion | undefined;
+        return Promise.resolve(row);
+    }
+
+    getPromptWithCurrentVersionByName(name: string): Promise<PromptWithVersion | undefined> {
+        const stmt = this.db.prepare(`
+            SELECT p.*, pv.content, pv.metadata, pv.change_note
+            FROM prompts p
+            JOIN prompt_versions pv ON p.id = pv.prompt_id AND p.current_version = pv.version
+            WHERE p.name = ?
+        `);
+        const row = stmt.get(name) as PromptWithVersion | undefined;
+        return Promise.resolve(row);
+    }
+
     getAllPrompts(): Promise<PromptRow[]> {
         const stmt = this.db.prepare('SELECT * FROM prompts ORDER BY created_at DESC');
         const rows = stmt.all() as PromptRow[];
         return Promise.resolve(rows);
     }
 
+    getAllPromptsWithCurrentVersion(): Promise<PromptWithVersion[]> {
+        const stmt = this.db.prepare(`
+            SELECT p.*, pv.content, pv.metadata, pv.change_note
+            FROM prompts p
+            JOIN prompt_versions pv ON p.id = pv.prompt_id AND p.current_version = pv.version
+            ORDER BY p.created_at DESC
+        `);
+        const rows = stmt.all() as PromptWithVersion[];
+        return Promise.resolve(rows);
+    }
+
     updatePrompt(data: z.infer<typeof PromptSchema>): Promise<void> {
         const stmt = this.db.prepare(`
-            UPDATE prompts
-            SET name = ?, content = ?, metadata = ?, updated_at = ?
-            WHERE id = ?
+            UPDATE prompts SET name = ?, updated_at = ? WHERE id = ?
         `);
-
-        const result = stmt.run(data.name, data.content, this.safeStringify(data.metadata), this.now(), data.id);
+        const result = stmt.run(data.name, this.now(), data.id);
 
         if (result.changes === 0) {
             throw new Error(`Prompt with id ${data.id} not found`);
@@ -322,6 +469,89 @@ export class BunSqliteStorage extends BaseStorage {
 
             if (result.changes === 0) {
                 throw new Error(`Prompt with id ${id} not found`);
+            }
+        });
+    }
+
+    // ========================================
+    // Prompt Versions
+    // ========================================
+    createPromptVersion(promptId: string, content: string, changeNote?: string): Promise<PromptVersionRow> {
+        return this.transaction(() => {
+            // Get current prompt
+            const prompt = this.db.prepare('SELECT * FROM prompts WHERE id = ?').get(promptId) as PromptRow | undefined;
+            if (!prompt) {
+                throw new Error(`Prompt with id ${promptId} not found`);
+            }
+
+            const newVersion = prompt.current_version + 1;
+            const versionId = `${promptId}-v${newVersion}`;
+            const now = this.now();
+
+            // Insert new version
+            const versionStmt = this.db.prepare(`
+                INSERT INTO prompt_versions (id, prompt_id, version, content, change_note, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            `);
+            versionStmt.run(versionId, promptId, newVersion, content, changeNote || null, now);
+
+            // Update prompt's current_version
+            const updateStmt = this.db.prepare(`
+                UPDATE prompts SET current_version = ?, updated_at = ? WHERE id = ?
+            `);
+            updateStmt.run(newVersion, now, promptId);
+
+            return {
+                id: versionId,
+                prompt_id: promptId,
+                version: newVersion,
+                content,
+                metadata: null,
+                change_note: changeNote || null,
+                created_at: now,
+            };
+        });
+    }
+
+    getPromptVersion(promptId: string, version: number): Promise<PromptVersionRow | undefined> {
+        const stmt = this.db.prepare(`
+            SELECT * FROM prompt_versions WHERE prompt_id = ? AND version = ?
+        `);
+        const row = stmt.get(promptId, version) as PromptVersionRow | undefined;
+        return Promise.resolve(row);
+    }
+
+    getPromptVersions(promptId: string): Promise<PromptVersionRow[]> {
+        const stmt = this.db.prepare(`
+            SELECT * FROM prompt_versions WHERE prompt_id = ? ORDER BY version DESC
+        `);
+        const rows = stmt.all(promptId) as PromptVersionRow[];
+        return Promise.resolve(rows);
+    }
+
+    rollbackPromptVersion(promptId: string, targetVersion: number): Promise<void> {
+        return this.transaction(() => {
+            // Check if target version exists
+            const version = this.db
+                .prepare(
+                    `
+                SELECT * FROM prompt_versions WHERE prompt_id = ? AND version = ?
+            `,
+                )
+                .get(promptId, targetVersion) as PromptVersionRow | undefined;
+
+            if (!version) {
+                throw new Error(`Version ${targetVersion} not found for prompt ${promptId}`);
+            }
+
+            // Update current_version
+            const stmt = this.db.prepare(`
+                UPDATE prompts SET current_version = ?, updated_at = ? WHERE id = ?
+            `);
+            const result = stmt.run(targetVersion, this.now(), promptId);
+
+            if (result.changes === 0) {
+                throw new Error(`Prompt with id ${promptId} not found`);
             }
         });
     }
@@ -437,6 +667,14 @@ export class BunSqliteStorage extends BaseStorage {
     // ========================================
     insertAgent(data: z.infer<typeof AgentSchema>): Promise<void> {
         return this.transaction(() => {
+            // Validate required fields
+            if (!data.system_prompt || data.system_prompt.trim() === '') {
+                throw new Error('system_prompt is required and cannot be empty');
+            }
+            if (!data.model || data.model.trim() === '') {
+                throw new Error('model is required and cannot be empty');
+            }
+
             const stmt = this.db.prepare(`
                 INSERT INTO agents (id, name, description, system_prompt_id, model_id, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -444,13 +682,14 @@ export class BunSqliteStorage extends BaseStorage {
 
             stmt.run(data.id, data.name, data.description, data.system_prompt, data.model, this.now(), this.now());
 
-            // Insert tools
+            // Insert tools (skip empty keys)
             const toolStmt = this.db.prepare(`
-                INSERT OR REPLACE INTO agent_tools (agent_id, tool_id, enabled, custom_params)
+                INSERT INTO agent_tools (agent_id, tool_id, enabled, custom_params)
                 VALUES (?, ?, ?, ?)
             `);
 
             for (const [toolId, value] of Object.entries(data.tools)) {
+                if (toolId.trim() === '') continue; // Skip empty tool IDs
                 toolStmt.run(
                     data.id,
                     toolId,
@@ -459,13 +698,14 @@ export class BunSqliteStorage extends BaseStorage {
                 );
             }
 
-            // Insert middlewares
+            // Insert middlewares (skip empty keys)
             const middlewareStmt = this.db.prepare(`
-                INSERT OR REPLACE INTO agent_middlewares (agent_id, middleware_id, enabled, custom_params)
+                INSERT INTO agent_middlewares (agent_id, middleware_id, enabled, custom_params)
                 VALUES (?, ?, ?, ?)
             `);
 
             for (const [midId, value] of Object.entries(data.middleware)) {
+                if (midId.trim() === '') continue; // Skip empty middleware IDs
                 middlewareStmt.run(
                     data.id,
                     midId,
@@ -540,6 +780,14 @@ export class BunSqliteStorage extends BaseStorage {
 
     updateAgent(data: z.infer<typeof AgentSchema>): Promise<void> {
         return this.transaction(() => {
+            // Validate required fields
+            if (!data.system_prompt || data.system_prompt.trim() === '') {
+                throw new Error('system_prompt is required and cannot be empty');
+            }
+            if (!data.model || data.model.trim() === '') {
+                throw new Error('model is required and cannot be empty');
+            }
+
             const stmt = this.db.prepare(`
                 UPDATE agents
                 SET name = ?, description = ?, system_prompt_id = ?, model_id = ?, updated_at = ?
@@ -562,6 +810,7 @@ export class BunSqliteStorage extends BaseStorage {
             `);
 
             for (const [toolId, value] of Object.entries(data.tools)) {
+                if (toolId.trim() === '') continue; // Skip empty tool IDs
                 toolStmt.run(
                     data.id,
                     toolId,
@@ -580,6 +829,7 @@ export class BunSqliteStorage extends BaseStorage {
             `);
 
             for (const [midId, value] of Object.entries(data.middleware)) {
+                if (midId.trim() === '') continue; // Skip empty middleware IDs
                 middlewareStmt.run(
                     data.id,
                     midId,
@@ -613,8 +863,15 @@ export class BunSqliteStorage extends BaseStorage {
         if (!model) throw new Error(`Model ${agent.model_id} not found`);
 
         const systemPrompt = this.db
-            .prepare('SELECT * FROM prompts WHERE id = ?')
-            .get(agent.system_prompt_id) as PromptRow;
+            .prepare(
+                `
+            SELECT p.*, pv.content, pv.metadata, pv.change_note
+            FROM prompts p
+            JOIN prompt_versions pv ON p.id = pv.prompt_id AND p.current_version = pv.version
+            WHERE p.id = ?
+        `,
+            )
+            .get(agent.system_prompt_id) as PromptWithVersion;
         if (!systemPrompt) throw new Error(`Prompt ${agent.system_prompt_id} not found`);
 
         return { agent, model, systemPrompt };

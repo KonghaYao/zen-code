@@ -5,20 +5,28 @@ export const ModelSchema = z.object({
     id: z.string(),
     model_name: z.string(),
     model_provider: z.string(),
-    stream_usage: z.boolean(),
-    enable_thinking: z.boolean(),
-    temperature: z.number(),
-    max_tokens: z.number(),
-    top_p: z.number(),
-    frequency_penalty: z.number(),
-    presence_penalty: z.number(),
+    stream_usage: z.boolean().default(false),
+    enable_thinking: z.boolean().default(false),
+    temperature: z.number().default(0.7),
+    max_tokens: z.number().default(4096),
+    top_p: z.number().default(1.0),
+    frequency_penalty: z.number().default(0.0),
+    presence_penalty: z.number().default(0.0),
 });
 
 export const PromptSchema = z.object({
     id: z.string(),
     name: z.string().describe('prompt name, must be unique'),
-    content: z.string().describe('prompt content'),
-    metadata: z.any().optional().describe('prompt metadata'),
+    // Note: content moved to PromptVersionSchema
+});
+
+export const PromptVersionSchema = z.object({
+    id: z.string(),
+    prompt_id: z.string().describe('reference to prompt'),
+    version: z.number().int().positive().describe('version number, starts from 1'),
+    content: z.string().describe('prompt content for this version'),
+    metadata: z.any().optional().describe('version-specific metadata'),
+    change_note: z.string().optional().describe('description of changes in this version'),
 });
 
 export const ToolSchema = z.object({

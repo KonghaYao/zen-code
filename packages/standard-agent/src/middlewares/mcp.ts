@@ -166,8 +166,8 @@ export class MCPMiddleware implements AgentMiddleware {
     private initializationPromise: Promise<void> | null = null;
 
     // Tools
-    private loadMcpToolsTool: StructuredTool;
-    private executeMcpToolTool: StructuredTool;
+    private loadMcpToolsTool!: StructuredTool;
+    private executeMcpToolTool!: StructuredTool;
 
     /**
      * Create MCP middleware

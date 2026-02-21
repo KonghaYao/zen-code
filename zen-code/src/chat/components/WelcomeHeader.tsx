@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Box, Text } from 'ink';
 import { getCurrentUser, getTerminalName } from '@codegraph/union-client';
 import { useSettings } from '../context/SettingsContext';
-import { Shimmer } from 'ink-pro';
 
 const WelcomeHeader: React.FC = () => {
     const username = getCurrentUser();
@@ -28,22 +27,6 @@ const WelcomeHeader: React.FC = () => {
 
     // 检查配置是否完整
     const isConfigured = hasProviderKey && hasModels;
-
-    // 全局动画索引，用于同步所有 Shimmer 组件
-    const [globalShimmerIndex, setGlobalShimmerIndex] = useState(0);
-
-    useEffect(() => {
-        const interval = 40;
-        const maxTextLength = 28; // 最长的一行字符数
-        const spread = 32;
-        const maxIndex = maxTextLength + spread * 2;
-
-        const timer = setInterval(() => {
-            setGlobalShimmerIndex((prev) => (prev + 1) % maxIndex);
-        }, interval);
-
-        return () => clearInterval(timer);
-    }, []);
 
     return (
         <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1} marginBottom={1}>

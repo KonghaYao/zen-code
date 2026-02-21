@@ -14,11 +14,31 @@
  * in packages/union-client remains unchanged.
  */
 
-import { createContext, useContext, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useMemo, ReactNode, useEffect, useState } from 'react';
+import { Box, Text } from 'ink';
 import { useQuery } from '@tanstack/react-query';
 import type { AppConfig, MCPConfig, ConfigManager } from '@codegraph/config';
+import { createFSManager } from '@codegraph/config';
 import { useConfig, useUpdateConfig } from '../hooks/useConfig';
 import { queryKeys } from '../query-keys';
+
+// ConfigManager 单例
+let configManagerSingleton: ConfigManager | null = null;
+let configManagerPromise: Promise<ConfigManager> | null = null;
+
+async function getConfigManager(): Promise<ConfigManager> {
+    if (!configManagerSingleton) {
+        if (!configManagerPromise) {
+            configManagerPromise = createFSManager().then((manager) => {
+                configManagerSingleton = manager;
+                configManagerPromise = null;
+                return manager;
+            });
+        }
+        return configManagerPromise;
+    }
+    return Promise.resolve(configManagerSingleton);
+}
 
 export interface ModelConfig {
     id: string;
@@ -44,12 +64,16 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 interface SettingsProviderProps {
-    manager: ConfigManager;
     get_allowed_models: () => Promise<ModelConfig[]>;
     children: ReactNode;
 }
 
-export const SettingsProvider = ({ manager, get_allowed_models, children }: SettingsProviderProps) => {
+// 内部组件：在 manager 初始化后渲染
+const SettingsProviderInternal = ({
+    manager,
+    get_allowed_models,
+    children,
+}: SettingsProviderProps & { manager: ConfigManager }) => {
     const { data: config, isLoading: configLoading, error: configError } = useConfig({ manager });
     const updateConfigMutation = useUpdateConfig({ manager });
 
@@ -94,7 +118,11 @@ export const SettingsProvider = ({ manager, get_allowed_models, children }: Sett
     };
 
     if (configLoading || modelsLoading) {
-        return null;
+        return (
+            <Box padding={2}>
+                <Text>Loading configuration...</Text>
+            </Box>
+        );
     }
 
     return (
@@ -120,4 +148,29 @@ export const useSettings = () => {
         throw new Error('useSettings must be used within a SettingsProvider');
     }
     return context;
+};
+
+// 外部组件：处理异步初始化，保持 hooks 顺序一致
+export const SettingsProvider = ({ get_allowed_models, children }: SettingsProviderProps) => {
+    const [manager, setManager] = useState<ConfigManager | null>(null);
+
+    // 初始化 ConfigManager（只执行一次）
+    useEffect(() => {
+        getConfigManager().then(setManager);
+    }, []);
+
+    // 等待 manager 初始化，然后渲染内部组件
+    if (!manager) {
+        return (
+            <Box padding={2}>
+                <Text>Initializing configuration manager...</Text>
+            </Box>
+        );
+    }
+
+    return (
+        <SettingsProviderInternal manager={manager} get_allowed_models={get_allowed_models}>
+            {children}
+        </SettingsProviderInternal>
+    );
 };

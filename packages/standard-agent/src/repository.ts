@@ -1,7 +1,27 @@
 import { z } from 'zod';
-import { ModelSchema, PromptSchema, ToolSchema, MiddlewareSchema, AgentSchema } from './schemas.js';
+import {
+    ModelSchema,
+    PromptSchema,
+    PromptVersionSchema,
+    ToolSchema,
+    MiddlewareSchema,
+    AgentSchema,
+} from './schemas.js';
 import { StandardAgent } from './agent.js';
-import type { IStorage, ModelRow, PromptRow } from './storage/abstract.js';
+import type { IStorage, ModelRow, PromptRow, PromptVersionRow, PromptWithVersion } from './storage/abstract.js';
+
+/**
+ * Prompt with version info returned from repository
+ */
+export interface PromptWithVersionData {
+    id: string;
+    name: string;
+    current_version: number;
+    content: string;
+    change_note: string | null;
+    created_at: string;
+    updated_at: string;
+}
 
 /**
  * Agent Repository
@@ -43,33 +63,133 @@ export class AgentRepository {
     // Prompts
     // ========================================
 
-    async addPrompt(data: z.infer<typeof PromptSchema>): Promise<void> {
-        await this.storage.insertPrompt(data);
+    /**
+     * Create a new prompt with initial content
+     */
+    async addPrompt(data: z.infer<typeof PromptSchema>, content: string, changeNote?: string): Promise<void> {
+        await this.storage.insertPrompt(data, content, changeNote);
     }
 
+    /**
+     * Get prompt by id (without content)
+     */
     async getPrompt(id: string): Promise<z.infer<typeof PromptSchema> | undefined> {
         const row = await this.storage.getPrompt(id);
         if (!row) return undefined;
-        return this.rowToPrompt(row);
+        return { id: row.id, name: row.name };
     }
 
+    /**
+     * Get prompt with current version content
+     */
+    async getPromptWithContent(id: string): Promise<PromptWithVersionData | undefined> {
+        const row = await this.storage.getPromptWithCurrentVersion(id);
+        if (!row) return undefined;
+        return {
+            id: row.id,
+            name: row.name,
+            current_version: row.current_version,
+            content: row.content,
+            change_note: row.change_note,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+        };
+    }
+
+    /**
+     * Get prompt by name (without content)
+     */
     async getPromptByName(name: string): Promise<z.infer<typeof PromptSchema> | undefined> {
         const row = await this.storage.getPromptByName(name);
         if (!row) return undefined;
-        return this.rowToPrompt(row);
+        return { id: row.id, name: row.name };
     }
 
+    /**
+     * Get prompt by name with current version content
+     */
+    async getPromptByNameWithContent(name: string): Promise<PromptWithVersionData | undefined> {
+        const row = await this.storage.getPromptWithCurrentVersionByName(name);
+        if (!row) return undefined;
+        return {
+            id: row.id,
+            name: row.name,
+            current_version: row.current_version,
+            content: row.content,
+            change_note: row.change_note,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+        };
+    }
+
+    /**
+     * List all prompts (without content)
+     */
     async listPrompts(): Promise<z.infer<typeof PromptSchema>[]> {
         const rows = await this.storage.getAllPrompts();
-        return rows.map((r) => this.rowToPrompt(r));
+        return rows.map((r) => ({ id: r.id, name: r.name }));
     }
 
+    /**
+     * List all prompts with current version content
+     */
+    async listPromptsWithContent(): Promise<PromptWithVersionData[]> {
+        const rows = await this.storage.getAllPromptsWithCurrentVersion();
+        return rows.map((r) => ({
+            id: r.id,
+            name: r.name,
+            current_version: r.current_version,
+            content: r.content,
+            change_note: r.change_note,
+            created_at: r.created_at,
+            updated_at: r.updated_at,
+        }));
+    }
+
+    /**
+     * Update prompt metadata (name only)
+     */
     async updatePrompt(data: z.infer<typeof PromptSchema>): Promise<void> {
         await this.storage.updatePrompt(data);
     }
 
+    /**
+     * Delete prompt and all its versions
+     */
     async deletePrompt(id: string): Promise<void> {
         await this.storage.deletePrompt(id);
+    }
+
+    // ========================================
+    // Prompt Versions
+    // ========================================
+
+    /**
+     * Create a new version for existing prompt
+     */
+    async createPromptVersion(promptId: string, content: string, changeNote?: string): Promise<PromptVersionRow> {
+        return this.storage.createPromptVersion(promptId, content, changeNote);
+    }
+
+    /**
+     * Get specific version of a prompt
+     */
+    async getPromptVersion(promptId: string, version: number): Promise<PromptVersionRow | undefined> {
+        return this.storage.getPromptVersion(promptId, version);
+    }
+
+    /**
+     * Get all versions of a prompt
+     */
+    async getPromptVersions(promptId: string): Promise<PromptVersionRow[]> {
+        return this.storage.getPromptVersions(promptId);
+    }
+
+    /**
+     * Rollback prompt to a specific version
+     */
+    async rollbackPromptVersion(promptId: string, targetVersion: number): Promise<void> {
+        return this.storage.rollbackPromptVersion(promptId, targetVersion);
     }
 
     // ========================================
@@ -192,15 +312,6 @@ export class AgentRepository {
             top_p: row.top_p,
             frequency_penalty: row.frequency_penalty,
             presence_penalty: row.presence_penalty,
-        };
-    }
-
-    private rowToPrompt(row: PromptRow): z.infer<typeof PromptSchema> {
-        return {
-            id: row.id,
-            name: row.name,
-            content: row.content,
-            metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
         };
     }
 }

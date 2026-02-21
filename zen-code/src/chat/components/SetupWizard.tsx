@@ -127,6 +127,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ validation, onComplete }) => 
     }, [selectedProvider, updateConfig]);
 
     // 键盘处理 - Welcome 步骤
+    // 只要 step 为 'welcome' 就激活，不依赖 validation
     useInput(
         (input, key) => {
             if (key.return || input === ' ') {
@@ -137,6 +138,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ validation, onComplete }) => 
     );
 
     // 键盘处理 - Provider 步骤（列表模式）
+    // 只要 step 为 'provider' 且不在表单编辑模式就激活
     useInput(
         (input, key) => {
             if (showProviderForm) return;
@@ -315,7 +317,7 @@ const ModelSelectionStep: React.FC<{
                 });
             }
         },
-        { isActive: true },
+        { isActive: !isLoading && !error && config !== null },
     );
 
     if (isLoading) {

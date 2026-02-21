@@ -24,11 +24,7 @@ describe('AgentValidator', () => {
             frequency_penalty: 0.0,
             presence_penalty: 0.0,
         });
-        await storage.insertPrompt({
-            id: 'prompt-1',
-            name: 'system',
-            content: 'You are helpful',
-        });
+        await storage.insertPrompt({ id: 'prompt-1', name: 'system' }, 'You are helpful');
         await storage.insertTool({
             id: 'tool-1',
             name: 'read_file',

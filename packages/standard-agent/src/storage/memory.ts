@@ -17,6 +17,8 @@ import {
     BaseStorage,
     ModelRow,
     PromptRow,
+    PromptVersionRow,
+    PromptWithVersion,
     ToolRow,
     MiddlewareRow,
     AgentToolRow,
@@ -24,7 +26,7 @@ import {
     AgentWithRelations,
     AgentRow,
 } from './abstract.js';
-import { ModelSchema, PromptSchema, ToolSchema, MiddlewareSchema, AgentSchema } from '../index.js';
+import { ModelSchema, PromptSchema, PromptVersionSchema, ToolSchema, MiddlewareSchema, AgentSchema } from '../index.js';
 
 export class MemoryStorage extends BaseStorage {
     initialize?(): Promise<void> | void {
@@ -32,6 +34,7 @@ export class MemoryStorage extends BaseStorage {
     }
     private models: Map<string, ModelRow> = new Map();
     private prompts: Map<string, PromptRow> = new Map();
+    private promptVersions: Map<string, PromptVersionRow[]> = new Map(); // prompt_id -> versions
     private promptsByName: Map<string, PromptRow> = new Map();
     private tools: Map<string, ToolRow> = new Map();
     private middlewares: Map<string, MiddlewareRow> = new Map();
@@ -50,6 +53,7 @@ export class MemoryStorage extends BaseStorage {
         return Promise.resolve().then(() => {
             this.models.clear();
             this.prompts.clear();
+            this.promptVersions.clear();
             this.promptsByName.clear();
             this.tools.clear();
             this.middlewares.clear();
@@ -67,6 +71,7 @@ export class MemoryStorage extends BaseStorage {
         const snapshots = {
             models: new Map(this.models),
             prompts: new Map(this.prompts),
+            promptVersions: new Map(this.promptVersions),
             promptsByName: new Map(this.promptsByName),
             tools: new Map(this.tools),
             middlewares: new Map(this.middlewares),
@@ -81,6 +86,7 @@ export class MemoryStorage extends BaseStorage {
             // Rollback: restore from snapshots
             this.models = snapshots.models;
             this.prompts = snapshots.prompts;
+            this.promptVersions = snapshots.promptVersions;
             this.promptsByName = snapshots.promptsByName;
             this.tools = snapshots.tools;
             this.middlewares = snapshots.middlewares;
@@ -167,7 +173,7 @@ export class MemoryStorage extends BaseStorage {
     // ========================================
     // Prompts
     // ========================================
-    insertPrompt(data: z.infer<typeof PromptSchema>): Promise<void> {
+    insertPrompt(data: z.infer<typeof PromptSchema>, content: string, changeNote?: string): Promise<void> {
         return Promise.resolve().then(() => {
             if (this.prompts.has(data.id)) {
                 throw new Error(`Prompt with id ${data.id} already exists`);
@@ -176,17 +182,28 @@ export class MemoryStorage extends BaseStorage {
                 throw new Error(`Prompt with name ${data.name} already exists`);
             }
 
+            const now = this.now();
             const row: PromptRow = {
                 id: data.id,
                 name: data.name,
-                content: data.content,
-                metadata: this.safeStringify(data.metadata),
-                created_at: this.now(),
-                updated_at: this.now(),
+                current_version: 1,
+                created_at: now,
+                updated_at: now,
+            };
+
+            const versionRow: PromptVersionRow = {
+                id: `${data.id}-v1`,
+                prompt_id: data.id,
+                version: 1,
+                content,
+                metadata: null,
+                change_note: changeNote || null,
+                created_at: now,
             };
 
             this.prompts.set(data.id, row);
             this.promptsByName.set(data.name, row);
+            this.promptVersions.set(data.id, [versionRow]);
         });
     }
 
@@ -198,8 +215,47 @@ export class MemoryStorage extends BaseStorage {
         return Promise.resolve(this.promptsByName.get(name));
     }
 
+    getPromptWithCurrentVersion(id: string): Promise<PromptWithVersion | undefined> {
+        const prompt = this.prompts.get(id);
+        if (!prompt) return Promise.resolve(undefined);
+
+        const versions = this.promptVersions.get(id) || [];
+        const currentVersion = versions.find((v) => v.version === prompt.current_version);
+        if (!currentVersion) return Promise.resolve(undefined);
+
+        return Promise.resolve({
+            ...prompt,
+            content: currentVersion.content,
+            metadata: currentVersion.metadata,
+            change_note: currentVersion.change_note,
+        });
+    }
+
+    getPromptWithCurrentVersionByName(name: string): Promise<PromptWithVersion | undefined> {
+        const prompt = this.promptsByName.get(name);
+        if (!prompt) return Promise.resolve(undefined);
+        return this.getPromptWithCurrentVersion(prompt.id);
+    }
+
     getAllPrompts(): Promise<PromptRow[]> {
         return Promise.resolve(Array.from(this.prompts.values()));
+    }
+
+    getAllPromptsWithCurrentVersion(): Promise<PromptWithVersion[]> {
+        const result: PromptWithVersion[] = [];
+        for (const prompt of this.prompts.values()) {
+            const versions = this.promptVersions.get(prompt.id) || [];
+            const currentVersion = versions.find((v) => v.version === prompt.current_version);
+            if (currentVersion) {
+                result.push({
+                    ...prompt,
+                    content: currentVersion.content,
+                    metadata: currentVersion.metadata,
+                    change_note: currentVersion.change_note,
+                });
+            }
+        }
+        return Promise.resolve(result);
     }
 
     updatePrompt(data: z.infer<typeof PromptSchema>): Promise<void> {
@@ -212,8 +268,6 @@ export class MemoryStorage extends BaseStorage {
             const row: PromptRow = {
                 ...existing,
                 name: data.name,
-                content: data.content,
-                metadata: this.safeStringify(data.metadata),
                 updated_at: this.now(),
             };
 
@@ -243,6 +297,79 @@ export class MemoryStorage extends BaseStorage {
 
             this.prompts.delete(id);
             this.promptsByName.delete(existing.name);
+            this.promptVersions.delete(id);
+        });
+    }
+
+    // ========================================
+    // Prompt Versions
+    // ========================================
+    createPromptVersion(promptId: string, content: string, changeNote?: string): Promise<PromptVersionRow> {
+        return this.transaction(() => {
+            const prompt = this.prompts.get(promptId);
+            if (!prompt) {
+                throw new Error(`Prompt with id ${promptId} not found`);
+            }
+
+            const newVersion = prompt.current_version + 1;
+            const now = this.now();
+            const versionRow: PromptVersionRow = {
+                id: `${promptId}-v${newVersion}`,
+                prompt_id: promptId,
+                version: newVersion,
+                content,
+                metadata: null,
+                change_note: changeNote || null,
+                created_at: now,
+            };
+
+            const versions = this.promptVersions.get(promptId) || [];
+            versions.push(versionRow);
+            this.promptVersions.set(promptId, versions);
+
+            // Update prompt's current_version
+            const updatedPrompt: PromptRow = {
+                ...prompt,
+                current_version: newVersion,
+                updated_at: now,
+            };
+            this.prompts.set(promptId, updatedPrompt);
+            this.promptsByName.set(updatedPrompt.name, updatedPrompt);
+
+            return versionRow;
+        });
+    }
+
+    getPromptVersion(promptId: string, version: number): Promise<PromptVersionRow | undefined> {
+        const versions = this.promptVersions.get(promptId) || [];
+        return Promise.resolve(versions.find((v) => v.version === version));
+    }
+
+    getPromptVersions(promptId: string): Promise<PromptVersionRow[]> {
+        const versions = this.promptVersions.get(promptId) || [];
+        return Promise.resolve([...versions].sort((a, b) => b.version - a.version));
+    }
+
+    rollbackPromptVersion(promptId: string, targetVersion: number): Promise<void> {
+        return this.transaction(() => {
+            const prompt = this.prompts.get(promptId);
+            if (!prompt) {
+                throw new Error(`Prompt with id ${promptId} not found`);
+            }
+
+            const versions = this.promptVersions.get(promptId) || [];
+            const targetExists = versions.some((v) => v.version === targetVersion);
+            if (!targetExists) {
+                throw new Error(`Version ${targetVersion} not found for prompt ${promptId}`);
+            }
+
+            const updatedPrompt: PromptRow = {
+                ...prompt,
+                current_version: targetVersion,
+                updated_at: this.now(),
+            };
+            this.prompts.set(promptId, updatedPrompt);
+            this.promptsByName.set(updatedPrompt.name, updatedPrompt);
         });
     }
 
@@ -564,9 +691,10 @@ export class MemoryStorage extends BaseStorage {
         const model = this.models.get(agent.model_id);
         if (!model) throw new Error(`Model ${agent.model_id} not found`);
 
-        const systemPrompt = this.prompts.get(agent.system_prompt_id);
-        if (!systemPrompt) throw new Error(`Prompt ${agent.system_prompt_id} not found`);
+        // Get prompt with current version content
+        const promptWithVersion = await this.getPromptWithCurrentVersion(agent.system_prompt_id);
+        if (!promptWithVersion) throw new Error(`Prompt ${agent.system_prompt_id} not found`);
 
-        return { agent, model, systemPrompt };
+        return { agent, model, systemPrompt: promptWithVersion };
     }
 }

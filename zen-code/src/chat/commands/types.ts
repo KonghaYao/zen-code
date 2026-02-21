@@ -38,6 +38,8 @@ export interface CommandContext {
     AVAILABLE_MODELS?: ModelConfig[];
     /** 渲染消息列表（用于总结等需要访问聊天记录的场景） */
     renderMessages?: any[];
+    /** 紧凑模式状态 */
+    compactMode?: boolean;
     /** 切换到历史面板 */
     switchToHistory?: () => void;
     /** 切换到知识库面板 */

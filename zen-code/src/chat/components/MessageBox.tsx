@@ -1,20 +1,25 @@
 import { Box, Static } from 'ink';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import MessageHuman from './MessageHuman';
 import MessageAI from './MessageAI';
 import MessageTool from './MessageTool';
 import { RenderMessage } from '@langgraph-js/sdk';
 import { getColor } from '@codegraph/union-client';
-import { useChat } from '@langgraph-js/sdk/react';
 
-export const MessagesBox = ({
-    renderMessages,
-    startIndex,
-}: {
+interface MessagesBoxProps {
     renderMessages: RenderMessage[];
     startIndex: number;
-}) => {
-    const { currentChatId } = useChat()
+    staticKey: string;
+}
+
+/**
+ * MessagesBox - Standard message display component
+ *
+ * Fully props-driven for better memoization:
+ * - No internal useChat() calls
+ * - Relies on staticKey from parent for Static component
+ */
+export const MessagesBox = memo(function MessagesBox({ renderMessages, startIndex, staticKey }: MessagesBoxProps) {
     // 修复 Static 首次渲染问题：强制重新渲染
     const [ready, setReady] = useState(false);
 
@@ -28,7 +33,7 @@ export const MessagesBox = ({
         <Box
             key={message.id || index}
             flexDirection="column"
-            borderStyle={isCurrent ? 'double' : "single"}
+            borderStyle={isCurrent ? 'double' : 'single'}
             borderLeft
             paddingLeft={1}
             paddingBottom={1}
@@ -36,11 +41,7 @@ export const MessagesBox = ({
             borderTop={false}
             borderRight={false}
             borderLeftColor={
-                message.type === 'ai'
-                    ? getColor('teal')
-                    : message.type === 'human'
-                        ? getColor('amber')
-                        : 'yellow'
+                message.type === 'ai' ? getColor('teal') : message.type === 'human' ? getColor('amber') : 'yellow'
             }
         >
             {message.type === 'human' ? (
@@ -54,7 +55,7 @@ export const MessagesBox = ({
     );
 
     let index = renderMessages.findIndex((cur) => {
-        if (cur.type === 'tool' && (!cur.done && (!['success', 'error'].includes(cur.status!)))) {
+        if (cur.type === 'tool' && !cur.done && !['success', 'error'].includes(cur.status!)) {
             return true;
         }
         return false;
@@ -79,11 +80,8 @@ export const MessagesBox = ({
 
     return (
         <Box flexDirection="column">
-            {/* 历史消息：用 Static 固定，使用 key 强制重新挂载 */}
-            <Static
-                items={histories}
-                key={currentChatId} // MODIFIED: 切换聊天时强制重新挂载，清除旧内容
-            >
+            {/* 历史消息：用 Static 固定，使用 granular key 清除旧内容 */}
+            <Static items={histories} key={staticKey}>
                 {(message, i) => renderMessage(message, i, false)}
             </Static>
 
@@ -91,4 +89,4 @@ export const MessagesBox = ({
             {current.map((message, i) => renderMessage(message, histories.length + i, true))}
         </Box>
     );
-};
+});

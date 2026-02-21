@@ -1,16 +1,19 @@
-import { Box, Static, Text } from 'ink';
+import { Box, Text } from 'ink';
+
 import { useState, useEffect, useMemo, Fragment, memo, useCallback } from 'react';
 import MessageHuman from './MessageHuman';
 import MessageAI from './MessageAI';
 import { RenderMessage } from '@langgraph-js/sdk';
 import { getTextContent } from '@langgraph-js/sdk';
 import { getColor } from '@codegraph/union-client';
-import { useChat } from '@langgraph-js/sdk/react';
-import { CompactToolSummary } from './CompactToolSummary';
+import { PlatformStatic } from './PlatformStatic';
 
 interface CompactMessagesBoxProps {
     renderMessages: RenderMessage[];
     startIndex: number;
+    staticKey: string;
+    depth?: number;
+    getToolUIRender: (toolName: string) => ((msg: RenderMessage) => React.ReactNode) | null;
 }
 
 type CompactRenderMessages =
@@ -23,16 +26,27 @@ type CompactRenderMessages =
 
 /**
  * ToolGroupExtraRender - 工具组额外渲染组件
- * 分离出来避免在 processedMessages 中预计算渲染结果
+ *
+ * 内存泄漏修复：
+ * 1. getToolUIRender 通过 props 传入，避免使用 useChat() 导致 memo 失效
+ * 2. 限制 submessages 深度最多 1 层，防止无限递归
+ * 3. 每个工具消息最多显示 4 条 sub_messages
  */
 const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
     toolGroup,
     groupId,
+    getToolUIRender,
+    depth = 0,
 }: {
     toolGroup: RenderMessage[];
     groupId: string;
+    getToolUIRender: (toolName: string) => ((msg: RenderMessage) => React.ReactNode) | null;
+    depth?: number;
 }) {
-    const { getToolUIRender } = useChat();
+    // 限制递归深度，防止无限嵌套导致内存泄漏
+    if (depth > 1) {
+        return null;
+    }
 
     return (
         <>
@@ -42,6 +56,7 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
                 const totalSubmessages = msg.sub_messages?.length || 0;
                 const submessages = msg.sub_messages?.slice(-4) || [];
                 const omittedCount = totalSubmessages - submessages.length;
+
                 return (
                     <Fragment key={`extra-render-${groupId}-${idx}`}>
                         {render(msg) as any}
@@ -54,7 +69,14 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
                                         </Text>
                                     </Box>
                                 )}
-                                <CompactMessagesBox renderMessages={submessages} startIndex={1}></CompactMessagesBox>
+                                {/* 递归渲染，但传入 depth 参数限制深度 */}
+                                <CompactMessagesBox
+                                    renderMessages={submessages}
+                                    startIndex={1}
+                                    depth={depth + 1}
+                                    staticKey={`${groupId}-sub-${idx}`}
+                                    getToolUIRender={getToolUIRender}
+                                />
                             </>
                         ) : null}
                     </Fragment>
@@ -63,21 +85,80 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
         </>
     );
 });
+interface MessageItemProps {
+    message: CompactRenderMessages;
+    displayIndex: number;
+    isCurrent: boolean;
+    startIndex?: number;
+    getToolUIRender: (toolName: string) => ((msg: RenderMessage) => React.ReactNode) | null;
+    depth?: number;
+}
+
+/**
+ * MessageItem - 单条消息渲染组件
+ *
+ * 将 renderMessage 函数转换为组件，支持 hooks 和更好的 memo 化
+ */
+const MessageItem = memo(function MessageItem({
+    message,
+    displayIndex,
+    isCurrent,
+    startIndex = 0,
+    getToolUIRender,
+    depth = 0,
+}: MessageItemProps) {
+    const messageId = message.id || `message-${displayIndex}`;
+
+    return (
+        <Box
+            flexDirection="column"
+            borderStyle={isCurrent ? 'double' : 'single'}
+            borderLeft
+            paddingLeft={1}
+            paddingBottom={1}
+            borderBottom={false}
+            borderTop={false}
+            borderRight={false}
+            borderLeftColor={
+                message.type === 'ai' ? getColor('teal') : message.type === 'human' ? getColor('amber') : 'yellow'
+            }
+        >
+            {/* 如果不是 skipMessage，显示消息内容 */}
+            {message.type === 'human' ? (
+                <MessageHuman content={message.content} messageNumber={displayIndex + 1 + startIndex} />
+            ) : null}
+            {message.type === 'ai' ? (
+                <MessageAI message={message} messageNumber={displayIndex + 1 + startIndex} />
+            ) : null}
+            {/* 如果有工具组，显示摘要 */}
+            {message.type === 'group' && (
+                <>
+                    <ToolGroupExtraRender
+                        toolGroup={message.toolGroup}
+                        groupId={message.id}
+                        getToolUIRender={getToolUIRender}
+                        depth={depth}
+                    />
+                </>
+            )}
+        </Box>
+    );
+});
 
 /**
  * CompactMessagesBox - 紧凑消息显示组件
  *
- * 性能优化：
- * 1. 使用 memo 包装组件避免不必要的重新渲染
- * 2. 移除 extraRender 预计算，改为延迟渲染（ToolGroupExtraRender）
- * 3. 使用 useCallback 缓存渲染函数
- * 4. processedMessages 不再存储渲染结果，只存储数据
+ * Fully props-driven for better memoization:
+ * - No internal useChat() calls
+ * - Relies on staticKey from parent for Static component
  */
 export const CompactMessagesBox = memo(function CompactMessagesBox({
     renderMessages,
     startIndex,
+    staticKey,
+    depth = 0,
+    getToolUIRender,
 }: CompactMessagesBoxProps) {
-    const { currentChatId } = useChat();
     // 修复 Static 首次渲染问题：强制重新渲染
     const [ready, setReady] = useState(false);
 
@@ -125,52 +206,6 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
             }, [] as CompactRenderMessages[]);
     }, [renderMessages, hasAITextContent]);
 
-    const renderMessage = useCallback(
-        (message: CompactRenderMessages, displayIndex: number, isCurrent: boolean) => {
-            const messageId = message.id || `message-${displayIndex}`;
-            return (
-                <Box
-                    key={messageId}
-                    flexDirection="column"
-                    borderStyle={isCurrent ? 'double' : 'single'}
-                    borderLeft
-                    paddingLeft={1}
-                    paddingBottom={1}
-                    borderBottom={false}
-                    borderTop={false}
-                    borderRight={false}
-                    borderLeftColor={
-                        message.type === 'ai'
-                            ? getColor('teal')
-                            : message.type === 'human'
-                              ? getColor('amber')
-                              : 'yellow'
-                    }
-                >
-                    {/* 如果不是 skipMessage，显示消息内容 */}
-                    {message.type === 'human' ? (
-                        <MessageHuman content={message.content} messageNumber={displayIndex + 1 + startIndex} />
-                    ) : null}
-                    {message.type === 'ai' ? (
-                        <MessageAI message={message} messageNumber={displayIndex + 1 + startIndex} />
-                    ) : null}
-                    {/* 如果有工具组，显示摘要 */}
-                    {message.type === 'group' && (
-                        <>
-                            {/* <CompactToolSummary
-                                toolMessages={message.toolGroup}
-                                messageNumber={displayIndex + 1 + startIndex}
-                            /> */}
-                            {/* 延迟渲染工具额外内容，避免预计算 */}
-                            <ToolGroupExtraRender toolGroup={message.toolGroup} groupId={message.id} />
-                        </>
-                    )}
-                </Box>
-            );
-        },
-        [startIndex],
-    );
-
     // 找到当前消息的索引
     let currentDisplayIndex = processedMessages.length - 1;
 
@@ -186,20 +221,50 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
     if (!ready) {
         return (
             <Box flexDirection="column">
-                {processedMessages.map((item, i) => renderMessage(item, i, i === currentDisplayIndex))}
+                {processedMessages.map((item, i) => (
+                    <MessageItem
+                        key={item.id || `message-${i}`}
+                        message={item}
+                        displayIndex={i}
+                        isCurrent={i === currentDisplayIndex}
+                        startIndex={startIndex}
+                        getToolUIRender={getToolUIRender}
+                        depth={depth}
+                    />
+                ))}
             </Box>
         );
     }
 
     return (
         <Box flexDirection="column">
-            {/* 历史消息：用 Static 固定，使用 key 强制重新挂载 */}
-            <Static items={histories} key={currentChatId}>
-                {(item, i) => renderMessage(item, i, false)}
-            </Static>
+            {/* 历史消息：用 PlatformStatic 固定，仅在 Windows 上启用 Static 能力 */}
+            <PlatformStatic items={histories}>
+                {(item, i) => (
+                    <MessageItem
+                        key={item.id || `message-${i}`}
+                        message={item}
+                        displayIndex={i}
+                        isCurrent={false}
+                        startIndex={startIndex}
+                        getToolUIRender={getToolUIRender}
+                        depth={depth}
+                    />
+                )}
+            </PlatformStatic>
 
             {/* 当前消息 */}
-            {current.map((item, i) => renderMessage(item, histories.length + i, true))}
+            {current.map((item, i) => (
+                <MessageItem
+                    key={item.id || `message-${histories.length + i}`}
+                    message={item}
+                    displayIndex={histories.length + i}
+                    isCurrent={true}
+                    startIndex={startIndex}
+                    getToolUIRender={getToolUIRender}
+                    depth={depth}
+                />
+            ))}
         </Box>
     );
 });

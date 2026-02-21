@@ -3,7 +3,8 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import { useInput } from 'ink-pro';
 import type { SettingsFormProps, SettingField as SettingFieldType } from './types';
 import SettingField from './SettingField';
 import { getGroupsByTab } from './schema';

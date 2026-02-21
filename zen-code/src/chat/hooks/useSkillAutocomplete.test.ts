@@ -36,7 +36,7 @@ describe('useSkillAutocomplete', () => {
         expect(result.current.state.filteredSkills.length).toBeGreaterThan(0);
     });
 
-    it('should filter skills by prefix', () => {
+    it('should filter skills by fuzzy match', () => {
         const { result } = renderHook(() => useSkillAutocomplete({ skills: mockSkills }));
 
         act(() => {
@@ -45,8 +45,11 @@ describe('useSkillAutocomplete', () => {
 
         expect(result.current.state.visible).toBe(true);
         expect(result.current.state.query).toBe('web');
+        // FuzzyMatch structure: { skill, result }
         expect(result.current.state.filteredSkills).toEqual(
-            expect.arrayContaining([expect.objectContaining({ name: 'web-research' })]),
+            expect.arrayContaining([
+                expect.objectContaining({ skill: expect.objectContaining({ name: 'web-research' }) }),
+            ]),
         );
     });
 
@@ -58,7 +61,9 @@ describe('useSkillAutocomplete', () => {
         });
 
         expect(result.current.state.filteredSkills).toEqual(
-            expect.arrayContaining([expect.objectContaining({ name: 'web-research' })]),
+            expect.arrayContaining([
+                expect.objectContaining({ skill: expect.objectContaining({ name: 'web-research' }) }),
+            ]),
         );
     });
 
@@ -150,6 +155,7 @@ describe('useSkillAutocomplete', () => {
         });
 
         expect(result.current.state.visible).toBe(true);
+        // With fuzzy search, empty skills list returns empty array
         expect(result.current.state.filteredSkills).toEqual([]);
         expect(result.current.isActive).toBe(false);
     });
@@ -162,6 +168,7 @@ describe('useSkillAutocomplete', () => {
         });
 
         expect(result.current.state.visible).toBe(true);
+        // With fuzzy search, no match returns empty array
         expect(result.current.state.filteredSkills).toEqual([]);
         expect(result.current.isActive).toBe(false);
     });
@@ -223,5 +230,47 @@ describe('useSkillAutocomplete', () => {
 
         // Should hide when exact match
         expect(result.current.state.visible).toBe(false);
+    });
+
+    // Fuzzy search specific tests
+    it('should match fuzzy patterns in skill names', () => {
+        const { result } = renderHook(() => useSkillAutocomplete({ skills: mockSkills }));
+
+        // 'wr' should match 'web-research' (w...r...)
+        act(() => {
+            result.current.checkTrigger('#wr');
+        });
+
+        expect(result.current.state.visible).toBe(true);
+        expect(result.current.state.filteredSkills.length).toBeGreaterThan(0);
+        // web-research should be in the results
+        const matchedNames = result.current.state.filteredSkills.map((f) => f.skill.name);
+        expect(matchedNames).toContain('web-research');
+    });
+
+    it('should match characters in order with gaps', () => {
+        const { result } = renderHook(() => useSkillAutocomplete({ skills: mockSkills }));
+
+        // 'tg' should match 'tanstack-query' (t...g... - actually tanstack-query doesn't have g after t)
+        // Let's use 'tq' which should match 'tanstack-query' (t...q...)
+        act(() => {
+            result.current.checkTrigger('#tq');
+        });
+
+        expect(result.current.state.visible).toBe(true);
+        const matchedNames = result.current.state.filteredSkills.map((f) => f.skill.name);
+        expect(matchedNames).toContain('tanstack-query');
+    });
+
+    it('should include fuzzy result for highlighting', () => {
+        const { result } = renderHook(() => useSkillAutocomplete({ skills: mockSkills }));
+
+        act(() => {
+            result.current.checkTrigger('#web');
+        });
+
+        // Each filtered skill should have a result object for highlighting
+        expect(result.current.state.filteredSkills[0]).toHaveProperty('skill');
+        expect(result.current.state.filteredSkills[0]).toHaveProperty('result');
     });
 });

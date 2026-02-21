@@ -86,7 +86,7 @@ export const grep_tool = tool(
         return result.stdout || 'No matches found.';
     },
     {
-        name: 'search-files-rg',
+        name: 'search_files_rg',
         description: `Ripgrep (rg) - A fast text search tool that recursively searches directories for regex patterns
 
 ⚠️ IMPORTANT USAGE GUIDELINES:

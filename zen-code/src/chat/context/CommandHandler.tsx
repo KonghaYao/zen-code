@@ -68,7 +68,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
     // 从 useChat 获取所有需要的状态和函数
     const { userInput, setUserInput, sendMessage, currentAgent, client, createNewChat, renderMessages } = useChat();
     // 从 useSettings 获取配置更新函数
-    const { extraParams, updateConfig, AVAILABLE_MODELS } = useSettings();
+    const { extraParams, updateConfig, AVAILABLE_MODELS, compactMode } = useSettings();
 
     const [commandError, setCommandError] = useState<string | null>(null);
     const [commandSuccessMessage, setCommandSuccessMessage] = useState<string | null>(null);
@@ -107,6 +107,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
                     updateConfig,
                     AVAILABLE_MODELS,
                     renderMessages,
+                    compactMode,
                     switchToHistory,
                     switchToKnowledge,
                     switchToSettings,
@@ -163,6 +164,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
             createNewChat,
             onCommandExecuted,
             AVAILABLE_MODELS,
+            compactMode,
             switchToHistory,
             switchToKnowledge,
             switchToSettings,

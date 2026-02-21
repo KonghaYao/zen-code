@@ -3,17 +3,21 @@
  *
  * Displays skill autocomplete suggestions when user types `#skill-name`.
  * Similar to command hints but for skills.
+ *
+ * Uses fuzzy matching with fuzzysort for flexible skill name matching.
  */
 
 import React from 'react';
 import { Box, Text } from 'ink';
+import fuzzysort from 'fuzzysort';
 import type { Skill } from '@codegraph/config';
+import type { FuzzyMatch } from '../../hooks/useSkillAutocomplete';
 
 export interface SkillAutocompleteUIProps {
     /** Whether to show the autocomplete list */
     visible: boolean;
-    /** Filtered skills to display */
-    skills: Skill[];
+    /** Filtered skills with fuzzy match info */
+    skills: FuzzyMatch[];
     /** Current query text (without #) */
     query: string;
     /** Maximum number of items to show */
@@ -21,27 +25,40 @@ export interface SkillAutocompleteUIProps {
 }
 
 /**
- * Highlight the matched prefix in skill name
+ * Highlight the matched characters in skill name using fuzzysort result
  */
-function HighlightedName({ name, query }: { name: string; query: string }): React.ReactElement {
-    if (!query) {
+function HighlightedName({ name, result }: { name: string; result: Fuzzysort.Result | null }): React.ReactElement {
+    if (!result) {
+        // No fuzzy result, just show the name
         return <Text color="cyan">{name}</Text>;
     }
 
-    const lowerName = name.toLowerCase();
-    const lowerQuery = query.toLowerCase();
+    // Use fuzzysort's highlight method on the result object
+    // The callback returns React elements for matched portions
+    const highlighted = result.highlight((match) => (
+        // Don't set key here, will be set in the outer map
+        <Text color="green" bold>
+            {match}
+        </Text>
+    ));
 
-    if (lowerName.startsWith(lowerQuery)) {
+    // result.highlight() with callback returns (string | T)[]
+    // Strings are unmatched portions, T (React elements) are matched portions
+    if (Array.isArray(highlighted)) {
         return (
-            <>
-                <Text color="green" bold>
-                    {name.slice(0, query.length)}
-                </Text>
-                <Text color="cyan">{name.slice(query.length)}</Text>
-            </>
+            <Text color="cyan">
+                {highlighted.map((part, i) => {
+                    if (typeof part === 'string') {
+                        return <Text key={`p-${i}`}>{part}</Text>;
+                    }
+                    // part is a React element from the callback, add key via clone
+                    return <React.Fragment key={`m-${i}`}>{part}</React.Fragment>;
+                })}
+            </Text>
         );
     }
 
+    // Fallback to plain name
     return <Text color="cyan">{name}</Text>;
 }
 
@@ -65,10 +82,10 @@ export const SkillAutocompleteHintUI: React.FC<SkillAutocompleteUIProps> = ({
             <Text color="yellow" bold>
                 技能建议 (按 → 补全):
             </Text>
-            {visibleSkills.map((skill) => (
+            {visibleSkills.map(({ skill, result }) => (
                 <Box key={skill.name}>
                     <Text> #</Text>
-                    <HighlightedName name={skill.name} query={query} />
+                    <HighlightedName name={skill.name} result={result} />
                 </Box>
             ))}
             {skills.length > maxVisible && <Text color="gray">...还有 {skills.length - maxVisible} 个技能</Text>}

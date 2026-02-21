@@ -1,6 +1,6 @@
 import { HumanMessage } from 'langchain';
 import { graph } from '@codegraph/agent/src/index';
-import { getConfig, initDb } from './chat/store/index.js';
+import { createFSManager } from '@codegraph/config';
 
 // 使用新的 @codegraph/agent 包
 
@@ -35,8 +35,9 @@ async function readStdin(): Promise<string> {
  */
 export async function runNonInteractive(prompt?: string, useStdin: boolean = false) {
     // 初始化配置（读取 ~/.zen-code/settings.json）
-    await initDb();
-    const config = await getConfig();
+    const configManager = await createFSManager();
+    await configManager.initialize();
+    const config = await configManager.getConfig();
 
     // 决定输入来源
     let finalPrompt = prompt || '';

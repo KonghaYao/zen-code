@@ -42,18 +42,14 @@ describe('AgentSerializer', () => {
             expect(result.models[0].stream_usage).toBe(true);
         });
 
-        it('should export prompts', async () => {
-            await storage.insertPrompt({
-                id: 'prompt-1',
-                name: 'system',
-                content: 'You are helpful',
-                metadata: { version: 1 },
-            });
+        it('should export prompts with content', async () => {
+            await storage.insertPrompt({ id: 'prompt-1', name: 'system' }, 'You are helpful', 'Initial version');
 
             const result = await serializer.toJSON();
             expect(result.prompts).toHaveLength(1);
             expect(result.prompts[0].name).toBe('system');
-            expect(result.prompts[0].metadata).toEqual({ version: 1 });
+            expect(result.prompts[0].content).toBe('You are helpful');
+            expect(result.prompts[0].change_note).toBe('Initial version');
         });
 
         it('should export agents with tools and middlewares', async () => {
@@ -69,11 +65,7 @@ describe('AgentSerializer', () => {
                 frequency_penalty: 0.0,
                 presence_penalty: 0.0,
             });
-            await storage.insertPrompt({
-                id: 'prompt-1',
-                name: 'system',
-                content: 'test',
-            });
+            await storage.insertPrompt({ id: 'prompt-1', name: 'system' }, 'test');
             await storage.insertTool({
                 id: 'tool-1',
                 name: 'read_file',
@@ -114,11 +106,7 @@ describe('AgentSerializer', () => {
                 frequency_penalty: 0.0,
                 presence_penalty: 0.0,
             });
-            await storage.insertPrompt({
-                id: 'prompt-1',
-                name: 'system',
-                content: 'test',
-            });
+            await storage.insertPrompt({ id: 'prompt-1', name: 'system' }, 'test');
             await storage.insertAgent({
                 id: 'agent-1',
                 name: 'Test',
@@ -177,7 +165,7 @@ describe('AgentSerializer', () => {
             expect(model?.model_name).toBe('gpt-4');
         });
 
-        it('should import prompts', async () => {
+        it('should import prompts with content', async () => {
             await serializer.fromJSON({
                 models: [],
                 prompts: [
@@ -185,15 +173,16 @@ describe('AgentSerializer', () => {
                         id: 'prompt-1',
                         name: 'system',
                         content: 'You are helpful',
-                        metadata: { version: 1 },
+                        change_note: 'Initial',
                     },
                 ],
                 agents: [],
             });
 
-            const prompt = await storage.getPrompt('prompt-1');
+            const prompt = await storage.getPromptWithCurrentVersion('prompt-1');
             expect(prompt).toBeDefined();
             expect(prompt?.name).toBe('system');
+            expect(prompt?.content).toBe('You are helpful');
         });
 
         it('should import agents with dependencies', async () => {
@@ -315,12 +304,7 @@ describe('AgentSerializer', () => {
                 frequency_penalty: 0.0,
                 presence_penalty: 0.0,
             });
-            await storage.insertPrompt({
-                id: 'prompt-1',
-                name: 'system',
-                content: 'test',
-                metadata: { version: 1 },
-            });
+            await storage.insertPrompt({ id: 'prompt-1', name: 'system' }, 'test', 'v1');
             await storage.insertTool({
                 id: 'tool-1',
                 name: 'read_file',
