@@ -21,6 +21,7 @@ export interface TreeNode {
     type: 'file' | 'directory';
     extension?: string;
     icon: string;
+    size?: number;
     children?: TreeNode[];
 }
 

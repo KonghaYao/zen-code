@@ -29,8 +29,8 @@ interface MainLayoutProps {
 export function MainLayout(props: MainLayoutProps) {
     const [activeTab, setActiveTab] = useState<PanelType>('chat');
 
-    // Chat panel is full-screen, no padding/scroll wrapper
-    const isChat = activeTab === 'chat';
+    // Chat and Files panels are full-screen, no padding/scroll wrapper
+    const isFullScreen = activeTab === 'chat' || activeTab === 'files';
 
     return (
         <div className="h-screen flex flex-col overflow-hidden bg-[var(--color-bg-primary)]">
@@ -77,8 +77,8 @@ export function MainLayout(props: MainLayoutProps) {
 
             {/* Main Content */}
             <main className="flex-1 overflow-hidden">
-                {isChat ? (
-                    // Chat panel: full height, no wrapper
+                {isFullScreen ? (
+                    // Full-screen panels (Chat, Files): full height, no wrapper
                     <div className="h-full">{props.children(activeTab)}</div>
                 ) : (
                     // Other panels: scrollable content
