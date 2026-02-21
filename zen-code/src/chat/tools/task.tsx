@@ -6,7 +6,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createUITool, ToolManager, ToolRenderData } from '@langgraph-js/sdk';
 import { Box, Text } from 'ink';
-import { LimitedOutput } from '../components/LimitedOutput';
+import { LimitedOutput } from '../components/common/LimitedOutput';
 
 import { z } from 'zod';
 

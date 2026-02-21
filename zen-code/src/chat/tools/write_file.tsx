@@ -1,7 +1,7 @@
 import { createUITool, ToolManager } from '@langgraph-js/sdk';
 import { Box, Text } from 'ink';
 import { z } from 'zod';
-import Link from '../components/Link';
+import Link from '../components/common/Link';
 
 const writeToolSchema = z.object({
     description: z.string().optional(),

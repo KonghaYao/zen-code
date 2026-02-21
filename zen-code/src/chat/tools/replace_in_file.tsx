@@ -3,7 +3,7 @@ import { Box, Text } from 'ink';
 import { generateOptimizedDiff } from './diffUtils';
 import { editToolSchema } from '@codegraph/agent/src/tools/filesystem_tools';
 
-import Link from '../components/Link';
+import Link from '../components/common/Link';
 
 // MODIFIED: Updated interface to match new schema
 interface ReplaceInFileInput {

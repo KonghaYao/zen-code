@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink';
 import { createUITool } from '@langgraph-js/sdk';
 import { folder_tool as folderToolBackend } from '@codegraph/agent/src/tools/filesystem_tools/folder_tool';
-import Link from '../components/Link';
+import Link from '../components/common/Link';
 
 const folderOperationSchema = folderToolBackend.schema;
 

@@ -1,7 +1,7 @@
 import { createUITool, ToolManager } from '@langgraph-js/sdk';
 import { Box, Text } from 'ink';
 import { z } from 'zod';
-import { LimitedOutput } from '../components/LimitedOutput';
+import { LimitedOutput } from '../components/common/LimitedOutput';
 
 export const BatchCommandSchema = z.object({
     commands: z
@@ -37,7 +37,6 @@ export const batch_command = createUITool({
 
         return (
             <Box flexDirection="column">
-
                 {/* 显示命令列表 */}
                 {input.commands && input.commands.length > 0 && (
                     <Box flexDirection="column" marginTop={1}>

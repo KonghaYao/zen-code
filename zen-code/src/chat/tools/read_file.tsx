@@ -1,7 +1,7 @@
 import { createUITool, ToolManager } from '@langgraph-js/sdk';
 import { Box, Text } from 'ink';
 import { readFileSchema } from '@codegraph/agent/src/tools/filesystem_tools';
-import Link from '../components/Link';
+import Link from '../components/common/Link';
 
 export const read_file = createUITool({
     name: 'read_file',

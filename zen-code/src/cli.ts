@@ -5,6 +5,7 @@ import { initDatabaseUri } from './utils';
 const args = process.argv.slice(2);
 
 async function main() {
+    process.env.LG_TEMP_MESSAGE = 'true';
     // 处理 --yolo 参数：设置环境变量但不保存到配置
     const yoloIndex = args.indexOf('--yolo');
     if (yoloIndex !== -1) {

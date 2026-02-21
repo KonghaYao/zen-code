@@ -29,6 +29,9 @@ export const Tabs: React.FC<TabsProps> = ({
     const { isFocused } = useFocus({ autoFocus });
     const [selectedIndex, setSelectedIndex] = useState(defaultIndex);
 
+    // 生成实例唯一ID，用于避免不同Tabs实例之间的key冲突
+    const tabsInstanceId = React.useMemo(() => `tabs-${Math.random().toString(36).substring(2, 9)}`, []);
+
     const handleTabChange = useCallback(
         (index: number) => {
             if (index < 0 || index >= items.length || items[index].disabled) return;
@@ -63,7 +66,7 @@ export const Tabs: React.FC<TabsProps> = ({
             if (variant === 'line') {
                 // Line variant: underline the active tab
                 tabStyle = (
-                    <Box key={item.id} marginRight={1}>
+                    <Box key={`${tabsInstanceId}-${item.id}`} marginRight={1}>
                         <Text
                             color={item.disabled ? 'gray' : isSelected ? (isTabFocused ? 'green' : 'cyan') : 'gray'}
                             bold={isSelected && isTabFocused}
@@ -85,7 +88,7 @@ export const Tabs: React.FC<TabsProps> = ({
                 const color = item.disabled ? 'gray' : isSelected ? (isTabFocused ? 'green' : 'cyan') : 'gray';
 
                 tabStyle = (
-                    <Box key={item.id}>
+                    <Box key={`${tabsInstanceId}-${item.id}`}>
                         <Box flexDirection="column">
                             <Box>
                                 <Text color={color}>{left}</Text>
@@ -110,7 +113,7 @@ export const Tabs: React.FC<TabsProps> = ({
                 // Soft-rounded variant: subtle styling
                 const symbol = isSelected ? '●' : '○';
                 tabStyle = (
-                    <Box key={item.id} marginRight={2}>
+                    <Box key={`${tabsInstanceId}-${item.id}`} marginRight={2}>
                         <Text
                             color={item.disabled ? 'gray' : isSelected ? (isTabFocused ? 'green' : 'cyan') : 'gray'}
                             bold={isSelected && isTabFocused}

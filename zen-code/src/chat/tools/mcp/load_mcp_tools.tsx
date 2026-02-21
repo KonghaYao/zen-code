@@ -1,7 +1,7 @@
 import { createUITool, ToolManager } from '@langgraph-js/sdk';
 import { Box, Text } from 'ink';
 import { z } from 'zod';
-import { LimitedOutput } from '../../components/LimitedOutput';
+import { LimitedOutput } from '../../components/common/LimitedOutput';
 
 export const LoadMcpToolsSchema = z.object({});
 

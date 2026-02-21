@@ -1,7 +1,7 @@
 import { createUITool, ToolManager } from '@langgraph-js/sdk';
 
 import { Box, Text } from 'ink';
-import Link from '../components/Link';
+import Link from '../components/common/Link';
 
 export const search_files_rg = createUITool({
     name: 'search_files_rg',

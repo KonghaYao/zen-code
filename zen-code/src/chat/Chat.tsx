@@ -1,26 +1,3 @@
-/**
- * Chat Component (Refactored)
- *
- * Architecture:
- *   AppProviders (entry point)
- *   └── ChatWrapper (all providers)
- *       └── Chat (main component)
- *           └── ChatController (state + context)
- *               └── ChatLayout (layout structure)
- *                   ├── ChatMain (when activeView === 'chat')
- *                   │   ├── ChatMessages
- *                   │   └── ChatInput / UnifiedUIPanel
- *                   ├── LazyChatViewManager (when activeView !== 'chat')
- *                   └── StatusBar
- *
- * Follows Vercel best practices:
- * - Eliminated useEffect waterfalls
- * - Derived state computed during render
- * - Component memoization
- * - Context to avoid props drilling
- * - Lazy-loaded panels
- */
-
 import React from 'react';
 import { Box } from 'ink';
 import { ChatProvider } from '@langgraph-js/sdk/react';
@@ -30,10 +7,10 @@ import { LangGraphFetch } from '@codegraph/agent/src/export';
 import { InteractionProvider } from './interaction/context';
 import { SettingsProvider } from './context/SettingsContext';
 import { get_allowed_models } from '@codegraph/agent/src/utils/get_allowed_models';
-import { ChatController } from './components/ChatController';
-import { ChatMain } from './components/ChatMain';
-import { LazyChatViewManager } from './components/LazyChatViewManager';
-import StatusBar from './components/StatusBar';
+import { ChatController } from './components/layout/ChatController';
+import { ChatMain } from './components/layout/ChatMain';
+import { LazyChatViewManager } from './components/layout/LazyChatViewManager';
+import StatusBar from './components/status/StatusBar';
 import { useChatPanel } from './context/ChatPanelContext';
 
 /**

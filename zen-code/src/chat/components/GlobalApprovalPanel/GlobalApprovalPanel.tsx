@@ -192,7 +192,7 @@ export const GlobalApprovalPanel = forwardRef<GlobalApprovalPanelRef, GlobalAppr
                 {/* Tabs */}
                 <Box paddingX={1} marginTop={compact ? 0 : 1}>
                     <Tabs
-                        key={activeTab}
+                        key={`global-approval-tabs-${activeTab || 'none'}-${tabItems.length}`}
                         items={tabItems}
                         defaultIndex={tabItems.findIndex((item) => item.id === activeTab)}
                         onChange={handleTabChange}
