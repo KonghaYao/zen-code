@@ -8,7 +8,7 @@
         "dist"
     ],
     "scripts": {
-        "dev": "bun run src/cli.ts",
+        "dev": "bun run --smol src/cli.ts",
         "build": "vite build",
         "prepublish": "bun run build",
         "test": "vitest",

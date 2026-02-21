@@ -41,7 +41,7 @@ app.get('/health', (c) => {
 
 // 5. 启动服务器
 const port = 8124;
-console.log(`🐝 Zen Swarm Server running on http://127.0.0.1:${port}`);
+console.log(`🐝 Zen Swarm Server running on http://127.0.0.1:${port}/ui`);
 console.log(`   Health: http://127.0.0.1:${port}/health`);
 console.log(`   LangGraph API: http://127.0.0.1:${port}/api/langgraph`);
 console.log(`   tRPC API: http://127.0.0.1:${port}/api/trpc`);
@@ -51,5 +51,6 @@ serve({
         '/ui': dashboard,
     },
     fetch: app.fetch,
+    idleTimeout: 300,
     port,
 });
