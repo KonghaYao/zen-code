@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Box, Text } from 'ink';
 import { MultiLineTextInput } from 'ink-pro';
 import { useChatInputBuffer } from '@codegraph/union-client';
@@ -40,6 +40,9 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
     const { bufferedMessage, setBufferedMessage, clearBuffer } = useChatInputBuffer();
     const [internalValue, setInternalValue] = useState(value);
 
+    // Prevent infinite loop: track if we're processing external value changes
+    const isExternalUpdateRef = useRef(false);
+
     // Initialize skill autocomplete
     const skillAutocomplete = useSkillAutocomplete({
         skills,
@@ -52,25 +55,37 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
         maxSuggestions: 5,
     });
 
-    // 同步外部 value 变化
+    // 同步外部 value 变化（避免循环更新）
     useEffect(() => {
-        setInternalValue(value);
-    }, [value]);
+        // Only update if value actually changed and it's not from our own change
+        if (value !== internalValue) {
+            isExternalUpdateRef.current = true;
+            setInternalValue(value);
+        }
+    }, [value]); // Only depend on value, NOT internalValue
 
     // 计算是否为命令输入（基于 internalValue）
     const isCommandInput = useMemo(() => internalValue.startsWith('/'), [internalValue]);
 
-    // Check for skill autocomplete trigger when input changes
+    // Check for skill/agent autocomplete trigger when input changes
+    // Intentionally omit checkTrigger functions from dependencies to avoid infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (!isCommandInput) {
             skillAutocomplete.checkTrigger(internalValue);
             agentAutocomplete.checkTrigger(internalValue);
         }
-    }, [internalValue, isCommandInput, skillAutocomplete.checkTrigger, agentAutocomplete.checkTrigger]);
+    }, [internalValue, isCommandInput]);
 
-    // 处理输入变化，同步到外部和命令检测
+    // 处理输入变化，同步到外部和命令检测（避免循环更新）
     const handleChange = useCallback(
         (newValue: string) => {
+            // Skip if this is an external update
+            if (isExternalUpdateRef.current) {
+                isExternalUpdateRef.current = false;
+                return;
+            }
+
             setInternalValue(newValue);
             onChange(newValue); // 同步到外部 userInput，让 CommandHandler 能检测到
         },
@@ -124,7 +139,7 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
         } else {
             setInternalValue(''); // 清空输入框
         }
-    }, [bufferedMessage, clearBuffer, skillAutocomplete, agentAutocomplete]);
+    }, [bufferedMessage, clearBuffer, skillAutocomplete.isActive, agentAutocomplete.isActive]);
 
     // 处理命令补全 - 右箭头键（仅在光标在末尾且是命令输入时触发）
     const handleCommandCompletion = useCallback(() => {
@@ -154,7 +169,7 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
         skillAutocomplete.hide();
 
         return true; // Intercept the key
-    }, [skillAutocomplete, internalValue, handleChange]);
+    }, [skillAutocomplete.isActive, internalValue, handleChange]);
 
     // Handle agent completion - right arrow key
     const handleAgentCompletion = useCallback(() => {
@@ -167,7 +182,7 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
         agentAutocomplete.hide();
 
         return true; // Intercept the key
-    }, [agentAutocomplete, internalValue, handleChange]);
+    }, [agentAutocomplete.isActive, internalValue, handleChange]);
 
     // Get placeholder text based on current state
     const getPlaceholder = useMemo(() => {

@@ -143,11 +143,11 @@ export function MultiLineTextInput({
             return;
         }
 
-        // Notify parent of changes
-        if (text !== originalValue) {
+        // Notify parent of changes (skip if value hasn't changed)
+        if (text !== previousValueRef.current) {
             onChange?.(text);
         }
-    }, [text, onChange, originalValue]);
+    }, [text, onChange]); // Remove originalValue from dependencies
 
     // Calculate max visible lines
     const maxVisibleLines = useMemo(() => {

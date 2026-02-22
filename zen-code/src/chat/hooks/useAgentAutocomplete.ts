@@ -102,6 +102,7 @@ export function useAgentAutocomplete({
     });
 
     // Check if input should trigger autocomplete
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const checkTrigger = useCallback(
         (input: string, _cursorPosition?: number) => {
             // Find the last `@` in the input
@@ -158,8 +159,8 @@ export function useAgentAutocomplete({
                 triggerPosition: lastIndex,
             }));
         },
-        [agents, maxSuggestions],
-    );
+        [agents.length, maxSuggestions],
+    ); // Depend on agents.length instead of agents reference
 
     // Get first matching agent
     const getFirstAgent = useCallback((): Agent | null => {

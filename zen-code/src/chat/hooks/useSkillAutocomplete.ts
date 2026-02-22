@@ -122,6 +122,7 @@ export function useSkillAutocomplete({
     });
 
     // Check if input should trigger autocomplete
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const checkTrigger = useCallback(
         (input: string, _cursorPosition?: number) => {
             // Find the last `#` in the input
@@ -178,8 +179,8 @@ export function useSkillAutocomplete({
                 triggerPosition: lastHashIndex,
             }));
         },
-        [skills, maxSuggestions],
-    );
+        [skills.length, maxSuggestions],
+    ); // Depend on skills.length instead of skills reference
 
     // Get first matching skill
     const getFirstSkill = useCallback((): Skill | null => {
