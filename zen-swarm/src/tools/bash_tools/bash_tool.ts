@@ -1,6 +1,7 @@
-import { tool } from '@langchain/core/tools';
+import { tool, ToolRuntime } from '@langchain/core/tools';
 import { z } from 'zod';
 import { execa, type ResultPromise } from 'execa';
+import { SwarmStateType } from '../../state';
 
 // 管理后台进程的状态
 export interface ManagedProcess {
@@ -17,7 +18,10 @@ const defaultShell = isWindows ? 'cmd.exe' : '/bin/bash';
 const shellArgs = isWindows ? ['/d', '/s', '/c'] : ['-c'];
 
 export const bash_tool = tool(
-    async ({ command, timeout, run_in_background, kill_process_id, get_output_id, filter }) => {
+    async (
+        { command, timeout, run_in_background, kill_process_id, get_output_id, filter },
+        runtime: ToolRuntime<SwarmStateType>,
+    ) => {
         // 1. Kill Process Logic
         if (kill_process_id) {
             const pid = parseInt(kill_process_id, 10);
@@ -76,6 +80,7 @@ export const bash_tool = tool(
         if (run_in_background) {
             try {
                 const child_process = execa(defaultShell, [...shellArgs, command], {
+                    cwd: runtime.state.cwd,
                     timeout,
                     reject: false,
                     windowsVerbatimArguments: isWindows, // Windows 特殊处理
@@ -109,6 +114,7 @@ export const bash_tool = tool(
         } else {
             try {
                 const result = await execa(defaultShell, [...shellArgs, command], {
+                    cwd: runtime.state.cwd,
                     timeout,
                     reject: false,
                     windowsVerbatimArguments: isWindows,
@@ -124,7 +130,7 @@ export const bash_tool = tool(
     },
     {
         name: 'terminal',
-        description: `Executes commands in a persistent shell session (Bash on Linux/macOS, CMD on Windows).
+        description: `Executes commands in a persistent shell session (Bash on Linux/macOS, CMD on Windows). Commands are executed in the current working directory (cwd).
 Features:
 - Run commands (foreground or background)
 - Retrieve background process output
@@ -138,6 +144,7 @@ Usage:
 
 Notes:
 - For file paths with spaces, ALWAYS use quotes: "path/to file"
+- Commands are executed relative to the current working directory (cwd)
 - Avoid interactive commands (like top, vim)
 - Use '&&' or ';' to chain commands (PowerShell/CMD syntax varies, simple chaining often works)
 - CAN'T BATCH CALL THIS TOOL!

@@ -1,12 +1,13 @@
-import { tool } from '@langchain/core/tools';
+import { tool, ToolRuntime } from '@langchain/core/tools';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
-import path from 'path';
+import { resolve, join } from 'path';
+import { SwarmStateType } from '../../state';
 
 const folderOperationSchema = z
     .object({
         operation: z.enum(['create', 'list', 'exists']).describe('The folder operation to perform'),
-        folder_path: z.string().describe('The absolute path to the folder'),
+        folder_path: z.string().describe('The path to the folder (absolute or relative to cwd)'),
         description: z.string().optional().describe('What you want to do'),
         recursive: z
             .boolean()
@@ -17,9 +18,10 @@ const folderOperationSchema = z
     .strict();
 
 export const folder_tool = tool(
-    async ({ operation, folder_path, recursive = true }) => {
+    async ({ operation, folder_path, recursive = true }, runtime: ToolRuntime<SwarmStateType>) => {
         try {
-            const resolvedPath = path.resolve(folder_path);
+            // 解析路径：如果是相对路径，基于 cwd 解析；如果是绝对路径，直接使用
+            const resolvedPath = resolve(runtime.state.cwd, folder_path);
 
             switch (operation) {
                 case 'create': {
@@ -52,7 +54,7 @@ export const folder_tool = tool(
                         const files: string[] = [];
 
                         for (const entry of entries) {
-                            const fullPath = path.join(resolvedPath, entry.name);
+                            const fullPath = join(resolvedPath, entry.name);
                             try {
                                 const stats = await fs.stat(fullPath);
                                 const size = stats.size;
@@ -110,7 +112,7 @@ export const folder_tool = tool(
     },
     {
         name: 'folder_operations',
-        description: `Unified folder operations tool supporting create, list, and existence check.
+        description: `Unified folder operations tool supporting create, list, and existence check. Relative paths are resolved based on the current working directory (cwd).
 
 **Operations:**
 - create: Create a folder (supports nested directory creation)
@@ -119,11 +121,13 @@ export const folder_tool = tool(
 
 **Usage Examples:**
 - Create nested folders: {operation: "create", folder_path: "/path/to/nested/folder"}
+- Create with relative path: {operation: "create", folder_path: "data/output"}
 - List contents: {operation: "list", folder_path: "/path/to/folder"}
-- Check existence: {operation: "exists", folder_path: "/path/to/folder"}
+- List with relative path: {operation: "list", folder_path: "src"}
+- Check existence: {operation: "exists", folder_path: "path/to/folder"}
 
 **Important:**
-- All folder paths must be absolute paths
+- All folder paths can be absolute or relative to cwd
 - Create operation is recursive (creates parent directories if needed)
 - List operation shows file sizes and modification dates
 - Delete operations are not supported for safety reasons. Use terminal commands with user approval if needed.`,

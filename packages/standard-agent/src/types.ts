@@ -13,7 +13,7 @@ export interface ToolImplementation<Params = unknown, Result = unknown> {
     /** Optional Zod schema for parameter validation */
     readonly paramsSchema?: z.ZodType<Params>;
     /** Execute the tool with parameters */
-    execute(params: Params): Promise<Result> | Result;
+    execute(params: Params, runtime: any): Promise<Result> | Result;
 }
 
 /**

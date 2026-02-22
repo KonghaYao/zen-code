@@ -1,7 +1,9 @@
-import { tool } from '@langchain/core/tools';
+import { tool, ToolRuntime } from '@langchain/core/tools';
 import { z } from 'zod';
-// import { rgPath } from '../../utils/ripgrep.js';
+import { rgPath } from '../../utils/ripgrep.js';
 import { execa } from 'execa';
+import { resolve } from 'path';
+import { SwarmStateType } from '../../state';
 
 // 使用 execa 执行命令的异步函数
 const execCommand = async (
@@ -9,12 +11,12 @@ const execCommand = async (
     args: string[],
     options: { timeout?: number; cwd?: string } = {},
 ): Promise<{ code: number; stdout: string; stderr: string }> => {
-    const { timeout = 15000, cwd = process.cwd() } = options;
+    const { timeout = 15000, cwd } = options;
 
     try {
         // console.log('execCommand', command, args, cwd);
         const result = await execa(command, args, {
-            cwd,
+            cwd: cwd || process.cwd(),
             timeout,
             reject: false, // 不要在非零退出码时抛出异常
             stripFinalNewline: false, // 保留原始输出格式
@@ -46,7 +48,7 @@ const execCommand = async (
 };
 
 export const grep_tool = tool(
-    async ({ args, head_limit }) => {
+    async ({ args, head_limit }, runtime: ToolRuntime<SwarmStateType>) => {
         // 基本验证：确保 args 数组不为空
         if (!args || args.length === 0) {
             return 'Error: No arguments provided. Please provide ripgrep arguments.';
@@ -57,10 +59,18 @@ export const grep_tool = tool(
             head_limit = 500; // 默认限制为500行结果
         }
 
+        // 解析路径参数：查找最后一个路径参数，如果是相对路径，基于 cwd 解析
+        const lastArg = args[args.length - 1];
+        let resolvedArgs = [...args];
+        if (lastArg && !lastArg.startsWith('-')) {
+            // 最后一个参数看起来像路径
+            resolvedArgs[resolvedArgs.length - 1] = resolve(runtime.state.cwd, lastArg);
+        }
+
         // 执行 ripgrep 命令
-        let result = await execCommand(rgPath, args, {
+        let result = await execCommand(rgPath, resolvedArgs, {
             timeout: 15000, // 15秒超时
-            cwd: process.cwd(),
+            cwd: runtime.state.cwd,
         });
 
         // 如果需要限制输出行数，使用 Node.js 处理而不是 shell pipe
@@ -99,9 +109,10 @@ export const grep_tool = tool(
 - MUST always specify a search path at the end of args array
 - If no specific path needed, use "./" for current directory
 - Never omit the path parameter - ripgrep requires it
+- Relative paths are resolved relative to the current working directory (cwd)
 
 Usage - Pass ripgrep (rg) arguments as an array:
-The args array corresponds directly to 'rg [OPTIONS] PATTERN [PATH ...]'
+The args array corresponds directly to 'rg [OPTIONS] PATTERN [PATH...]'
 
 Examples:
 - Search pattern in current directory: ["PATTERN", "./"]

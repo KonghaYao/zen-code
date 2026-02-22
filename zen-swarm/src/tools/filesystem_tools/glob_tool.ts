@@ -1,6 +1,8 @@
-import { tool } from '@langchain/core/tools';
+import { tool, ToolRuntime } from '@langchain/core/tools';
 import { z } from 'zod';
 import { glob } from 'glob';
+import { resolve } from 'path';
+import { SwarmStateType } from '../../state';
 
 export const globToolSchema = z.object({
     description: z.string().optional().describe('what you want to do'),
@@ -9,11 +11,14 @@ export const globToolSchema = z.object({
         .string()
         .optional()
         .describe(
-            'The directory to search in. If not specified, the current working directory will be used. IMPORTANT: Omit this field to use the default directory. DO NOT enter "undefined" or "null" - simply omit it for the default behavior. Must be a valid directory path if provided.',
+            'The directory to search in. Can be absolute or relative to cwd. If not specified, the current working directory (cwd) will be used. IMPORTANT: Omit this field to use the default directory. DO NOT enter "undefined" or "null" - simply omit it for the default behavior. Must be a valid directory path if provided.',
         ),
 });
 export const glob_tool = tool(
-    async ({ pattern, path }) => {
+    async ({ pattern, path }, runtime: ToolRuntime<SwarmStateType>) => {
+        // 解析路径：如果提供了 path，基于 cwd 解析；否则使用 cwd
+        const cwd = path ? resolve(runtime.state.cwd, path) : runtime.state.cwd;
+
         const files = await glob(pattern, {
             ignore: [
                 'node_modules',
@@ -34,7 +39,7 @@ export const glob_tool = tool(
                 'out',
                 '.output',
             ],
-            cwd: path,
+            cwd,
             absolute: true,
         });
         if (files.length === 0) {

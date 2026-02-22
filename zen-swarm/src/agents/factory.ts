@@ -59,8 +59,9 @@ export async function createSwarmAgent(
         const { tool } = await import('langchain');
 
         const langChainTool = tool(
-            async (input) => {
-                const result = await toolImpl.execute(input);
+            async (input, runtime) => {
+                // Pass state to tool execution
+                const result = await toolImpl.execute(input, runtime);
                 if (result && typeof result === 'object' && 'content' in result) {
                     return result.content;
                 }

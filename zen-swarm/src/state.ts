@@ -16,6 +16,7 @@ export const SwarmStateSchema = AgentState.extend(SubAgentStateSchema.shape).ext
     agent_id: z.string().default('default'),
     model_id: z.string().default('gpt-4o-mini'),
     provider_type: z.string().default('openai'),
+    cwd: z.string(),
 });
 
 /**
@@ -26,6 +27,7 @@ export const SwarmState = createState(SubAgentAnnotation, MessagesAnnotation).bu
     agent_id: createDefaultAnnotation(() => 'default'),
     model_id: createDefaultAnnotation(() => 'gpt-4o-mini'),
     provider_type: createDefaultAnnotation(() => 'openai'),
+    cwd: createDefaultAnnotation(() => ''),
 });
 
 export type SwarmStateType = typeof SwarmState.State;

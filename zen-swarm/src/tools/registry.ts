@@ -30,8 +30,8 @@ async function registerLangChainTool(pkg: AgentPackage, tool: Tool) {
         name: tool.name,
         description: tool.description,
         paramsSchema: tool.schema as any,
-        execute: async (params) => {
-            const result = await tool.invoke(params);
+        execute: async (params, runtime) => {
+            const result = await tool.invoke(params, runtime);
             // Handle ToolMessage return type - extract content
             if (result && typeof result === 'object' && 'content' in result) {
                 return (result as any).content;
