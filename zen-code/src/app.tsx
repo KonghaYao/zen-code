@@ -30,7 +30,7 @@ try {
 } catch (error) {
     console.error('Critical rendering error:', error);
     // Render a fallback UI if the initial render fails
-    render(<FallbackUI error={error as Error} />, { exitOnCtrlC: false });
+    render(<FallbackUI error={error as Error} />);
 }
 
 // Also catch unhandled promise rejections

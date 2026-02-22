@@ -52,17 +52,21 @@ const ChatMessages: React.FC = () => {
     return (
         <Box flexDirection="column" flexGrow={1} paddingX={0} paddingY={0}>
             {debouncedRenderMessages.length === 0 && <WelcomeHeader />}
-            {compactMode ? (
-                <CompactMessagesBox
-                    renderMessages={debouncedRenderMessages}
-                    startIndex={0}
-                    staticKey={staticKey}
-                    getToolUIRender={stableGetToolUIRender}
-                    loading={loading}
-                />
-            ) : (
-                <MessagesBox renderMessages={debouncedRenderMessages} startIndex={0} staticKey={staticKey} />
-            )}
+            {/* 当没有消息的时候, 绝对不要渲染 */}
+            {debouncedRenderMessages.length ? (
+                compactMode ? (
+                    <CompactMessagesBox
+                        renderMessages={debouncedRenderMessages}
+                        startIndex={0}
+                        staticKey={staticKey}
+                        getToolUIRender={stableGetToolUIRender}
+                        loading={loading}
+                        key={staticKey}
+                    />
+                ) : (
+                    <MessagesBox renderMessages={debouncedRenderMessages} startIndex={0} staticKey={staticKey} />
+                )
+            ) : null}
         </Box>
     );
 };
@@ -73,14 +77,13 @@ const ChatMessages: React.FC = () => {
  * Key sections wrapped with ErrorBoundary for isolation.
  */
 export const ChatMain: React.FC = () => {
-    const { currentChatId } = useChat();
     const { hasPendingInteractions } = useInteractionContext();
 
     return (
         <ChatInputBufferProvider>
             <Box flexDirection="column" flexGrow={1}>
                 <ErrorBoundary name="ChatMessages" fallback={null}>
-                    <ChatMessages key={currentChatId} />
+                    <ChatMessages />
                 </ErrorBoundary>
                 <ErrorBoundary name="InteractionArea" fallback={null}>
                     {hasPendingInteractions ? (

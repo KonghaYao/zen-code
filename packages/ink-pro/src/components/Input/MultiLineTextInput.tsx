@@ -128,12 +128,18 @@ export function MultiLineTextInput({
 
     // Detect external prop changes
     useEffect(() => {
-        // If originalValue changed and it's different from current text
-        if (originalValue !== previousValueRef.current && originalValue !== text) {
+        // Only trigger if originalValue changed (not when text changes)
+        if (originalValue === previousValueRef.current) {
+            return;
+        }
+
+        // Check if this is an external update (originalValue differs from current text)
+        if (originalValue !== text) {
             isExternalUpdateRef.current = true;
         }
+
         previousValueRef.current = originalValue;
-    }, [originalValue, text]);
+    }, [originalValue]); // Only depend on originalValue
 
     // Sync hook state back to parent component
     useEffect(() => {

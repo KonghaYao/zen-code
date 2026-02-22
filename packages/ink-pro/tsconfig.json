@@ -8,7 +8,11 @@
         "declarationMap": true,
 
         // 生成源映射（用于调试，可禁用以提升性能）
-        "sourceMap": true
+        "sourceMap": true,
+
+        // 明确设置根目录和基础 URL
+        "rootDir": "./src",
+        "baseUrl": "."
     },
     "include": ["src/**/*", "../../zen-code/src/chat/components/messages/Markdown.tsx"],
     "exclude": ["node_modules", "dist"]

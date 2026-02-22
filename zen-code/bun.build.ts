@@ -21,18 +21,18 @@ async function buildZenCode() {
     await fs.mkdir('./dist', { recursive: true });
 
     // Create a mock react-devtools-core module in the project's node_modules
-    const nodeModulesPath = '../node_modules/react-devtools-core';
-    const packageJsonPath = path.join(nodeModulesPath, 'package.json');
-    const indexPath = path.join(nodeModulesPath, 'index.js');
+    // const nodeModulesPath = '../node_modules/react-devtools-core';
+    // const packageJsonPath = path.join(nodeModulesPath, 'package.json');
+    // const indexPath = path.join(nodeModulesPath, 'index.js');
 
-    try {
-        await fs.mkdir(nodeModulesPath, { recursive: true });
-        await fs.writeFile(packageJsonPath, JSON.stringify({ type: 'module', main: 'index.js' }));
-        await fs.writeFile(indexPath, mockReactDevtools);
-        console.log('  Created mock react-devtools-core');
-    } catch (e) {
-        console.log('  Warning: Could not create mock react-devtools-core:', e);
-    }
+    // try {
+    //     await fs.mkdir(nodeModulesPath, { recursive: true });
+    //     await fs.writeFile(packageJsonPath, JSON.stringify({ type: 'module', main: 'index.js' }));
+    //     await fs.writeFile(indexPath, mockReactDevtools);
+    //     console.log('  Created mock react-devtools-core');
+    // } catch (e) {
+    //     console.log('  Warning: Could not create mock react-devtools-core:', e);
+    // }
 
     // Build all entry points together with code splitting
     console.log('  Building with code splitting...');
@@ -97,6 +97,8 @@ async function buildZenCode() {
             // 'usehooks-ts',
             'node-sqlite3-wasm',
             'fuzzysort',
+
+            'react-devtools-core',
         ],
         // Define global variables
         define: {
@@ -124,11 +126,11 @@ async function buildZenCode() {
     }
 
     // Clean up the mock module
-    try {
-        await fs.rm('../node_modules/react-devtools-core', { recursive: true, force: true });
-    } catch (e) {
-        // Ignore cleanup errors
-    }
+    // try {
+    //     await fs.rm('../node_modules/react-devtools-core', { recursive: true, force: true });
+    // } catch (e) {
+    //     // Ignore cleanup errors
+    // }
 
     // Show build summary
     const distFilesFinal = await fs.readdir('./dist');

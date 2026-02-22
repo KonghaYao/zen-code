@@ -64,8 +64,8 @@
         // 输出目录
         "outDir": "./dist",
 
-        // 根目录
-        "rootDir": "./src",
+        // 根目录（在子项目中覆盖）
+        // "rootDir": "./src",
 
         // 基础 URL 用于解析非相对模块名
         "baseUrl": ".",

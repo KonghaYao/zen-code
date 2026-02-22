@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { Box, Text } from 'ink';
 import { RenderMessage } from '@langgraph-js/sdk';
 import { getThinkingContent, getTextContent } from '@langgraph-js/sdk';
-import { useSettings } from '../../context/SettingsContext';
 import Markdown from '../common/Markdown';
 import { getColor } from '@codegraph/union-client';
 import { LimitedOutput } from 'ink-pro';
@@ -13,8 +12,7 @@ interface MessageAIProps {
 }
 
 const MessageAI: React.FC<MessageAIProps> = ({ message, messageNumber }) => {
-    const { extraParams } = useSettings();
-    const modelName = extraParams.model_id || 'AI';
+    const modelName = 'AI';
 
     // MODIFIED: 提取 thinking 内容
     const thinkingContent = getThinkingContent(message);

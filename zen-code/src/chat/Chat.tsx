@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box } from 'ink';
+import { Box, Text } from 'ink';
 import { ChatProvider } from '@langgraph-js/sdk/react';
 import { TanStackQueryProvider } from './QueryClientProvider';
 import { ApprovalProvider } from '@codegraph/union-client';
