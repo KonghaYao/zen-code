@@ -1,10 +1,12 @@
 /**
  * History Panel Component
  * 历史记录面板 - 使用 @langgraph-js/sdk
+ * 支持 macOS 风格红绿灯按钮
  */
 
 import React, { useState, useEffect } from 'react';
 import { ChatProvider, useChat } from '@langgraph-js/sdk/react';
+import { TrafficLights } from './ui/TrafficLights.js';
 
 interface HistoryThread {
     thread_id: string;
@@ -15,7 +17,10 @@ interface HistoryThread {
     updated_at?: string;
 }
 
-const HistoryPanelContent: React.FC<{ onSwitchToChat?: () => void }> = ({ onSwitchToChat }) => {
+const HistoryPanelContent: React.FC<{ onSwitchToChat?: () => void; onClose?: () => void }> = ({
+    onSwitchToChat,
+    onClose,
+}) => {
     const {
         historyList = [],
         currentChatId,
@@ -131,10 +136,11 @@ const HistoryPanelContent: React.FC<{ onSwitchToChat?: () => void }> = ({ onSwit
 
     return (
         <div className="flex flex-col h-screen bg-gray-50">
-            {/* Header */}
-            <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <h1 className="text-xl font-bold text-gray-800">📜 History</h1>
+            {/* Header with Traffic Lights */}
+            <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <TrafficLights onClose={onClose} />
+                    <h1 className="text-xl font-bold text-gray-800 ml-2">📜 History</h1>
                     <span className="text-sm text-gray-500">{filteredHistory.length} 条记录</span>
                 </div>
                 <div className="flex gap-2">
@@ -261,7 +267,12 @@ const HistoryPanelContent: React.FC<{ onSwitchToChat?: () => void }> = ({ onSwit
     );
 };
 
-export const HistoryPanel: React.FC<{ onSwitchToChat?: () => void }> = (props) => {
+interface HistoryPanelProps {
+    onSwitchToChat?: () => void;
+    onClose?: () => void;
+}
+
+export const HistoryPanel: React.FC<HistoryPanelProps> = (props) => {
     return (
         <ChatProvider
             apiUrl="http://127.0.0.1:8124/api/langgraph"

@@ -696,6 +696,86 @@ select option {
 }
 
 /* ============================================
+   macOS TRAFFIC LIGHTS STYLES
+   ============================================ */
+
+/* Traffic lights container */
+.traffic-lights {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 12px;
+    -webkit-app-region: no-drag;
+}
+
+/* Individual traffic light button */
+.traffic-light {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+/* Close button - Red */
+.traffic-light-close {
+    background-color: #ff5f57;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.traffic-light-close:hover:not(.disabled) {
+    background-color: #ff3b30;
+}
+
+.traffic-light-close:active:not(.disabled) {
+    background-color: #e03027;
+}
+
+/* Minimize button - Yellow */
+.traffic-light-minimize {
+    background-color: #febc2e;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.traffic-light-minimize:hover:not(.disabled) {
+    background-color: #f5a623;
+}
+
+/* Maximize button - Green */
+.traffic-light-maximize {
+    background-color: #28c840;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.traffic-light-maximize:hover:not(.disabled) {
+    background-color: #1db954;
+}
+
+/* Disabled state */
+.traffic-light.disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    .traffic-light-close {
+        background-color: #ff5f57;
+    }
+
+    .traffic-light-minimize {
+        background-color: #febc2e;
+    }
+
+    .traffic-light-maximize {
+        background-color: #28c840;
+    }
+}
+
+/* ============================================
    macOS DOCK STYLES
    ============================================ */
 

@@ -6,6 +6,7 @@
  * 优化点：
  * - 提取 HistorySidebar 为独立组件
  * - 优化自动滚动逻辑（规则：rerender-move-effect-to-event）
+ * - 支持 macOS 风格红绿灯按钮
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -15,6 +16,7 @@ import { HumanMessage, AIMessage, ToolMessage } from './messages';
 import { ChatInput } from './ChatInput';
 import { AgentSelect } from './AgentSelect';
 import { HistorySidebar } from './HistorySidebar.js';
+import { TrafficLights } from './ui/TrafficLights.js';
 
 interface ChatPanelProps {
     apiUrl?: string;
@@ -23,7 +25,11 @@ interface ChatPanelProps {
     onClose?: () => void;
 }
 
-const ChatPanelContent: React.FC<{ modelName?: string; defaultAgent?: string }> = ({ modelName, defaultAgent }) => {
+const ChatPanelContent: React.FC<{ modelName?: string; defaultAgent?: string; onClose?: () => void }> = ({
+    modelName,
+    defaultAgent,
+    onClose,
+}) => {
     const chatStore = useChat();
     const {
         userInput,
@@ -137,9 +143,11 @@ const ChatPanelContent: React.FC<{ modelName?: string; defaultAgent?: string }> 
 
             {/* Right Side - Chat Area */}
             <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Header */}
-                <header className="flex-shrink-0 bg-white border-b border-[var(--color-border-subtle)] px-6 py-4 flex items-center justify-between">
+                {/* Header with Traffic Lights */}
+                <header className="flex-shrink-0 bg-white border-b border-[var(--color-border-subtle)] px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-4">
+                        <TrafficLights onClose={onClose} />
+                        <div className="w-px h-5 bg-[var(--color-border-subtle)]"></div>
                         <h1 className="text-lg font-medium text-[var(--color-text-primary)]">Chat</h1>
                         <div className="w-px h-5 bg-[var(--color-border-subtle)]"></div>
                         <AgentSelect value={selectedAgentId} onChange={handleAgentChange} disabled={loading} />
@@ -249,7 +257,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             }}
             autoRestoreLastSession={false}
         >
-            <ChatPanelContent modelName={modelName} defaultAgent={defaultAgent} />
+            <ChatPanelContent modelName={modelName} defaultAgent={defaultAgent} onClose={onClose} />
         </ChatProvider>
     );
 };

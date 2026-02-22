@@ -102,7 +102,7 @@ export function CronLogItem(props: CronLogItemProps) {
                             onClick={() => onViewThread(log.thread_id!)}
                             className="mt-2 text-xs text-blue-600 hover:underline"
                         >
-                            View Thread →
+                            <a href={`/ui?thread=${log.thread_id!}`}>View Thread →</a>
                         </button>
                     )}
 

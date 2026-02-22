@@ -112,11 +112,7 @@ export function CronView() {
         tasksQuery.refetch();
     }, [tasksQuery]);
 
-    const handleViewThread = useCallback((threadId: string) => {
-        // TODO: 跳转到 Chat 视图查看 thread
-        console.log('View thread:', threadId);
-        window.open(`/ui?thread=${threadId}`, '_blank');
-    }, []);
+    const handleViewThread = useCallback((threadId: string) => {}, []);
 
     const isLoading = tasksQuery.isLoading || agentsQuery.isLoading;
 

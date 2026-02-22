@@ -6,7 +6,7 @@
 import { Suspense, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { DockContainer, useDockState } from '../components/dock/index.js';
-import { MenuBar, DesktopWallpaper } from '../components/desktop/index.js';
+import { MenuBar, DesktopWallpaper, AppWindow } from '../components/desktop/index.js';
 import { getAppById } from '../components/app-registry/index.js';
 import { LoadingSpinner } from '../components/LoadingSpinner.js';
 
@@ -14,6 +14,11 @@ export function DockLayout() {
     const { activeApp, handleAppChange } = useDockState('dashboard');
     const currentApp = activeApp ? getAppById(activeApp) : null;
     const isFullScreen = activeApp === 'files';
+
+    const handleCloseApp = useCallback(() => {
+        // 关闭当前应用，返回到 dashboard
+        handleAppChange('dashboard');
+    }, [handleAppChange]);
 
     const renderActiveApp = useCallback(() => {
         if (!currentApp) {
@@ -28,17 +33,35 @@ export function DockLayout() {
         const ViewComponent = currentApp.viewComponent;
 
         if (isFullScreen) {
-            return <ViewComponent />;
+            return (
+                <AppWindow
+                    appId={activeApp!}
+                    appName={currentApp.name}
+                    appIcon={currentApp.icon}
+                    onClose={handleCloseApp}
+                    showTrafficLights={true}
+                >
+                    <ViewComponent />
+                </AppWindow>
+            );
         }
 
         return (
-            <div className="flex-1 overflow-y-auto p-6">
-                <div className="max-w-[1400px] mx-auto bg-white/85 dark:bg-neutral-800/85 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/30 dark:border-neutral-700/30">
-                    <ViewComponent />
+            <div className="flex-1 overflow-hidden p-6">
+                <div className="max-w-[1400px] mx-auto h-full">
+                    <AppWindow
+                        appId={activeApp!}
+                        appName={currentApp.name}
+                        appIcon={currentApp.icon}
+                        onClose={handleCloseApp}
+                        showTrafficLights={true}
+                    >
+                        <ViewComponent />
+                    </AppWindow>
                 </div>
             </div>
         );
-    }, [currentApp, isFullScreen]);
+    }, [currentApp, isFullScreen, activeApp, handleCloseApp]);
 
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden">

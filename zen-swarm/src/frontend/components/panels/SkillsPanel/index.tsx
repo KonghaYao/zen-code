@@ -1,15 +1,21 @@
 /**
  * SkillsPanel 主组件
+ * 支持 macOS 风格红绿灯按钮
  */
 
 import { useState, useMemo } from 'react';
 import type { Skill } from '../../../types/index.js';
 import { trpc } from '../../../api.js';
 import { ErrorDisplay, EmptyState } from '../../ErrorDisplay.js';
+import { TrafficLights } from '../../ui/TrafficLights.js';
 
 type FilterType = 'all' | 'user' | 'project';
 
-export function SkillsPanel() {
+interface SkillsPanelProps {
+    onClose?: () => void;
+}
+
+export function SkillsPanel({ onClose }: SkillsPanelProps) {
     const [filter, setFilter] = useState<FilterType>('all');
 
     const { data: skills = [], isLoading, error } = trpc.skills.list.useQuery();
@@ -35,9 +41,16 @@ export function SkillsPanel() {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Skills ({skills.length})</h2>
+        <div className="flex flex-col h-full">
+            {/* macOS Style Header with Traffic Lights */}
+            <header className="flex-shrink-0 bg-transparent px-4 py-3 flex items-center justify-between border-b border-[var(--color-border-subtle)]">
+                <div className="flex items-center gap-3">
+                    <TrafficLights onClose={onClose} />
+                    <h2 className="text-xl font-semibold text-[var(--color-text-primary)] ml-2">
+                        Skills
+                        <span className="badge badge-primary ml-3">{skills.length}</span>
+                    </h2>
+                </div>
                 <select
                     value={filter}
                     onChange={(e) => setFilter(e.target.value as FilterType)}
@@ -47,69 +60,72 @@ export function SkillsPanel() {
                     <option value="user">User Only</option>
                     <option value="project">Project Only</option>
                 </select>
-            </div>
+            </header>
 
-            {error && <ErrorDisplay error={error.message} onRetry={() => {}} />}
+            {/* Content Area */}
+            <div className="flex-1 overflow-auto p-6 space-y-6">
+                {error && <ErrorDisplay error={error.message} onRetry={() => {}} />}
 
-            {!isLoading && !error && filteredSkills.length === 0 && (
-                <EmptyState
-                    message={
-                        skills.length === 0
-                            ? 'No skills found. Add skills to your user or project skills directory.'
-                            : `No ${filter} skills found.`
-                    }
-                />
-            )}
+                {!isLoading && !error && filteredSkills.length === 0 && (
+                    <EmptyState
+                        message={
+                            skills.length === 0
+                                ? 'No skills found. Add skills to your user or project skills directory.'
+                                : `No ${filter} skills found.`
+                        }
+                    />
+                )}
 
-            {!isLoading && !error && filteredSkills.length > 0 && (
-                <div className="grid gap-4">
-                    {filteredSkills.map((skill) => (
-                        <div
-                            key={skill.name}
-                            className="bg-white rounded-lg border border-gray-200 p-5 hover:border-gray-300 transition-colors"
-                        >
-                            <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <h3 className="text-lg font-medium text-gray-900">{skill.name}</h3>
-                                        {getSourceBadge(skill.source)}
-                                    </div>
-                                    <p className="text-gray-600 text-sm mb-3">{skill.description}</p>
-                                    <div className="flex items-center gap-4 text-xs text-gray-400">
-                                        <span>📁 {skill.path}</span>
-                                        {skill.license && <span>📜 {skill.license}</span>}
+                {!isLoading && !error && filteredSkills.length > 0 && (
+                    <div className="grid gap-4">
+                        {filteredSkills.map((skill) => (
+                            <div
+                                key={skill.name}
+                                className="bg-white rounded-lg border border-gray-200 p-5 hover:border-gray-300 transition-colors"
+                            >
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <h3 className="text-lg font-medium text-gray-900">{skill.name}</h3>
+                                            {getSourceBadge(skill.source)}
+                                        </div>
+                                        <p className="text-gray-600 text-sm mb-3">{skill.description}</p>
+                                        <div className="flex items-center gap-4 text-xs text-gray-400">
+                                            <span>📁 {skill.path}</span>
+                                            {skill.license && <span>📜 {skill.license}</span>}
+                                        </div>
                                     </div>
                                 </div>
+
+                                {skill.metadata && Object.keys(skill.metadata).length > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-gray-200">
+                                        <span className="text-xs text-gray-400 font-medium">Metadata:</span>
+                                        <div className="mt-1 flex flex-wrap gap-2">
+                                            {Object.entries(skill.metadata).map(([key, value]) => (
+                                                <span
+                                                    key={key}
+                                                    className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700"
+                                                >
+                                                    <span className="text-gray-400">{key}:</span> {value}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {skill.allowed_tools && (
+                                    <div className="mt-3 pt-3 border-t border-gray-200">
+                                        <span className="text-xs text-gray-400 font-medium">Allowed Tools:</span>
+                                        <code className="ml-2 px-2 py-0.5 bg-gray-100 rounded text-xs text-blue-600">
+                                            {skill.allowed_tools}
+                                        </code>
+                                    </div>
+                                )}
                             </div>
-
-                            {skill.metadata && Object.keys(skill.metadata).length > 0 && (
-                                <div className="mt-3 pt-3 border-t border-gray-200">
-                                    <span className="text-xs text-gray-400 font-medium">Metadata:</span>
-                                    <div className="mt-1 flex flex-wrap gap-2">
-                                        {Object.entries(skill.metadata).map(([key, value]) => (
-                                            <span
-                                                key={key}
-                                                className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700"
-                                            >
-                                                <span className="text-gray-400">{key}:</span> {value}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {skill.allowed_tools && (
-                                <div className="mt-3 pt-3 border-t border-gray-200">
-                                    <span className="text-xs text-gray-400 font-medium">Allowed Tools:</span>
-                                    <code className="ml-2 px-2 py-0.5 bg-gray-100 rounded text-xs text-blue-600">
-                                        {skill.allowed_tools}
-                                    </code>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

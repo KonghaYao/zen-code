@@ -6,6 +6,7 @@
  * - 在父组件查询所有依赖数据，避免重复查询（规则：rerender-memo）
  * - 使用 Map 优化数据查找（规则：js-index-maps）
  * - 使用 ConfirmModal 替代 confirm()（规则：rerender-move-effect-to-event）
+ * - 支持 macOS 风格红绿灯按钮
  */
 
 import { useMemo, useState } from 'react';
@@ -17,8 +18,13 @@ import { Modal } from '../../Modal.js';
 import { ConfirmModal } from '../../ui/ConfirmModal.js';
 import { ErrorDisplay, EmptyState } from '../../ErrorDisplay.js';
 import { useModal } from '../../ui/hooks/useModal.js';
+import { TrafficLights } from '../../ui/TrafficLights.js';
 
-export function AgentPanel() {
+interface AgentPanelProps {
+    onClose?: () => void;
+}
+
+export function AgentPanel({ onClose }: AgentPanelProps) {
     const modal = useModal<Agent>();
 
     // 在父组件查询所有依赖数据，避免在 Card 中重复查询（规则：rerender-memo）
@@ -90,42 +96,52 @@ export function AgentPanel() {
     const isMutating = createMutation.isPending || updateMutation.isPending;
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Agents ({agents.length})</h2>
+        <div className="flex flex-col h-full">
+            {/* macOS Style Header with Traffic Lights */}
+            <header className="flex-shrink-0 bg-transparent px-4 py-3 flex items-center justify-between border-b border-[var(--color-border-subtle)]">
+                <div className="flex items-center gap-3">
+                    <TrafficLights onClose={onClose} />
+                    <h2 className="text-xl font-semibold text-[var(--color-text-primary)] ml-2">
+                        Agents
+                        <span className="badge badge-primary ml-3">{agents.length}</span>
+                    </h2>
+                </div>
                 <button
                     onClick={handleCreate}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
                 >
                     + Create Agent
                 </button>
+            </header>
+
+            {/* Content Area */}
+            <div className="flex-1 overflow-auto p-6 space-y-6">
+                {error && <ErrorDisplay error={error.message} onRetry={() => refetch()} />}
+
+                {!isLoading && !error && agents.length === 0 && (
+                    <EmptyState
+                        message="No agents yet. Create your first agent!"
+                        action={{ label: 'Create Agent', onClick: handleCreate }}
+                    />
+                )}
+
+                {!isLoading && !error && agents.length > 0 && (
+                    <div className="grid gap-4">
+                        {agents.map((agent) => (
+                            <AgentCard
+                                key={agent.id}
+                                agent={agent}
+                                modelMap={modelMap}
+                                promptMap={promptMap}
+                                toolMap={toolMap}
+                                middlewareMap={middlewareMap}
+                                onEdit={handleEdit}
+                                onDelete={handleDeleteClick}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
-
-            {error && <ErrorDisplay error={error.message} onRetry={() => refetch()} />}
-
-            {!isLoading && !error && agents.length === 0 && (
-                <EmptyState
-                    message="No agents yet. Create your first agent!"
-                    action={{ label: 'Create Agent', onClick: handleCreate }}
-                />
-            )}
-
-            {!isLoading && !error && agents.length > 0 && (
-                <div className="grid gap-4">
-                    {agents.map((agent) => (
-                        <AgentCard
-                            key={agent.id}
-                            agent={agent}
-                            modelMap={modelMap}
-                            promptMap={promptMap}
-                            toolMap={toolMap}
-                            middlewareMap={middlewareMap}
-                            onEdit={handleEdit}
-                            onDelete={handleDeleteClick}
-                        />
-                    ))}
-                </div>
-            )}
 
             <Modal open={modal.isOpen} onClose={modal.close} title={modal.getTitle('Agent')}>
                 <AgentForm

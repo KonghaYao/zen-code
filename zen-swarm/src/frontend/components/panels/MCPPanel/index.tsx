@@ -4,6 +4,7 @@
  * 优化点：
  * - 使用 useModal 统一状态管理（规则：rerender-derived-state）
  * - 使用 ConfirmModal 替代 confirm()（规则：rerender-move-effect-to-event）
+ * - 支持 macOS 风格红绿灯按钮
  */
 
 import { useState } from 'react';
@@ -15,8 +16,13 @@ import { Modal } from '../../Modal.js';
 import { ConfirmModal } from '../../ui/ConfirmModal.js';
 import { ErrorDisplay, EmptyState } from '../../ErrorDisplay.js';
 import { useModal } from '../../ui/hooks/useModal.js';
+import { TrafficLights } from '../../ui/TrafficLights.js';
 
-export function MCPPanel() {
+interface MCPPanelProps {
+    onClose?: () => void;
+}
+
+export function MCPPanel({ onClose }: MCPPanelProps) {
     const modal = useModal<MCPServer>();
 
     const { data: servers = [], isLoading, error, refetch } = trpc.mcp.list.useQuery();
@@ -74,38 +80,48 @@ export function MCPPanel() {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">MCP Servers ({servers.length})</h2>
+        <div className="flex flex-col h-full">
+            {/* macOS Style Header with Traffic Lights */}
+            <header className="flex-shrink-0 bg-transparent px-4 py-3 flex items-center justify-between border-b border-[var(--color-border-subtle)]">
+                <div className="flex items-center gap-3">
+                    <TrafficLights onClose={onClose} />
+                    <h2 className="text-xl font-semibold text-[var(--color-text-primary)] ml-2">
+                        MCP Servers
+                        <span className="badge badge-primary ml-3">{servers.length}</span>
+                    </h2>
+                </div>
                 <button
                     onClick={handleCreate}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
                 >
                     + Add Server
                 </button>
+            </header>
+
+            {/* Content Area */}
+            <div className="flex-1 overflow-auto p-6 space-y-6">
+                {error && <ErrorDisplay error={error.message} onRetry={() => refetch()} />}
+
+                {!isLoading && !error && servers.length === 0 && (
+                    <EmptyState
+                        message="No MCP servers configured yet. Add your first MCP server!"
+                        action={{ label: 'Add Server', onClick: handleCreate }}
+                    />
+                )}
+
+                {!isLoading && !error && servers.length > 0 && (
+                    <div className="grid gap-4">
+                        {servers.map((server) => (
+                            <MCPServerCard
+                                key={server.id}
+                                server={server}
+                                onEdit={handleEdit}
+                                onDelete={handleDeleteClick}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
-
-            {error && <ErrorDisplay error={error.message} onRetry={() => refetch()} />}
-
-            {!isLoading && !error && servers.length === 0 && (
-                <EmptyState
-                    message="No MCP servers configured yet. Add your first MCP server!"
-                    action={{ label: 'Add Server', onClick: handleCreate }}
-                />
-            )}
-
-            {!isLoading && !error && servers.length > 0 && (
-                <div className="grid gap-4">
-                    {servers.map((server) => (
-                        <MCPServerCard
-                            key={server.id}
-                            server={server}
-                            onEdit={handleEdit}
-                            onDelete={handleDeleteClick}
-                        />
-                    ))}
-                </div>
-            )}
 
             <Modal
                 open={modal.isOpen}
