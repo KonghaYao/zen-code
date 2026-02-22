@@ -204,7 +204,8 @@ export type DialogType =
     | 'move'
     | 'info'
     | 'compress'
-    | 'share';
+    | 'share'
+    | 'create-workspace';
 
 export interface DialogState {
     type: DialogType;

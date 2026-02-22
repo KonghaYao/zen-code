@@ -141,7 +141,13 @@ interface FinderStore extends FinderState {
     closeDialog: () => void;
 
     // 右键菜单操作
-    openContextMenu: (x: number, y: number, targetPath?: string, targetPaths?: string[]) => void;
+    openContextMenu: (
+        x: number,
+        y: number,
+        targetPath?: string,
+        targetPaths?: string[],
+        explicitType?: 'file' | 'directory' | 'multiple' | 'empty-space',
+    ) => void;
     closeContextMenu: () => void;
 
     // 预览操作
@@ -618,11 +624,14 @@ export const useFinderStore = create<FinderStore>()(
                 // 右键菜单操作
                 // ========================================
 
-                openContextMenu: (x, y, targetPath, targetPaths) =>
+                openContextMenu: (x, y, targetPath, targetPaths, explicitType) =>
                     set((state) => {
                         let targetType: 'file' | 'directory' | 'multiple' | 'empty-space' = 'empty-space';
 
-                        if (targetPaths && targetPaths.length > 1) {
+                        // Use explicit type if provided (for sidebar items)
+                        if (explicitType) {
+                            targetType = explicitType;
+                        } else if (targetPaths && targetPaths.length > 1) {
                             targetType = 'multiple';
                         } else if (targetPath) {
                             const item = state.items.find((i) => i.path === targetPath);

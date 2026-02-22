@@ -12,7 +12,7 @@
  * - Context to avoid props drilling
  */
 
-import React, { memo, useMemo, useCallback } from 'react';
+import React, { memo, useMemo, useCallback, useState, useEffect } from 'react';
 import { Box } from 'ink';
 import { MessagesBox } from '../messages/MessageBox';
 import { CompactMessagesBox } from '../messages/CompactMessagesBox';
@@ -37,6 +37,22 @@ const ChatMessages: React.FC = () => {
     // Debounce renderMessages updates to 500ms to reduce re-renders during fast updates
     const [debouncedRenderMessages] = useDebounceValue(renderMessages, 100);
 
+    // Track whether to show messages (hide when loading transitions from true to false)
+    const [showMessages, setShowMessages] = useState(true);
+    const [prevLoading, setPrevLoading] = useState(loading);
+
+    // Detect loading transition from true to false and hide messages for 200ms
+    useEffect(() => {
+        if (prevLoading && !loading) {
+            setShowMessages(false);
+            const timer = setTimeout(() => {
+                setShowMessages(true);
+            }, 200);
+            return () => clearTimeout(timer);
+        }
+        setPrevLoading(loading);
+    }, [loading, prevLoading]);
+
     // Stable key for Static component re-mount
     const staticKey = useMemo(() => {
         return `${currentChatId}-${debouncedRenderMessages.length}`;
@@ -53,7 +69,7 @@ const ChatMessages: React.FC = () => {
         <Box flexDirection="column" flexGrow={1} paddingX={0} paddingY={0}>
             {debouncedRenderMessages.length === 0 && <WelcomeHeader />}
             {/* 当没有消息的时候, 绝对不要渲染 */}
-            {debouncedRenderMessages.length ? (
+            {showMessages && debouncedRenderMessages.length ? (
                 compactMode ? (
                     <CompactMessagesBox
                         renderMessages={debouncedRenderMessages}

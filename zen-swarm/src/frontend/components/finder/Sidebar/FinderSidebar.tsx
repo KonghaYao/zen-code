@@ -2,7 +2,7 @@
  * FinderSidebar - macOS 风格侧边栏
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { SidebarSection, SidebarItem } from '../../../types/finder.js';
 import { useFinderStore } from '../../../stores/finder.js';
 import { apiClient } from '../../../api.js';
@@ -16,6 +16,11 @@ interface FinderSidebarProps {
     currentPath: string;
     onNavigate: (path: string) => void;
     onToggle: () => void;
+    onContextMenu?: (
+        e: React.MouseEvent,
+        item?: SidebarItem,
+        explicitType?: 'file' | 'directory' | 'multiple' | 'empty-space',
+    ) => void;
 }
 
 // ========================================
@@ -54,15 +59,34 @@ interface SidebarItemRowProps {
 }
 
 const SidebarItemRow: React.FC<SidebarItemRowProps> = ({ item, isActive, onNavigate, onContextMenu }) => {
+    const [showMenu, setShowMenu] = useState(false);
+    const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+    const handleMenuClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        if (menuButtonRef.current) {
+            const rect = menuButtonRef.current.getBoundingClientRect();
+            // 创建新的事件对象传递坐标
+            const customEvent = {
+                clientX: rect.left,
+                clientY: rect.bottom + 2,
+                preventDefault: () => {},
+                stopPropagation: () => {},
+                nativeEvent: e.nativeEvent,
+            } as React.MouseEvent;
+
+            onContextMenu(customEvent, item);
+        }
+    };
+
     return (
         <div
-            className={`flex items-center gap-2 px-3 py-1.5 mx-2 rounded-md cursor-pointer transition-colors ${
+            className={`flex items-center gap-2 px-3 py-1.5 mx-2 rounded-md cursor-pointer transition-colors group ${
                 isActive
                     ? 'bg-[var(--color-primary)] text-white'
                     : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)]'
             }`}
             onClick={() => onNavigate(item.path)}
-            onContextMenu={(e) => onContextMenu(e, item)}
         >
             <span className="text-base">{item.icon}</span>
             <span className="text-sm truncate flex-1">{item.name}</span>
@@ -75,6 +99,18 @@ const SidebarItemRow: React.FC<SidebarItemRowProps> = ({ item, isActive, onNavig
                     {item.badge}
                 </span>
             )}
+            <button
+                ref={menuButtonRef}
+                onClick={handleMenuClick}
+                className={`p-0.5 rounded hover:bg-black/10 transition-opacity opacity-0 group-hover:opacity-100 ${
+                    isActive ? 'hover:bg-white/20' : 'hover:bg-black/10'
+                }`}
+                title="More options"
+            >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                </svg>
+            </button>
         </div>
     );
 };
@@ -88,15 +124,16 @@ interface SidebarSectionViewProps {
     currentPath: string;
     onNavigate: (path: string) => void;
     onToggle: () => void;
+    onContextMenu: (e: React.MouseEvent, item: SidebarItem) => void;
 }
 
-const SidebarSectionView: React.FC<SidebarSectionViewProps> = ({ section, currentPath, onNavigate, onToggle }) => {
-    const handleContextMenu = useCallback((e: React.MouseEvent, item: SidebarItem) => {
-        e.preventDefault();
-        // TODO: Show context menu for sidebar item
-        console.log('Context menu for:', item);
-    }, []);
-
+const SidebarSectionView: React.FC<SidebarSectionViewProps> = ({
+    section,
+    currentPath,
+    onNavigate,
+    onToggle,
+    onContextMenu,
+}) => {
     return (
         <div className="py-2">
             {/* Section Header */}
@@ -128,7 +165,7 @@ const SidebarSectionView: React.FC<SidebarSectionViewProps> = ({ section, curren
                             item={item}
                             isActive={item.path === currentPath}
                             onNavigate={onNavigate}
-                            onContextMenu={handleContextMenu}
+                            onContextMenu={onContextMenu}
                         />
                     ))}
                 </div>
@@ -141,7 +178,13 @@ const SidebarSectionView: React.FC<SidebarSectionViewProps> = ({ section, curren
 // Main Component
 // ========================================
 
-export const FinderSidebar: React.FC<FinderSidebarProps> = ({ width, currentPath, onNavigate, onToggle }) => {
+export const FinderSidebar: React.FC<FinderSidebarProps> = ({
+    width,
+    currentPath,
+    onNavigate,
+    onToggle,
+    onContextMenu,
+}) => {
     const [sections, setSections] = useState<SidebarSection[]>(STATIC_SECTIONS);
     const [loadingFolders, setLoadingFolders] = useState(false);
 
@@ -308,6 +351,7 @@ export const FinderSidebar: React.FC<FinderSidebarProps> = ({ width, currentPath
                         currentPath={currentPath}
                         onNavigate={onNavigate}
                         onToggle={() => handleToggleSection(section.id)}
+                        onContextMenu={onContextMenu || (() => {})}
                     />
                 ))}
             </div>

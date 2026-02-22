@@ -71,11 +71,21 @@ interface ColumnProps {
     isActive: boolean;
     viewOptions: ViewOptions;
     onSelect: (item: FinderFileItem, event: React.MouseEvent) => void;
+    onDoubleClick: (item: FinderFileItem) => void;
     onNavigate: (item: FinderFileItem, index: number) => void;
     onContextMenu: (event: React.MouseEvent, item?: FinderFileItem) => void;
 }
 
-const Column: React.FC<ColumnProps> = ({ data, index, isActive, viewOptions, onSelect, onNavigate, onContextMenu }) => {
+const Column: React.FC<ColumnProps> = ({
+    data,
+    index,
+    isActive,
+    viewOptions,
+    onSelect,
+    onDoubleClick,
+    onNavigate,
+    onContextMenu,
+}) => {
     const columnRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll selected item into view
@@ -141,6 +151,10 @@ const Column: React.FC<ColumnProps> = ({ data, index, isActive, viewOptions, onS
                         }`}
                         onClick={(e) => {
                             onSelect(item, e);
+                            // 文件在 Column view 中不需要预览（因为预览面板在右侧，Column view 本身有分栏显示）
+                            // 只有目录才导航
+                        }}
+                        onDoubleClick={() => {
                             if (hasChildren) {
                                 onNavigate(item, index);
                             }
@@ -293,6 +307,7 @@ export const FinderColumnView: React.FC<FinderColumnViewProps> = ({
                     isActive={index === columns.length - 1}
                     viewOptions={viewOptions}
                     onSelect={onSelect}
+                    onDoubleClick={onDoubleClick}
                     onNavigate={handleColumnNavigate}
                     onContextMenu={onContextMenu}
                 />

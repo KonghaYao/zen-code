@@ -367,10 +367,19 @@ export function WorkspaceView() {
     // Handlers - 面板调整
     // ========================================
 
-    const handleResizeStart = useCallback((panel: 'left' | 'right', startX: number, startWidth: number) => {
+    const handleLeftResizeStart = useCallback((startX: number, startWidth: number) => {
         setResizeState({
             isResizing: true,
-            panel,
+            panel: 'left',
+            startX,
+            startWidth,
+        });
+    }, []);
+
+    const handleRightResizeStart = useCallback((startX: number, startWidth: number) => {
+        setResizeState({
+            isResizing: true,
+            panel: 'right',
             startX,
             startWidth,
         });
@@ -490,7 +499,7 @@ export function WorkspaceView() {
                         style={{
                             left: `${leftPanelWidth}px`,
                         }}
-                        onMouseDown={(e) => handleResizeStart('left', e.clientX, leftPanelWidth)}
+                        onMouseDown={(e) => handleLeftResizeStart(e.clientX, leftPanelWidth)}
                     />
                 )}
 
@@ -506,7 +515,7 @@ export function WorkspaceView() {
                         style={{
                             right: `${rightPanelWidth}px`,
                         }}
-                        onMouseDown={(e) => handleResizeStart('right', e.clientX, rightPanelWidth)}
+                        onMouseDown={(e) => handleRightResizeStart(e.clientX, rightPanelWidth)}
                     />
                 )}
 
@@ -515,7 +524,10 @@ export function WorkspaceView() {
                     <RightPanelContainer
                         width={rightPanelWidth}
                         rootPath={currentWorkspace.rootPath}
+                        activePanel={activeRightPanel}
+                        onActivePanelChange={setActiveRightPanel}
                         onSearchResultClick={handleSearchResultClick}
+                        onResizeStart={handleRightResizeStart}
                     />
                 )}
             </div>

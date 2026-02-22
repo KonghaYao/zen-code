@@ -12,8 +12,11 @@ import { swarmGraph } from './graphBuilder.js';
 import { createTRPCHonoRoute } from './api/hono.js';
 import { agentPackage, cronStorage, cronScheduler } from './config/loader.js';
 import dashboard from './index.html';
+
 // 1. 注册 graph（自动提供 HTTP API 和流式支持）
+console.log('Registering swarm graph...');
 registerGraph('swarm', swarmGraph);
+console.log('Swarm graph registered successfully');
 
 // 2. 创建 Hono 应用
 const app = new Hono();
@@ -22,6 +25,7 @@ const app = new Hono();
 app.use(logger());
 
 // 3. API 路由（优先处理）
+console.log('Mounting LangGraph routes at /api/langgraph');
 app.route('/api/langgraph', LGApp);
 
 const trpcRoute = createTRPCHonoRoute(agentPackage, cronStorage, cronScheduler);

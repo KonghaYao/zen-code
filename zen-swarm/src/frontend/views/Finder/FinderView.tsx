@@ -284,9 +284,13 @@ export const FinderView: React.FC = () => {
                 }
             } else {
                 setSelection([item.path], item.path, item.path);
+                // 单击文件时打开预览
+                if (item.type === 'file') {
+                    openPreview(item.path);
+                }
             }
         },
-        [items, selection.anchorPath, toggleSelection, setSelection],
+        [items, selection.anchorPath, toggleSelection, setSelection, openPreview],
     );
 
     // ========================================
@@ -294,17 +298,34 @@ export const FinderView: React.FC = () => {
     // ========================================
 
     const handleContextMenu = useCallback(
-        (event: React.MouseEvent, item?: FinderFileItem) => {
-            event.preventDefault();
-            event.stopPropagation();
+        (event: React.MouseEvent, item?: FinderFileItem | any) => {
+            // 阻止默认行为和事件冒泡（如果 event 有这些方法）
+            if (event && typeof event.preventDefault === 'function') {
+                event.preventDefault();
+            }
+            if (event && typeof event.stopPropagation === 'function') {
+                event.stopPropagation();
+            }
 
-            const targetPaths = item
-                ? selection.selectedPaths.has(item.path)
+            // 如果是从侧边栏调用的，item 是 SidebarItem 类型
+            const isSidebarItem = item && !item.type && item.path && item.name;
+
+            let targetPaths: string[] = [];
+            let targetPath: string | undefined;
+
+            if (isSidebarItem) {
+                // 侧边栏项目
+                targetPath = (item as any).path;
+                targetPaths = [targetPath];
+            } else if (item) {
+                // Finder 项目
+                targetPath = (item as FinderFileItem).path;
+                targetPaths = selection.selectedPaths.has(targetPath)
                     ? Array.from(selection.selectedPaths)
-                    : [item.path]
-                : [];
+                    : [targetPath];
+            }
 
-            openContextMenu(event.clientX, event.clientY, item?.path, targetPaths);
+            openContextMenu(event.clientX, event.clientY, targetPath, targetPaths);
         },
         [selection.selectedPaths, openContextMenu],
     );
@@ -575,6 +596,7 @@ export const FinderView: React.FC = () => {
                             currentPath={currentPath}
                             onNavigate={handleNavigate}
                             onToggle={toggleSidebar}
+                            onContextMenu={handleContextMenu}
                         />
                         {/* Resize Handle */}
                         <div

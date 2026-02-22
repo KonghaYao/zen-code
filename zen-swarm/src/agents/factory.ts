@@ -99,11 +99,12 @@ export async function createSwarmAgent(
         },
     };
 
-    if (process.env.YOLO_MODE !== 'true') {
-        Object.assign(interruptOn, {
-            terminal: { allowedDecisions: ['approve', 'reject', 'edit'] },
-        });
-    }
+    // 先不限制命令行使用
+    // if (process.env.YOLO_MODE !== 'true') {
+    //     Object.assign(interruptOn, {
+    //         terminal: { allowedDecisions: ['approve', 'reject', 'edit'] },
+    //     });
+    // }
 
     middleware.push(
         humanInTheLoopMiddleware({
