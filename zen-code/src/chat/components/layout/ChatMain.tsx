@@ -25,6 +25,7 @@ import { ChatInput } from '../input/ChatInput';
 import { RenderMessage } from '@langgraph-js/sdk';
 import { ChatInputBufferProvider } from '@codegraph/union-client';
 import { useDebounceValue } from 'usehooks-ts';
+import ErrorBoundary from '../common/ErrorBoundary';
 
 /**
  * ChatMessages - displays the message list
@@ -69,6 +70,7 @@ const ChatMessages: React.FC = () => {
 /**
  * Main chat component with messages and input.
  * Uses Context to access panel actions - no props drilling.
+ * Key sections wrapped with ErrorBoundary for isolation.
  */
 export const ChatMain: React.FC = () => {
     const { currentChatId } = useChat();
@@ -77,14 +79,18 @@ export const ChatMain: React.FC = () => {
     return (
         <ChatInputBufferProvider>
             <Box flexDirection="column" flexGrow={1}>
-                <ChatMessages key={currentChatId} />
-                {hasPendingInteractions ? (
-                    <Box paddingX={0} paddingY={0}>
-                        <UnifiedUIPanel />
-                    </Box>
-                ) : (
-                    <ChatInput />
-                )}
+                <ErrorBoundary name="ChatMessages" fallback={null}>
+                    <ChatMessages key={currentChatId} />
+                </ErrorBoundary>
+                <ErrorBoundary name="InteractionArea" fallback={null}>
+                    {hasPendingInteractions ? (
+                        <Box paddingX={0} paddingY={0}>
+                            <UnifiedUIPanel />
+                        </Box>
+                    ) : (
+                        <ChatInput />
+                    )}
+                </ErrorBoundary>
             </Box>
         </ChatInputBufferProvider>
     );

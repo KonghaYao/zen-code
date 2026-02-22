@@ -32,6 +32,7 @@ import { useTaskExecutor } from '../../hooks/useTaskExecutor';
 import { ChatPanelProvider, type ChatPanelContextValue } from '../../context/ChatPanelContext';
 import DefaultTools from '../../tools/index';
 import SetupWizard from '../setup/SetupWizard';
+import ErrorBoundary from '../common/ErrorBoundary';
 
 interface ChatControllerProps {
     children: React.ReactNode;
@@ -77,7 +78,11 @@ const ChatControllerInternal: React.FC<ChatControllerProps> = ({ children }) => 
 
     // Show setup wizard if config is invalid
     if (needsSetup && validation) {
-        return <SetupWizard validation={validation} onComplete={panelState.closePanel} />;
+        return (
+            <ErrorBoundary name="SetupWizard" fallback={null}>
+                <SetupWizard validation={validation} onComplete={panelState.closePanel} />
+            </ErrorBoundary>
+        );
     }
 
     // Build context value with stable references
@@ -97,7 +102,11 @@ const ChatControllerInternal: React.FC<ChatControllerProps> = ({ children }) => 
         hasPendingInteractions,
     };
 
-    return <ChatPanelProvider value={contextValue}>{children}</ChatPanelProvider>;
+    return (
+        <ErrorBoundary name="ChatPanelContext" fallback={null}>
+            <ChatPanelProvider value={contextValue}>{children}</ChatPanelProvider>
+        </ErrorBoundary>
+    );
 };
 
 /**

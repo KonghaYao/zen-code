@@ -23,6 +23,7 @@ import {
     LazyMcpPanel,
 } from '../common/lazyPanels';
 import { useChatPanel } from '../../context/ChatPanelContext';
+import ErrorBoundary from '../common/ErrorBoundary';
 
 // Fallback component for lazy loading
 const LoadingFallback: React.FC = () => (
@@ -31,9 +32,20 @@ const LoadingFallback: React.FC = () => (
     </Box>
 );
 
+// Panel-specific error fallbacks
+const PanelErrorFallback = (panelName: string) => (
+    <Box paddingX={1} paddingY={1}>
+        <Text color="red">✗ {panelName} panel error</Text>
+        <Box marginTop={1}>
+            <Text color="gray">Try reopening or press ESC to return</Text>
+        </Box>
+    </Box>
+);
+
 /**
  * Render appropriate panel based on active view (lazy-loaded).
  * Gets all actions from context - no props needed.
+ * Each panel wrapped with ErrorBoundary for isolation.
  */
 export const LazyChatViewManager: React.FC = memo(() => {
     const { activeView, closePanel, handleExecuteTask } = useChatPanel();
@@ -42,37 +54,51 @@ export const LazyChatViewManager: React.FC = memo(() => {
         <Box flexGrow={1} flexDirection="row">
             {activeView === 'history' && (
                 <Suspense fallback={<LoadingFallback />}>
-                    <LazyHistoryPanel onClose={closePanel} />
+                    <ErrorBoundary name="HistoryPanel" fallback={PanelErrorFallback('History')}>
+                        <LazyHistoryPanel onClose={closePanel} />
+                    </ErrorBoundary>
                 </Suspense>
             )}
             {activeView === 'knowledge' && (
                 <Suspense fallback={<LoadingFallback />}>
-                    <LazyKnowledgePanel onClose={closePanel} />
+                    <ErrorBoundary name="KnowledgePanel" fallback={PanelErrorFallback('Knowledge')}>
+                        <LazyKnowledgePanel onClose={closePanel} />
+                    </ErrorBoundary>
                 </Suspense>
             )}
             {activeView === 'settings' && (
                 <Suspense fallback={<LoadingFallback />}>
-                    <LazySettingsPanel onClose={closePanel} />
+                    <ErrorBoundary name="SettingsPanel" fallback={PanelErrorFallback('Settings')}>
+                        <LazySettingsPanel onClose={closePanel} />
+                    </ErrorBoundary>
                 </Suspense>
             )}
             {activeView === 'model-provider' && (
                 <Suspense fallback={<LoadingFallback />}>
-                    <LazyModelProviderPanel onClose={closePanel} />
+                    <ErrorBoundary name="ModelProviderPanel" fallback={PanelErrorFallback('Model Provider')}>
+                        <LazyModelProviderPanel onClose={closePanel} />
+                    </ErrorBoundary>
                 </Suspense>
             )}
             {activeView === 'agent' && (
                 <Suspense fallback={<LoadingFallback />}>
-                    <LazyAgentPanel onClose={closePanel} />
+                    <ErrorBoundary name="AgentPanel" fallback={PanelErrorFallback('Agent')}>
+                        <LazyAgentPanel onClose={closePanel} />
+                    </ErrorBoundary>
                 </Suspense>
             )}
             {activeView === 'task' && (
                 <Suspense fallback={<LoadingFallback />}>
-                    <LazyTaskPanel onClose={closePanel} onExecuteTask={handleExecuteTask} />
+                    <ErrorBoundary name="TaskPanel" fallback={PanelErrorFallback('Task')}>
+                        <LazyTaskPanel onClose={closePanel} onExecuteTask={handleExecuteTask} />
+                    </ErrorBoundary>
                 </Suspense>
             )}
             {activeView === 'mcp' && (
                 <Suspense fallback={<LoadingFallback />}>
-                    <LazyMcpPanel onClose={closePanel} />
+                    <ErrorBoundary name="McpPanel" fallback={PanelErrorFallback('MCP')}>
+                        <LazyMcpPanel onClose={closePanel} />
+                    </ErrorBoundary>
                 </Suspense>
             )}
         </Box>
