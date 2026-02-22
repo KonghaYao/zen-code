@@ -55,6 +55,7 @@ export function createCodeGraph() {
     return new StateGraph(CodeState)
         .addNode('graph', async (state: CodeStateType, runtime: Runtime) => {
             const { switch_command: cmd } = state;
+
             if (cmd === 'smart_memory') return switchBranch.smart_memory(state);
 
             // Load agent package (cached after first load)
@@ -62,7 +63,8 @@ export function createCodeGraph() {
 
             // Determine agent ID (from command or default)
             const availableAgents = await getAvailableAgentIds(pkg);
-            const agentId = cmd || '@agent/default';
+
+            const agentId = (cmd === 'default' ? 'agents/default' : cmd) || 'agents/default';
 
             if (!availableAgents.includes(agentId)) {
                 throw new Error(`Unknown agent: ${cmd || 'default'}. Available: ${availableAgents.join(', ')}`);

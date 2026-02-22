@@ -10,6 +10,6 @@
         // 生成源映射（用于调试，可禁用以提升性能）
         "sourceMap": true
     },
-    "include": ["src/**/*"],
+    "include": ["src/**/*", "../../zen-code/src/chat/components/messages/Markdown.tsx"],
     "exclude": ["node_modules", "dist"]
 }
