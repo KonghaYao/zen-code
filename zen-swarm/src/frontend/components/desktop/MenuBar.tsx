@@ -50,9 +50,8 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
                 fixed top-0 left-0 right-0 z-[1000]
                 h-7 flex items-center justify-between
                 px-3
-                bg-white/85 dark:bg-neutral-900/85
+                dark:bg-neutral-900/85
                 backdrop-blur-xl
-                border-b border-neutral-200/50 dark:border-neutral-700/50
                 select-none
             "
             initial={{ y: -30, opacity: 0 }}

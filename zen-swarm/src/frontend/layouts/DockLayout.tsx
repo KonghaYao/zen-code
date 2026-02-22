@@ -36,10 +36,16 @@ export function DockLayout() {
             path = hash.slice(1); // 移除 #
         }
 
+        // 移除查询参数（例如 ?tab=models）
+        const queryIndex = path.indexOf('?');
+        if (queryIndex !== -1) {
+            path = path.slice(0, queryIndex);
+        }
+
         console.log('🔍 DockLayout - hash:', hash, 'path:', path);
 
         // 只返回有效的应用 ID，否则默认为 dashboard
-        if (['dashboard', 'agent-config', 'resources', 'files', 'cron'].includes(path)) {
+        if (['dashboard', 'agent-config', 'resources', 'files', 'finder', 'cron'].includes(path)) {
             return path as AppId;
         }
         // 如果路径为空或无效，默认为 dashboard

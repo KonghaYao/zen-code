@@ -10,6 +10,7 @@ import { DashboardView } from '../../views/DashboardView.js';
 import { AgentConfigView } from '../../views/AgentConfigView.js';
 import { ResourcesView } from '../../views/ResourcesView.js';
 import { FileExplorerView } from '../../views/FileExplorerView.js';
+import { FinderView } from '../../views/Finder/index.js';
 import { CronView } from '../../views/CronView.js';
 
 /**
@@ -46,12 +47,21 @@ export const appRegistry: AppRegistryItem[] = [
         contextMenuActions: ['open', 'help'],
     },
     {
+        id: 'finder',
+        name: 'Finder',
+        icon: '🗂️',
+        description: 'macOS 风格文件管理器',
+        viewComponent: FinderView,
+        keyboardShortcut: 'Cmd+4',
+        contextMenuActions: ['open', 'help'],
+    },
+    {
         id: 'files',
         name: 'Files',
         icon: '📁',
-        description: '文件浏览器',
+        description: 'VSCode 风格文件浏览器',
         viewComponent: FileExplorerView,
-        keyboardShortcut: 'Cmd+4',
+        keyboardShortcut: 'Cmd+5',
         contextMenuActions: ['open', 'help'],
     },
     {
@@ -60,7 +70,7 @@ export const appRegistry: AppRegistryItem[] = [
         icon: '⏰',
         description: '定时任务管理',
         viewComponent: CronView,
-        keyboardShortcut: 'Cmd+5',
+        keyboardShortcut: 'Cmd+6',
         contextMenuActions: ['open', 'help'],
     },
 ];

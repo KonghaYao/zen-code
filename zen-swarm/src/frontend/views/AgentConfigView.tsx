@@ -17,7 +17,6 @@ import { Modal } from '../components/Modal.js';
 import { ConfirmModal } from '../components/ui/ConfirmModal.js';
 import type { Agent, Model, Prompt } from '../types/index.js';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
 
 type AgentConfigTab = 'agents' | 'models' | 'prompts';
 
@@ -35,26 +34,13 @@ const TABS: TabConfig[] = [
 ];
 
 export function AgentConfigView() {
-    const [searchParams, setSearchParams] = useSearchParams();
-    // 从 URL 参数初始化 activeTab，默认为 'agents'
-    const [activeTab, setActiveTab] = useState<AgentConfigTab>(() => {
-        const tabParam = searchParams.get('tab') as AgentConfigTab | null;
-        if (tabParam === 'agents' || tabParam === 'models' || tabParam === 'prompts') {
-            return tabParam;
-        }
-        return 'agents';
-    });
+    // 使用本地状态管理 tab，不修改 URL 避免影响路由
+    const [activeTab, setActiveTab] = useState<AgentConfigTab>('agents');
 
-    // 处理 Tab 切换，同时更新 URL 参数
-    const handleTabChange = useCallback(
-        (tabId: AgentConfigTab) => {
-            setActiveTab(tabId);
-            const newParams = new URLSearchParams(searchParams);
-            newParams.set('tab', tabId);
-            setSearchParams(newParams);
-        },
-        [searchParams, setSearchParams],
-    );
+    // 处理 Tab 切换
+    const handleTabChange = useCallback((tabId: AgentConfigTab) => {
+        setActiveTab(tabId);
+    }, []);
 
     // Modal states
     const [showCreateModal, setShowCreateModal] = useState(false);
