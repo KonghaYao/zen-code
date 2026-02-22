@@ -1,4 +1,4 @@
-import { Box, Text } from 'ink';
+import { Box, Static, Text } from 'ink';
 
 import { useState, useMemo, Fragment, memo, useCallback } from 'react';
 import { useTimeout } from 'usehooks-ts';
@@ -47,9 +47,6 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
     depth?: number;
     loading: boolean;
 }) {
-    // 生成唯一实例ID，用于递归调用的子组件
-    const instanceId = useMemo(() => `tger-${Math.random().toString(36).substring(2, 9)}`, []);
-
     // 限制递归深度，防止无限嵌套导致内存泄漏
     if (depth > 1) {
         return null;
@@ -65,7 +62,7 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
                 const omittedCount = totalSubmessages - submessages.length;
 
                 return (
-                    <Fragment key={`${instanceId}-${groupId}-${idx}`}>
+                    <Fragment key={`${groupId}-${idx}-${msg.status}`}>
                         {render(msg) as any}
                         {submessages.length ? (
                             <>
@@ -181,15 +178,6 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
     getToolUIRender,
     loading,
 }: CompactMessagesBoxProps) {
-    // 生成唯一实例ID，避免递归调用中的key冲突
-    const instanceId = useMemo(() => `cmb-${Math.random().toString(36).substring(2, 9)}`, []);
-
-    // 修复 Static 首次渲染问题：强制重新渲染
-    const [ready, setReady] = useState(false);
-
-    // 使用 useTimeout 替代原生 setTimeout
-    useTimeout(() => setReady(true), ready ? null : 0);
-
     // 预处理消息：收集连续的 tool 消息并标记
     // 注意：不再预计算 extraRender，只存储数据
     const processedMessages = useMemo(() => {
@@ -240,7 +228,7 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
     return (
         <Box flexDirection="column">
             {/* 历史消息：用 PlatformStatic 固定，仅在 Windows 上启用 Static 能力 */}
-            <PlatformStatic items={histories} forceStatic={loading}>
+            <Static items={histories}>
                 {(item, i) => (
                     <MessageItem
                         key={item.id ? `hist-${item.id}` : `hist-msg-${depth}-${i}`}
@@ -253,7 +241,7 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
                         loading={loading}
                     />
                 )}
-            </PlatformStatic>
+            </Static>
 
             {/* 当前消息 */}
             {current.map((item, i) => (

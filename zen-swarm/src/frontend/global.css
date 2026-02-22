@@ -1009,3 +1009,16 @@ select option {
         background: rgba(255, 255, 255, 0.1);
     }
 }
+
+/* ============================================
+   REACT-ACTIVATION KEEPALIVE STYLES
+   ============================================ */
+
+/* Ensure KeepAlive wrapper fills parent height */
+.ka-wrapper {
+    height: 100% !important;
+}
+
+.ka-content {
+    height: 100% !important;
+}

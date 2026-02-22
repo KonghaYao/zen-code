@@ -291,14 +291,14 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({ rootPath, onResultClic
     );
 
     return (
-        <div className="search-panel h-full flex flex-col">
+        <div className="search-panel h-full flex flex-col min-h-0">
             {/* 搜索输入框 */}
-            <div className="p-3 border-b border-[var(--color-border-subtle)]">
+            <div className="p-3 border-b border-[var(--color-border-subtle)] flex-shrink-0">
                 <SearchInput value={state.query} onChange={handleQueryChange} isLoading={state.isSearching} />
             </div>
 
             {/* 搜索结果 */}
-            <div ref={resultsContainerRef} className="flex-1 overflow-y-auto">
+            <div ref={resultsContainerRef} className="flex-1 min-h-0 overflow-y-auto">
                 {state.error ? (
                     <ErrorState message={state.error} />
                 ) : state.isSearching ? (

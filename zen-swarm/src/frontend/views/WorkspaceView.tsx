@@ -11,9 +11,11 @@
  * - 文件树浏览
  * - 文件内容预览（只读，超过 1MB 显示提示）
  * - 使用 ripgrep 搜索文件内容
+ * - **KeepAlive**: 每个 workspace 的状态保持（展开、搜索、选中）
  */
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { KeepAlive, AliveScope } from 'react-activation';
 import { apiClient } from '../api.js';
 import { WorkspaceSelector, WorkspaceManageDialog } from '../components/workspace/index.js';
 import { FileTree, PreviewPanel, RightPanelContainer } from '../components/fileExplorer/index.js';
@@ -201,22 +203,19 @@ const StatusBar: React.FC<StatusBarProps> = ({ rootPath, selectedNode, fileCount
 };
 
 // ========================================
-// Main Component
+// Workspace Content - 被 KeepAlive 缓存的内容区域
 // ========================================
 
-export function WorkspaceView() {
-    // ========================================
-    // Workspace State
-    // ========================================
-    const currentWorkspace = useCurrentWorkspace();
-    const workspaces = useWorkspaces();
-    const isFirstLaunch = useIsFirstLaunch();
-    const showManageDialog = useShowManageDialog();
+interface WorkspaceContentProps {
+    workspaceId: string;
+    rootPath: string;
+}
 
-    const { openManageDialog, closeManageDialog, loadWorkspaces } = useWorkspaceStore();
+const WorkspaceContent: React.FC<WorkspaceContentProps> = ({ workspaceId, rootPath }) => {
+    console.log('WorkspaceContent rendered:', { workspaceId, rootPath });
 
     // ========================================
-    // State - 文件树
+    // State - 文件树（每个 workspace 独立）
     // ========================================
     const [tree, setTree] = useState<TreeNode[]>([]);
     const [treeLoading, setTreeLoading] = useState(false);
@@ -225,7 +224,7 @@ export function WorkspaceView() {
     const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
 
     // ========================================
-    // State - 面板
+    // State - 面板（每个 workspace 独立）
     // ========================================
     const [leftPanelWidth, setLeftPanelWidth] = useState(250);
     const [rightPanelWidth, setRightPanelWidth] = useState(280);
@@ -257,9 +256,31 @@ export function WorkspaceView() {
     const containerRef = useRef<HTMLDivElement>(null);
 
     // ========================================
+    // Effects - 加载文件树
+    // ========================================
+    useEffect(() => {
+        const loadTree = async () => {
+            setTreeLoading(true);
+            try {
+                const result = await apiClient.files.tree.query({
+                    path: rootPath,
+                    maxDepth: 3,
+                });
+                setTree(result.tree);
+            } catch (err: any) {
+                console.error('Failed to load file tree:', err);
+                setTreeError(err.message || 'Failed to load file tree');
+            } finally {
+                setTreeLoading(false);
+            }
+        };
+
+        loadTree();
+    }, [rootPath, workspaceId]);
+
+    // ========================================
     // Computed - 统计信息
     // ========================================
-
     const { files: fileCount, folders: folderCount } = useMemo(() => {
         const countNodes = (nodes: TreeNode[]): { files: number; folders: number } => {
             let files = 0;
@@ -282,51 +303,8 @@ export function WorkspaceView() {
     }, [tree]);
 
     // ========================================
-    // Effects - 加载 Workspace 和文件树
-    // ========================================
-
-    // 初始化：加载 Workspaces
-    useEffect(() => {
-        loadWorkspaces();
-    }, [loadWorkspaces]);
-
-    // 监听 currentWorkspace 变化，加载文件树
-    useEffect(() => {
-        if (!currentWorkspace) {
-            setTree([]);
-            setSelectedNode(null);
-            setExpandedPaths(new Set());
-            return;
-        }
-
-        // 切换 workspace 时重置所有相关状态
-        setSelectedNode(null);
-        setExpandedPaths(new Set());
-        setTreeError(null);
-
-        const loadTree = async () => {
-            setTreeLoading(true);
-            try {
-                const result = await apiClient.files.tree.query({
-                    path: currentWorkspace.rootPath,
-                    maxDepth: 3,
-                });
-                setTree(result.tree);
-            } catch (err: any) {
-                console.error('Failed to load file tree:', err);
-                setTreeError(err.message || 'Failed to load file tree');
-            } finally {
-                setTreeLoading(false);
-            }
-        };
-
-        loadTree();
-    }, [currentWorkspace]);
-
-    // ========================================
     // Handlers - 文件树
     // ========================================
-
     const handleTreeSelect = useCallback((node: TreeNode) => {
         setSelectedNode(node);
     }, []);
@@ -344,9 +322,8 @@ export function WorkspaceView() {
     }, []);
 
     // ========================================
-    // Handlers - 搜索
+    // Handlers - 搜索结果点击
     // ========================================
-
     const handleSearchResultClick = useCallback(
         (result: SearchResult) => {
             const findNode = (nodes: TreeNode[]): TreeNode | null => {
@@ -373,7 +350,6 @@ export function WorkspaceView() {
     // ========================================
     // Handlers - 面板调整
     // ========================================
-
     const handleLeftResizeStart = useCallback((startX: number, startWidth: number) => {
         setResizeState({
             isResizing: true,
@@ -432,37 +408,10 @@ export function WorkspaceView() {
     }, [resizeState, handleMouseMove, handleResizeEnd]);
 
     // ========================================
-    // 首次启动或无 Workspace
+    // Render
     // ========================================
-
-    if (!currentWorkspace || workspaces.length === 0) {
-        return (
-            <div className="flex flex-col h-full overflow-hidden">
-                {/* 顶部工具栏 */}
-                <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
-                    <WorkspaceSelector onOpenManage={openManageDialog} />
-                </div>
-
-                {/* 欢迎屏幕 */}
-                <WelcomeScreen onCreateWorkspace={openManageDialog} />
-
-                {/* 管理对话框 */}
-                <WorkspaceManageDialog open={showManageDialog} onClose={closeManageDialog} />
-            </div>
-        );
-    }
-
-    // ========================================
-    // 主界面
-    // ========================================
-
     return (
         <div className="flex flex-col h-full overflow-hidden" ref={containerRef}>
-            {/* 顶部工具栏 */}
-            <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
-                <WorkspaceSelector onOpenManage={openManageDialog} />
-            </div>
-
             {/* 主内容区域 */}
             <div className="flex-1 flex min-h-0 overflow-hidden">
                 {/* 左侧面板：文件树 */}
@@ -512,7 +461,7 @@ export function WorkspaceView() {
 
                 {/* 中间面板：预览 */}
                 <div className="flex-1 overflow-y-auto bg-[var(--color-bg-primary)]">
-                    <PreviewPanel rootPath={currentWorkspace.rootPath} selectedPath={selectedNode?.path ?? null} />
+                    <PreviewPanel rootPath={rootPath} selectedPath={selectedNode?.path ?? null} />
                 </div>
 
                 {/* 调整手柄 */}
@@ -529,25 +478,96 @@ export function WorkspaceView() {
                 {/* 右侧面板：搜索 */}
                 {rightPanelVisible && (
                     <RightPanelContainer
-                        key={currentWorkspace.id}
                         width={rightPanelWidth}
-                        rootPath={currentWorkspace.rootPath}
+                        rootPath={rootPath}
                         activePanel={activeRightPanel}
                         onActivePanelChange={setActiveRightPanel}
                         onSearchResultClick={handleSearchResultClick}
                         onResizeStart={handleRightResizeStart}
-                        cwd={currentWorkspace.rootPath}
+                        cwd={rootPath}
+                        workspaceId={workspaceId}
                     />
                 )}
             </div>
 
             {/* 状态栏 */}
             <StatusBar
-                rootPath={currentWorkspace.rootPath}
+                rootPath={rootPath}
                 selectedNode={selectedNode}
                 fileCount={fileCount}
                 folderCount={folderCount}
             />
+        </div>
+    );
+};
+
+// ========================================
+// Main Component
+// ========================================
+
+export function WorkspaceView() {
+    // ========================================
+    // Workspace State
+    // ========================================
+    const currentWorkspace = useCurrentWorkspace();
+    const workspaces = useWorkspaces();
+    const showManageDialog = useShowManageDialog();
+    const { openManageDialog, closeManageDialog, loadWorkspaces } = useWorkspaceStore();
+
+    console.log('WorkspaceView rendered:', { currentWorkspace, workspaces });
+
+    // ========================================
+    // Effect - 初始化加载 Workspaces
+    // ========================================
+    useEffect(() => {
+        loadWorkspaces();
+    }, [loadWorkspaces]);
+
+    // ========================================
+    // 首次启动或无 Workspace
+    // ========================================
+
+    if (!currentWorkspace || workspaces.length === 0) {
+        console.log('Showing welcome screen (no currentWorkspace or no workspaces)');
+        return (
+            <div className="flex flex-col h-full overflow-hidden">
+                {/* 顶部工具栏 */}
+                <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
+                    <WorkspaceSelector onOpenManage={openManageDialog} />
+                </div>
+
+                {/* 欢迎屏幕 */}
+                <WelcomeScreen onCreateWorkspace={openManageDialog} />
+
+                {/* 管理对话框 */}
+                <WorkspaceManageDialog open={showManageDialog} onClose={closeManageDialog} />
+            </div>
+        );
+    }
+
+    // ========================================
+    // 主界面
+    // ========================================
+
+    return (
+        <div className="flex flex-col h-full overflow-hidden">
+            {/* 顶部工具栏 */}
+            <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
+                <WorkspaceSelector onOpenManage={openManageDialog} />
+            </div>
+
+            {/* 使用 KeepAlive 缓存每个 workspace 的内容（包括所有子组件状态） */}
+            <div className="flex-1 min-h-0 overflow-hidden">
+                <AliveScope>
+                    <KeepAlive
+                        cacheKey={currentWorkspace.id}
+                        wrapperProps={{ className: 'h-full' }}
+                        contentProps={{ className: 'h-full' }}
+                    >
+                        <WorkspaceContent workspaceId={currentWorkspace.id} rootPath={currentWorkspace.rootPath} />
+                    </KeepAlive>
+                </AliveScope>
+            </div>
 
             {/* 管理对话框 */}
             <WorkspaceManageDialog open={showManageDialog} onClose={closeManageDialog} />

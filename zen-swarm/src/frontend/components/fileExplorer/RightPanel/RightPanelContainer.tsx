@@ -37,6 +37,7 @@ interface RightPanelContainerProps {
     onSearchResultClick?: (result: SearchResult) => void;
     onResizeStart?: (startX: number, startWidth: number) => void;
     cwd?: string; // 当前工作目录路径
+    workspaceId: string; // Workspace ID，用于区分不同 workspace 的 chat
 }
 
 // ========================================
@@ -86,6 +87,7 @@ export const RightPanelContainer: React.FC<RightPanelContainerProps> = ({
     onSearchResultClick,
     onResizeStart,
     cwd,
+    workspaceId,
 }) => {
     // ========================================
     // Handlers
@@ -99,19 +101,19 @@ export const RightPanelContainer: React.FC<RightPanelContainerProps> = ({
     );
 
     // ========================================
-    // Render Panel Content
+    // Render Panel Content (直接渲染，不使用 useMemo，避免重新创建组件)
     // ========================================
 
-    const renderPanelContent = useMemo(() => {
+    const renderPanelContent = () => {
         switch (activePanelProp) {
             case 'search':
                 return <SearchPanel rootPath={rootPath} onResultClick={onSearchResultClick} />;
             case 'chat':
-                return <ChatPanelMini cwd={cwd} />;
+                return <ChatPanelMini cwd={cwd} workspaceId={workspaceId} />;
             default:
                 return null;
         }
-    }, [activePanelProp, rootPath, onSearchResultClick, cwd]);
+    };
 
     // ========================================
     // Render
@@ -126,7 +128,7 @@ export const RightPanelContainer: React.FC<RightPanelContainerProps> = ({
             <TabBar panels={RIGHT_PANELS} activePanel={activePanelProp} onPanelChange={handlePanelChange} />
 
             {/* Panel Content - 独立滚动 */}
-            <div className="flex-1 overflow-hidden">{renderPanelContent}</div>
+            <div className="flex-1 min-h-0 overflow-hidden">{renderPanelContent()}</div>
 
             {/* 拖拽调整手柄 */}
             <div

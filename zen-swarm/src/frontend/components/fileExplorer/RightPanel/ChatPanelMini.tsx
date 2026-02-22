@@ -31,12 +31,14 @@ interface ChatPanelMiniProps {
     defaultAgent?: string;
     modelName?: string;
     cwd?: string; // 当前工作目录路径
+    workspaceId: string; // Workspace ID，用于区分不同 workspace 的 chat
 }
 
 interface ChatPanelMiniContentProps {
     modelName?: string;
     defaultAgent?: string;
     cwd?: string; // 当前工作目录路径
+    workspaceId: string; // Workspace ID，用于区分不同 workspace 的 chat
 }
 
 // ========================================
@@ -143,7 +145,7 @@ MessageItem.displayName = 'MessageItem';
 // Main Content Component
 // ========================================
 
-const ChatPanelMiniContent: React.FC<ChatPanelMiniContentProps> = ({ modelName, defaultAgent, cwd }) => {
+const ChatPanelMiniContent: React.FC<ChatPanelMiniContentProps> = ({ modelName, defaultAgent, cwd, workspaceId }) => {
     const chatStore = useChat();
     const {
         userInput,
@@ -222,9 +224,10 @@ const ChatPanelMiniContent: React.FC<ChatPanelMiniContentProps> = ({ modelName, 
             setSelectedAgentId(agentId);
             createNewChat({
                 agent_id: agentId,
+                metadata: { workspace_id: workspaceId },
             });
         },
-        [createNewChat],
+        [createNewChat, workspaceId],
     );
 
     // 停止生成
@@ -260,7 +263,7 @@ const ChatPanelMiniContent: React.FC<ChatPanelMiniContentProps> = ({ modelName, 
     );
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full min-h-0">
             {/* Header */}
             <ChatHeader
                 selectedAgentId={selectedAgentId}
@@ -270,7 +273,7 @@ const ChatPanelMiniContent: React.FC<ChatPanelMiniContentProps> = ({ modelName, 
             />
 
             {/* Messages */}
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-2">
+            <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto p-2">
                 {renderMessages.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-center p-4">
                         <div>
@@ -307,7 +310,16 @@ export const ChatPanelMini: React.FC<ChatPanelMiniProps> = ({
     defaultAgent = DEFAULT_AGENT,
     modelName = 'AI',
     cwd,
+    workspaceId,
 }) => {
+    // 使用 workspaceId 作为 historyFilter 的 metadata，实现每个 workspace 独立的 chat 历史
+    const historyFilter = useMemo(
+        () => ({
+            metadata: { workspace_id: workspaceId },
+        }),
+        [workspaceId],
+    );
+
     return (
         <ChatProvider
             apiUrl={apiUrl}
@@ -320,8 +332,14 @@ export const ChatPanelMini: React.FC<ChatPanelMiniProps> = ({
                 console.error('ChatPanelMini init error:', error, currentAgent);
             }}
             autoRestoreLastSession={false}
+            historyFilter={historyFilter}
         >
-            <ChatPanelMiniContent modelName={modelName} defaultAgent={defaultAgent} cwd={cwd} />
+            <ChatPanelMiniContent
+                modelName={modelName}
+                defaultAgent={defaultAgent}
+                cwd={cwd}
+                workspaceId={workspaceId}
+            />
         </ChatProvider>
     );
 };

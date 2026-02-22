@@ -130,20 +130,26 @@ export const useWorkspaceStore = create<WorkspaceState>()(
                     set({ isRefreshing: true, error: null });
 
                     try {
-                        // 更新后端的 last_accessed_at
-                        await apiClient.workspaces.updateLastAccessed.mutate({ id });
+                        // 从当前列表中查找 workspace（不重新加载，避免改变顺序）
+                        const workspaces = get().workspaces;
+                        const workspace = workspaces.find((w) => w.id === id) ?? null;
 
-                        // 重新加载列表以获取更新后的排序
-                        const result = await apiClient.workspaces.getAll.query();
-                        const updatedList = result.workspaces;
-
-                        const workspace = updatedList.find((w) => w.id === id) ?? null;
+                        if (!workspace) {
+                            const message = `Workspace with id "${id}" not found`;
+                            set({
+                                error: message,
+                                isRefreshing: false,
+                            });
+                            throw new Error(message);
+                        }
 
                         set({
                             currentWorkspace: workspace,
-                            workspaces: updatedList,
                             isRefreshing: false,
                         });
+
+                        // 保存到 localStorage
+                        localStorage.setItem('workspace:last-id', id);
                     } catch (error) {
                         const message = error instanceof Error ? error.message : 'Failed to set workspace';
                         set({

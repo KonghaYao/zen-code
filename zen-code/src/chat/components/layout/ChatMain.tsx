@@ -35,7 +35,7 @@ const ChatMessages: React.FC = () => {
     const { compactMode } = useSettings();
 
     // Debounce renderMessages updates to 500ms to reduce re-renders during fast updates
-    const [debouncedRenderMessages] = useDebounceValue(renderMessages, 100);
+    const [debouncedRenderMessages] = useDebounceValue(renderMessages, 50);
 
     // Track whether to show messages (hide when loading transitions from true to false)
     const [showMessages, setShowMessages] = useState(true);

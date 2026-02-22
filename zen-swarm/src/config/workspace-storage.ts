@@ -88,13 +88,10 @@ export class WorkspaceStorage {
     // ========================================
 
     async getAllWorkspaces(): Promise<Workspace[]> {
-        // Use CASE WHEN to handle NULL values (NULLS LAST equivalent)
+        // 按创建时间排序，顺序固定，不会因为访问而改变
         const stmt = this.db.prepare(`
             SELECT * FROM workspaces
-            ORDER BY
-                CASE WHEN last_accessed_at IS NULL THEN 1 ELSE 0 END,
-                last_accessed_at DESC,
-                created_at DESC
+            ORDER BY created_at DESC
         `);
         const rows = stmt.all() as WorkspaceRow[];
         return rows.map((row) => this.rowToWorkspace(row));

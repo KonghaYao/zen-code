@@ -13,7 +13,7 @@ interface MessageAIProps {
 }
 
 const MessageAI: React.FC<MessageAIProps> = ({ message, messageNumber, loading }) => {
-    const modelName = 'AI';
+    const modelName = 'Zen Code';
 
     // MODIFIED: 提取 thinking 内容
     const thinkingContent = getThinkingContent(message);
@@ -31,7 +31,6 @@ const MessageAI: React.FC<MessageAIProps> = ({ message, messageNumber, loading }
             {thinkingContent && (
                 <Reasoning thinking={thinkingContent} visible={rawTextContents.trim().length === 0}></Reasoning>
             )}
-            {/* <Text>{rawTextContents}</Text> */}
             <Markdown simple={false} loading={loading}>
                 {rawTextContents}
             </Markdown>
