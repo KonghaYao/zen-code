@@ -9,7 +9,7 @@ import type { AppRegistryItem } from './types.js';
 import { DashboardView } from '../../views/DashboardView.js';
 import { AgentConfigView } from '../../views/AgentConfigView.js';
 import { ResourcesView } from '../../views/ResourcesView.js';
-import { FileExplorerView } from '../../views/FileExplorerView.js';
+import { WorkspaceView } from '../../views/WorkspaceView.js';
 import { FinderView } from '../../views/Finder/index.js';
 import { CronView } from '../../views/CronView.js';
 
@@ -57,10 +57,10 @@ export const appRegistry: AppRegistryItem[] = [
     },
     {
         id: 'files',
-        name: 'Files',
+        name: 'Workspace',
         icon: '📁',
-        description: 'VSCode 风格文件浏览器',
-        viewComponent: FileExplorerView,
+        description: 'VSCode 风格工作空间',
+        viewComponent: WorkspaceView,
         keyboardShortcut: 'Cmd+5',
         contextMenuActions: ['open', 'help'],
     },

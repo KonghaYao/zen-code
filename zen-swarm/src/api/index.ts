@@ -12,6 +12,7 @@ import { mcpRouter } from './mcp.js';
 import { skillsRouter } from './skills.js';
 import { cronRouter } from './cron.js';
 import { filesRouter } from './files.js';
+import { workspacesRouter } from './workspaces.js';
 
 // ========================================
 // 主 Router
@@ -27,6 +28,7 @@ export const appRouter = router({
     skills: skillsRouter,
     cron: cronRouter,
     files: filesRouter,
+    workspaces: workspacesRouter,
 });
 
 // 导出 API 路由映射供 Hono 使用
@@ -40,6 +42,7 @@ export const apiRoutes = {
     skills: skillsRouter,
     cron: cronRouter,
     files: filesRouter,
+    workspaces: workspacesRouter,
 };
 
 // 导出类型供客户端使用

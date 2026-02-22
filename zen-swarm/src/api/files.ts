@@ -17,8 +17,10 @@ import * as mime from 'mime-types';
 // 配置
 // ========================================
 
-// 允许访问的根目录列表（默认为项目根目录）
-const ALLOWED_ROOTS = [process.cwd()];
+import * as os from 'os';
+
+// 允许访问的根目录列表（项目根目录 + 用户主目录）
+const ALLOWED_ROOTS = [process.cwd(), os.homedir()];
 
 // 默认根目录
 const DEFAULT_ROOT = process.cwd();
@@ -51,25 +53,58 @@ function resolvePath(relativePath: string): string {
 /**
  * 验证路径是否在允许的范围内
  * 防止路径遍历攻击
+ *
+ * 支持两种路径格式：
+ * 1. 相对路径: "/" 或 "/src" - 拼接到 DEFAULT_ROOT，检查是否在 ALLOWED_ROOTS 下
+ * 2. 绝对路径: "/Users/xxx/project" - 直接使用，但必须存在
  */
 async function validatePath(targetPath: string): Promise<string> {
-    // 将前端相对路径转换为绝对路径
-    const absolutePath = resolvePath(targetPath);
+    // 先尝试作为相对路径处理（拼接到 DEFAULT_ROOT）
+    // 这适用于 Finder 使用的前缀路径格式
+    const relativePath = resolvePath(targetPath);
+    const resolvedRelativePath = path.resolve(relativePath);
 
-    // 规范化路径，解析 .. 等
-    const resolvedPath = path.resolve(absolutePath);
-
-    // 检查是否在允许的根目录下
-    const isAllowed = ALLOWED_ROOTS.some((root) => {
+    // 检查相对路径结果是否在允许的根目录下且存在
+    const isRelativePathAllowed = ALLOWED_ROOTS.some((root) => {
         const normalizedRoot = path.resolve(root);
-        return resolvedPath.startsWith(normalizedRoot);
+        return resolvedRelativePath.startsWith(normalizedRoot);
     });
 
-    if (!isAllowed) {
+    const relativePathExists = await pathExists(resolvedRelativePath);
+
+    if (isRelativePathAllowed && relativePathExists) {
+        return resolvedRelativePath;
+    }
+
+    // 如果是完整的绝对路径（Workspace 功能），尝试直接使用
+    if (path.isAbsolute(targetPath)) {
+        const resolvedAbsolutePath = path.resolve(targetPath);
+
+        // 检查是否在允许的根目录下
+        const isAbsolutePathAllowed = ALLOWED_ROOTS.some((root) => {
+            const normalizedRoot = path.resolve(root);
+            return resolvedAbsolutePath.startsWith(normalizedRoot);
+        });
+
+        if (isAbsolutePathAllowed) {
+            return resolvedAbsolutePath;
+        }
+
+        // 不在允许的根目录下，但路径存在（允许访问其他路径作为 workspace）
+        const absolutePathExists = await pathExists(resolvedAbsolutePath);
+        if (!absolutePathExists) {
+            throw new Error(`Path does not exist: "${targetPath}"`);
+        }
+        return resolvedAbsolutePath;
+    }
+
+    // 如果不是绝对路径且相对路径验证失败，拒绝访问
+    if (!isRelativePathAllowed) {
         throw new Error(`Access denied: Path "${targetPath}" is outside allowed directories`);
     }
 
-    return resolvedPath;
+    // 相对路径但不存在
+    throw new Error(`Path does not exist: "${targetPath}"`);
 }
 
 /**
@@ -222,14 +257,15 @@ export const filesRouter = router({
 
         const entries = await fs.readdir(targetPath, { withFileTypes: true });
 
-        let items = await Promise.all(
-            entries.map(async (entry) => {
+        let items = [];
+        for (const entry of entries) {
+            try {
                 const fullPath = path.join(targetPath, entry.name);
                 const stat = await fs.stat(fullPath);
                 const isDirectory = entry.isDirectory();
                 const isHidden = entry.name.startsWith('.');
 
-                return {
+                items.push({
                     name: entry.name,
                     path: path.join(input.path, entry.name),
                     type: isDirectory ? ('directory' as const) : ('file' as const),
@@ -239,9 +275,12 @@ export const filesRouter = router({
                     isHidden,
                     extension: isDirectory ? undefined : path.extname(entry.name),
                     icon: getFileIcon(isDirectory, path.extname(entry.name)),
-                };
-            }),
-        );
+                });
+            } catch (err) {
+                // Skip files that cannot be stat (e.g., special files, permission issues)
+                console.warn(`Failed to stat ${entry.name}:`, err);
+            }
+        }
 
         // 过滤隐藏文件
         if (!input.showHidden) {
