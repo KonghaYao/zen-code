@@ -78,6 +78,7 @@ export function DockContainer({ activeApp, onAppChange, notifications = {} }: Do
     // 处理应用点击
     const handleAppClick = useCallback(
         (appId: AppId) => {
+            console.log('🖱️ DockContainer - handleAppClick called with appId:', appId);
             onAppChange(appId);
         },
         [onAppChange],

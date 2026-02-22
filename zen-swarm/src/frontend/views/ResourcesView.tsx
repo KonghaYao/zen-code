@@ -5,6 +5,7 @@
  * - 左侧：导航列，选择 Skills / MCP Servers / Tools / Middlewares
  * - 右侧：显示选中类型的详细内容
  * - Skills 和 MCP 支持编辑，Tools 和 Middlewares 为只读
+ * - 支持 URL 参数 ?tab=skills/mcp/tools/middlewares
  */
 
 import { useToolsStore } from '../stores/index.js';
@@ -17,6 +18,7 @@ import { Modal } from '../components/Modal.js';
 import { ConfirmModal } from '../components/ui/ConfirmModal.js';
 import type { MCPServer } from '../types/index.js';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 type ResourcesTab = 'skills' | 'mcp' | 'tools' | 'middlewares';
 
@@ -65,7 +67,26 @@ const TABS: TabConfig[] = [
 ];
 
 export function ResourcesView() {
-    const [activeTab, setActiveTab] = useState<ResourcesTab>('skills');
+    const [searchParams, setSearchParams] = useSearchParams();
+    // 从 URL 参数初始化 activeTab，默认为 'skills'
+    const [activeTab, setActiveTab] = useState<ResourcesTab>(() => {
+        const tabParam = searchParams.get('tab') as ResourcesTab | null;
+        if (tabParam === 'skills' || tabParam === 'mcp' || tabParam === 'tools' || tabParam === 'middlewares') {
+            return tabParam;
+        }
+        return 'skills';
+    });
+
+    // 处理 Tab 切换，同时更新 URL 参数
+    const handleTabChange = useCallback(
+        (tabId: ResourcesTab) => {
+            setActiveTab(tabId);
+            const newParams = new URLSearchParams(searchParams);
+            newParams.set('tab', tabId);
+            setSearchParams(newParams);
+        },
+        [searchParams, setSearchParams],
+    );
 
     // Modal states for MCP
     const [showMcpModal, setShowMcpModal] = useState(false);
@@ -332,7 +353,7 @@ export function ResourcesView() {
                         {TABS.map((tab) => (
                             <li key={tab.id}>
                                 <button
-                                    onClick={() => setActiveTab(tab.id)}
+                                    onClick={() => handleTabChange(tab.id)}
                                     className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-colors ${
                                         activeTab === tab.id
                                             ? 'bg-[var(--color-primary)] text-white'

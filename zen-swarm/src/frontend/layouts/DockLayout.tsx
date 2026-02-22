@@ -1,25 +1,65 @@
 /**
  * DockLayout 组件
- * macOS 风格桌面布局，使用 Tailwind CSS
+ * macOS 风格桌面布局，使用 Tailwind CSS 和 React Router
  */
 
-import { Suspense, useCallback } from 'react';
+import { Suspense, useCallback, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { DockContainer, useDockState } from '../components/dock/index.js';
-import { MenuBar, DesktopWallpaper, AppWindow } from '../components/desktop/index.js';
+import { DockContainer } from '../components/dock/index.js';
+import { MenuBar, DesktopWallpaper } from '../components/desktop/index.js';
 import { getAppById } from '../components/app-registry/index.js';
 import { LoadingSpinner } from '../components/LoadingSpinner.js';
+import type { AppId } from '../components/app-registry/types.js';
+
+// 导入视图组件
+import { DashboardView } from '../views/DashboardView.js';
+import { AgentConfigView } from '../views/AgentConfigView.js';
+import { ResourcesView } from '../views/ResourcesView.js';
+import { FileExplorerView } from '../views/FileExplorerView.js';
+import { CronView } from '../views/CronView.js';
+import { AppWindow } from '../components/desktop/index.js';
 
 export function DockLayout() {
-    const { activeApp, handleAppChange } = useDockState('dashboard');
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    // 从 URL 派生 activeApp 状态（移除 #/ 前缀）
+    const activeApp = useMemo(() => {
+        const hash = location.hash;
+        let path = '';
+
+        // 处理 hash 格式：可能是 "#/files" 或 "#files"
+        if (hash.startsWith('#/')) {
+            path = hash.slice(2); // 移除 #/
+        } else if (hash.startsWith('#')) {
+            path = hash.slice(1); // 移除 #
+        }
+
+        console.log('🔍 DockLayout - hash:', hash, 'path:', path);
+
+        // 只返回有效的应用 ID，否则默认为 dashboard
+        if (['dashboard', 'agent-config', 'resources', 'files', 'cron'].includes(path)) {
+            return path as AppId;
+        }
+        // 如果路径为空或无效，默认为 dashboard
+        console.log('⚠️ DockLayout - Invalid path, defaulting to dashboard');
+        return 'dashboard';
+    }, [location.hash]);
+
     const currentApp = activeApp ? getAppById(activeApp) : null;
     const isFullScreen = activeApp === 'files';
 
-    const handleCloseApp = useCallback(() => {
-        // 关闭当前应用，返回到 dashboard
-        handleAppChange('dashboard');
-    }, [handleAppChange]);
+    // 处理应用切换（由 DockContainer 调用）
+    const handleAppChange = useCallback(
+        (appId: AppId) => {
+            console.log('🔄 DockLayout - handleAppChange called with:', appId);
+            navigate(`#/${appId}`);
+        },
+        [navigate],
+    );
 
+    // 渲染当前应用
     const renderActiveApp = useCallback(() => {
         if (!currentApp) {
             return (
@@ -31,6 +71,10 @@ export function DockLayout() {
         }
 
         const ViewComponent = currentApp.viewComponent;
+        const handleClose = () => {
+            console.log('❌ DockLayout - handleClose called, navigating to dashboard');
+            navigate('#/');
+        };
 
         if (isFullScreen) {
             return (
@@ -38,7 +82,7 @@ export function DockLayout() {
                     appId={activeApp!}
                     appName={currentApp.name}
                     appIcon={currentApp.icon}
-                    onClose={handleCloseApp}
+                    onClose={handleClose}
                     showTrafficLights={true}
                 >
                     <ViewComponent />
@@ -53,7 +97,7 @@ export function DockLayout() {
                         appId={activeApp!}
                         appName={currentApp.name}
                         appIcon={currentApp.icon}
-                        onClose={handleCloseApp}
+                        onClose={handleClose}
                         showTrafficLights={true}
                     >
                         <ViewComponent />
@@ -61,7 +105,7 @@ export function DockLayout() {
                 </div>
             </div>
         );
-    }, [currentApp, isFullScreen, activeApp, handleCloseApp]);
+    }, [currentApp, isFullScreen, activeApp, navigate]);
 
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden">
@@ -75,7 +119,7 @@ export function DockLayout() {
             <main className="flex-1 flex flex-col min-h-0 overflow-hidden mt-7 mb-20">
                 <AnimatePresence mode="wait">
                     <motion.div
-                        key={activeApp || 'empty'}
+                        key={location.hash || 'empty'}
                         className="flex-1 flex flex-col min-h-0 overflow-hidden"
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}

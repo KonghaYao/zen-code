@@ -10,9 +10,11 @@
  * - 双击文件夹展开/折叠
  * - 文件内容预览（超过 1MB 显示提示）
  * - 使用 ripgrep 搜索文件内容
+ * - 支持通过 URL 参数设置根目录（?path=/path/to/root）
  */
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api.js';
 import type { FileItem } from '../types/files.js';
 import {
@@ -178,6 +180,8 @@ const StatusBar: React.FC<StatusBarProps> = ({ rootName, rootPath, selectedNode,
 // ========================================
 
 export function FileExplorerView() {
+    const [searchParams, setSearchParams] = useSearchParams();
+
     // ========================================
     // State - 根目录
     // ========================================
@@ -258,17 +262,38 @@ export function FileExplorerView() {
     }, [tree]);
 
     // ========================================
-    // Effects - 初始化
+    // Effects - 初始化和 URL 参数同步
     // ========================================
 
+    // 初始化：从 URL 参数加载或从服务器获取默认根目录
     useEffect(() => {
-        apiClient.files.getAllowedRoots.query().then((result) => {
-            if (result.roots.length > 0) {
-                setRootName(result.roots[0].name || 'root');
-                setRootPath(result.roots[0].path);
-            }
-        });
-    }, []);
+        const pathParam = searchParams.get('path');
+        if (pathParam) {
+            setRootPath(pathParam);
+            setRootName(pathParam.split('/').pop() || 'root');
+        } else {
+            // 如果没有 URL 参数，从服务器加载默认根目录
+            // 不更新 URL 参数，避免在 HashRouter 中重置 hash
+            apiClient.files.getAllowedRoots.query().then((result) => {
+                if (result.roots.length > 0) {
+                    const defaultRoot = result.roots[0];
+                    setRootName(defaultRoot.name || 'root');
+                    setRootPath(defaultRoot.path);
+                }
+            });
+        }
+        // 只在组件挂载时执行一次
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // 监听 URL 参数变化（从浏览器前进/后退触发）
+    useEffect(() => {
+        const pathParam = searchParams.get('path');
+        // 只有当 pathParam 不为空且与当前 rootPath 不同时才更新
+        if (pathParam && pathParam !== rootPath) {
+            setRootPath(pathParam);
+            setRootName(pathParam.split('/').pop() || 'root');
+        }
+    }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ========================================
     // Effects - 加载数据
