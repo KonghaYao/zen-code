@@ -30,11 +30,13 @@ interface ChatPanelMiniProps {
     apiUrl?: string;
     defaultAgent?: string;
     modelName?: string;
+    cwd?: string; // 当前工作目录路径
 }
 
 interface ChatPanelMiniContentProps {
     modelName?: string;
     defaultAgent?: string;
+    cwd?: string; // 当前工作目录路径
 }
 
 // ========================================
@@ -141,7 +143,7 @@ MessageItem.displayName = 'MessageItem';
 // Main Content Component
 // ========================================
 
-const ChatPanelMiniContent: React.FC<ChatPanelMiniContentProps> = ({ modelName, defaultAgent }) => {
+const ChatPanelMiniContent: React.FC<ChatPanelMiniContentProps> = ({ modelName, defaultAgent, cwd }) => {
     const chatStore = useChat();
     const {
         userInput,
@@ -206,11 +208,12 @@ const ChatPanelMiniContent: React.FC<ChatPanelMiniContentProps> = ({ modelName, 
             await sendMessage(content, {
                 extraParams: {
                     agent_id: selectedAgentId,
+                    cwd,
                 },
             });
             setUserInput('');
         },
-        [sendMessage, selectedAgentId, setUserInput],
+        [sendMessage, selectedAgentId, cwd, setUserInput],
     );
 
     // Agent 切换
@@ -303,6 +306,7 @@ export const ChatPanelMini: React.FC<ChatPanelMiniProps> = ({
     apiUrl = DEFAULT_API_URL,
     defaultAgent = DEFAULT_AGENT,
     modelName = 'AI',
+    cwd,
 }) => {
     return (
         <ChatProvider
@@ -317,7 +321,7 @@ export const ChatPanelMini: React.FC<ChatPanelMiniProps> = ({
             }}
             autoRestoreLastSession={false}
         >
-            <ChatPanelMiniContent modelName={modelName} defaultAgent={defaultAgent} />
+            <ChatPanelMiniContent modelName={modelName} defaultAgent={defaultAgent} cwd={cwd} />
         </ChatProvider>
     );
 };

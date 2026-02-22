@@ -59,31 +59,45 @@ function resolvePath(relativePath: string): string {
  * 2. 绝对路径: "/Users/xxx/project" - 直接使用，但必须存在
  */
 async function validatePath(targetPath: string): Promise<string> {
+    console.log('[validatePath] Input:', targetPath);
+    console.log('[validatePath] Is absolute:', path.isAbsolute(targetPath));
+    console.log('[validatePath] DEFAULT_ROOT:', DEFAULT_ROOT);
+    console.log('[validatePath] ALLOWED_ROOTS:', ALLOWED_ROOTS);
+
     // 先尝试作为相对路径处理（拼接到 DEFAULT_ROOT）
     // 这适用于 Finder 使用的前缀路径格式
     const relativePath = resolvePath(targetPath);
     const resolvedRelativePath = path.resolve(relativePath);
 
+    console.log('[validatePath] Resolved relative path:', resolvedRelativePath);
+
     // 检查相对路径结果是否在允许的根目录下且存在
     const isRelativePathAllowed = ALLOWED_ROOTS.some((root) => {
         const normalizedRoot = path.resolve(root);
-        return resolvedRelativePath.startsWith(normalizedRoot);
+        const result = resolvedRelativePath.startsWith(normalizedRoot);
+        console.log(`[validatePath] Check ${resolvedRelativePath} starts with ${normalizedRoot}:`, result);
+        return result;
     });
 
     const relativePathExists = await pathExists(resolvedRelativePath);
+    console.log('[validatePath] Relative path exists:', relativePathExists);
 
     if (isRelativePathAllowed && relativePathExists) {
+        console.log('[validatePath] Returning relative path:', resolvedRelativePath);
         return resolvedRelativePath;
     }
 
     // 如果是完整的绝对路径（Workspace 功能），尝试直接使用
     if (path.isAbsolute(targetPath)) {
         const resolvedAbsolutePath = path.resolve(targetPath);
+        console.log('[validatePath] Resolved absolute path:', resolvedAbsolutePath);
 
         // 检查是否在允许的根目录下
         const isAbsolutePathAllowed = ALLOWED_ROOTS.some((root) => {
             const normalizedRoot = path.resolve(root);
-            return resolvedAbsolutePath.startsWith(normalizedRoot);
+            const result = resolvedAbsolutePath.startsWith(normalizedRoot);
+            console.log(`[validatePath] Check ${resolvedAbsolutePath} starts with ${normalizedRoot}:`, result);
+            return result;
         });
 
         if (isAbsolutePathAllowed) {

@@ -295,8 +295,14 @@ export function WorkspaceView() {
         if (!currentWorkspace) {
             setTree([]);
             setSelectedNode(null);
+            setExpandedPaths(new Set());
             return;
         }
+
+        // 切换 workspace 时重置所有相关状态
+        setSelectedNode(null);
+        setExpandedPaths(new Set());
+        setTreeError(null);
 
         const loadTree = async () => {
             setTreeLoading(true);
@@ -308,6 +314,7 @@ export function WorkspaceView() {
                 setTree(result.tree);
             } catch (err: any) {
                 console.error('Failed to load file tree:', err);
+                setTreeError(err.message || 'Failed to load file tree');
             } finally {
                 setTreeLoading(false);
             }
@@ -522,12 +529,14 @@ export function WorkspaceView() {
                 {/* 右侧面板：搜索 */}
                 {rightPanelVisible && (
                     <RightPanelContainer
+                        key={currentWorkspace.id}
                         width={rightPanelWidth}
                         rootPath={currentWorkspace.rootPath}
                         activePanel={activeRightPanel}
                         onActivePanelChange={setActiveRightPanel}
                         onSearchResultClick={handleSearchResultClick}
                         onResizeStart={handleRightResizeStart}
+                        cwd={currentWorkspace.rootPath}
                     />
                 )}
             </div>

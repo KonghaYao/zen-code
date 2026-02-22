@@ -101,11 +101,11 @@ export const ChatMain: React.FC = () => {
     const { hasPendingInteractions } = useInteractionContext();
 
     return (
-        <ChatInputBufferProvider>
-            <Box flexDirection="column" flexGrow={1}>
-                <ErrorBoundary name="ChatMessages" fallback={null}>
-                    <ChatMessages />
-                </ErrorBoundary>
+        <Box flexDirection="column" flexGrow={1}>
+            <ErrorBoundary name="ChatMessages" fallback={null}>
+                <ChatMessages />
+            </ErrorBoundary>
+            <ChatInputBufferProvider>
                 <ErrorBoundary name="InteractionArea" fallback={null}>
                     {hasPendingInteractions ? (
                         <Box paddingX={0} paddingY={0}>
@@ -115,8 +115,8 @@ export const ChatMain: React.FC = () => {
                         <ChatInput />
                     )}
                 </ErrorBoundary>
-            </Box>
-        </ChatInputBufferProvider>
+            </ChatInputBufferProvider>
+        </Box>
     );
 };
 

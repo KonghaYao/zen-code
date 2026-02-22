@@ -308,24 +308,40 @@ export const FinderView: React.FC = () => {
             }
 
             // 如果是从侧边栏调用的，item 是 SidebarItem 类型
-            const isSidebarItem = item && !item.type && item.path && item.name;
+            // SidebarItem 的 type 是 'folder' | 'favorite' | 'tag' | 'device' | 'network'
+            // FinderFileItem 的 type 是 'file' | 'directory'
+            const isSidebarItem =
+                item &&
+                item.path &&
+                item.name &&
+                item.icon &&
+                item.id &&
+                (item.type === 'folder' ||
+                    item.type === 'favorite' ||
+                    item.type === 'tag' ||
+                    item.type === 'device' ||
+                    item.type === 'network');
 
             let targetPaths: string[] = [];
             let targetPath: string | undefined;
+            let explicitType: 'file' | 'directory' | 'multiple' | 'empty-space' | undefined;
 
             if (isSidebarItem) {
-                // 侧边栏项目
+                // 侧边栏项目 - 所有侧边栏项目都是目录（文件夹）
                 targetPath = (item as any).path;
                 targetPaths = [targetPath];
+                explicitType = 'directory';
             } else if (item) {
                 // Finder 项目
-                targetPath = (item as FinderFileItem).path;
+                const finderItem = item as FinderFileItem;
+                targetPath = finderItem.path;
                 targetPaths = selection.selectedPaths.has(targetPath)
                     ? Array.from(selection.selectedPaths)
                     : [targetPath];
+                explicitType = finderItem.type === 'directory' ? 'directory' : 'file';
             }
 
-            openContextMenu(event.clientX, event.clientY, targetPath, targetPaths);
+            openContextMenu(event.clientX, event.clientY, targetPath, targetPaths, explicitType);
         },
         [selection.selectedPaths, openContextMenu],
     );

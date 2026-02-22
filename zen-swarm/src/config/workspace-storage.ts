@@ -216,14 +216,19 @@ export class WorkspaceStorage {
     }
 
     async validatePath(path: string): Promise<{ valid: boolean; error?: string }> {
+        console.log('[validatePath] Checking path:', path);
         const fs = await import('fs/promises');
         try {
             const stat = await fs.stat(path);
+            console.log('[validatePath] Path stats:', { isDirectory: stat.isDirectory(), isFile: stat.isFile() });
+
             if (!stat.isDirectory()) {
                 return { valid: false, error: 'Path is not a directory' };
             }
+            console.log('[validatePath] Path is valid directory');
             return { valid: true };
-        } catch (error) {
+        } catch (error: any) {
+            console.error('[validatePath] Error:', error);
             return { valid: false, error: 'Path does not exist or is not accessible' };
         }
     }

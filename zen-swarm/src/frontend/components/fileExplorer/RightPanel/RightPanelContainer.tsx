@@ -36,6 +36,7 @@ interface RightPanelContainerProps {
     onActivePanelChange?: (panelId: RightPanelType) => void;
     onSearchResultClick?: (result: SearchResult) => void;
     onResizeStart?: (startX: number, startWidth: number) => void;
+    cwd?: string; // 当前工作目录路径
 }
 
 // ========================================
@@ -84,6 +85,7 @@ export const RightPanelContainer: React.FC<RightPanelContainerProps> = ({
     onActivePanelChange,
     onSearchResultClick,
     onResizeStart,
+    cwd,
 }) => {
     // ========================================
     // Handlers
@@ -105,11 +107,11 @@ export const RightPanelContainer: React.FC<RightPanelContainerProps> = ({
             case 'search':
                 return <SearchPanel rootPath={rootPath} onResultClick={onSearchResultClick} />;
             case 'chat':
-                return <ChatPanelMini />;
+                return <ChatPanelMini cwd={cwd} />;
             default:
                 return null;
         }
-    }, [activePanelProp, rootPath, onSearchResultClick]);
+    }, [activePanelProp, rootPath, onSearchResultClick, cwd]);
 
     // ========================================
     // Render

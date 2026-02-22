@@ -207,10 +207,12 @@ export const useWorkspaceStore = create<WorkspaceState>()(
                 // ========================================
 
                 createWorkspace: async (input: CreateWorkspaceInput) => {
+                    console.log('[createWorkspace] Input:', input);
                     set({ isRefreshing: true, error: null });
 
                     try {
                         const result = await apiClient.workspaces.create.mutate(input);
+                        console.log('[createWorkspace] Result:', result);
                         const newWorkspace = result.workspace;
 
                         set((state) => ({
@@ -225,6 +227,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
                         return newWorkspace;
                     } catch (error) {
+                        console.error('[createWorkspace] Error:', error);
                         const message = error instanceof Error ? error.message : 'Failed to create workspace';
                         set({
                             error: message,
