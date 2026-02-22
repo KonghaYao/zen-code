@@ -1,0 +1,91 @@
+/**
+ * App 注册表
+ * 集中管理所有 Dock 应用
+ */
+
+import type { AppRegistryItem } from './types.js';
+
+// 直接导入视图组件（不支持懒加载，因为没有 default export）
+import { DashboardView } from '../../views/DashboardView.js';
+import { AgentConfigView } from '../../views/AgentConfigView.js';
+import { ResourcesView } from '../../views/ResourcesView.js';
+import { FileExplorerView } from '../../views/FileExplorerView.js';
+import { CronView } from '../../views/CronView.js';
+
+/**
+ * 应用注册表
+ * 定义所有 Dock 中可用的应用
+ */
+export const appRegistry: AppRegistryItem[] = [
+    {
+        id: 'dashboard',
+        name: 'Dashboard',
+        icon: '📊',
+        description: '概览仪表盘',
+        viewComponent: DashboardView,
+        defaultOpen: true,
+        keyboardShortcut: 'Cmd+1',
+        contextMenuActions: ['open', 'help'],
+    },
+    {
+        id: 'agent-config',
+        name: 'Agent Config',
+        icon: '🤖',
+        description: 'Agent 配置管理',
+        viewComponent: AgentConfigView,
+        keyboardShortcut: 'Cmd+2',
+        contextMenuActions: ['open', 'help'],
+    },
+    {
+        id: 'resources',
+        name: 'Resources',
+        icon: '📦',
+        description: '资源管理',
+        viewComponent: ResourcesView,
+        keyboardShortcut: 'Cmd+3',
+        contextMenuActions: ['open', 'help'],
+    },
+    {
+        id: 'files',
+        name: 'Files',
+        icon: '📁',
+        description: '文件浏览器',
+        viewComponent: FileExplorerView,
+        keyboardShortcut: 'Cmd+4',
+        contextMenuActions: ['open', 'help'],
+    },
+    {
+        id: 'cron',
+        name: 'Cron',
+        icon: '⏰',
+        description: '定时任务管理',
+        viewComponent: CronView,
+        keyboardShortcut: 'Cmd+5',
+        contextMenuActions: ['open', 'help'],
+    },
+];
+
+/**
+ * 根据 ID 获取应用信息
+ */
+export function getAppById(appId: AppId): AppRegistryItem | undefined {
+    return appRegistry.find((app) => app.id === appId);
+}
+
+/**
+ * 获取默认打开的应用 ID
+ */
+export function getDefaultAppId(): AppId | undefined {
+    const defaultApp = appRegistry.find((app) => app.defaultOpen);
+    return defaultApp?.id;
+}
+
+/**
+ * 获取所有应用 ID 列表
+ */
+export function getAllAppIds(): AppId[] {
+    return appRegistry.map((app) => app.id);
+}
+
+// 导出类型
+export type { AppRegistryItem, AppId, NotificationState, ContextAction, NotificationData } from './types.js';

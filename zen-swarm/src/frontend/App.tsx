@@ -1,45 +1,13 @@
 /**
  * App 主组件
  *
- * 路由 6 个主要视图：
- * - dashboard: DashboardView
- * - agent-config: AgentConfigView
- * - resources: ResourcesView
- * - files: FileExplorerView
- * - cron: CronView
- * - chat: ChatView (全屏模式)
+ * 使用 macOS 风格的 Dock 导航系统
+ * - 底部 Dock 提供清晰的应用切换
+ * - 单应用模式，同一时间只打开一个应用
  */
 
-import type { PanelType } from './types/index.js';
-import { MainLayout } from './layouts/MainLayout.js';
-import { DashboardView } from './views/DashboardView.js';
-import { AgentConfigView } from './views/AgentConfigView.js';
-import { ResourcesView } from './views/ResourcesView.js';
-import { FileExplorerView } from './views/FileExplorerView.js';
-import { CronView } from './views/CronView.js';
-import { ChatView } from './views/ChatView.js';
+import { DockLayout } from './layouts/DockLayout.js';
 
 export function App() {
-    return (
-        <MainLayout>
-            {(tab: PanelType) => {
-                switch (tab) {
-                    case 'dashboard':
-                        return <DashboardView />;
-                    case 'agent-config':
-                        return <AgentConfigView />;
-                    case 'resources':
-                        return <ResourcesView />;
-                    case 'files':
-                        return <FileExplorerView />;
-                    case 'cron':
-                        return <CronView />;
-                    case 'chat':
-                        return <ChatView />;
-                    default:
-                        return <div>Unknown panel: {tab}</div>;
-                }
-            }}
-        </MainLayout>
-    );
+    return <DockLayout />;
 }
