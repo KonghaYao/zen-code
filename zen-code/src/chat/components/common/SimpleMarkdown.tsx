@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Text } from 'ink';
 
 export interface MarkdownProps {
@@ -15,8 +15,9 @@ export interface MarkdownProps {
 }
 
 export const SimpleMarkdown: React.FC<MarkdownProps> = ({ children, color, dim, bold, italic }) => {
-    const lines = children.split('\n').map((i) => (i === '' ? '\n' : i));
-
+    const lines = useMemo(() => {
+        return children.split('\n').map((i) => (i === '' ? '\n' : i));
+    }, [children]);
     return (
         <>
             {lines.map((chunk, chunkIndex) => (

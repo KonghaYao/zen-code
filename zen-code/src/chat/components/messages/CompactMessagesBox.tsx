@@ -140,7 +140,7 @@ const MessageItem = memo(function MessageItem({
                 <MessageHuman content={message.content} messageNumber={displayIndex + 1 + startIndex} />
             ) : null}
             {message.type === 'ai' ? (
-                <MessageAI message={message} messageNumber={displayIndex + 1 + startIndex} />
+                <MessageAI message={message} messageNumber={displayIndex + 1 + startIndex} loading={loading} />
             ) : null}
             {/* 如果有工具组，显示摘要 */}
             {message.type === 'group' && (
@@ -236,26 +236,6 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
 
     const histories = processedMessages.slice(0, currentDisplayIndex);
     const current = processedMessages.slice(currentDisplayIndex);
-
-    // 首次渲染时直接显示，后续使用 Static
-    // if (!ready) {
-    //     return (
-    //         <Box flexDirection="column">
-    //             {processedMessages.map((item, i) => (
-    //                 <MessageItem
-    //                     key={item.id ? `init-${item.id}` : `init-msg-${depth}-${i}`}
-    //                     message={item}
-    //                     displayIndex={i}
-    //                     isCurrent={i === currentDisplayIndex}
-    //                     startIndex={startIndex}
-    //                     getToolUIRender={getToolUIRender}
-    //                     depth={depth}
-    //                     loading={loading}
-    //                 />
-    //             ))}
-    //         </Box>
-    //     );
-    // }
 
     return (
         <Box flexDirection="column">

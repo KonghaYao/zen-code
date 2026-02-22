@@ -11,6 +11,7 @@ interface MessagesBoxProps {
     renderMessages: RenderMessage[];
     startIndex: number;
     staticKey: string;
+    loading: boolean;
 }
 
 /**
@@ -20,7 +21,12 @@ interface MessagesBoxProps {
  * - No internal useChat() calls
  * - Relies on staticKey from parent for Static component
  */
-export const MessagesBox = memo(function MessagesBox({ renderMessages, startIndex, staticKey }: MessagesBoxProps) {
+export const MessagesBox = memo(function MessagesBox({
+    renderMessages,
+    startIndex,
+    staticKey,
+    loading,
+}: MessagesBoxProps) {
     // 修复 Static 首次渲染问题：强制重新渲染
     const [ready, setReady] = useState(false);
 
@@ -47,7 +53,7 @@ export const MessagesBox = memo(function MessagesBox({ renderMessages, startInde
             ) : message.type === 'tool' ? (
                 <MessageTool message={message} messageNumber={index + 1 + startIndex} />
             ) : (
-                <MessageAI message={message} messageNumber={index + 1 + startIndex} />
+                <MessageAI message={message} messageNumber={index + 1 + startIndex} loading={loading} />
             )}
         </Box>
     );

@@ -9,9 +9,10 @@ import { LimitedOutput } from 'ink-pro';
 interface MessageAIProps {
     message: RenderMessage;
     messageNumber: number;
+    loading: boolean;
 }
 
-const MessageAI: React.FC<MessageAIProps> = ({ message, messageNumber }) => {
+const MessageAI: React.FC<MessageAIProps> = ({ message, messageNumber, loading }) => {
     const modelName = 'AI';
 
     // MODIFIED: 提取 thinking 内容
@@ -31,7 +32,9 @@ const MessageAI: React.FC<MessageAIProps> = ({ message, messageNumber }) => {
                 <Reasoning thinking={thinkingContent} visible={rawTextContents.trim().length === 0}></Reasoning>
             )}
             {/* <Text>{rawTextContents}</Text> */}
-            <Markdown>{rawTextContents}</Markdown>
+            <Markdown simple={false} loading={loading}>
+                {rawTextContents}
+            </Markdown>
         </Box>
     );
 };

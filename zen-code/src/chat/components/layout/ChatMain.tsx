@@ -80,7 +80,12 @@ const ChatMessages: React.FC = () => {
                         key={staticKey}
                     />
                 ) : (
-                    <MessagesBox renderMessages={debouncedRenderMessages} startIndex={0} staticKey={staticKey} />
+                    <MessagesBox
+                        loading={loading}
+                        renderMessages={debouncedRenderMessages}
+                        startIndex={0}
+                        staticKey={staticKey}
+                    />
                 )
             ) : null}
         </Box>
