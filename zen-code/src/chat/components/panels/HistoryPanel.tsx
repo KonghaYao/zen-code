@@ -110,6 +110,8 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
                 // createNewChat(metadataOfChat);
                 createNewChat({});
             } else {
+                // 清空数据
+                console.clear();
                 toHistoryChat(thread);
             }
             onClose();
