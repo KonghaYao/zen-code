@@ -28,7 +28,8 @@
 
 export { FilesystemMiddleware } from './filesystem.js';
 export { TerminalMiddleware } from './terminal.js';
-
+export * from './tools/filesystem_tools/index.js';
+export * from './tools/bash_tools/index.js';
 // Base state type interface - must include cwd field
 export type BaseAgentStateType = {
     cwd: string;

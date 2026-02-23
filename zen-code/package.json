@@ -54,6 +54,7 @@
         "zod": "^4.3.5"
     },
     "devDependencies": {
+        "@langgraph-js/agent-middlewares": "workspace:^",
         "@codegraph/agent": "workspace:^",
         "@codegraph/config": "workspace:^",
         "@codegraph/union-client": "workspace:^",

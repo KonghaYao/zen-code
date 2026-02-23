@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { createAgentMdCommand } from './createAgentMdCommand';
+import { createAgentMdCommand, initAgentMdCommand, createAgentMdCommands } from './createAgentMdCommand';
 
 describe('createAgentMdCommand', () => {
     it('should have correct command metadata', () => {
@@ -50,7 +50,7 @@ describe('createAgentMdCommand', () => {
         expect(result.shouldClearInput).toBe(true);
     });
 
-    it('should require arguments', async () => {
+    it('should return error when no arguments provided', async () => {
         const sendMessage = vi.fn();
         const context = {
             sendMessage,
@@ -98,5 +98,70 @@ describe('createAgentMdCommand', () => {
         expect(content).toContain('Project overview and objectives');
         expect(content).toContain('Architecture and design patterns');
         expect(content).toContain('Coding standards and conventions');
+    });
+});
+
+describe('initAgentMdCommand', () => {
+    it('should have correct command metadata', () => {
+        expect(initAgentMdCommand.name).toBe('init-agents-md');
+        expect(initAgentMdCommand.description).toBe('快速初始化 AGENTS.md 项目指南文档');
+        expect(initAgentMdCommand.aliases).toEqual(['iam', 'init-agents']);
+        expect(initAgentMdCommand.usage).toBe('/init-agents-md');
+        expect(initAgentMdCommand.requiresArgs).toBe(false);
+    });
+
+    it('should send message with default request', async () => {
+        const sendMessage = vi.fn();
+        const context = {
+            sendMessage,
+            extraParams: {},
+        };
+
+        const result = await initAgentMdCommand.execute([], context as any);
+
+        expect(sendMessage).toHaveBeenCalled();
+        const calls = sendMessage.mock.calls;
+        expect(calls.length).toBe(1);
+
+        const messages = calls[0][0];
+        expect(messages.length).toBe(1);
+        expect(messages[0].type).toBe('human');
+        expect(messages[0].content).toContain('[Create AGENTS.md Mode Activated]');
+        expect(messages[0].content).toContain('初始化项目 AGENTS.md 指南文档');
+    });
+
+    it('should return success result', async () => {
+        const sendMessage = vi.fn();
+        const context = {
+            sendMessage,
+            extraParams: {},
+        };
+
+        const result = await initAgentMdCommand.execute([], context as any);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toBe('📝 开始初始化 AGENTS.md...');
+        expect(result.shouldClearInput).toBe(true);
+    });
+
+    it('should not require arguments', async () => {
+        const sendMessage = vi.fn();
+        const context = {
+            sendMessage,
+            extraParams: {},
+        };
+
+        const result = await initAgentMdCommand.execute([], context as any);
+
+        expect(result.success).toBe(true);
+        expect(sendMessage).toHaveBeenCalled();
+    });
+});
+
+describe('createAgentMdCommands', () => {
+    it('should export both commands', () => {
+        expect(createAgentMdCommands).toHaveLength(2);
+        expect(createAgentMdCommands[0]).toBe(createAgentMdCommand);
+        expect(createAgentMdCommands[1]).toBe(initAgentMdCommand);
     });
 });

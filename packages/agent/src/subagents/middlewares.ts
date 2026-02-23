@@ -1,10 +1,34 @@
 import { AgentPackage } from '@langgraph-js/standard-agent';
+import { FilesystemMiddleware, TerminalMiddleware } from '@langgraph-js/agent-middlewares';
 
 /**
  * Register middleware implementations into the registry
  * This function registers all available middleware implementations
  */
 export async function createMiddlewareRegistry(pkg: AgentPackage) {
+    // FilesystemMiddleware from agent-middlewares
+    const filesystem = {
+        id: 'filesystem',
+        name: 'filesystem',
+        description: 'File and directory operations (read, write, search, glob)',
+        execute: async () => {
+            return new FilesystemMiddleware();
+        },
+    };
+    await pkg.addMiddleware(filesystem);
+    pkg.middlewares.registerImplementation(filesystem);
+
+    // TerminalMiddleware from agent-middlewares
+    const terminal = {
+        id: 'terminal',
+        name: 'terminal',
+        description: 'Terminal command execution (Bash/CMD, background processes)',
+        execute: async () => {
+            return new TerminalMiddleware();
+        },
+    };
+    await pkg.addMiddleware(terminal);
+    pkg.middlewares.registerImplementation(terminal);
     const subagents = {
         id: 'subagents',
         name: 'subagents',

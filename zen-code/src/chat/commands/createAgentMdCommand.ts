@@ -42,10 +42,20 @@ User's request:
 export const createAgentMdCommand: CommandDefinition = {
     name: 'create-agent-md',
     description: 'Create or update AGENTS.md file with project guidelines',
+    aliases: ['agentmd', 'am'],
     usage: '/create-agent-md [description or goal for AGENTS.md]',
-    requiresArgs: false,
+    requiresArgs: true,
     execute: async (args: string[], context: CommandContext): Promise<CommandResult> => {
-        const userRequest = args.join(' ').trim() || 'start to explore and create AGENTS.md';
+        const userRequest = args.join(' ').trim();
+
+        if (!userRequest) {
+            return {
+                success: false,
+                message: '❌ 需要提供描述或目标。例如: /create-agent-md 初始化项目指南文档',
+                shouldClearInput: false,
+            };
+        }
+
         const enhancedMessage = CREATE_AGENT_MD_PREFIX + userRequest;
 
         context.sendMessage(
@@ -66,4 +76,35 @@ export const createAgentMdCommand: CommandDefinition = {
     },
 };
 
-export const createAgentMdCommands: CommandDefinition[] = [createAgentMdCommand];
+/**
+ * /init-agents-md 命令 - 快速初始化 AGENTS.md 文件
+ */
+export const initAgentMdCommand: CommandDefinition = {
+    name: 'init-agents-md',
+    description: '快速初始化 AGENTS.md 项目指南文档',
+    aliases: ['iam', 'init-agents'],
+    usage: '/init-agents-md',
+    requiresArgs: false,
+    execute: async (_args: string[], context: CommandContext): Promise<CommandResult> => {
+        const userRequest = '初始化项目 AGENTS.md 指南文档';
+        const enhancedMessage = CREATE_AGENT_MD_PREFIX + userRequest;
+
+        context.sendMessage(
+            [
+                {
+                    type: 'human',
+                    content: enhancedMessage,
+                },
+            ],
+            { extraParams: context.extraParams },
+        );
+
+        return {
+            success: true,
+            message: '📝 开始初始化 AGENTS.md...',
+            shouldClearInput: true,
+        };
+    },
+};
+
+export const createAgentMdCommands: CommandDefinition[] = [createAgentMdCommand, initAgentMdCommand];

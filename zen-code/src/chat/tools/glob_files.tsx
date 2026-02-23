@@ -1,7 +1,9 @@
 import { createUITool, ToolManager } from '@langgraph-js/sdk';
-import { globToolSchema } from '@codegraph/agent/src/tools/filesystem_tools/glob_tool';
+import { glob_tool } from '@langgraph-js/agent-middlewares';
 import { Box, Text } from 'ink';
 import Link from '../components/common/Link';
+
+const globToolSchema = glob_tool.schema;
 
 export const glob_files = createUITool({
     name: 'glob_files',

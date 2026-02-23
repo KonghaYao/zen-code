@@ -1,30 +1,11 @@
 import { Tool } from 'langchain';
-import { bash_tools } from '../tools/bash_tools/index.js';
-import {
-    glob_tool,
-    grep_tool,
-    read_tool,
-    write_tool,
-    replace_tool,
-    folder_tool,
-} from '../tools/filesystem_tools/index.js';
 import { todo_write_tool } from '../tools/task_tools/index.js';
 import { ask_user_questions_tool } from '../tools/ask_user_questions.js';
 import { AgentPackage, ToolImplementation } from '@langgraph-js/standard-agent';
-import { z } from 'zod';
 
-// All available tools
-const ALL_TOOLS = [
-    ask_user_questions_tool,
-    todo_write_tool,
-    glob_tool,
-    grep_tool,
-    read_tool,
-    write_tool,
-    replace_tool,
-    folder_tool,
-    ...bash_tools,
-];
+// Only local project-specific tools need to be registered
+// Tools from agent-middlewares are automatically provided by their middlewares
+const ALL_TOOLS = [ask_user_questions_tool, todo_write_tool];
 
 async function registerLangChainTool(pkg: AgentPackage, tool: Tool) {
     await pkg.addTool({
@@ -56,7 +37,8 @@ async function registerLangChainTool(pkg: AgentPackage, tool: Tool) {
 }
 
 /**
- * Create a runtime tool registry with all available tools
+ * Create a runtime tool registry with local project-specific tools
+ * Tools from middlewares (filesystem, terminal) are registered automatically
  */
 export async function createToolRegistry(pkg: AgentPackage) {
     return await Promise.all(ALL_TOOLS.map((i) => registerLangChainTool(pkg, i as any as Tool)));

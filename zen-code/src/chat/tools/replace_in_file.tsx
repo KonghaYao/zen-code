@@ -1,9 +1,10 @@
 import { createUITool, ToolManager } from '@langgraph-js/sdk';
 import { Box, Text } from 'ink';
 import { generateOptimizedDiff } from './diffUtils';
-import { editToolSchema } from '@codegraph/agent/src/tools/filesystem_tools';
-
+import { replace_tool } from '@langgraph-js/agent-middlewares';
 import Link from '../components/common/Link';
+
+const editToolSchema = replace_tool.schema;
 
 // MODIFIED: Updated interface to match new schema
 interface ReplaceInFileInput {
