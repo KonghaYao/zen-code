@@ -71,7 +71,6 @@ export function useChatPanels(): UseChatPanelsResult {
     }, []);
 
     const closePanel = useCallback(() => {
-        console.clear();
         setActiveView('chat');
         focusManager.focus('global-input');
     }, [focusManager]);

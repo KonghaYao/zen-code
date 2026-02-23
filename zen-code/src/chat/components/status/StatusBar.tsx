@@ -23,11 +23,10 @@ const StatusBar: React.FC = () => {
     const handleInput = React.useCallback(
         (input: string, key: any) => {
             if (key.ctrl && input === 'c') {
-                if (chatLoading) {
-                    stopGeneration();
-                } else {
-                    process.exit();
-                }
+                // if (chatLoading) {
+                //     stopGeneration();
+                // }
+                process.exit();
             }
         },
         [chatLoading, stopGeneration],
