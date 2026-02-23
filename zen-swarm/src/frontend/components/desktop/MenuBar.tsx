@@ -1,10 +1,13 @@
 /**
  * MenuBar 组件
  * macOS 风格顶部状态栏，使用 Tailwind CSS
+ * 显示实时系统信息：电池、网络、内存等
  */
 
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
+import { useSystemStatus } from '../../hooks/useSystemStatus.js';
+import { Battery, Wifi, HardDrive, Search, Settings2 as Settings, Apple } from '../ui/Icons.js';
 
 interface MenuBarProps {
     appName?: string;
@@ -22,8 +25,17 @@ function formatTime(date: Date): string {
     return date.toLocaleString('zh-CN', options);
 }
 
+function formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+}
+
 export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProps) {
     const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
+    const systemStatus = useSystemStatus();
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -35,14 +47,127 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
     const menuItems = useMemo(
         () => [
             { label: appName, isBold: true },
-            { label: '文件' },
-            { label: '编辑' },
-            { label: '视图' },
-            { label: '窗口' },
-            { label: '帮助' },
+            // { label: '文件' },
+            // { label: '编辑' },
+            // { label: '视图' },
+            // { label: '窗口' },
+            // { label: '帮助' },
         ],
         [appName],
     );
+
+    // 电池状态显示
+    const renderBattery = () => {
+        const battery = systemStatus.battery;
+        if (!battery) return null;
+
+        const percentage = Math.round(battery.level * 100);
+        const isCharging = battery.charging;
+
+        // 根据电量决定电池图标颜色
+        const getBatteryColor = () => {
+            if (isCharging) return 'text-green-500';
+            if (percentage <= 20) return 'text-red-500';
+            if (percentage <= 50) return 'text-yellow-500';
+            return 'text-white opacity-80';
+        };
+
+        return (
+            <button
+                className="h-full px-1.5 flex items-center gap-1 rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-default"
+                aria-label={`电池 ${percentage}%${isCharging ? ' 正在充电' : ''}`}
+                title={`电池: ${percentage}%${isCharging ? ' (充电中)' : ''}`}
+            >
+                <Battery width={20} height={20} className={getBatteryColor()} />
+                {isCharging && <span className="text-xs">⚡</span>}
+                {percentage < 100 && <span className="text-[11px] font-medium opacity-90">{percentage}%</span>}
+            </button>
+        );
+    };
+
+    // 网络状态显示
+    const renderNetwork = () => {
+        const { online, type, effectiveType } = systemStatus.network;
+        const networkType = type || (online ? 'wifi' : 'offline');
+
+        const getNetworkSignal = () => {
+            if (!online) return 0;
+            if (effectiveType === '4g') return 4;
+            if (effectiveType === '3g') return 3;
+            if (effectiveType === '2g' || effectiveType === 'slow-2g') return 1;
+            return 3; // 默认
+        };
+
+        const signalBars = getNetworkSignal();
+
+        return (
+            <button
+                className="h-full px-1.5 flex items-center rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-default"
+                aria-label={`${online ? '已连接网络' : '网络断开'} ${networkType}`}
+                title={`网络: ${online ? '已连接' : '已断开'}${type ? ` (${type})` : ''}${effectiveType ? ` (${effectiveType})` : ''}`}
+            >
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" className="text-white opacity-80">
+                    {/* WiFi 信号 */}
+                    <path
+                        d={`M${12 - signalBars * 1.5} 14c0.55-0.55 1.45-0.55 2 0h0.6c0.55-0.55 1.45-0.55 2 0`}
+                        fill="currentColor"
+                        opacity={0.4}
+                    />
+                    {signalBars >= 2 && (
+                        <path
+                            d={`M${12 - signalBars * 2.5} 11c0.55-0.55 1.45-0.55 2 0h1.5c0.55-0.55 1.45-0.55 2 0`}
+                            fill="currentColor"
+                            opacity={0.6}
+                        />
+                    )}
+                    {signalBars >= 3 && (
+                        <path
+                            d={`M${12 - signalBars * 3.5} 8c0.55-0.55 1.45-0.55 2 0h2.5c0.55-0.55 1.45-0.55 2 0`}
+                            fill="currentColor"
+                            opacity={0.8}
+                        />
+                    )}
+                    {signalBars >= 4 && (
+                        <path
+                            d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9z"
+                            fill="currentColor"
+                        />
+                    )}
+                </svg>
+            </button>
+        );
+    };
+
+    // 内存状态显示
+    const renderMemory = () => {
+        const memory = systemStatus.memory;
+        if (!memory) return null;
+
+        const usagePercent =
+            memory.usedJSHeapSize && memory.jsHeapSizeLimit
+                ? Math.round((memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100)
+                : 0;
+
+        return (
+            <button
+                className="h-full px-1.5 flex items-center gap-1 rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-default"
+                aria-label={`内存使用 ${usagePercent}%`}
+                title={`内存使用: ${formatBytes(memory.usedJSHeapSize || 0)} / ${formatBytes(memory.jsHeapSizeLimit || 0)} (${usagePercent}%)`}
+            >
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" className="text-white opacity-80">
+                    <path d="M4 4h16v16H4V4zm2 2v12h12V6H6z" opacity="0.5" />
+                    <rect
+                        x="6"
+                        y={18 - 12 * (usagePercent / 100)}
+                        width="12"
+                        height={12 * (usagePercent / 100)}
+                        fill="currentColor"
+                        opacity={usagePercent > 80 ? 1 : 0.7}
+                    />
+                </svg>
+            </button>
+        );
+    };
 
     return (
         <motion.header
@@ -50,6 +175,7 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
                 fixed top-0 left-0 right-0 z-[1000]
                 h-7 flex items-center justify-between
                 px-3
+                text-white
                 dark:bg-neutral-900/85
                 backdrop-blur-xl
                 select-none
@@ -89,26 +215,14 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
 
             {/* 右侧状态 */}
             <div className="flex items-center h-full gap-0.5">
-                {/* 电池 */}
-                <button
-                    className="h-full px-1.5 flex items-center rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-default"
-                    aria-label="电池状态"
-                >
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" className="opacity-80">
-                        <path d="M17 5H3c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-1h1c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1h-1V7c0-1.1-.9-2-2-2zm0 12H3V7h14v10z" />
-                        <path d="M5 8h10v8H5z" opacity="0.8" />
-                    </svg>
-                </button>
+                {/* 电池状态 */}
+                {renderBattery()}
 
-                {/* WiFi */}
-                <button
-                    className="h-full px-1.5 flex items-center rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-default"
-                    aria-label="WiFi 状态"
-                >
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" className="opacity-80">
-                        <path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z" />
-                    </svg>
-                </button>
+                {/* 网络状态 */}
+                {renderNetwork()}
+
+                {/* 内存状态 */}
+                {renderMemory()}
 
                 {/* 搜索 */}
                 <button

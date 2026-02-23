@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import { ChevronDown } from './Icons.js';
 
 export interface SelectOption {
     value: string;
@@ -136,14 +137,9 @@ export const Select: React.FC<SelectProps> = ({
                 <span className={value ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-muted)]'}>
                     {displayValue}
                 </span>
-                <svg
+                <ChevronDown
                     className={`w-4 h-4 text-[var(--color-text-muted)] transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                />
             </button>
 
             {/* Dropdown Menu */}
