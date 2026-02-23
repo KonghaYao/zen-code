@@ -15,12 +15,7 @@
         "baseUrl": ".",
 
         // 引用其他包
-        "paths": {
-            "@codegraph/config": ["../config/src"],
-            "@codegraph/ink-pro": ["../ink-pro/src"],
-            "@codegraph/union-client": ["../union-client/src"],
-            "@codegraph/standard-agent": ["../standard-agent/src"]
-        }
+        "paths": {}
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "dist", "**/__tests__/**", "**/*.test.ts"]
