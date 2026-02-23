@@ -2,10 +2,10 @@ import { tool, ToolRuntime } from '@langchain/core/tools';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
 import { resolve } from 'path';
-import { SwarmStateType } from '../../state';
+import type { BaseAgentStateType } from '../../index.js';
 
 export const write_tool = tool(
-    async ({ file_path, content }, runtime: ToolRuntime<SwarmStateType>) => {
+    async ({ file_path, content }, runtime: ToolRuntime<BaseAgentStateType>) => {
         try {
             // 解析路径：如果是相对路径，基于 cwd 解析；如果是绝对路径，直接使用
             const resolvedPath = resolve(runtime.state.cwd, file_path);

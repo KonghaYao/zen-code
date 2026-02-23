@@ -14,6 +14,6 @@
         "rootDir": "./src",
         "baseUrl": "."
     },
-    "include": ["src/**/*", "../../zen-code/src/chat/components/messages/Markdown.tsx"],
+    "include": ["src/**/*"],
     "exclude": ["node_modules", "dist"]
 }

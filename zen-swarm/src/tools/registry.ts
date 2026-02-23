@@ -5,23 +5,13 @@
 
 import { Tool } from 'langchain';
 import { AgentPackage, ToolImplementation } from '@langgraph-js/standard-agent';
-import { bash_tools } from './bash_tools/index.js';
-import { glob_tool, grep_tool, read_tool, write_tool, replace_tool, folder_tool } from './filesystem_tools/index.js';
 import { todo_write_tool } from './task_tools/index.js';
 import { ask_user_questions_tool } from './ask_user_questions.js';
 
 // All available tools
-const ALL_TOOLS = [
-    ask_user_questions_tool,
-    todo_write_tool,
-    glob_tool,
-    grep_tool,
-    read_tool,
-    write_tool,
-    replace_tool,
-    folder_tool,
-    ...bash_tools,
-];
+// Note: Filesystem tools are provided by FilesystemMiddleware
+// Note: Terminal tools are provided by TerminalMiddleware
+const ALL_TOOLS = [ask_user_questions_tool, todo_write_tool];
 
 async function registerLangChainTool(pkg: AgentPackage, tool: Tool) {
     // Create a ToolImplementation that wraps the LangChain tool

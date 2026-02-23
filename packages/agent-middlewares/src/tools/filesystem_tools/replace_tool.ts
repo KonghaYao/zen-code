@@ -2,7 +2,7 @@ import { tool, ToolRuntime } from '@langchain/core/tools';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
 import { resolve } from 'path';
-import { SwarmStateType } from '../../state';
+import type { BaseAgentStateType } from '../../index.js';
 
 export const editToolSchema = z.object({
     description: z.string().optional().describe('what you want to do'),
@@ -13,7 +13,7 @@ export const editToolSchema = z.object({
 });
 
 export const replace_tool = tool(
-    async ({ file_path, old_string, new_string, replace_all = false }, runtime: ToolRuntime<SwarmStateType>) => {
+    async ({ file_path, old_string, new_string, replace_all = false }, runtime: ToolRuntime<BaseAgentStateType>) => {
         try {
             // 解析路径：如果是相对路径，基于 cwd 解析；如果是绝对路径，直接使用
             const resolvedPath = resolve(runtime.state.cwd, file_path);

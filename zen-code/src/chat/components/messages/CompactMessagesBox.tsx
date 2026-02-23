@@ -8,6 +8,7 @@ import { RenderMessage } from '@langgraph-js/sdk';
 import { getTextContent } from '@langgraph-js/sdk';
 import { getColor } from '@codegraph/union-client';
 import { PlatformStatic } from '../common/PlatformStatic';
+import DynamicRenderer from './DynamicRenderer';
 
 interface CompactMessagesBoxProps {
     renderMessages: RenderMessage[];
@@ -79,7 +80,7 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
                                     startIndex={1}
                                     depth={depth + 1}
                                     // 修复：使用唯一 instanceId 生成 staticKey，避免不同子组件间冲突
-                                    staticKey={`${instanceId}-sub-d${depth}-i${idx}`}
+                                    staticKey={`sub-d${depth}-i${idx}`}
                                     getToolUIRender={getToolUIRender}
                                     loading={loading}
                                 />
@@ -228,20 +229,24 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
     return (
         <Box flexDirection="column">
             {/* 历史消息：用 PlatformStatic 固定，仅在 Windows 上启用 Static 能力 */}
-            <Static items={histories}>
-                {(item, i) => (
-                    <MessageItem
-                        key={item.id ? `hist-${item.id}` : `hist-msg-${depth}-${i}`}
-                        message={item}
-                        displayIndex={i}
-                        isCurrent={false}
-                        startIndex={startIndex}
-                        getToolUIRender={getToolUIRender}
-                        depth={depth}
-                        loading={loading}
-                    />
+            <DynamicRenderer staticKey={`${staticKey} ${histories.length}`}>
+                {() => (
+                    <Static items={histories}>
+                        {(item, i) => (
+                            <MessageItem
+                                key={item.id ? `hist-${item.id}` : `hist-msg-${depth}-${i}`}
+                                message={item}
+                                displayIndex={i}
+                                isCurrent={false}
+                                startIndex={startIndex}
+                                getToolUIRender={getToolUIRender}
+                                depth={depth}
+                                loading={loading}
+                            />
+                        )}
+                    </Static>
                 )}
-            </Static>
+            </DynamicRenderer>
 
             {/* 当前消息 */}
             {current.map((item, i) => (

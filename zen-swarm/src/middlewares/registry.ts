@@ -53,4 +53,35 @@ export async function createMiddlewareRegistry(pkg: AgentPackage) {
         await pkg.addMiddleware(mcp);
     }
     pkg.middlewares.registerImplementation(mcp);
+
+    // Filesystem and Terminal middlewares from @langgraph-js/agent-middlewares
+    const filesystem = {
+        id: 'filesystem',
+        name: 'filesystem',
+        description: 'Filesystem operations (read, write, search, folder)',
+        execute: async () => {
+            const { FilesystemMiddleware } = await import('@langgraph-js/agent-middlewares');
+            return new FilesystemMiddleware();
+        },
+    };
+    const existingFilesystem = await pkg.getMiddleware('filesystem');
+    if (!existingFilesystem) {
+        await pkg.addMiddleware(filesystem);
+    }
+    pkg.middlewares.registerImplementation(filesystem);
+
+    const terminal = {
+        id: 'terminal',
+        name: 'terminal',
+        description: 'Terminal command execution with background process management',
+        execute: async () => {
+            const { TerminalMiddleware } = await import('@langgraph-js/agent-middlewares');
+            return new TerminalMiddleware();
+        },
+    };
+    const existingTerminal = await pkg.getMiddleware('terminal');
+    if (!existingTerminal) {
+        await pkg.addMiddleware(terminal);
+    }
+    pkg.middlewares.registerImplementation(terminal);
 }

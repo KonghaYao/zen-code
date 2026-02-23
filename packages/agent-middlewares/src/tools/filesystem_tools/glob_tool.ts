@@ -2,7 +2,7 @@ import { tool, ToolRuntime } from '@langchain/core/tools';
 import { z } from 'zod';
 import { glob } from 'glob';
 import { resolve } from 'path';
-import { SwarmStateType } from '../../state';
+import type { BaseAgentStateType } from '../../index.js';
 
 export const globToolSchema = z.object({
     description: z.string().optional().describe('what you want to do'),
@@ -15,7 +15,7 @@ export const globToolSchema = z.object({
         ),
 });
 export const glob_tool = tool(
-    async ({ pattern, path }, runtime: ToolRuntime<SwarmStateType>) => {
+    async ({ pattern, path }, runtime: ToolRuntime<BaseAgentStateType>) => {
         // 解析路径：如果提供了 path，基于 cwd 解析；否则使用 cwd
         const cwd = path ? resolve(runtime.state.cwd, path) : runtime.state.cwd;
 

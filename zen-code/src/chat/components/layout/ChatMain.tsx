@@ -37,27 +37,6 @@ const ChatMessages: React.FC = () => {
     // Debounce renderMessages updates to 500ms to reduce re-renders during fast updates
     const [debouncedRenderMessages] = useDebounceValue(renderMessages, 50);
 
-    // Track whether to show messages (hide when loading transitions from true to false)
-    const [showMessages, setShowMessages] = useState(true);
-    const [prevLoading, setPrevLoading] = useState(loading);
-
-    // Detect loading transition from true to false and hide messages for 200ms
-    useEffect(() => {
-        if (prevLoading && !loading) {
-            setShowMessages(false);
-            const timer = setTimeout(() => {
-                setShowMessages(true);
-            }, 200);
-            return () => clearTimeout(timer);
-        }
-        setPrevLoading(loading);
-    }, [loading, prevLoading]);
-
-    // Stable key for Static component re-mount
-    const staticKey = useMemo(() => {
-        return `${currentChatId}-${debouncedRenderMessages.length}`;
-    }, [currentChatId, debouncedRenderMessages.length]);
-
     // Wrap getToolUIRender with useCallback to stabilize reference
     // Type assertion to handle SDK's Object vs ReactNode type mismatch
     const stableGetToolUIRender = useCallback(
@@ -68,23 +47,24 @@ const ChatMessages: React.FC = () => {
     return (
         <Box flexDirection="column" flexGrow={1} paddingX={0} paddingY={0}>
             {debouncedRenderMessages.length === 0 && <WelcomeHeader />}
+
             {/* 当没有消息的时候, 绝对不要渲染 */}
-            {showMessages && debouncedRenderMessages.length ? (
+            {debouncedRenderMessages.length ? (
                 compactMode ? (
                     <CompactMessagesBox
                         renderMessages={debouncedRenderMessages}
                         startIndex={0}
-                        staticKey={staticKey}
+                        staticKey={currentChatId!}
                         getToolUIRender={stableGetToolUIRender}
                         loading={loading}
-                        key={staticKey}
+                        key={currentChatId}
                     />
                 ) : (
                     <MessagesBox
                         loading={loading}
                         renderMessages={debouncedRenderMessages}
                         startIndex={0}
-                        staticKey={staticKey}
+                        staticKey={currentChatId!}
                     />
                 )
             ) : null}

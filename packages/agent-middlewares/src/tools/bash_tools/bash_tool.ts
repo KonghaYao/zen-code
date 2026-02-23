@@ -1,7 +1,7 @@
 import { tool, ToolRuntime } from '@langchain/core/tools';
 import { z } from 'zod';
 import { execa, type ResultPromise } from 'execa';
-import { SwarmStateType } from '../../state';
+import type { BaseAgentStateType } from '../../index.js';
 
 // 管理后台进程的状态
 export interface ManagedProcess {
@@ -20,7 +20,7 @@ const shellArgs = isWindows ? ['/d', '/s', '/c'] : ['-c'];
 export const bash_tool = tool(
     async (
         { command, timeout, run_in_background, kill_process_id, get_output_id, filter },
-        runtime: ToolRuntime<SwarmStateType>,
+        runtime: ToolRuntime<BaseAgentStateType>,
     ) => {
         // 1. Kill Process Logic
         if (kill_process_id) {

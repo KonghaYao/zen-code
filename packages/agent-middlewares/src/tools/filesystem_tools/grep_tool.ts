@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { rgPath } from '../../utils/ripgrep.js';
 import { execa } from 'execa';
 import { resolve } from 'path';
-import { SwarmStateType } from '../../state';
+import type { BaseAgentStateType } from '../../index.js';
 
 // 使用 execa 执行命令的异步函数
 const execCommand = async (
@@ -48,7 +48,7 @@ const execCommand = async (
 };
 
 export const grep_tool = tool(
-    async ({ args, head_limit }, runtime: ToolRuntime<SwarmStateType>) => {
+    async ({ args, head_limit }, runtime: ToolRuntime<BaseAgentStateType>) => {
         // 基本验证：确保 args 数组不为空
         if (!args || args.length === 0) {
             return 'Error: No arguments provided. Please provide ripgrep arguments.';

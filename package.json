@@ -14,7 +14,7 @@
         "dev:tui": "bun --smol run zen-code/src/cli.ts",
         "dev:swarm": " bun run zen-swarm/src/server.ts",
         "preview:tui": "node --expose-gc zen-code/dist/cli.js",
-        "preview:bun": "bun run zen-code/dist/cli.mjs",
+        "preview:bun": "bun run zen-code/dist/cli.js",
         "preview": "node --env-file=.env zen-code/dist/cli.mjs",
         "build": "bun run --filter './packages/*' build && bun run --filter zen-code build && bun run --filter zen-worker build",
         "build:packages": "bun run --filter './packages/*' build",
@@ -53,6 +53,7 @@
         "zod": "^4.3.5"
     },
     "devDependencies": {
+        "@types/fs-extra": "^11.0.4",
         "@types/bun": "^1.3.6",
         "@types/micromatch": "^4.0.10",
         "@types/node": "^20.19.30",

@@ -2,7 +2,7 @@ import { tool, ToolRuntime } from '@langchain/core/tools';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
 import { resolve, join } from 'path';
-import { SwarmStateType } from '../../state';
+import type { BaseAgentStateType } from '../../index.js';
 
 const folderOperationSchema = z
     .object({
@@ -18,10 +18,10 @@ const folderOperationSchema = z
     .strict();
 
 export const folder_tool = tool(
-    async ({ operation, folder_path, recursive = true }, runtime: ToolRuntime<SwarmStateType>) => {
+    async ({ operation, folder_path, recursive = true }, runtime: ToolRuntime<BaseAgentStateType>) => {
         try {
             // 解析路径：如果是相对路径，基于 cwd 解析；如果是绝对路径，直接使用
-            const resolvedPath = resolve(runtime.state.cwd, folder_path);
+            const resolvedPath = resolve(runtime.state.cwd!, folder_path);
 
             switch (operation) {
                 case 'create': {

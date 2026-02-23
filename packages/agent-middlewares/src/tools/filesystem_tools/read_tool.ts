@@ -2,7 +2,7 @@ import { tool, ToolRuntime } from '@langchain/core/tools';
 import { z } from 'zod';
 import { promises as fs } from 'fs';
 import { resolve } from 'path';
-import { SwarmStateType } from '../../state';
+import type { BaseAgentStateType } from '../../index.js';
 
 const MAX_LINES = 2000;
 export const readFileSchema = z.object({
@@ -20,7 +20,7 @@ export const readFileSchema = z.object({
         .describe('The number of lines to read. Only provide if the file is too large to read at once.'),
 });
 export const read_tool = tool(
-    async ({ file_path, offset, limit }, runtime: ToolRuntime<SwarmStateType>) => {
+    async ({ file_path, offset, limit }, runtime: ToolRuntime<BaseAgentStateType>) => {
         try {
             // 解析路径：如果是相对路径，基于 runtime.state.cwd 解析；如果是绝对路径，直接使用
             const resolvedPath = resolve(runtime.state.cwd, file_path);
