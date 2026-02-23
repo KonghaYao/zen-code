@@ -81,7 +81,7 @@ export function WorkspaceView() {
         return (
             <div className="flex flex-col h-full overflow-hidden">
                 {/* 顶部工具栏 */}
-                <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-[var(--color-bg-secondary)]">
                     <WorkspaceSelector onOpenManage={openManageDialog} />
                 </div>
 
@@ -101,7 +101,7 @@ export function WorkspaceView() {
     return (
         <div className="flex flex-col h-full overflow-hidden">
             {/* 顶部工具栏 */}
-            <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-[var(--color-bg-secondary)]">
                 <WorkspaceSelector onOpenManage={openManageDialog} />
             </div>
 

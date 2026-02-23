@@ -335,7 +335,7 @@ export const WorkspaceContent: React.FC<WorkspaceContentProps> = ({ workspaceId,
             <PanelItem
                 id="tree"
                 position="right"
-                className="flex flex-col border-l border-[var(--color-border)] bg-[var(--color-bg-secondary)]"
+                className="flex flex-col border-l border-gray-200 bg-[var(--color-bg-secondary)]"
             >
                 <div className="flex-1 overflow-y-auto overflow-x-hidden">
                     {treeError && (

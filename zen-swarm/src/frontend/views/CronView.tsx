@@ -5,10 +5,37 @@
 import { useState, useMemo, useCallback } from 'react';
 import { trpc } from '../api.js';
 import { Modal } from '../components/Modal.js';
+import { ConfirmModal } from '../components/ui/ConfirmModal.js';
 import { CronTaskList, CronTaskForm, CronLogList, QueueIndicator } from '../components/cron/index.js';
 import type { CronTask, CronLog } from '../types/cron.js';
 
+type CronTab = 'tasks' | 'logs';
+
+interface TabConfig {
+    id: CronTab;
+    label: string;
+    icon: string;
+    description: string;
+}
+
+const TABS: TabConfig[] = [
+    {
+        id: 'tasks',
+        label: 'Tasks',
+        icon: '⏰',
+        description: 'Manage scheduled cron tasks',
+    },
+    {
+        id: 'logs',
+        label: 'Execution Logs',
+        icon: '📋',
+        description: 'View task execution history',
+    },
+];
+
 export function CronView() {
+    const [activeTab, setActiveTab] = useState<CronTab>('tasks');
+
     // Modal states
     const [showForm, setShowForm] = useState(false);
     const [editingTask, setEditingTask] = useState<CronTask | null>(null);
@@ -114,55 +141,105 @@ export function CronView() {
 
     const handleViewThread = useCallback((threadId: string) => {}, []);
 
+    const handleTabChange = useCallback((tab: CronTab) => {
+        setActiveTab(tab);
+    }, []);
+
     const isLoading = tasksQuery.isLoading || agentsQuery.isLoading;
 
+    const activeTabConfig = TABS.find((t) => t.id === activeTab);
+
     return (
-        <div className="space-y-6">
+        <div className="h-full flex flex-col overflow-hidden p-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Cron Tasks</h1>
-                    <p className="text-sm text-gray-500 mt-1">Schedule and manage automated tasks</p>
+            <div className="flex-shrink-0 mb-6">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h1 className="text-2xl font-semibold text-[var(--color-text-primary)]">Cron Tasks</h1>
+                        <p className="text-sm text-[var(--color-text-muted)] mt-1">
+                            Schedule and manage automated tasks
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setEditingTask(null);
+                            setShowForm(true);
+                        }}
+                        className="px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                        + New Task
+                    </button>
                 </div>
-                <button
-                    onClick={() => {
-                        setEditingTask(null);
-                        setShowForm(true);
-                    }}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
-                >
-                    <span>+</span>
-                    <span>New Task</span>
-                </button>
             </div>
 
             {/* Queue Status */}
             {queueStatusQuery.data && schedulerStatusQuery.data && (
-                <QueueIndicator queueStatus={queueStatusQuery.data} schedulerStatus={schedulerStatusQuery.data} />
+                <div className="flex-shrink-0 mb-6">
+                    <QueueIndicator queueStatus={queueStatusQuery.data} schedulerStatus={schedulerStatusQuery.data} />
+                </div>
             )}
 
-            {/* Task List */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Tasks</h2>
-                {isLoading ? (
-                    <div className="text-center py-8 text-gray-500">Loading...</div>
-                ) : (
-                    <CronTaskList
-                        tasks={tasksQuery.data || []}
-                        agentMap={agentMap}
-                        lastLogMap={lastLogMap}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        onToggle={handleToggle}
-                        onTrigger={handleTrigger}
-                    />
-                )}
+            {/* Tabs */}
+            <div className="flex-shrink-0 mb-6">
+                <div className="flex gap-2">
+                    {TABS.map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => handleTabChange(tab.id)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                activeTab === tab.id
+                                    ? 'bg-[var(--color-primary)] text-white'
+                                    : 'text-[var(--color-text-primary)] hover:bg-[var(--color-bg-secondary)]'
+                            }`}
+                        >
+                            <span>{tab.icon}</span>
+                            <span>{tab.label}</span>
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {/* Recent Logs */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Executions</h2>
-                <CronLogList logs={recentLogsQuery.data || []} taskMap={taskMap} onViewThread={handleViewThread} />
+            {/* Content Area */}
+            <div className="flex-1 min-h-0 overflow-hidden">
+                <div className="bg-white rounded-lg border border-[var(--color-border-subtle)] flex flex-col min-h-0">
+                    <div className="p-4 border-b border-[var(--color-border-subtle)] flex-shrink-0">
+                        <div className="flex items-center gap-3">
+                            <span className="text-xl">{activeTabConfig?.icon}</span>
+                            <div>
+                                <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
+                                    {activeTabConfig?.label}
+                                </h2>
+                                <p className="text-sm text-[var(--color-text-muted)]">{activeTabConfig?.description}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-auto p-4">
+                        {activeTab === 'tasks' && (
+                            <>
+                                {isLoading ? (
+                                    <div className="text-center py-8 text-[var(--color-text-muted)]">Loading...</div>
+                                ) : (
+                                    <CronTaskList
+                                        tasks={tasksQuery.data || []}
+                                        agentMap={agentMap}
+                                        lastLogMap={lastLogMap}
+                                        onEdit={handleEdit}
+                                        onDelete={handleDelete}
+                                        onToggle={handleToggle}
+                                        onTrigger={handleTrigger}
+                                    />
+                                )}
+                            </>
+                        )}
+                        {activeTab === 'logs' && (
+                            <CronLogList
+                                logs={recentLogsQuery.data || []}
+                                taskMap={taskMap}
+                                onViewThread={handleViewThread}
+                            />
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Create/Edit Modal */}
@@ -171,32 +248,16 @@ export function CronView() {
             </Modal>
 
             {/* Delete Confirmation Modal */}
-            <Modal open={!!showConfirmDelete} onClose={() => setShowConfirmDelete(null)} title="Confirm Delete">
-                <div className="space-y-4">
-                    <p className="text-gray-600">
-                        Are you sure you want to delete this cron task? This will also delete all execution logs.
-                    </p>
-                    <div className="flex justify-end gap-3">
-                        <button
-                            onClick={() => setShowConfirmDelete(null)}
-                            className="px-4 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleConfirmDelete}
-                            disabled={deleteMutation.isPending}
-                            className={`px-4 py-2 text-sm text-white rounded-lg ${
-                                deleteMutation.isPending
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-red-500 hover:bg-red-600'
-                            }`}
-                        >
-                            {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-                        </button>
-                    </div>
-                </div>
-            </Modal>
+            <ConfirmModal
+                open={!!showConfirmDelete}
+                title="Confirm Delete"
+                message="Are you sure you want to delete this cron task? This will also delete all execution logs."
+                confirmText="Delete"
+                cancelText="Cancel"
+                confirmVariant="danger"
+                onConfirm={handleConfirmDelete}
+                onCancel={() => setShowConfirmDelete(null)}
+            />
         </div>
     );
 }

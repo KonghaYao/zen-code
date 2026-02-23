@@ -6,6 +6,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../../../api.js';
 import type { PreviewContent } from '../../../types/finder.js';
+import { X, Loader2 } from '../../ui/Icons.js';
 
 // ========================================
 // Types
@@ -271,9 +272,7 @@ export const FinderPreview: React.FC<FinderPreviewProps> = ({ path, loading: ini
                     onClick={onClose}
                     className="p-1 rounded text-[var(--color-text-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)]"
                 >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <X className="w-4 h-4" />
                 </button>
             </div>
 
@@ -281,25 +280,7 @@ export const FinderPreview: React.FC<FinderPreviewProps> = ({ path, loading: ini
             <div className="flex-1 overflow-hidden">
                 {loading && (
                     <div className="flex items-center justify-center h-full">
-                        <svg
-                            className="w-6 h-6 animate-spin text-[var(--color-text-muted)]"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                        >
-                            <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                            />
-                            <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            />
-                        </svg>
+                        <Loader2 className="w-6 h-6 animate-spin text-[var(--color-text-muted)]" />
                     </div>
                 )}
 

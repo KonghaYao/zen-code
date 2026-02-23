@@ -6,6 +6,7 @@
 import React, { useMemo, useRef } from 'react';
 import type { FinderFileItem, ViewOptions, SelectionState } from '../../../types/finder.js';
 import { formatFileSize } from '../../../stores/finder.js';
+import { Loader2, Check, MoreHorizontal } from '../../ui/Icons.js';
 
 // ========================================
 // Types
@@ -88,9 +89,7 @@ const IconItem: React.FC<IconItemProps> = ({ item, isSelected, size, onSelect, o
             {/* Selection indicator */}
             {isSelected && (
                 <div className="absolute top-1 right-1 w-4 h-4 bg-[var(--color-primary)] rounded-full flex items-center justify-center">
-                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
+                    <Check className="w-3 h-3 text-white" />
                 </div>
             )}
 
@@ -104,14 +103,7 @@ const IconItem: React.FC<IconItemProps> = ({ item, isSelected, size, onSelect, o
                         }}
                         className="p-1 bg-white rounded-full shadow-md hover:bg-gray-50"
                     >
-                        <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                            />
-                        </svg>
+                        <MoreHorizontal className="w-3 h-3 text-gray-600" />
                     </button>
                 )}
             </div>
@@ -157,14 +149,7 @@ export const FinderIconView: React.FC<FinderIconViewProps> = ({
         return (
             <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-4 text-[var(--color-text-muted)]">
-                    <svg className="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                    </svg>
+                    <Loader2 className="w-8 h-8 animate-spin" />
                     <span>Loading...</span>
                 </div>
             </div>

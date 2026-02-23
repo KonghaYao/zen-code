@@ -3,6 +3,7 @@
  */
 
 import type { CronTask, CronLogStatus } from '../../types/cron.js';
+import { Play, Pause, Edit, Trash2 } from '../ui/Icons.js';
 
 interface CronTaskCardProps {
     task: CronTask;
@@ -78,9 +79,7 @@ export function CronTaskCard(props: CronTaskCardProps) {
                             }`}
                             title="Run now"
                         >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                            </svg>
+                            <Play className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => props.onToggle(task.id)}
@@ -91,51 +90,21 @@ export function CronTaskCard(props: CronTaskCardProps) {
                             }`}
                             title={task.enabled ? 'Disable' : 'Enable'}
                         >
-                            {task.enabled ? (
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z"
-                                        clipRule="evenodd"
-                                    />
-                                </svg>
-                            ) : (
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                                        clipRule="evenodd"
-                                    />
-                                </svg>
-                            )}
+                            {task.enabled ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                         </button>
                         <button
                             onClick={() => props.onEdit(task)}
                             className="p-1.5 rounded transition-colors bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
                             title="Edit"
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                            </svg>
+                            <Edit className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => props.onDelete(task.id)}
                             className="p-1.5 rounded transition-colors bg-red-50 hover:bg-red-100 text-red-600"
                             title="Delete"
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                />
-                            </svg>
+                            <Trash2 className="w-4 h-4" />
                         </button>
                     </div>
                 </div>

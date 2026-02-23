@@ -13,7 +13,7 @@
         "dev:docs": "bunx --bun xyd-js@0.1.0-alpha.5",
         "dev:tui": "DEV=true bun --smol run zen-code/src/cli.ts",
         "devtool": "bunx react-devtools",
-        "dev:swarm": " bun run zen-swarm/src/server.ts",
+        "dev:swarm": " cd zen-swarm && bun run src/server.ts",
         "preview:tui": "node --expose-gc zen-code/dist/cli.js",
         "preview:bun": "bun run zen-code/dist/cli.js",
         "preview": "node --env-file=.env zen-code/dist/cli.mjs",

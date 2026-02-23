@@ -6,6 +6,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { SidebarSection, SidebarItem } from '../../../types/finder.js';
 import { useFinderStore } from '../../../stores/finder.js';
 import { apiClient } from '../../../api.js';
+import { MoreVertical, ChevronDown, RefreshCw, ChevronLeft, Home, Loader2 } from '../../ui/Icons.js';
 
 // ========================================
 // Types
@@ -107,9 +108,7 @@ const SidebarItemRow: React.FC<SidebarItemRowProps> = ({ item, isActive, onNavig
                 }`}
                 title="More options"
             >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
-                </svg>
+                <MoreVertical className="w-4 h-4" />
             </button>
         </div>
     );
@@ -144,14 +143,7 @@ const SidebarSectionView: React.FC<SidebarSectionViewProps> = ({
                 onClick={section.collapsible ? onToggle : undefined}
             >
                 {section.collapsible && (
-                    <svg
-                        className={`w-3 h-3 transition-transform ${section.collapsed ? '-rotate-90' : ''}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    <ChevronDown className={`w-3 h-3 transition-transform ${section.collapsed ? '-rotate-90' : ''}`} />
                 )}
                 <span>{section.title}</span>
             </div>
@@ -246,14 +238,7 @@ export const FinderSidebar: React.FC<FinderSidebarProps> = ({
     // Loading indicator component
     const LoadingSpinner = () => (
         <div className="px-4 py-2 flex items-center gap-2 text-[var(--color-text-muted)]">
-            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-            </svg>
+            <Loader2 className="w-4 h-4 animate-spin" />
             <span className="text-xs">Loading folders...</span>
         </div>
     );
@@ -310,33 +295,14 @@ export const FinderSidebar: React.FC<FinderSidebarProps> = ({
                         className="p-1 rounded text-[var(--color-text-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)]"
                         title="Refresh Folders"
                     >
-                        <svg
-                            className={`w-4 h-4 ${loadingFolders ? 'animate-spin' : ''}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                            />
-                        </svg>
+                        <RefreshCw className={`w-4 h-4 ${loadingFolders ? 'animate-spin' : ''}`} />
                     </button>
                     <button
                         onClick={onToggle}
                         className="p-1 rounded text-[var(--color-text-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)]"
                         title="Hide Sidebar"
                     >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
-                            />
-                        </svg>
+                        <ChevronLeft className="w-4 h-4" />
                     </button>
                 </div>
             </div>
