@@ -7,7 +7,7 @@
  * - 文件选择和预览
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { apiClient } from '../api.js';
 import { useChat } from '@langgraph-js/sdk/react';
 import { PanelLayout, PanelItem } from '../components/workspace/index.js';
@@ -15,7 +15,7 @@ import { FileTree } from '../components/fileExplorer/index.js';
 import type { TreeNode } from '../components/fileExplorer/FileTree/FileTree.js';
 import { PreviewPanel } from '../components/fileExplorer/Preview/index.js';
 import { HistorySidebar } from '../components/HistorySidebar.js';
-import { ChatInput, HumanMessage, AIMessage, ToolMessage } from '../components/index.js';
+import { HumanMessage, AIMessage, ToolMessage } from '../components/index.js';
 import { AgentSelect } from '../components/AgentSelect.js';
 
 // ========================================
@@ -26,6 +26,70 @@ interface WorkspaceContentProps {
     workspaceId: string;
     rootPath: string;
 }
+
+// ========================================
+// Mini Input Component (简化版输入框)
+// ========================================
+
+interface MiniInputProps {
+    value: string;
+    onChange: (value: string) => void;
+    onSubmit: (value: string) => void;
+    loading?: boolean;
+    disabled?: boolean;
+}
+
+const MiniInput: React.FC<MiniInputProps> = ({ value, onChange, onSubmit, loading, disabled }) => {
+    const isDisabled = disabled || loading;
+    const isComposingRef = useRef(false);
+
+    const handleSubmit = useCallback(() => {
+        const trimmed = value.trim();
+        if (trimmed && !isDisabled) {
+            onSubmit(trimmed);
+        }
+    }, [value, isDisabled, onSubmit]);
+
+    const handleKeyDown = useCallback(
+        (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+            if (e.key === 'Enter' && !e.shiftKey && !isComposingRef.current) {
+                e.preventDefault();
+                handleSubmit();
+            }
+        },
+        [handleSubmit],
+    );
+
+    return (
+        <div className="p-2 border-t border-[var(--color-border-subtle)] bg-[var(--color-bg-tertiary)]">
+            <div className="flex gap-2">
+                <textarea
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onCompositionStart={() => {
+                        isComposingRef.current = true;
+                    }}
+                    onCompositionEnd={() => {
+                        isComposingRef.current = false;
+                    }}
+                    placeholder={loading ? 'Thinking...' : 'Message...'}
+                    disabled={isDisabled}
+                    rows={1}
+                    className="flex-1 px-2 py-1.5 text-xs bg-[var(--color-bg-primary)] border border-[var(--color-border-default)] rounded resize-none text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] disabled:bg-[var(--color-bg-tertiary)] disabled:cursor-not-allowed"
+                />
+                <button
+                    onClick={handleSubmit}
+                    disabled={isDisabled || !value.trim()}
+                    className="px-2 py-1 text-xs font-medium bg-[var(--color-primary)] text-white rounded hover:bg-[var(--color-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    Send
+                </button>
+            </div>
+            <div className="mt-1 text-[10px] text-[var(--color-text-muted)]">Enter to send</div>
+        </div>
+    );
+};
 
 // ========================================
 // Chat Panel Component - 第二栏
@@ -50,8 +114,8 @@ const ChatPanelContent: React.FC<{ modelName?: string; onClose?: () => void; roo
 
     const [selectedAgentId, setSelectedAgentId] = useState<string>(currentAgent || '');
     const [isUserNearBottom, setIsUserNearBottom] = useState(true);
-    const messagesEndRef = React.useRef<HTMLDivElement>(null);
-    const messagesContainerRef = React.useRef<HTMLDivElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
 
     // Debug: Log state changes
     useEffect(() => {
@@ -173,13 +237,7 @@ const ChatPanelContent: React.FC<{ modelName?: string; onClose?: () => void; roo
             </div>
 
             {/* Input */}
-            <ChatInput
-                value={userInput}
-                onChange={setUserInput}
-                onSubmit={handleSubmit}
-                loading={loading}
-                placeholder="Type your message..."
-            />
+            <MiniInput value={userInput} onChange={setUserInput} onSubmit={handleSubmit} loading={loading} />
         </div>
     );
 };

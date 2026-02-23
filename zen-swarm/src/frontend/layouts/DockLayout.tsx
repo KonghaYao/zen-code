@@ -16,7 +16,6 @@ import type { AppId } from '../components/app-registry/types.js';
 import { DashboardView } from '../views/DashboardView.js';
 import { AgentConfigView } from '../views/AgentConfigView.js';
 import { ResourcesView } from '../views/ResourcesView.js';
-import { FileExplorerView } from '../views/FileExplorerView.js';
 import { CronView } from '../views/CronView.js';
 import { AppWindow } from '../components/desktop/index.js';
 
@@ -29,7 +28,7 @@ export function DockLayout() {
         const hash = location.hash;
         let path = '';
 
-        // 处理 hash 格式：可能是 "#/files" 或 "#files"
+        // 处理 hash 格式：可能是 "#/workspaces" 或 "#workspaces"
         if (hash.startsWith('#/')) {
             path = hash.slice(2); // 移除 #/
         } else if (hash.startsWith('#')) {
@@ -45,7 +44,7 @@ export function DockLayout() {
         console.log('🔍 DockLayout - hash:', hash, 'path:', path);
 
         // 只返回有效的应用 ID，否则默认为 dashboard
-        if (['dashboard', 'agent-config', 'resources', 'files', 'finder', 'cron'].includes(path)) {
+        if (['dashboard', 'agent-config', 'resources', 'workspaces', 'finder', 'cron'].includes(path)) {
             return path as AppId;
         }
         // 如果路径为空或无效，默认为 dashboard
@@ -54,7 +53,7 @@ export function DockLayout() {
     }, [location.hash]);
 
     const currentApp = activeApp ? getAppById(activeApp) : null;
-    const isFullScreen = activeApp === 'files';
+    const isFullScreen = activeApp === 'workspaces';
 
     // 处理应用切换（由 DockContainer 调用）
     const handleAppChange = useCallback(

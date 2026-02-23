@@ -5,7 +5,7 @@
  * - Dashboard: 概览仪表盘
  * - Agent Config: Agent 配置（Agents + Models + Prompts）
  * - Resources: 资源管理（Tools + Middlewares + MCP + Skills）
- * - Files: 文件浏览器
+ * - Workspaces: 工作空间
  * - Cron: 定时任务管理
  * - Chat: 聊天界面（全屏模式）
  */
@@ -17,7 +17,7 @@ const tabs: Tab[] = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'agent-config', label: 'Agent Config', icon: '🤖' },
     { id: 'resources', label: 'Resources', icon: '📦' },
-    { id: 'files', label: 'Files', icon: '📁' },
+    { id: 'workspaces', label: 'Files', icon: '📁' },
     { id: 'cron', label: 'Cron', icon: '⏰' },
     { id: 'chat', label: 'Chat', icon: '💬' },
 ];
@@ -30,7 +30,7 @@ export function MainLayout(props: MainLayoutProps) {
     const [activeTab, setActiveTab] = useState<PanelType>('chat');
 
     // Chat and Files panels are full-screen, no padding/scroll wrapper
-    const isFullScreen = activeTab === 'chat' || activeTab === 'files';
+    const isFullScreen = activeTab === 'chat' || activeTab === 'workspaces';
 
     return (
         <div className="h-screen flex flex-col overflow-hidden bg-[var(--color-bg-primary)]">

@@ -3,7 +3,7 @@
  * 集中管理所有 Dock 应用
  */
 
-import type { AppRegistryItem } from './types.js';
+import type { AppRegistryItem, AppId } from './types.js';
 
 // 直接导入视图组件（不支持懒加载，因为没有 default export）
 import { DashboardView } from '../../views/DashboardView.js';
@@ -56,7 +56,7 @@ export const appRegistry: AppRegistryItem[] = [
         contextMenuActions: ['open', 'help'],
     },
     {
-        id: 'files',
+        id: 'workspaces',
         name: 'Workspace',
         icon: '📁',
         description: 'VSCode 风格工作空间',
