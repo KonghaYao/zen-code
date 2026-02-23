@@ -1,3 +1,5 @@
+@import 'tailwindcss';
+@import 'tailwindcss/preflight.css' layer(base);
 /**
  * Zen Swarm Global Design System
  * Minimal/Clean Aesthetic
@@ -153,33 +155,71 @@ body {
    ============================================ */
 
 /* Background Colors */
-.bg-primary { background-color: var(--color-primary); }
-.bg-secondary { background-color: var(--color-bg-secondary); }
-.bg-tertiary { background-color: var(--color-bg-tertiary); }
-.bg-elevated { background-color: var(--color-bg-elevated); }
+.bg-primary {
+    background-color: var(--color-primary);
+}
+.bg-secondary {
+    background-color: var(--color-bg-secondary);
+}
+.bg-tertiary {
+    background-color: var(--color-bg-tertiary);
+}
+.bg-elevated {
+    background-color: var(--color-bg-elevated);
+}
 
 /* Text Colors */
-.text-primary { color: var(--color-primary); }
-.text-secondary { color: var(--color-text-secondary); }
-.text-tertiary { color: var(--color-text-tertiary); }
-.text-muted { color: var(--color-text-muted); }
-.text-body { color: var(--color-text-primary); }
+.text-primary {
+    color: var(--color-primary);
+}
+.text-secondary {
+    color: var(--color-text-secondary);
+}
+.text-tertiary {
+    color: var(--color-text-tertiary);
+}
+.text-muted {
+    color: var(--color-text-muted);
+}
+.text-body {
+    color: var(--color-text-primary);
+}
 
 /* Border Colors */
-.border-subtle { border-color: var(--color-border-subtle); }
-.border-default { border-color: var(--color-border-default); }
-.border-strong { border-color: var(--color-border-strong); }
-.border-primary { border-color: var(--color-border-primary); }
+.border-subtle {
+    border-color: var(--color-border-subtle);
+}
+.border-default {
+    border-color: var(--color-border-default);
+}
+.border-strong {
+    border-color: var(--color-border-strong);
+}
+.border-primary {
+    border-color: var(--color-border-primary);
+}
 
 /* Semantic Backgrounds */
-.bg-success-light { background-color: var(--color-success-light); }
-.bg-warning-light { background-color: var(--color-warning-light); }
-.bg-error-light { background-color: var(--color-error-light); }
+.bg-success-light {
+    background-color: var(--color-success-light);
+}
+.bg-warning-light {
+    background-color: var(--color-warning-light);
+}
+.bg-error-light {
+    background-color: var(--color-error-light);
+}
 
 /* Semantic Text */
-.text-success { color: var(--color-success); }
-.text-warning { color: var(--color-warning); }
-.text-error { color: var(--color-error); }
+.text-success {
+    color: var(--color-success);
+}
+.text-warning {
+    color: var(--color-warning);
+}
+.text-error {
+    color: var(--color-error);
+}
 
 /* ============================================
    ANIMATIONS
@@ -257,8 +297,8 @@ body {
    INPUT & TEXTAREA STYLING
    ============================================ */
 
-input[type="text"],
-input[type="search"],
+input[type='text'],
+input[type='search'],
 textarea {
     font-family: var(--font-body);
     font-size: var(--text-sm);
@@ -270,22 +310,22 @@ textarea {
     transition: all var(--transition-fast);
 }
 
-input[type="text"]:focus,
-input[type="search"]:focus,
+input[type='text']:focus,
+input[type='search']:focus,
 textarea:focus {
     outline: none;
     border-color: var(--color-primary);
     box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
-input[type="text"]::placeholder,
-input[type="search"]::placeholder,
+input[type='text']::placeholder,
+input[type='search']::placeholder,
 textarea::placeholder {
     color: var(--color-text-muted);
 }
 
-input[type="text"]:disabled,
-input[type="search"]:disabled,
+input[type='text']:disabled,
+input[type='search']:disabled,
 textarea:disabled {
     background-color: var(--color-bg-tertiary);
     color: var(--color-text-tertiary);
@@ -843,8 +883,9 @@ select option {
     width: var(--dock-item-size, 52px);
     height: var(--dock-item-size, 52px);
     margin: 0 2px;
-    transition: width 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
-                height 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition:
+        width 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+        height 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
     transform-origin: bottom center;
 }
 
@@ -893,7 +934,7 @@ select option {
     user-select: none;
     -webkit-user-select: none;
     /* For emoji icons */
-    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
     transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -941,7 +982,9 @@ select option {
     pointer-events: none;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.15s ease, visibility 0.15s ease;
+    transition:
+        opacity 0.15s ease,
+        visibility 0.15s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -987,7 +1030,8 @@ select option {
 }
 
 @keyframes dock-pulse {
-    0%, 100% {
+    0%,
+    100% {
         opacity: 1;
     }
     50% {

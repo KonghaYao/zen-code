@@ -7,8 +7,7 @@ import type { AppRegistryItem, AppId } from './types.js';
 
 // 直接导入视图组件（不支持懒加载，因为没有 default export）
 import { DashboardView } from '../../views/DashboardView.js';
-import { AgentConfigView } from '../../views/AgentConfigView.js';
-import { ResourcesView } from '../../views/ResourcesView.js';
+import { ConfigView } from '../../views/ConfigView.js';
 import { WorkspaceView } from '../../views/WorkspaceView.js';
 import { FinderView } from '../../views/Finder/index.js';
 import { CronView } from '../../views/CronView.js';
@@ -29,21 +28,12 @@ export const appRegistry: AppRegistryItem[] = [
         contextMenuActions: ['open', 'help'],
     },
     {
-        id: 'agent-config',
-        name: 'Agent Config',
-        icon: '🤖',
-        description: 'Agent 配置管理',
-        viewComponent: AgentConfigView,
+        id: 'config',
+        name: 'Config',
+        icon: '⚙️',
+        description: 'AI 配置与资源管理',
+        viewComponent: ConfigView,
         keyboardShortcut: 'Cmd+2',
-        contextMenuActions: ['open', 'help'],
-    },
-    {
-        id: 'resources',
-        name: 'Resources',
-        icon: '📦',
-        description: '资源管理',
-        viewComponent: ResourcesView,
-        keyboardShortcut: 'Cmd+3',
         contextMenuActions: ['open', 'help'],
     },
     {
@@ -52,7 +42,7 @@ export const appRegistry: AppRegistryItem[] = [
         icon: '🗂️',
         description: 'macOS 风格文件管理器',
         viewComponent: FinderView,
-        keyboardShortcut: 'Cmd+4',
+        keyboardShortcut: 'Cmd+3',
         contextMenuActions: ['open', 'help'],
     },
     {
@@ -61,7 +51,7 @@ export const appRegistry: AppRegistryItem[] = [
         icon: '📁',
         description: 'VSCode 风格工作空间',
         viewComponent: WorkspaceView,
-        keyboardShortcut: 'Cmd+5',
+        keyboardShortcut: 'Cmd+4',
         contextMenuActions: ['open', 'help'],
     },
     {
@@ -70,7 +60,7 @@ export const appRegistry: AppRegistryItem[] = [
         icon: '⏰',
         description: '定时任务管理',
         viewComponent: CronView,
-        keyboardShortcut: 'Cmd+6',
+        keyboardShortcut: 'Cmd+5',
         contextMenuActions: ['open', 'help'],
     },
 ];

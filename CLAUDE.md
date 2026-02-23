@@ -462,6 +462,7 @@ const agent = await createAgent({
 
 - File operations, terminal commands, etc.
 - Must use `BaseAgentStateType` from `packages/agent-middlewares/src/index.ts`
+
 - Export via middleware class (e.g., `FilesystemMiddleware`)
 - Reference: `packages/agent-middlewares/src/filesystem.ts`
 

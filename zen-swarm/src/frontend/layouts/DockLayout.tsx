@@ -14,8 +14,7 @@ import type { AppId } from '../components/app-registry/types.js';
 
 // 导入视图组件
 import { DashboardView } from '../views/DashboardView.js';
-import { AgentConfigView } from '../views/AgentConfigView.js';
-import { ResourcesView } from '../views/ResourcesView.js';
+import { ConfigView } from '../views/ConfigView.js';
 import { CronView } from '../views/CronView.js';
 import { AppWindow } from '../components/desktop/index.js';
 
@@ -44,7 +43,7 @@ export function DockLayout() {
         console.log('🔍 DockLayout - hash:', hash, 'path:', path);
 
         // 只返回有效的应用 ID，否则默认为 dashboard
-        if (['dashboard', 'agent-config', 'resources', 'workspaces', 'finder', 'cron'].includes(path)) {
+        if (['dashboard', 'config', 'workspaces', 'finder', 'cron'].includes(path)) {
             return path as AppId;
         }
         // 如果路径为空或无效，默认为 dashboard

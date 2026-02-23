@@ -55,7 +55,7 @@ export function AppWindow({
             )}
 
             {/* Window Content */}
-            <div className={`flex-1 overflow-auto min-h-0 ${isFullScreen ? 'h-full' : ''}`}>
+            <div className={`flex-1 overflow-hidden min-h-0 ${isFullScreen ? 'h-full' : ''}`}>
                 <Suspense
                     fallback={
                         <div className="flex flex-col items-center justify-center h-full gap-4 text-neutral-500 text-sm">
