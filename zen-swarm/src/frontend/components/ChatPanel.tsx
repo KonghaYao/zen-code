@@ -31,17 +31,8 @@ const ChatPanelContent: React.FC<{ modelName?: string; defaultAgent?: string; on
     onClose,
 }) => {
     const chatStore = useChat();
-    const {
-        userInput,
-        setUserInput,
-        loading,
-        renderMessages,
-        inChatError,
-        currentAgent,
-        sendMessage,
-        stopGeneration,
-        createNewChat,
-    } = chatStore;
+    const { userInput, setUserInput, loading, renderMessages, inChatError, currentAgent, sendMessage, stopGeneration } =
+        chatStore;
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -101,22 +92,12 @@ const ChatPanelContent: React.FC<{ modelName?: string; defaultAgent?: string; on
         setUserInput('');
     };
 
-    const handleNewChat = () => {
-        const metadata: Record<string, any> = {};
-        if (selectedAgentId) {
-            metadata.agent_id = selectedAgentId;
-        }
-        createNewChat(metadata);
-    };
-
     const handleStop = () => {
         stopGeneration();
     };
 
     const handleAgentChange = (agentId: string) => {
         setSelectedAgentId(agentId);
-        // Create new chat with selected agent
-        handleNewChat();
     };
 
     if (inChatError) {
@@ -255,7 +236,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             onInitError={(error, currentAgent) => {
                 console.error('Chat init error:', error, currentAgent);
             }}
-            autoRestoreLastSession={false}
+            autoRestoreLastSession
         >
             <ChatPanelContent modelName={modelName} defaultAgent={defaultAgent} onClose={onClose} />
         </ChatProvider>

@@ -284,7 +284,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = (props) => {
             onInitError={(error, currentAgent) => {
                 console.error('History panel init error:', error, currentAgent);
             }}
-            autoRestoreLastSession={false}
+            autoRestoreLastSession
         >
             <HistoryPanelContent {...props} />
         </ChatProvider>

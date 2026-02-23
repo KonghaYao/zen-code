@@ -40,7 +40,7 @@ export function HistorySidebar(props: HistorySidebarProps) {
     });
 
     return (
-        <div className="w-64 flex-shrink-0 bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] flex flex-col h-full overflow-hidden border-r border-[var(--color-border-subtle)]">
+        <div className="flex-shrink-0 bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] flex flex-col h-full overflow-hidden">
             {/* New Chat Button */}
             <div className="p-4 border-b border-[var(--color-border-subtle)]">
                 <button

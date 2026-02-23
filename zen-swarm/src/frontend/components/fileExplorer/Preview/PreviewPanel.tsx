@@ -96,6 +96,7 @@ const LANGUAGE_MAP: Record<string, string> = {
 
 interface PreviewPanelProps {
     selectedNode: TreeNode | null;
+    rootPath?: string;
 }
 
 interface PreviewState {

@@ -331,7 +331,7 @@ export const ChatPanelMini: React.FC<ChatPanelMiniProps> = ({
             onInitError={(error, currentAgent) => {
                 console.error('ChatPanelMini init error:', error, currentAgent);
             }}
-            autoRestoreLastSession={false}
+            autoRestoreLastSession
             historyFilter={historyFilter}
         >
             <ChatPanelMiniContent

@@ -1,34 +1,33 @@
 /**
- * WorkspaceView - VSCode 风格 Workspace 浏览器
+ * WorkspaceView - 四栏布局的 Workspace 浏览器
  *
  * 布局结构：
- * - 顶部：Workspace 切换器
- * - 左侧：文件树面板 (FileTree) - 独立滚动
- * - 右侧：预览面板 (PreviewPanel) - 独立滚动
+ * - 第一栏（左）：Chat History - 聊天历史记录
+ * - 第二栏：Chat - 聊天界面（输入+对话）
+ * - 第三栏：Preview Panel - 文件预览区域（支持多个文件预览）
+ * - 第四栏（右）：File Tree - 文件树面板
  *
  * 功能：
  * - Workspace 切换和管理
+ * - 四栏独立调整宽度
+ * - 集成聊天功能
  * - 文件树浏览
- * - 文件内容预览（只读，超过 1MB 显示提示）
- * - 使用 ripgrep 搜索文件内容
- * - **KeepAlive**: 每个 workspace 的状态保持（展开、搜索、选中）
+ * - 文件内容预览（支持标签页切换多个文件）
+ * - **KeepAlive**: 每个 workspace 的状态保持（展开、搜索、选中、聊天状态）
  */
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { KeepAlive, AliveScope } from 'react-activation';
+import { ChatProvider, useChat } from '@langgraph-js/sdk/react';
 import { apiClient } from '../api.js';
 import { WorkspaceSelector, WorkspaceManageDialog } from '../components/workspace/index.js';
-import { FileTree, PreviewPanel, RightPanelContainer } from '../components/fileExplorer/index.js';
+import { FileTree } from '../components/fileExplorer/index.js';
 import type { TreeNode } from '../components/fileExplorer/FileTree/FileTree.js';
-import type { RightPanelType, RightPanelState } from '../components/fileExplorer/RightPanel/index.js';
-import {
-    useCurrentWorkspace,
-    useWorkspaces,
-    useIsFirstLaunch,
-    useShowManageDialog,
-    useWorkspaceStore,
-} from '../stores/workspace.js';
-import { RIGHT_PANEL_STATE_KEY } from '../types/rightPanel.js';
+import { PreviewPanel } from '../components/fileExplorer/Preview/index.js';
+import { HistorySidebar } from '../components/HistorySidebar.js';
+import { ChatInput, HumanMessage, AIMessage, ToolMessage } from '../components/index.js';
+import { AgentSelect } from '../components/AgentSelect.js';
+import { useCurrentWorkspace, useWorkspaces, useShowManageDialog, useWorkspaceStore } from '../stores/workspace.js';
 
 // ========================================
 // Types
@@ -44,7 +43,7 @@ interface SearchResult {
 
 interface PanelResizeState {
     isResizing: boolean;
-    panel: 'left' | 'right' | null;
+    panel: 'history' | 'chat' | 'preview' | 'tree' | null;
     startX: number;
     startWidth: number;
 }
@@ -54,7 +53,7 @@ interface PanelResizeState {
 // ========================================
 
 const MIN_PANEL_WIDTH = 200;
-const MAX_PANEL_WIDTH_PERCENT = 40;
+const MAX_PANEL_WIDTH_PERCENT = 35;
 
 // ========================================
 // Welcome Screen - 首次启动或无 Workspace
@@ -85,119 +84,147 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onCreateWorkspace }) => {
 };
 
 // ========================================
-// StatusBar Component - VSCode 风格状态栏
+// Chat Panel Component - 第二栏
 // ========================================
 
-interface StatusBarProps {
-    rootPath: string;
-    selectedNode: TreeNode | null;
-    fileCount: number;
-    folderCount: number;
-}
+const ChatPanelContent: React.FC<{ modelName?: string; onClose?: () => void }> = ({ modelName, onClose }) => {
+    const chatStore = useChat();
+    const {
+        userInput,
+        setUserInput,
+        loading,
+        renderMessages,
+        sendMessage,
+        stopGeneration,
+        createNewChat,
+        currentAgent,
+    } = chatStore;
 
-const StatusBar: React.FC<StatusBarProps> = ({ rootPath, selectedNode, fileCount, folderCount }) => {
-    // 格式化文件大小
-    const formatSize = (bytes: number): string => {
-        if (bytes === 0) return '0 B';
-        const units = ['B', 'KB', 'MB', 'GB'];
-        let i = 0;
-        while (bytes >= 1024 && i < units.length - 1) {
-            bytes /= 1024;
-            i++;
+    const [selectedAgentId, setSelectedAgentId] = useState<string | undefined>(undefined);
+    const [isUserNearBottom, setIsUserNearBottom] = useState(true);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+    // Initialize selected agent
+    useEffect(() => {
+        if (selectedAgentId) return;
+
+        if (currentAgent) {
+            setSelectedAgentId(currentAgent);
         }
-        return `${bytes.toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
+    }, [currentAgent, selectedAgentId]);
+
+    // 检测用户是否在底部
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
+
+        const handleScroll = () => {
+            const { scrollTop, scrollHeight, clientHeight } = container;
+            const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+            setIsUserNearBottom(isNearBottom);
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // 只在用户在底部时自动滚动
+    useEffect(() => {
+        if (isUserNearBottom) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [renderMessages, isUserNearBottom]);
+
+    const handleSubmit = async (inputValue: string) => {
+        if (!inputValue.trim()) return;
+
+        await sendMessage([{ type: 'human', content: inputValue }], {
+            extraParams: {
+                agent_id: selectedAgentId,
+            },
+        });
+        setUserInput('');
     };
 
-    // 获取语言显示名
-    const getLanguageDisplay = (extension?: string): string => {
-        const langMap: Record<string, string> = {
-            '.ts': 'TypeScript',
-            '.tsx': 'TypeScript React',
-            '.js': 'JavaScript',
-            '.jsx': 'JavaScript React',
-            '.json': 'JSON',
-            '.md': 'Markdown',
-            '.css': 'CSS',
-            '.scss': 'SCSS',
-            '.html': 'HTML',
-            '.py': 'Python',
-            '.go': 'Go',
-            '.rs': 'Rust',
-            '.java': 'Java',
-        };
-        if (!extension) return 'Plain Text';
-        return langMap[extension.toLowerCase()] || extension.toUpperCase().slice(1);
+    const handleStop = () => {
+        stopGeneration();
     };
 
     return (
-        <div className="flex items-center justify-between h-6 px-3 bg-[var(--color-primary)] text-white text-xs">
-            {/* 左侧 */}
-            <div className="flex items-center gap-4">
-                {/* 当前文件夹路径 */}
-                <div
-                    className="flex items-center gap-1.5 hover:bg-white/10 px-1.5 py-0.5 rounded cursor-pointer max-w-xs"
-                    title={rootPath}
-                >
-                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                        />
-                    </svg>
-                    <span className="truncate">{rootPath}</span>
+        <div className="flex flex-col h-full overflow-hidden bg-white border-r border-[var(--color-border-subtle)]">
+            {/* Header */}
+            <header className="flex-shrink-0 bg-white border-b border-[var(--color-border-subtle)] px-3 py-2.5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <h1 className="text-sm font-medium text-[var(--color-text-primary)]">Chat</h1>
                 </div>
-
-                {/* 统计信息 */}
-                <div className="flex items-center gap-3 text-white/80">
-                    <span className="flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                            />
-                        </svg>
-                        {fileCount} files
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                            />
-                        </svg>
-                        {folderCount} folders
-                    </span>
+                <div className="flex items-center gap-2">
+                    <AgentSelect value={selectedAgentId} onChange={() => {}} disabled={loading} />
+                    {loading ? (
+                        <button
+                            onClick={handleStop}
+                            className="px-3 py-1.5 text-xs font-medium bg-white border border-[var(--color-border-default)] text-[var(--color-text-primary)] rounded hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                        >
+                            Stop
+                        </button>
+                    ) : null}
                 </div>
-            </div>
+            </header>
 
-            {/* 右侧 */}
-            <div className="flex items-center gap-4">
-                {selectedNode && selectedNode.type === 'file' && (
-                    <>
-                        {/* 文件大小 */}
-                        <span className="hover:bg-white/10 px-1.5 py-0.5 rounded cursor-pointer">
-                            {formatSize(selectedNode.size || 0)}
-                        </span>
-
-                        {/* 语言类型 */}
-                        <span className="hover:bg-white/10 px-1.5 py-0.5 rounded cursor-pointer">
-                            {getLanguageDisplay(selectedNode.extension)}
-                        </span>
-                    </>
+            {/* Messages */}
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-3 bg-[var(--color-bg-primary)]">
+                {renderMessages.length === 0 ? (
+                    <div className="flex items-center justify-center h-full">
+                        <div className="text-center">
+                            <p className="text-lg font-medium text-[var(--color-text-primary)] mb-2">
+                                Start a conversation
+                            </p>
+                            <p className="text-sm text-[var(--color-text-muted)]">Type your message below</p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-4 max-w-3xl mx-auto">
+                        {renderMessages.map((message, index) => {
+                            if (message.type === 'human') {
+                                return (
+                                    <HumanMessage
+                                        key={message.id || `human-${index}`}
+                                        message={message}
+                                        messageNumber={index + 1}
+                                    />
+                                );
+                            } else if (message.type === 'tool') {
+                                return (
+                                    <ToolMessage
+                                        key={message.id || `tool-${index}`}
+                                        message={message}
+                                        messageNumber={index + 1}
+                                    />
+                                );
+                            } else {
+                                return (
+                                    <AIMessage
+                                        key={message.id || `ai-${index}`}
+                                        message={message}
+                                        messageNumber={index + 1}
+                                        modelName={modelName}
+                                    />
+                                );
+                            }
+                        })}
+                        <div ref={messagesEndRef} />
+                    </div>
                 )}
-
-                {/* 编码 */}
-                <span className="hover:bg-white/10 px-1.5 py-0.5 rounded cursor-pointer">UTF-8</span>
-
-                {/* LF/CRLF */}
-                <span className="hover:bg-white/10 px-1.5 py-0.5 rounded cursor-pointer">LF</span>
             </div>
+
+            {/* Input */}
+            <ChatInput
+                value={userInput}
+                onChange={setUserInput}
+                onSubmit={handleSubmit}
+                loading={loading}
+                placeholder="Type your message..."
+            />
         </div>
     );
 };
@@ -224,25 +251,18 @@ const WorkspaceContent: React.FC<WorkspaceContentProps> = ({ workspaceId, rootPa
     const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
 
     // ========================================
-    // State - 面板（每个 workspace 独立）
+    // State - 面板宽度（每个 workspace 独立）
     // ========================================
-    const [leftPanelWidth, setLeftPanelWidth] = useState(250);
-    const [rightPanelWidth, setRightPanelWidth] = useState(280);
-    const [leftPanelVisible, setLeftPanelVisible] = useState(true);
-    const [rightPanelVisible, setRightPanelVisible] = useState(true);
-    const [activeRightPanel, setActiveRightPanel] = useState<RightPanelType>(() => {
-        // 从 localStorage 加载上次的面板状态
-        try {
-            const saved = localStorage.getItem(RIGHT_PANEL_STATE_KEY);
-            if (saved) {
-                const parsed = JSON.parse(saved) as RightPanelState;
-                return parsed.activePanel || 'search';
-            }
-        } catch (e) {
-            // ignore
-        }
-        return 'search';
-    });
+    const [historyPanelWidth, setHistoryPanelWidth] = useState(240);
+    const [chatPanelWidth, setChatPanelWidth] = useState(320);
+    const [previewPanelWidth, setPreviewPanelWidth] = useState(400);
+    const [treePanelWidth, setTreePanelWidth] = useState(250);
+
+    const [historyPanelVisible, setHistoryPanelVisible] = useState(true);
+    const [chatPanelVisible, setChatPanelVisible] = useState(true);
+    const [previewPanelVisible, setPreviewPanelVisible] = useState(true);
+    const [treePanelVisible, setTreePanelVisible] = useState(true);
+
     const [resizeState, setResizeState] = useState<PanelResizeState>({
         isResizing: false,
         panel: null,
@@ -279,30 +299,6 @@ const WorkspaceContent: React.FC<WorkspaceContentProps> = ({ workspaceId, rootPa
     }, [rootPath, workspaceId]);
 
     // ========================================
-    // Computed - 统计信息
-    // ========================================
-    const { files: fileCount, folders: folderCount } = useMemo(() => {
-        const countNodes = (nodes: TreeNode[]): { files: number; folders: number } => {
-            let files = 0;
-            let folders = 0;
-            for (const node of nodes) {
-                if (node.type === 'file') {
-                    files++;
-                } else {
-                    folders++;
-                }
-                if (node.children) {
-                    const childCounts = countNodes(node.children);
-                    files += childCounts.files;
-                    folders += childCounts.folders;
-                }
-            }
-            return { files, folders };
-        };
-        return countNodes(tree);
-    }, [tree]);
-
-    // ========================================
     // Handlers - 文件树
     // ========================================
     const handleTreeSelect = useCallback((node: TreeNode) => {
@@ -322,47 +318,12 @@ const WorkspaceContent: React.FC<WorkspaceContentProps> = ({ workspaceId, rootPa
     }, []);
 
     // ========================================
-    // Handlers - 搜索结果点击
-    // ========================================
-    const handleSearchResultClick = useCallback(
-        (result: SearchResult) => {
-            const findNode = (nodes: TreeNode[]): TreeNode | null => {
-                for (const node of nodes) {
-                    if (node.path === result.filePath) return node;
-                    if (node.children) {
-                        const found = findNode(node.children);
-                        if (found) return found;
-                    }
-                }
-                return null;
-            };
-
-            const node = findNode(tree);
-            if (node) {
-                setSelectedNode(node);
-                const parentPath = result.filePath.split('/').slice(0, -1).join('/') || '/';
-                setExpandedPaths((prev) => new Set([...prev, parentPath]));
-            }
-        },
-        [tree],
-    );
-
-    // ========================================
     // Handlers - 面板调整
     // ========================================
-    const handleLeftResizeStart = useCallback((startX: number, startWidth: number) => {
+    const handleResizeStart = useCallback((panel: PanelResizeState['panel'], startX: number, startWidth: number) => {
         setResizeState({
             isResizing: true,
-            panel: 'left',
-            startX,
-            startWidth,
-        });
-    }, []);
-
-    const handleRightResizeStart = useCallback((startX: number, startWidth: number) => {
-        setResizeState({
-            isResizing: true,
-            panel: 'right',
+            panel,
             startX,
             startWidth,
         });
@@ -376,12 +337,30 @@ const WorkspaceContent: React.FC<WorkspaceContentProps> = ({ workspaceId, rootPa
             const maxWidth = containerWidth * (MAX_PANEL_WIDTH_PERCENT / 100);
             const delta = e.clientX - resizeState.startX;
 
-            if (resizeState.panel === 'left') {
-                const newWidth = Math.max(MIN_PANEL_WIDTH, Math.min(maxWidth, resizeState.startWidth + delta));
-                setLeftPanelWidth(newWidth);
-            } else if (resizeState.panel === 'right') {
-                const newWidth = Math.max(MIN_PANEL_WIDTH, Math.min(maxWidth, resizeState.startWidth - delta));
-                setRightPanelWidth(newWidth);
+            switch (resizeState.panel) {
+                case 'history':
+                    const newHistoryWidth = Math.max(
+                        MIN_PANEL_WIDTH,
+                        Math.min(maxWidth, resizeState.startWidth + delta),
+                    );
+                    setHistoryPanelWidth(newHistoryWidth);
+                    break;
+                case 'chat':
+                    const newChatWidth = Math.max(MIN_PANEL_WIDTH, Math.min(maxWidth, resizeState.startWidth + delta));
+                    setChatPanelWidth(newChatWidth);
+                    break;
+                case 'preview':
+                    const newPreviewWidth = Math.max(
+                        MIN_PANEL_WIDTH,
+                        Math.min(maxWidth, resizeState.startWidth + delta),
+                    );
+                    setPreviewPanelWidth(newPreviewWidth);
+                    break;
+                case 'tree':
+                    // Tree panel is on the right, so delta is inverted
+                    const newTreeWidth = Math.max(MIN_PANEL_WIDTH, Math.min(maxWidth, resizeState.startWidth - delta));
+                    setTreePanelWidth(newTreeWidth);
+                    break;
             }
         },
         [resizeState],
@@ -412,13 +391,58 @@ const WorkspaceContent: React.FC<WorkspaceContentProps> = ({ workspaceId, rootPa
     // ========================================
     return (
         <div className="flex flex-col h-full overflow-hidden" ref={containerRef}>
-            {/* 主内容区域 */}
+            {/* 主内容区域 - 四栏布局 */}
             <div className="flex-1 flex min-h-0 overflow-hidden">
-                {/* 左侧面板：文件树 */}
-                {leftPanelVisible && (
+                {/* 第一栏：Chat History */}
+                {historyPanelVisible && (
+                    <>
+                        <div
+                            style={{ width: `${historyPanelWidth}px` }}
+                            className="flex flex-col bg-[var(--color-bg-secondary)] border-r border-[var(--color-border-subtle)]"
+                        >
+                            <HistorySidebar />
+                        </div>
+                        {/* 调整手柄 */}
+                        <div
+                            className="w-1 cursor-col-resize hover:bg-[var(--color-primary)] transition-colors"
+                            onMouseDown={(e) => handleResizeStart('history', e.clientX, historyPanelWidth)}
+                        />
+                    </>
+                )}
+
+                {/* 第二栏：Chat */}
+                {chatPanelVisible && (
+                    <>
+                        <div style={{ width: `${chatPanelWidth}px` }} className="flex flex-col">
+                            <ChatPanelContent modelName="AI" />
+                        </div>
+                        {/* 调整手柄 */}
+                        <div
+                            className="w-1 cursor-col-resize hover:bg-[var(--color-primary)] transition-colors"
+                            onMouseDown={(e) => handleResizeStart('chat', e.clientX, chatPanelWidth)}
+                        />
+                    </>
+                )}
+
+                {/* 第三栏：文件预览 */}
+                {previewPanelVisible && (
+                    <>
+                        <div className="flex-1 overflow-y-auto bg-[var(--color-bg-primary)]">
+                            <PreviewPanel selectedNode={selectedNode} rootPath={rootPath} />
+                        </div>
+                        {/* 调整手柄 */}
+                        <div
+                            className="w-1 cursor-col-resize hover:bg-[var(--color-primary)] transition-colors"
+                            onMouseDown={(e) => handleResizeStart('preview', e.clientX, previewPanelWidth)}
+                        />
+                    </>
+                )}
+
+                {/* 第四栏：文件树 */}
+                {treePanelVisible && (
                     <div
-                        style={{ width: `${leftPanelWidth}px` }}
-                        className="flex flex-col border-r border-[var(--color-border)] bg-[var(--color-bg-secondary)]"
+                        style={{ width: `${treePanelWidth}px` }}
+                        className="flex flex-col border-l border-[var(--color-border)] bg-[var(--color-bg-secondary)]"
                     >
                         <div className="flex-1 overflow-y-auto overflow-x-hidden">
                             {treeError && (
@@ -447,56 +471,7 @@ const WorkspaceContent: React.FC<WorkspaceContentProps> = ({ workspaceId, rootPa
                         </div>
                     </div>
                 )}
-
-                {/* 调整手柄 */}
-                {leftPanelVisible && (
-                    <div
-                        className="w-1 cursor-col-resize hover:bg-[var(--color-primary)] transition-colors"
-                        style={{
-                            left: `${leftPanelWidth}px`,
-                        }}
-                        onMouseDown={(e) => handleLeftResizeStart(e.clientX, leftPanelWidth)}
-                    />
-                )}
-
-                {/* 中间面板：预览 */}
-                <div className="flex-1 overflow-y-auto bg-[var(--color-bg-primary)]">
-                    <PreviewPanel rootPath={rootPath} selectedPath={selectedNode?.path ?? null} />
-                </div>
-
-                {/* 调整手柄 */}
-                {rightPanelVisible && (
-                    <div
-                        className="w-1 cursor-col-resize hover:bg-[var(--color-primary)] transition-colors"
-                        style={{
-                            right: `${rightPanelWidth}px`,
-                        }}
-                        onMouseDown={(e) => handleRightResizeStart(e.clientX, rightPanelWidth)}
-                    />
-                )}
-
-                {/* 右侧面板：搜索 */}
-                {rightPanelVisible && (
-                    <RightPanelContainer
-                        width={rightPanelWidth}
-                        rootPath={rootPath}
-                        activePanel={activeRightPanel}
-                        onActivePanelChange={setActiveRightPanel}
-                        onSearchResultClick={handleSearchResultClick}
-                        onResizeStart={handleRightResizeStart}
-                        cwd={rootPath}
-                        workspaceId={workspaceId}
-                    />
-                )}
             </div>
-
-            {/* 状态栏 */}
-            <StatusBar
-                rootPath={rootPath}
-                selectedNode={selectedNode}
-                fileCount={fileCount}
-                folderCount={folderCount}
-            />
         </div>
     );
 };
@@ -564,7 +539,24 @@ export function WorkspaceView() {
                         wrapperProps={{ className: 'h-full' }}
                         contentProps={{ className: 'h-full' }}
                     >
-                        <WorkspaceContent workspaceId={currentWorkspace.id} rootPath={currentWorkspace.rootPath} />
+                        <ChatProvider
+                            apiUrl="http://127.0.0.1:8124/api/langgraph"
+                            defaultAgent="swarm"
+                            defaultHeaders={{}}
+                            withCredentials={false}
+                            showHistory={false}
+                            showGraph={false}
+                            onInitError={(error, currentAgent) => {
+                                console.error('Chat init error:', error, currentAgent);
+                            }}
+                            autoRestoreLastSession
+                        >
+                            <WorkspaceContent
+                                workspaceId={currentWorkspace.id}
+                                rootPath={currentWorkspace.rootPath}
+                                key={currentWorkspace.id}
+                            />
+                        </ChatProvider>
                     </KeepAlive>
                 </AliveScope>
             </div>
