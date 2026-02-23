@@ -63,6 +63,7 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
                 const omittedCount = totalSubmessages - submessages.length;
 
                 return (
+                    /** @ts-ignore */
                     <Fragment key={`${groupId}-${idx}-${msg.status}`}>
                         {render(msg) as any}
                         {submessages.length ? (
@@ -228,7 +229,7 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
 
     return (
         <Box flexDirection="column">
-            {/* 历史消息：用 PlatformStatic 固定，仅在 Windows 上启用 Static 能力 */}
+            {/* 非常有效地解决屏幕的渲染错误问题 */}
             <DynamicRenderer staticKey={`${staticKey} ${histories.length}`}>
                 {() => (
                     <Static items={histories}>

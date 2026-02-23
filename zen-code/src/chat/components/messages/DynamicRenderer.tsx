@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, JSX } from 'react';
 import { useTimeout } from 'usehooks-ts';
-
+import { Text } from 'ink';
 export interface DynamicRendererProps<T = string> {
     staticKey: T;
     children: () => JSX.Element;
@@ -10,7 +10,7 @@ export interface DynamicRendererProps<T = string> {
 export const DynamicRenderer = <T,>({
     staticKey,
     children,
-    delay = 100,
+    delay = 1,
 }: DynamicRendererProps<T>): JSX.Element | null => {
     const [visible, setVisible] = useState(true);
     const shouldShowRef = useRef(true);
