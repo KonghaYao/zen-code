@@ -1,23 +1,29 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Repository Guidelines
 
-Monorepo: LangGraph backend (`packages/agent/`) + Config system (`packages/config/`) + Clients (`zen-code/`,
-`zen-worker/`)
+Monorepo: LangGraph backend (`packages/agent/`) + Config system (`packages/config/`) + Shared libraries
+(`packages/standard-agent/`, `packages/agent-middlewares/`) + Clients (`zen-code/`, `zen-swarm/`)
 
 ## Project Structure
 
 ```
 code-graph/
-├── packages/              # Monorepo packages
-│   ├── agent/            # LangGraph backend core
-│   ├── config/           # Configuration system
-│   ├── ink-pro/          # Shared Ink components (TUI)
-│   └── union-client/     # Shared client logic
-├── zen-code/             # TUI CLI tool
-├── zen-worker/           # Web UI worker
+├── packages/                    # Monorepo packages
+│   ├── agent/                  # LangGraph backend core (application layer)
+│   ├── config/                 # Configuration system (LowDB-based)
+│   ├── ink-pro/                # Shared Ink components (TUI)
+│   ├── union-client/           # Shared client logic
+│   ├── standard-agent/         # Agent system library (AgentPackage, middleware base)
+│   └── agent-middlewares/      # Reusable middleware implementations
+├── zen-code/                   # TUI CLI tool
+├── zen-swarm/                  # Web UI server + tRPC API
 ├── .claude/
-│   ├── skills/           # Project-level skills
-│   └── memories/         # Project-level memories
-└── specs/                # Feature documentation
+│   ├── skills/                 # Project-level skills
+│   └── memories/               # Project-level memories
+└── specs/                      # Feature documentation
 ```
 
 **Reference**: See individual package directories for detailed structure
@@ -26,18 +32,45 @@ code-graph/
 
 ```bash
 # Backend
-bun run dev:server          # LangGraph server (port 8123)
+bun run dev:server          # LangGraph server (port 8123) - deprecated, use dev:swarm
 
 # Frontend
-bun run dev:tui             # TUI app
-bun run dev:web             # Web UI worker
+bun run dev:tui             # TUI app (zen-code)
+bun run dev:swarm           # Web UI server (zen-swarm, port 8124)
 bun run dev:all             # Server + Web in parallel
 
 # Build
 bun run build                  # Build all packages
 bun run build:packages         # Build packages only
 bun run build:zen-code         # Build TUI only
+bun run build:zen-worker       # Build Web UI worker (deprecated)
+
+# Testing
+bun test                       # Run all tests
+bun run test:run               # Run tests once
+bun run test:coverage          # Generate coverage report
+bun run test:watch             # Watch mode
 ```
+
+**Test Configuration**:
+
+- Framework: Vitest with happy-dom environment
+- Config: `vitest.config.ts` in root
+- Coverage: v8 provider with text/json/html reporters
+- Setup: `zen-code/src/__tests__/setup.ts`
+
+**Test Location Patterns**:
+
+- Packages: `packages/**/*.test.ts`
+- zen-code: `zen-code/src/**/*.{test,testx}.{ts,tsx}`
+- zen-swarm: `zen-swarm/src/**/*.test.ts`
+
+**Coverage Exclusions**:
+
+- `**/__tests__/**`
+- `**/*.test.{ts,tsx}`
+- `**/dist/**`
+- `**/node_modules/**`
 
 ## Configuration
 
@@ -121,6 +154,91 @@ YOLO_MODE=true              # Disable HITL (dangerous)
 
 ## Architecture
 
+### Three-Layer Architecture
+
+The codebase follows a strict three-layer separation:
+
+1. **Framework Layer** (`packages/standard-agent/`, `packages/agent-middlewares/`)
+    - Generic, reusable components
+    - No application-specific dependencies
+    - Published as standalone packages
+
+2. **Application Layer** (`packages/agent/`, `packages/config/`)
+    - Project-specific business logic
+    - Depends on framework layer
+    - Implements domain-specific functionality
+
+3. **Client Layer** (`zen-code/`, `zen-swarm/`)
+    - User interfaces
+    - Depends on application layer
+    - TUI and Web implementations
+
+### Standard Agent Package
+
+**Package**: `@langgraph-js/standard-agent`
+
+**Purpose**: Unified agent package system for tools, middlewares, and storage
+
+**Key Components**:
+
+- **AgentPackage**: Central coordinator for repository, validator, serializer, and runtime registries
+- **AgentRepository**: CRUD operations for models, prompts, tools, middlewares, agents
+- **AgentValidator**: Validates agent configurations against available tools/middlewares
+- **AgentSerializer**: JSON import/export for agent configurations
+- **Storage Abstractions**: Memory, SQLite (platform-dependent)
+- **Runtime Registries**: ToolRegistry, MiddlewareRegistry for dynamic discovery
+
+**Usage Pattern**:
+
+```typescript
+import { AgentPackage } from '@langgraph-js/standard-agent';
+import { MemoryStorage } from '@langgraph-js/standard-agent/storage/memory';
+
+const storage = new MemoryStorage();
+const pkg = await AgentPackage.fromStorage(storage);
+
+// Register runtime tools
+pkg.tools.register('my_tool', myToolImplementation);
+
+// Create agent with registered tools and middlewares
+const agent = await createAgent({
+    pkg,
+    model,
+    systemPrompt,
+});
+```
+
+**Reference**: `packages/standard-agent/src/package.ts`
+
+### Zen Swarm (Web UI)
+
+**Server**: `zen-swarm/src/server.ts` (port 8124)
+
+**Architecture**:
+
+- LangGraph-based multi-agent collaboration server
+- tRPC API for type-safe client-server communication
+- React + Vite frontend with Motion animations
+- Cron scheduler for scheduled tasks
+- Workspace-based multi-project support
+
+**Key Features**:
+
+- **Finder**: File explorer with ripgrep search
+- **Workspace Management**: Multiple workspaces with isolated storage
+- **Agent Registry**: Dynamic agent loading and configuration
+- **Cron System**: Scheduled task execution
+- **Four-Panel Layout**: Finder, Workspace, Chat, Tasks
+
+**API Endpoints**:
+
+- `/api/langgraph` - LangGraph streaming API
+- `/api/trpc` - tRPC router
+- `/health` - Health check endpoint
+- `/ui` - Web interface
+
+**Reference**: `zen-swarm/src/graphBuilder.ts`
+
 ### Graph System
 
 **Dynamic Agent Routing** via `switch_command`
@@ -145,15 +263,28 @@ YOLO_MODE=true              # Disable HITL (dangerous)
 
 **Reference**: `packages/agent/src/subagents/factory-v2.ts`
 
+**Two-Layer Architecture**:
+
+1. **`packages/standard-agent/`** - Framework layer with reusable middleware base classes
+2. **`packages/agent-middlewares/`** - Concrete implementations (FilesystemMiddleware, TerminalMiddleware)
+3. **`packages/agent/`** - Application layer with project-specific middleware
+
 **Available Middleware**:
 
+**From `@langgraph-js/standard-agent`** (framework layer):
+
+- `SubAgentsMiddleware` - Task delegation to specialized sub-agents (generic, dependency injection)
 - `MCPMiddleware` - Unified MCP server connection and tool execution
-- `SubAgentsMiddleware` - Task delegation to specialized sub-agents
 - `MemoriesMiddleware` - Progressive disclosure from `.claude/memories/`
 - `SkillsMiddleware` - Progressive disclosure from `.claude/skills/`
 - `AgentsMdMiddleware` - AGENTS.md loader for project guidelines
-- `HumanInTheLoop` - User approval for sensitive operations
+- `HumanInTheLoopMiddleware` - User approval for sensitive operations
 - `AnthropicCacheMiddleware` - Prompt caching (Anthropic only)
+
+**From `@langgraph-js/agent-middlewares`** (concrete implementations):
+
+- `FilesystemMiddleware` - File and directory operations (read, write, edit, glob, grep, folder)
+- `TerminalMiddleware` - Terminal command execution (cross-platform Bash/CMD support)
 
 **Key Features**:
 
@@ -161,6 +292,7 @@ YOLO_MODE=true              # Disable HITL (dangerous)
 - Sub-agents don't enable subagents middleware (avoid infinite nesting)
 - MCP always enabled as separate middleware
 - HITL always enabled unless `YOLO_MODE=true`
+- **Migration Pattern**: Application layer middleware → standard-agent framework → agent-middlewares implementations
 
 ### Skills System
 
@@ -205,6 +337,13 @@ YOLO_MODE=true              # Disable HITL (dangerous)
 - `default` agent enables all middleware including MCP
 - `manager` agent disables MCP (specialized for task management)
 
+**Architecture**:
+
+- Application layer (`packages/agent/`) provides `createAgent` callback
+- Framework layer (`packages/standard-agent/`) provides generic `SubAgentsMiddleware`
+- Uses dependency injection pattern: `createAgent: async (taskId, args, state) => Agent`
+- Data structure: `SubAgentInfo[]` array (simple JSON, no AgentPackage dependency)
+
 **Future Extensions**:
 
 - Add specialized agents via `AgentConfig`
@@ -222,17 +361,12 @@ YOLO_MODE=true              # Disable HITL (dangerous)
 
 - `add_memory_tool` - Store new memory
 - `query_memory_tool` - Search existing memories
-- `/memory-clear` - Organize and clean up memories (merge, remove outdated, improve structure)
 
 **Analysis**: `packages/agent/src/memories/analyze.ts`
 
 **Memory Format**: Directory with `MEMORY.md` (YAML frontmatter + Markdown content)
 
-**Frontmatter Fields**: name, description, tags, category, created, last_updated, priority, context_scope
-
-**Categories**: architecture, workflow, configuration, bug-fix, optimization
-
-**Memory Organization** (Compressed into 3 core files):
+**Memory Organization** (Compressed into core files):
 
 ```
 .claude/memories/
@@ -250,22 +384,39 @@ YOLO_MODE=true              # Disable HITL (dangerous)
 │   ├── GlobalApprovalPanel (multi-tab, auto-jump, batch execution)
 │   ├── TanStack Query Migration (library vs application separation)
 │   └── Ink Static Optimization (lazy initialization pattern)
-└── testing-bugfixes/MEMORY.md
-    ├── Vitest Complete Guide (monorepo, assertions, test configs)
-    ├── Common Test Fix Patterns (API mismatch, default behavior, data validation)
-    ├── Bug #1: /sum command parameter passing
-    └── Bug #2: Setup Wizard configuration validation
+├── testing-bugfixes/MEMORY.md
+│   ├── Vitest Complete Guide (monorepo, assertions, test configs)
+│   ├── Common Test Fix Patterns (API mismatch, default behavior, data validation)
+│   ├── Bug #1: /sum command parameter passing
+│   └── Bug #2: Setup Wizard configuration validation
+├── agent-middlewares-package-architecture/MEMORY.md
+│   └── 2025-01-23 Migration to @langgraph-js/agent-middlewares
+├── subagents-middleware-migration/MEMORY.md
+│   └── 2025-01-17 SubAgentsMiddleware dependency injection refactor
+├── zen-swarm-frontend-design/MEMORY.md
+│   └── Web UI architecture and component design
+├── zen-swarm-trpc-architecture/MEMORY.md
+│   └── tRPC API design and implementation
+├── zen-swarm-finder-implementation/MEMORY.md
+│   └── Finder component with ripgrep integration
+├── zen-swarm-panel-layout-system/MEMORY.md
+│   └── Four-panel layout architecture
+└── ... (additional memory files for specific features and fixes)
 ```
 
 ### Tool System
 
-**Categories**:
+**Two-Layer Architecture**:
 
-- `interaction` - ask_user_with_options (user approval and input)
-- `filesystem_tools` - read, write, glob, grep, folder, replace
-- `bash_tools` - terminal command execution
-- `task_tools` - todo list management (todo_write, add_task, commit_task)
-- `memory` - memory storage and retrieval (triggered via smart_memory)
+1. **`packages/agent-middlewares/`** - Reusable tool implementations (framework layer)
+    - `filesystem_tools/`: read, write, replace, glob, grep, folder
+    - `bash_tools/`: terminal command execution
+    - Base type: `BaseAgentStateType` (generic state with `cwd` field)
+
+2. **`packages/agent/`** - Application-specific tools (application layer)
+    - `interaction` - ask_user_with_options (user approval and input)
+    - `task_tools` - todo list management (todo_write, add_task, commit_task)
+    - `memory` - memory storage and retrieval (triggered via smart_memory)
 
 **Command System** (additional capabilities):
 
@@ -286,6 +437,12 @@ YOLO_MODE=true              # Disable HITL (dangerous)
 - MCPManager singleton manages connections and tool caching
 - Configured via `mcp_config` in settings
 
+**Migration History** (2025-01-23):
+
+- **Before**: Tools lived in `packages/agent/src/tools/`
+- **After**: Filesystem and bash tools migrated to `packages/agent-middlewares/`
+- **Benefit**: Shared between zen-code and zen-swarm, reduced duplication
+
 ## Coding Standards
 
 - **TypeScript**: Strict mode, `.js` extensions, explicit return types
@@ -295,53 +452,48 @@ YOLO_MODE=true              # Disable HITL (dangerous)
 - **Architecture**: Single responsibility, dependency injection, composition
 - **File Structure**: Group by feature (middlewares/, tools/, subagents/)
 
-### ink-pro Package Import Rules
-
-**IMPORTANT**: `useInput` hook must be imported from `ink-pro`, NOT from `ink`.
-
-The `ink-pro` package provides an enhanced `useInput` with additional features:
-
-- Extended key information (including raw keypress object)
-- Better cross-platform compatibility
-- Custom event handling
-
-**Correct Usage:**
-
-```tsx
-// zen-code application (use package name)
-import { Box, Text } from 'ink';
-import { useInput } from 'ink-pro';
-
-// packages/ink-pro internal (use relative path)
-import { Box, Text, useFocus } from 'ink';
-import { useInput } from '../../utils/useInput';
-```
-
-**Incorrect Usage:**
-
-```tsx
-// ❌ WRONG - Do not import useInput from ink
-import { Box, Text, useInput } from 'ink';
-```
-
-**Reference**: `packages/ink-pro/src/utils/useInput.ts`
-
 ## Adding Features
 
 ### Add New Tool
 
-**Reference**: `packages/agent/src/tools/`
+**Decision**: Is this tool reusable or application-specific?
 
-**Options**:
+**Reusable tools** (add to `packages/agent-middlewares/`):
 
-1. Add to existing group (filesystem_tools/, bash_tools/, task_tools/)
-2. Create new group
+- File operations, terminal commands, etc.
+- Must use `BaseAgentStateType` from `packages/agent-middlewares/src/index.ts`
+- Export via middleware class (e.g., `FilesystemMiddleware`)
+- Reference: `packages/agent-middlewares/src/filesystem.ts`
+
+**Application-specific tools** (add to `packages/agent/src/tools/`):
+
+- Interaction, task management, memory, etc.
+- Can use project-specific state types
+- Reference: `packages/agent/src/tools/`
 
 **Registration**: Register in AgentPackage via `pkg.createTool()`
 
 ### Add New Middleware
 
-**Reference**: `packages/agent/src/middlewares/`
+**Decision**: Is this middleware framework-level or application-specific?
+
+**Framework middleware** (add to `packages/standard-agent/src/middlewares/`):
+
+- Generic, reusable across projects
+- Use dependency injection for application-specific logic
+- Reference: `packages/standard-agent/src/middlewares/subagents/`
+
+**Concrete middleware** (add to `packages/agent-middlewares/`):
+
+- Filesystem, terminal, etc.
+- Export as class implementing `AgentMiddleware`
+- Reference: `packages/agent-middlewares/src/filesystem.ts`
+
+**Application middleware** (add to `packages/agent/src/middlewares/`):
+
+- Project-specific business logic
+- Can depend on application-layer types
+- Reference: `packages/agent/src/middlewares/`
 
 **Registration**: Register in AgentPackage via `pkg.createMiddleware()`
 
@@ -392,7 +544,9 @@ EOF
 
 **YOLO Mode**: Set `YOLO_MODE=true` to disable HITL (not recommended)
 
-## Migration Notes (2025 Q1 Refactor)
+## Migration Notes
+
+### 2025 Q1 Refactor
 
 **From Old Structure** (`agents/code/`):
 
@@ -417,3 +571,45 @@ EOF
 - Skills format unchanged (YAML frontmatter + Markdown)
 - Memory system unchanged
 - MCP integration unchanged
+
+### 2025-01-23: Agent Middlewares Package Migration
+
+**From Old Structure**:
+
+- Tools in `packages/agent/src/tools/filesystem_tools/` and `bash_tools/`
+- Application-specific middleware implementations
+
+**To New Structure**:
+
+- `packages/agent-middlewares/` - Reusable FilesystemMiddleware and TerminalMiddleware
+- `BaseAgentStateType` - Generic state type for cross-project compatibility
+- Vite build with `vite-plugin-dts` for type declarations
+
+**Key Changes**:
+
+- FilesystemMiddleware: read, write, edit, glob, grep, folder operations
+- TerminalMiddleware: Cross-platform Bash/CMD execution
+- Shared between zen-code and zen-swarm
+- Reduced code duplication
+
+**Reference**: `.claude/memories/agent-middlewares-package-architecture/MEMORY.md`
+
+### 2025-01-17: SubAgentsMiddleware Migration
+
+**From Old Structure**:
+
+- `packages/agent/src/middlewares/subTasks.ts` with application-layer dependencies
+
+**To New Structure**:
+
+- `packages/standard-agent/src/middlewares/subagents/` - Generic framework
+- Dependency injection: `createAgent` callback provided by application layer
+- Data structure: `SubAgentInfo[]` instead of `AgentPackage` dependency
+
+**Key Changes**:
+
+- Application layer provides `createAgent` implementation
+- Framework layer provides generic `SubAgentsMiddleware`
+- `getAgentListFromPackage` for type-safe conversion
+
+**Reference**: `.claude/memories/subagents-middleware-migration/MEMORY.md`
