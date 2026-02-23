@@ -11,7 +11,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useWorkspaceStore } from '../../stores/workspace.js';
 import { useCurrentWorkspace, useWorkspaces } from '../../stores/workspace.js';
 import type { Workspace } from '../../stores/workspace.js';
-import { Settings } from '../ui/Icons.js';
+import { Settings, Folder } from '../ui/Icons.js';
 
 // ========================================
 // Props
@@ -55,7 +55,7 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({ onOpenMana
                                 }
                             `}
                         >
-                            <span className="shrink-0">📁</span>
+                            <Folder className="w-5 h-5 shrink-0" />
                             <span className="font-medium truncate">{workspace.name}</span>
                         </button>
                     ))

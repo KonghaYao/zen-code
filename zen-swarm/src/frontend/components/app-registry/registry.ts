@@ -4,6 +4,7 @@
  */
 
 import type { AppRegistryItem, AppId } from './types.js';
+import React from 'react';
 
 // 直接导入视图组件（不支持懒加载，因为没有 default export）
 import { DashboardView } from '../../views/DashboardView.js';
@@ -11,6 +12,9 @@ import { ConfigView } from '../../views/ConfigView.js';
 import { WorkspaceView } from '../../views/WorkspaceView.js';
 import { FinderView } from '../../views/Finder/index.js';
 import { CronView } from '../../views/CronView.js';
+
+// Lucide icons from Icons.tsx
+import { BarChart3, Settings, FolderOpen, Folder, Clock } from '../../components/ui/Icons.js';
 
 /**
  * 应用注册表
@@ -20,7 +24,7 @@ export const appRegistry: AppRegistryItem[] = [
     {
         id: 'dashboard',
         name: 'Dashboard',
-        icon: '📊',
+        icon: React.createElement(BarChart3, { size: 24 }),
         description: '概览仪表盘',
         viewComponent: DashboardView,
         defaultOpen: true,
@@ -30,7 +34,7 @@ export const appRegistry: AppRegistryItem[] = [
     {
         id: 'config',
         name: 'Config',
-        icon: '⚙️',
+        icon: React.createElement(Settings, { size: 24 }),
         description: 'AI 配置与资源管理',
         viewComponent: ConfigView,
         keyboardShortcut: 'Cmd+2',
@@ -39,7 +43,7 @@ export const appRegistry: AppRegistryItem[] = [
     {
         id: 'finder',
         name: 'Finder',
-        icon: '🗂️',
+        icon: React.createElement(FolderOpen, { size: 24 }),
         description: 'macOS 风格文件管理器',
         viewComponent: FinderView,
         keyboardShortcut: 'Cmd+3',
@@ -48,7 +52,7 @@ export const appRegistry: AppRegistryItem[] = [
     {
         id: 'workspaces',
         name: 'Workspace',
-        icon: '📁',
+        icon: React.createElement(Folder, { size: 24 }),
         description: 'VSCode 风格工作空间',
         viewComponent: WorkspaceView,
         keyboardShortcut: 'Cmd+4',
@@ -57,7 +61,7 @@ export const appRegistry: AppRegistryItem[] = [
     {
         id: 'cron',
         name: 'Cron',
-        icon: '⏰',
+        icon: React.createElement(Clock, { size: 24 }),
         description: '定时任务管理',
         viewComponent: CronView,
         keyboardShortcut: 'Cmd+5',

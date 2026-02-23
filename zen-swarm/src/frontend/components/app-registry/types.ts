@@ -3,13 +3,13 @@
  * 用于 Dock 系统的应用注册
  */
 
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 
 /**
  * 应用 ID 类型
  * 排除了 chat（按设计文档暂不作为独立 app）
  */
-export type AppId = 'dashboard' | 'agent-config' | 'resources' | 'workspaces' | 'finder' | 'cron';
+export type AppId = 'dashboard' | 'config' | 'resources' | 'workspaces' | 'finder' | 'cron';
 
 /**
  * 通知状态
@@ -31,7 +31,7 @@ export type ContextAction = 'open' | 'close' | 'notifications' | 'settings' | 'h
 export interface AppRegistryItem {
     id: AppId;
     name: string;
-    icon: string;
+    icon: string | ReactNode;
     description: string;
     viewComponent: ComponentType;
     defaultOpen?: boolean;

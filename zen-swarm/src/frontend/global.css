@@ -938,6 +938,22 @@ select option {
     transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* For Lucide React icons */
+.dock-icon-react {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-primary);
+    transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dock-icon-react svg {
+    width: 24px;
+    height: 24px;
+}
+
 /* For image icons */
 .dock-icon img {
     width: 42px;

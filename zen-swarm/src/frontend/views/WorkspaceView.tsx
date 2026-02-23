@@ -17,6 +17,7 @@
  */
 
 import React, { useEffect } from 'react';
+import { Folder } from '../components/ui/Icons.js';
 import { KeepAlive, AliveScope } from 'react-activation';
 import { WorkspaceSelector, WorkspaceManageDialog } from '../components/workspace/index.js';
 import { useCurrentWorkspace, useWorkspaces, useShowManageDialog, useWorkspaceStore } from '../stores/workspace.js';
@@ -34,7 +35,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onCreateWorkspace }) => {
     return (
         <div className="flex-1 flex flex-col items-center justify-center text-[var(--color-text-primary)]">
             <div className="text-center space-y-4">
-                <div className="text-6xl mb-4">📁</div>
+                <div className="text-6xl mb-4 flex justify-center">
+                    <Folder className="w-24 h-24 text-[var(--color-primary)]" />
+                </div>
                 <h1 className="text-2xl font-semibold">Welcome to Workspace</h1>
                 <p className="text-[var(--color-text-secondary)] max-w-md">
                     Create a workspace to start exploring your projects. A workspace links to a folder on your computer.

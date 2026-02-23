@@ -7,6 +7,7 @@ import { trpc } from '../api.js';
 import { Modal } from '../components/Modal.js';
 import { ConfirmModal } from '../components/ui/ConfirmModal.js';
 import { CronTaskList, CronTaskForm, CronLogList, QueueIndicator } from '../components/cron/index.js';
+import { Clock, List as ListIcon } from '../components/ui/Icons.js';
 import type { CronTask, CronLog } from '../types/cron.js';
 
 type CronTab = 'tasks' | 'logs';
@@ -14,7 +15,7 @@ type CronTab = 'tasks' | 'logs';
 interface TabConfig {
     id: CronTab;
     label: string;
-    icon: string;
+    icon: React.ReactNode;
     description: string;
 }
 
@@ -22,13 +23,13 @@ const TABS: TabConfig[] = [
     {
         id: 'tasks',
         label: 'Tasks',
-        icon: '⏰',
+        icon: <Clock size={20} />,
         description: 'Manage scheduled cron tasks',
     },
     {
         id: 'logs',
         label: 'Execution Logs',
-        icon: '📋',
+        icon: <ListIcon size={20} />,
         description: 'View task execution history',
     },
 ];

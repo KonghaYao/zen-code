@@ -12,7 +12,7 @@ import React, { useState } from 'react';
 import { useWorkspaceStore } from '../../stores/workspace.js';
 import { useWorkspaces, useCurrentWorkspace } from '../../stores/workspace.js';
 import type { Workspace } from '../../stores/workspace.js';
-import { X, Plus, Edit, Trash2 } from '../ui/Icons.js';
+import { X, Plus, Edit, Trash2, Folder } from '../ui/Icons.js';
 
 // ========================================
 // Props
@@ -361,7 +361,7 @@ export const WorkspaceManageDialog: React.FC<WorkspaceManageDialogProps> = ({ op
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
-                                                        <span>📁</span>
+                                                        <Folder className="w-5 h-5 text-[var(--color-text-secondary)] shrink-0" />
                                                         <h3 className="font-medium text-[var(--color-text-primary)] truncate">
                                                             {workspace.name}
                                                         </h3>
