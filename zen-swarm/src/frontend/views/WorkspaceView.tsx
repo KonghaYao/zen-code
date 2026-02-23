@@ -20,7 +20,7 @@ import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { KeepAlive, AliveScope } from 'react-activation';
 import { ChatProvider, useChat } from '@langgraph-js/sdk/react';
 import { apiClient } from '../api.js';
-import { WorkspaceSelector, WorkspaceManageDialog } from '../components/workspace/index.js';
+import { WorkspaceSelector, WorkspaceManageDialog, PanelLayout, PanelItem } from '../components/workspace/index.js';
 import { FileTree } from '../components/fileExplorer/index.js';
 import type { TreeNode } from '../components/fileExplorer/FileTree/FileTree.js';
 import { PreviewPanel } from '../components/fileExplorer/Preview/index.js';
@@ -40,20 +40,6 @@ interface SearchResult {
     matchStart: number;
     matchEnd: number;
 }
-
-interface PanelResizeState {
-    isResizing: boolean;
-    panel: 'history' | 'chat' | 'preview' | 'tree' | null;
-    startX: number;
-    startWidth: number;
-}
-
-// ========================================
-// Constants
-// ========================================
-
-const MIN_PANEL_WIDTH = 200;
-const MAX_PANEL_WIDTH_PERCENT = 35;
 
 // ========================================
 // Welcome Screen - 首次启动或无 Workspace
@@ -251,31 +237,6 @@ const WorkspaceContent: React.FC<WorkspaceContentProps> = ({ workspaceId, rootPa
     const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
 
     // ========================================
-    // State - 面板宽度（每个 workspace 独立）
-    // ========================================
-    const [historyPanelWidth, setHistoryPanelWidth] = useState(240);
-    const [chatPanelWidth, setChatPanelWidth] = useState(320);
-    const [previewPanelWidth, setPreviewPanelWidth] = useState(400);
-    const [treePanelWidth, setTreePanelWidth] = useState(250);
-
-    const [historyPanelVisible, setHistoryPanelVisible] = useState(true);
-    const [chatPanelVisible, setChatPanelVisible] = useState(true);
-    const [previewPanelVisible, setPreviewPanelVisible] = useState(true);
-    const [treePanelVisible, setTreePanelVisible] = useState(true);
-
-    const [resizeState, setResizeState] = useState<PanelResizeState>({
-        isResizing: false,
-        panel: null,
-        startX: 0,
-        startWidth: 0,
-    });
-
-    // ========================================
-    // Refs
-    // ========================================
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    // ========================================
     // Effects - 加载文件树
     // ========================================
     useEffect(() => {
@@ -318,161 +279,71 @@ const WorkspaceContent: React.FC<WorkspaceContentProps> = ({ workspaceId, rootPa
     }, []);
 
     // ========================================
-    // Handlers - 面板调整
-    // ========================================
-    const handleResizeStart = useCallback((panel: PanelResizeState['panel'], startX: number, startWidth: number) => {
-        setResizeState({
-            isResizing: true,
-            panel,
-            startX,
-            startWidth,
-        });
-    }, []);
-
-    const handleMouseMove = useCallback(
-        (e: MouseEvent) => {
-            if (!resizeState.isResizing || !containerRef.current) return;
-
-            const containerWidth = containerRef.current.offsetWidth;
-            const maxWidth = containerWidth * (MAX_PANEL_WIDTH_PERCENT / 100);
-            const delta = e.clientX - resizeState.startX;
-
-            switch (resizeState.panel) {
-                case 'history':
-                    const newHistoryWidth = Math.max(
-                        MIN_PANEL_WIDTH,
-                        Math.min(maxWidth, resizeState.startWidth + delta),
-                    );
-                    setHistoryPanelWidth(newHistoryWidth);
-                    break;
-                case 'chat':
-                    const newChatWidth = Math.max(MIN_PANEL_WIDTH, Math.min(maxWidth, resizeState.startWidth + delta));
-                    setChatPanelWidth(newChatWidth);
-                    break;
-                case 'preview':
-                    const newPreviewWidth = Math.max(
-                        MIN_PANEL_WIDTH,
-                        Math.min(maxWidth, resizeState.startWidth + delta),
-                    );
-                    setPreviewPanelWidth(newPreviewWidth);
-                    break;
-                case 'tree':
-                    // Tree panel is on the right, so delta is inverted
-                    const newTreeWidth = Math.max(MIN_PANEL_WIDTH, Math.min(maxWidth, resizeState.startWidth - delta));
-                    setTreePanelWidth(newTreeWidth);
-                    break;
-            }
-        },
-        [resizeState],
-    );
-
-    const handleResizeEnd = useCallback(() => {
-        setResizeState({
-            isResizing: false,
-            panel: null,
-            startX: 0,
-            startWidth: 0,
-        });
-    }, []);
-
-    useEffect(() => {
-        if (resizeState.isResizing) {
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleResizeEnd);
-            return () => {
-                document.removeEventListener('mousemove', handleMouseMove);
-                document.removeEventListener('mouseup', handleResizeEnd);
-            };
-        }
-    }, [resizeState, handleMouseMove, handleResizeEnd]);
-
-    // ========================================
     // Render
     // ========================================
     return (
-        <div className="flex flex-col h-full overflow-hidden" ref={containerRef}>
-            {/* 主内容区域 - 四栏布局 */}
-            <div className="flex-1 flex min-h-0 overflow-hidden">
-                {/* 第一栏：Chat History */}
-                {historyPanelVisible && (
-                    <>
-                        <div
-                            style={{ width: `${historyPanelWidth}px` }}
-                            className="flex flex-col bg-[var(--color-bg-secondary)] border-r border-[var(--color-border-subtle)]"
-                        >
-                            <HistorySidebar />
-                        </div>
-                        {/* 调整手柄 */}
-                        <div
-                            className="w-1 cursor-col-resize hover:bg-[var(--color-primary)] transition-colors"
-                            onMouseDown={(e) => handleResizeStart('history', e.clientX, historyPanelWidth)}
-                        />
-                    </>
-                )}
+        <PanelLayout
+            panels={[
+                { id: 'history', position: 'left', defaultWidth: 240 },
+                { id: 'chat', position: 'left', defaultWidth: 320 },
+                { id: 'preview', position: 'center' },
+                { id: 'tree', position: 'right', defaultWidth: 250 },
+            ]}
+            minPanelWidth={200}
+            maxWidthPercent={35}
+        >
+            {/* 第一栏：Chat History */}
+            <PanelItem
+                id="history"
+                position="left"
+                className="flex flex-col bg-[var(--color-bg-secondary)] border-r border-[var(--color-border-subtle)]"
+            >
+                <HistorySidebar />
+            </PanelItem>
 
-                {/* 第二栏：Chat */}
-                {chatPanelVisible && (
-                    <>
-                        <div style={{ width: `${chatPanelWidth}px` }} className="flex flex-col">
-                            <ChatPanelContent modelName="AI" />
-                        </div>
-                        {/* 调整手柄 */}
-                        <div
-                            className="w-1 cursor-col-resize hover:bg-[var(--color-primary)] transition-colors"
-                            onMouseDown={(e) => handleResizeStart('chat', e.clientX, chatPanelWidth)}
-                        />
-                    </>
-                )}
+            {/* 第二栏：Chat */}
+            <PanelItem id="chat" position="left">
+                <ChatPanelContent modelName="AI" />
+            </PanelItem>
 
-                {/* 第三栏：文件预览 */}
-                {previewPanelVisible && (
-                    <>
-                        <div className="flex-1 overflow-y-auto bg-[var(--color-bg-primary)]">
-                            <PreviewPanel selectedNode={selectedNode} rootPath={rootPath} />
-                        </div>
-                        {/* 调整手柄 */}
-                        <div
-                            className="w-1 cursor-col-resize hover:bg-[var(--color-primary)] transition-colors"
-                            onMouseDown={(e) => handleResizeStart('preview', e.clientX, previewPanelWidth)}
-                        />
-                    </>
-                )}
+            {/* 第三栏：文件预览 */}
+            <PanelItem id="preview" position="center" className="bg-[var(--color-bg-primary)]">
+                <PreviewPanel selectedNode={selectedNode} rootPath={rootPath} />
+            </PanelItem>
 
-                {/* 第四栏：文件树 */}
-                {treePanelVisible && (
-                    <div
-                        style={{ width: `${treePanelWidth}px` }}
-                        className="flex flex-col border-l border-[var(--color-border)] bg-[var(--color-bg-secondary)]"
-                    >
-                        <div className="flex-1 overflow-y-auto overflow-x-hidden">
-                            {treeError && (
-                                <div className="m-4 p-3 bg-red-500/10 border border-red-500/30 rounded text-red-400 text-sm">
-                                    <div className="flex items-center gap-2">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                                            />
-                                        </svg>
-                                        <span>{treeError}</span>
-                                    </div>
-                                </div>
-                            )}
-                            <FileTree
-                                tree={tree}
-                                selectedPath={selectedNode?.path ?? null}
-                                expandedPaths={expandedPaths}
-                                onSelect={handleTreeSelect}
-                                onToggleExpand={handleTreeToggleExpand}
-                                loading={treeLoading}
-                            />
+            {/* 第四栏：文件树 */}
+            <PanelItem
+                id="tree"
+                position="right"
+                className="flex flex-col border-l border-[var(--color-border)] bg-[var(--color-bg-secondary)]"
+            >
+                <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                    {treeError && (
+                        <div className="m-4 p-3 bg-red-500/10 border border-red-500/30 rounded text-red-400 text-sm">
+                            <div className="flex items-center gap-2">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                    />
+                                </svg>
+                                <span>{treeError}</span>
+                            </div>
                         </div>
-                    </div>
-                )}
-            </div>
-        </div>
+                    )}
+                    <FileTree
+                        tree={tree}
+                        selectedPath={selectedNode?.path ?? null}
+                        expandedPaths={expandedPaths}
+                        onSelect={handleTreeSelect}
+                        onToggleExpand={handleTreeToggleExpand}
+                        loading={treeLoading}
+                    />
+                </div>
+            </PanelItem>
+        </PanelLayout>
     );
 };
 
@@ -550,6 +421,9 @@ export function WorkspaceView() {
                                 console.error('Chat init error:', error, currentAgent);
                             }}
                             autoRestoreLastSession
+                            historyFilter={{
+                                path: currentWorkspace.rootPath,
+                            }}
                         >
                             <WorkspaceContent
                                 workspaceId={currentWorkspace.id}

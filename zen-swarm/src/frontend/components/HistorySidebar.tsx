@@ -6,7 +6,7 @@
  * - 使用外部工具函数（规则：js-hoist-regexp, js-early-exit）
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useChat } from '@langgraph-js/sdk/react';
 import type { Thread } from '@langgraph-js/sdk';
 import { formatDate, getStatusEmoji } from '../utils/chatHelpers.js';
@@ -18,7 +18,15 @@ interface HistorySidebarProps {
 }
 
 export function HistorySidebar(props: HistorySidebarProps) {
-    const { historyList = [], currentChatId, refreshHistoryList, toHistoryChat, createNewChat } = useChat();
+    const {
+        historyList = [],
+        currentChatId,
+        refreshHistoryList,
+        toHistoryChat,
+        createNewChat,
+        setHistoryFilter,
+    } = useChat();
+
     const [searchQuery, setSearchQuery] = useState('');
 
     const handleSelectThread = async (thread: HistoryThread) => {
