@@ -212,6 +212,9 @@ const ChatPanelMiniContent: React.FC<ChatPanelMiniContentProps> = ({ modelName, 
                     agent_id: selectedAgentId,
                     cwd,
                 },
+                metadata: {
+                    path: cwd,
+                },
             });
             setUserInput('');
         },

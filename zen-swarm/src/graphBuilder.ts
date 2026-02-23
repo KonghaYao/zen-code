@@ -19,9 +19,7 @@ async function swarmNode(state: SwarmStateType, runtime: Runtime) {
     const availableAgents = await getAvailableAgentIds(agentPackage);
 
     if (!availableAgents.includes(agent_id)) {
-        throw new Error(
-            `Unknown agent: ${agent_id}. Available: ${availableAgents.map((id) => id.split('/').pop()).join(', ')}`,
-        );
+        throw new Error(`Unknown agent: ${agent_id}. Available: ${availableAgents.join(', ')}`);
     }
 
     // 创建 agent

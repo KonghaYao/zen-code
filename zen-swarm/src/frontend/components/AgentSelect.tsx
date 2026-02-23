@@ -6,6 +6,7 @@
 import React, { useEffect, useRef } from 'react';
 import { trpc } from '../api.js';
 import type { Agent } from '../types/index.js';
+import { Select } from './ui/Select.js';
 
 interface AgentSelectProps {
     value?: string;
@@ -28,11 +29,17 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
             const valueExists = agents.some((a) => a.id === value);
 
             if (!value || !valueExists) {
+                console.log('AgentSelect: Auto-selecting first agent', agents[0].id);
                 onChange(agents[0].id);
                 hasAutoSelected.current = true;
             }
         }
     }, [agents, isLoading, value, onChange]);
+
+    const handleAgentChange = (agentId: string) => {
+        console.log('AgentSelect: Agent changed to', agentId);
+        onChange(agentId);
+    };
 
     if (isLoading) {
         return (
@@ -71,25 +78,24 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
         );
     }
 
+    const options = agents.map((agent) => ({
+        value: agent.id,
+        label: `${agent.name} - ${agent.description}`,
+    }));
+
     return (
         <div className="flex items-center gap-2">
             <label htmlFor="agent-select" className="text-sm font-medium text-[var(--color-text-secondary)]">
                 Agent:
             </label>
-            <select
-                id="agent-select"
+            <Select
                 value={value || ''}
-                onChange={(e) => onChange(e.target.value)}
+                onChange={handleAgentChange}
+                options={options}
+                placeholder="Select an agent..."
                 disabled={disabled}
-                className="px-3 py-1.5 text-sm bg-white border border-[var(--color-border-default)] rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-primary)] disabled:bg-[var(--color-bg-tertiary)] disabled:text-[var(--color-text-tertiary)] disabled:cursor-not-allowed transition-colors duration-150"
-            >
-                <option value="">Select an agent...</option>
-                {agents.map((agent) => (
-                    <option key={agent.id} value={agent.id}>
-                        {agent.name} - {agent.description}
-                    </option>
-                ))}
-            </select>
+                className="w-64"
+            />
         </div>
     );
 };

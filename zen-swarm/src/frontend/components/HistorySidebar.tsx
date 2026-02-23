@@ -18,14 +18,7 @@ interface HistorySidebarProps {
 }
 
 export function HistorySidebar(props: HistorySidebarProps) {
-    const {
-        historyList = [],
-        currentChatId,
-        refreshHistoryList,
-        toHistoryChat,
-        createNewChat,
-        setHistoryFilter,
-    } = useChat();
+    const { historyList = [], currentChatId, refreshHistoryList, toHistoryChat, createNewChat } = useChat();
 
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -58,17 +51,6 @@ export function HistorySidebar(props: HistorySidebarProps) {
                     <span>+</span>
                     <span>New Chat</span>
                 </button>
-            </div>
-
-            {/* Search */}
-            <div className="p-4 border-b border-[var(--color-border-subtle)]">
-                <input
-                    type="text"
-                    placeholder="Search conversations..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-3 py-2 text-sm"
-                />
             </div>
 
             {/* History List */}
