@@ -49,6 +49,11 @@ const execCommand = async (
 
 export const grep_tool = tool(
     async ({ args, head_limit }, runtime: ToolRuntime<BaseAgentStateType>) => {
+        // 安全检查：确保 cwd 存在
+        if (!runtime.state.cwd) {
+            throw new Error('Current working directory (cwd) is not set in the agent state.');
+        }
+
         // 基本验证：确保 args 数组不为空
         if (!args || args.length === 0) {
             return 'Error: No arguments provided. Please provide ripgrep arguments.';

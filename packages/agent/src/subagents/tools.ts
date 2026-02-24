@@ -4,7 +4,7 @@ import { ask_user_questions_tool } from '../tools/ask_user_questions.js';
 import { AgentPackage, ToolImplementation } from '@langgraph-js/standard-agent';
 
 // Only local project-specific tools need to be registered
-// Tools from agent-middlewares are automatically provided by their middlewares
+// Tools from middlewares (filesystem, terminal, sm, etc.) are automatically provided by their middlewares
 const ALL_TOOLS = [ask_user_questions_tool, todo_write_tool];
 
 async function registerLangChainTool(pkg: AgentPackage, tool: Tool) {
@@ -38,7 +38,7 @@ async function registerLangChainTool(pkg: AgentPackage, tool: Tool) {
 
 /**
  * Create a runtime tool registry with local project-specific tools
- * Tools from middlewares (filesystem, terminal) are registered automatically
+ * Tools from middlewares (filesystem, terminal, sm, etc.) are registered automatically
  */
 export async function createToolRegistry(pkg: AgentPackage) {
     return await Promise.all(ALL_TOOLS.map((i) => registerLangChainTool(pkg, i as any as Tool)));

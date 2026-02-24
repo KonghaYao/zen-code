@@ -15,6 +15,11 @@ export const editToolSchema = z.object({
 export const replace_tool = tool(
     async ({ file_path, old_string, new_string, replace_all = false }, runtime: ToolRuntime<BaseAgentStateType>) => {
         try {
+            // 安全检查：确保 cwd 存在
+            if (!runtime.state.cwd) {
+                throw new Error('Current working directory (cwd) is not set in the agent state.');
+            }
+
             // 解析路径：如果是相对路径，基于 cwd 解析；如果是绝对路径，直接使用
             const resolvedPath = resolve(runtime.state.cwd, file_path);
             const content = await fs.readFile(resolvedPath, 'utf-8');

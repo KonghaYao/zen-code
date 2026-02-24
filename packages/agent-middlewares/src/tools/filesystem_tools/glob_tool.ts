@@ -16,6 +16,11 @@ export const globToolSchema = z.object({
 });
 export const glob_tool = tool(
     async ({ pattern, path }, runtime: ToolRuntime<BaseAgentStateType>) => {
+        // 安全检查：确保 cwd 存在
+        if (!runtime.state.cwd) {
+            throw new Error('Current working directory (cwd) is not set in the agent state.');
+        }
+
         // 解析路径：如果提供了 path，基于 cwd 解析；否则使用 cwd
         const cwd = path ? resolve(runtime.state.cwd, path) : runtime.state.cwd;
 

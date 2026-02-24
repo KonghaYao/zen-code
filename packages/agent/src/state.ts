@@ -21,6 +21,7 @@ export const CodeState = AgentState.extend(SubAgentStateSchema.shape).extend({
     // sb 的 langchain 在 agent middleware 的 runtime 里面拿不到这些数据
     user_id: z.string().optional(),
     thread_id: z.string().optional(),
+    cwd: z.string().default(process.cwd()),
 });
 
 export const CodeAnnotation = createState(SubAgentAnnotation, MessagesAnnotation).build({
@@ -33,6 +34,7 @@ export const CodeAnnotation = createState(SubAgentAnnotation, MessagesAnnotation
     // sb 的 langchain 在 agent middleware 的 runtime 里面拿不到这些数据
     user_id: createDefaultAnnotation(() => ''),
     thread_id: createDefaultAnnotation(() => ''),
+    cwd: createDefaultAnnotation(() => process.cwd()),
 });
 
 export type CodeStateType = typeof CodeAnnotation.State;

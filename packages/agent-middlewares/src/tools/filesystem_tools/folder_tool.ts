@@ -19,9 +19,14 @@ const folderOperationSchema = z
 
 export const folder_tool = tool(
     async ({ operation, folder_path, recursive = true }, runtime: ToolRuntime<BaseAgentStateType>) => {
+        // 安全检查：确保 cwd 存在（在 try 块之前检查）
+        if (!runtime.state.cwd) {
+            throw new Error('Current working directory (cwd) is not set in the agent state.');
+        }
+
         try {
             // 解析路径：如果是相对路径，基于 cwd 解析；如果是绝对路径，直接使用
-            const resolvedPath = resolve(runtime.state.cwd!, folder_path);
+            const resolvedPath = resolve(runtime.state.cwd, folder_path);
 
             switch (operation) {
                 case 'create': {

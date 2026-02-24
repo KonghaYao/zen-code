@@ -77,6 +77,11 @@ export const bash_tool = tool(
             return `Error: 'command' argument is required unless using 'kill_process_id' or 'get_output_id'.`;
         }
 
+        // 安全检查：确保 cwd 存在
+        if (!runtime.state.cwd) {
+            throw new Error('Current working directory (cwd) is not set in the agent state.');
+        }
+
         if (run_in_background) {
             try {
                 const child_process = execa(defaultShell, [...shellArgs, command], {
