@@ -71,7 +71,7 @@ export type StateInstanceStatus = 'active' | 'completed' | 'failed' | 'paused';
  * State node definition (simplified XState structure)
  */
 export interface StateNodeDefinition {
-    id: string;
+    id?: string;
     type?: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
     initial?: string;
     states?: Record<string, StateNodeDefinition>;
@@ -147,7 +147,7 @@ export const TransitionToInputSchema = z.object({
     state_id: z.string().describe('Unique identifier for the state instance'),
     machine_id: z.string().describe('Unique identifier for the state machine definition'),
     target_state: z.string().describe('Target state to transition to'),
-    event_payload: z.record(z.unknown()).optional().describe('Optional payload for the transition event'),
+    event_payload: z.record(z.string(), z.unknown()).optional().describe('Optional payload for the transition event'),
 });
 
 export type TransitionToInput = z.infer<typeof TransitionToInputSchema>;
@@ -178,7 +178,7 @@ export type RollbackToStateInput = z.infer<typeof RollbackToStateInputSchema>;
 export const CreateStateInstanceInputSchema = z.object({
     state_id: z.string().describe('Unique identifier for the new state instance'),
     machine_id: z.string().describe('Unique identifier for the state machine definition'),
-    initial_context: z.record(z.unknown()).optional().describe('Initial context data'),
+    initial_context: z.record(z.string(), z.unknown()).optional().describe('Initial context data'),
     parent_state_id: z.string().optional().describe('Parent state ID for nested state machines'),
 });
 
@@ -202,7 +202,7 @@ export const SendEventInputSchema = z.object({
     state_id: z.string().describe('Unique identifier for the state instance'),
     machine_id: z.string().describe('Unique identifier for the state machine definition'),
     event_name: z.string().describe('Name of the event to send'),
-    event_payload: z.record(z.unknown()).optional().describe('Optional payload for the event'),
+    event_payload: z.record(z.string(), z.unknown()).optional().describe('Optional payload for the event'),
 });
 
 export type SendEventInput = z.infer<typeof SendEventInputSchema>;

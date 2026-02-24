@@ -1,15 +1,11 @@
 /**
- * State Machine Database Layer
+ * Zen Swarm SM Storage
  *
- * SQLite-based persistence for state machine definitions, instances, and transitions
- *
- * Supports dependency injection:
- * - Pass an existing Database instance for shared connection
- * - Or provide a dbPath to create a new connection
+ * Standalone SQLite storage for state machine management.
+ * Uses the shared database (./data/index.db) instead of a separate database.
  */
 
 import Database from 'bun:sqlite';
-import { join } from 'path';
 import {
     StateMachineDefinitionRow,
     StateInstanceRow,
@@ -21,105 +17,47 @@ import {
 } from './types.js';
 
 /**
- * SMDatabase configuration
- */
-export interface SMDatabaseConfig {
-    /**
-     * Existing Database instance (for shared connection)
-     * If provided, dbPath is ignored
-     */
-    db?: Database;
-
-    /**
-     * Path to SQLite database file
-     * Only used if db is not provided
-     */
-    dbPath?: string;
-}
-
-/**
- * State Machine Database Manager
+ * Zen Swarm SM Storage
  *
- * Handles all SQLite operations for state machine persistence
+ * Manages state machine tables in the shared database.
+ * This class wraps SMDatabase for zen-swarm integration.
  */
-export class SMDatabase {
+export class ZenSwarmSMStorage {
     private db: Database;
-    private dbPath: string | null = null;
-    private ownsDb: boolean;
 
     /**
-     * Create SMDatabase instance
+     * Create ZenSwarmSMStorage instance
      *
-     * @param config - Configuration object or dbPath string (for backward compatibility)
-     *
-     * @example
-     * // With dependency injection (recommended for zen-swarm)
-     * const db = new Database('./data/index.db');
-     * const smDb = new SMDatabase({ db });
-     *
-     * // With dbPath (standalone usage)
-     * const smDb = new SMDatabase({ dbPath: './state-machines.db' });
-     *
-     * // Backward compatible
-     * const smDb = new SMDatabase('./state-machines.db');
+     * @param dbPath - Path to SQLite database file (default: ./data/index.db)
      */
-    constructor(config?: SMDatabaseConfig | string) {
-        if (typeof config === 'string') {
-            // Backward compatible: config is dbPath
-            this.dbPath = config;
-            this.db = new Database(this.dbPath, { create: true });
-            this.ownsDb = true;
-        } else if (config?.db) {
-            // Dependency injection: use existing Database
-            this.db = config.db;
-            this.ownsDb = false;
-        } else {
-            // Create new Database with provided or default path
-            this.dbPath = config?.dbPath || SMDatabase.getDefaultPath();
-            this.db = new Database(this.dbPath, { create: true });
-            this.ownsDb = true;
-        }
-
+    constructor(dbPath: string = './data/index.db') {
+        this.db = new Database(dbPath, { create: true });
         this.db.run('PRAGMA foreign_keys = ON');
         this.db.run('PRAGMA journal_mode = WAL');
     }
 
     /**
-     * Get default database path
-     */
-    static getDefaultPath(): string {
-        const home = process.env.HOME || process.env.USERPROFILE || '.';
-        return join(home, '.zen-code', 'state-machines.db');
-    }
-
-    /**
-     * Create database with default path
-     */
-    static default(): SMDatabase {
-        return new SMDatabase();
-    }
-
-    /**
-     * Create SMDatabase from existing Database instance
+     * Create ZenSwarmSMStorage from existing Database instance
      *
-     * @example
-     * const db = new Database('./data/index.db');
-     * const smDb = SMDatabase.fromDatabase(db);
+     * @param db - Existing Database instance
      */
-    static fromDatabase(db: Database): SMDatabase {
-        return new SMDatabase({ db });
+    static fromDatabase(db: Database): ZenSwarmSMStorage {
+        const storage = Object.create(ZenSwarmSMStorage.prototype);
+        storage.db = db;
+        return storage;
     }
 
-    // ========================================
-    // Lifecycle
-    // ========================================
+    /**
+     * Get the underlying Database instance
+     */
+    getDatabase(): Database {
+        return this.db;
+    }
 
     /**
      * Initialize database schema
      */
     async initialize(): Promise<void> {
-        // Create tables directly instead of reading from file
-        // This avoids issues with SQL parsing and comments
         this.db.run(`
             CREATE TABLE IF NOT EXISTS state_machine_definitions (
                 machine_id TEXT PRIMARY KEY,
@@ -174,14 +112,9 @@ export class SMDatabase {
 
     /**
      * Close database connection
-     *
-     * Note: Only closes the connection if this instance owns it.
-     * If the Database was injected, the caller is responsible for closing it.
      */
     async close(): Promise<void> {
-        if (this.ownsDb) {
-            this.db.close();
-        }
+        this.db.close();
     }
 
     /**

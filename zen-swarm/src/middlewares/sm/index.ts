@@ -53,10 +53,32 @@
  *   tools: [...smMiddleware.tools],
  * });
  * ```
+ *
+ * @example With dependency injection (zen-swarm)
+ * ```typescript
+ * import { SMMiddleware, SMDatabase, ZenSwarmSMStorage } from '@codegraph/agent/sm';
+ * import Database from 'bun:sqlite';
+ *
+ * // Use shared database
+ * const sharedDb = new Database('./data/index.db');
+ * const smDb = new SMDatabase({ db: sharedDb });
+ * const manager = new StateMachineManager({ database: smDb });
+ * const smMiddleware = await SMMiddleware.create({ manager });
+ * ```
  */
 
 // Main exports
-export { SMMiddleware, StateMachineManager, SMDatabase } from './SMMiddleware.js';
+export { SMMiddleware } from './SMMiddleware.js';
+export { StateMachineManager } from './StateMachineManager.js';
+export { SMDatabase } from './database.js';
+
+// Storage (for zen-swarm integration)
+export { ZenSwarmSMStorage } from './storage.js';
+
+// Re-export config types from their source files
+export type { SMDatabaseConfig } from './database.js';
+export type { StateMachineManagerConfig } from './StateMachineManager.js';
+export type { SMMiddlewareConfigInput } from './SMMiddleware.js';
 
 // Type exports
 export type {

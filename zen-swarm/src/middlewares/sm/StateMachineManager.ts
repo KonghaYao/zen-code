@@ -3,10 +3,14 @@
  *
  * Integrates XState v5 with SQLite persistence for state machine management.
  * Provides a high-level API for creating, executing, and persisting state machines.
+ *
+ * Supports dependency injection:
+ * - Pass an existing SMDatabase instance for shared database connection
+ * - Or provide config to create a new connection
  */
 
 import { ActorRefFrom, AnyActorLogic } from 'xstate';
-import { SMDatabase } from './database.js';
+import { SMDatabase, SMDatabaseConfig } from './database.js';
 import {
     StateMachineDefinition,
     StateInstance,
@@ -22,6 +26,47 @@ import {
 } from './types.js';
 
 /**
+ * StateMachineManager configuration
+ */
+export interface StateMachineManagerConfig {
+    /**
+     * Existing SMDatabase instance (for shared connection)
+     * If provided, dbPath is ignored
+     */
+    database?: SMDatabase;
+
+    /**
+     * Path to SQLite database file
+     * Only used if database is not provided
+     */
+    dbPath?: string;
+
+    /**
+     * Enable automatic rollback on failure
+     * Default: false
+     */
+    autoRollback?: boolean;
+
+    /**
+     * Maximum number of history records to keep per state instance
+     * Default: 1000
+     */
+    maxHistoryPerInstance?: number;
+
+    /**
+     * Enable logging
+     * Default: false
+     */
+    enableLogging?: boolean;
+
+    /**
+     * Enable machine definition caching
+     * Default: true
+     */
+    enableCache?: boolean;
+}
+
+/**
  * State Machine Manager
  *
  * Manages XState state machines with SQLite persistence
@@ -29,16 +74,63 @@ import {
 export class StateMachineManager {
     private database: SMDatabase;
     private actors: Map<string, ActorRefFrom<AnyActorLogic>> = new Map();
-    private config: SMMiddlewareConfig;
+    private config: Omit<SMMiddlewareConfig, 'dbPath'>;
+    private ownsDatabase: boolean;
 
     // Cache for machine definitions (improves performance)
     private machineDefinitionCache: Map<string, StateMachineDefinition> = new Map();
-    private cacheEnabled: boolean = true;
+    private cacheEnabled: boolean;
 
-    constructor(config?: SMMiddlewareConfig) {
-        this.config = config || {};
-        this.database = new SMDatabase(config?.dbPath);
+    /**
+     * Create StateMachineManager instance
+     *
+     * @param config - Configuration object or SMMiddlewareConfig (for backward compatibility)
+     *
+     * @example
+     * // With dependency injection (recommended for zen-swarm)
+     * const db = new SMDatabase({ db: sharedDb });
+     * const manager = new StateMachineManager({ database: db });
+     *
+     * // With dbPath (standalone usage)
+     * const manager = new StateMachineManager({ dbPath: './state-machines.db' });
+     *
+     * // Backward compatible with SMMiddlewareConfig
+     * const manager = new StateMachineManager({ dbPath: './state-machines.db', enableLogging: true });
+     */
+    constructor(config?: StateMachineManagerConfig | SMMiddlewareConfig) {
+        // Determine if we own the database
+        if (config && 'database' in config && config.database) {
+            // Dependency injection: use existing database
+            this.database = config.database;
+            this.ownsDatabase = false;
+        } else {
+            // Create new database
+            const dbConfig: SMDatabaseConfig = config && 'dbPath' in config ? { dbPath: config.dbPath } : {};
+            this.database = new SMDatabase(dbConfig);
+            this.ownsDatabase = true;
+        }
+
+        this.config = {
+            autoRollback: config?.autoRollback,
+            maxHistoryPerInstance: config?.maxHistoryPerInstance,
+            enableLogging: config?.enableLogging,
+            enableCache: config?.enableCache,
+        };
         this.cacheEnabled = config?.enableCache !== false;
+    }
+
+    /**
+     * Create StateMachineManager from existing SMDatabase
+     *
+     * @example
+     * const db = new SMDatabase({ db: sharedDb });
+     * const manager = StateMachineManager.fromDatabase(db);
+     */
+    static fromDatabase(
+        database: SMDatabase,
+        config?: Omit<StateMachineManagerConfig, 'database'>,
+    ): StateMachineManager {
+        return new StateMachineManager({ ...config, database });
     }
 
     /**
@@ -51,6 +143,9 @@ export class StateMachineManager {
 
     /**
      * Close the manager and release resources
+     *
+     * Note: Only closes the database if this instance owns it.
+     * If the SMDatabase was injected, the caller is responsible for closing it.
      */
     async close(): Promise<void> {
         // Stop all actors
@@ -63,7 +158,10 @@ export class StateMachineManager {
         // Clear cache
         this.machineDefinitionCache.clear();
 
-        await this.database.close();
+        // Only close database if we own it
+        if (this.ownsDatabase) {
+            await this.database.close();
+        }
         this.log('StateMachineManager closed');
     }
 

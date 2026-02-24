@@ -10,5 +10,8 @@ export { MCPWithConfigMiddleware } from './mcp.js';
 export { MemoriesMiddleware } from './memories.js';
 export { createSubAgentsMiddleware } from './subagents.js';
 
+// State Machine middleware
+export { SMMiddleware, StateMachineManager, SMDatabase, ZenSwarmSMStorage } from './sm/index.js';
+
 // Re-export from @langgraph-js/agent-middlewares for convenience
 export { FilesystemMiddleware, TerminalMiddleware } from '@langgraph-js/agent-middlewares';

@@ -38,6 +38,7 @@
         "tailwind-merge": "^3",
         "tailwindcss": "^4.2.0",
         "uuid": "^13.0.0",
+        "xstate": "^5.28.0",
         "zod": "^4.3.5",
         "zustand": "^5.0.11"
     },

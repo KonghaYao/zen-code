@@ -4,11 +4,12 @@
  */
 
 import { AgentPackage } from '@langgraph-js/standard-agent';
+import type { StateMachineManager } from './sm/index.js';
 
 /**
  * 注册中间件实现到 AgentPackage
  */
-export async function createMiddlewareRegistry(pkg: AgentPackage) {
+export async function createMiddlewareRegistry(pkg: AgentPackage, stateMachineManager?: StateMachineManager) {
     const subagents = {
         id: 'subagents',
         name: 'subagents',
@@ -84,4 +85,26 @@ export async function createMiddlewareRegistry(pkg: AgentPackage) {
         await pkg.addMiddleware(terminal);
     }
     pkg.middlewares.registerImplementation(terminal);
+
+    // State Machine middleware (with dependency injection)
+    const sm = {
+        id: 'sm',
+        name: 'sm',
+        description: 'XState-based state machine management with SQLite persistence',
+        execute: async () => {
+            const { SMMiddleware } = await import('./sm/index.js');
+            if (stateMachineManager) {
+                // Use provided manager (dependency injection)
+                return SMMiddleware.fromManager(stateMachineManager);
+            } else {
+                // Create standalone middleware
+                return SMMiddleware.create();
+            }
+        },
+    };
+    const existingSm = await pkg.getMiddleware('sm');
+    if (!existingSm) {
+        await pkg.addMiddleware(sm);
+    }
+    pkg.middlewares.registerImplementation(sm);
 }
