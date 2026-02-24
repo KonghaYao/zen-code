@@ -89,13 +89,15 @@ export async function createMiddlewareRegistry(pkg: AgentPackage, stateMachineMa
     // State Machine middleware (with dependency injection)
     const sm = {
         id: 'sm',
-        name: 'sm',
+        name: 'state-management',
         description: 'XState-based state machine management with SQLite persistence',
         execute: async () => {
             const { SMMiddleware } = await import('./sm/index.js');
             if (stateMachineManager) {
                 // Use provided manager (dependency injection)
-                return SMMiddleware.fromManager(stateMachineManager);
+                const m = SMMiddleware.fromManager(stateMachineManager);
+                await m.initialize();
+                return m;
             } else {
                 // Create standalone middleware
                 return SMMiddleware.create();

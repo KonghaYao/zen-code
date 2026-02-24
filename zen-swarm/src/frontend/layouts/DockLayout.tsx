@@ -43,7 +43,7 @@ export function DockLayout() {
         console.log('🔍 DockLayout - hash:', hash, 'path:', path);
 
         // 只返回有效的应用 ID，否则默认为 dashboard
-        if (['dashboard', 'config', 'workspaces', 'finder', 'cron'].includes(path)) {
+        if (['dashboard', 'config', 'workspaces', 'finder', 'sm', 'cron'].includes(path)) {
             return path as AppId;
         }
         // 如果路径为空或无效，默认为 dashboard

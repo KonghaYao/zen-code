@@ -9,7 +9,7 @@ import type { ComponentType, ReactNode } from 'react';
  * 应用 ID 类型
  * 排除了 chat（按设计文档暂不作为独立 app）
  */
-export type AppId = 'dashboard' | 'config' | 'resources' | 'workspaces' | 'finder' | 'cron';
+export type AppId = 'dashboard' | 'config' | 'resources' | 'workspaces' | 'finder' | 'sm' | 'cron';
 
 /**
  * 通知状态

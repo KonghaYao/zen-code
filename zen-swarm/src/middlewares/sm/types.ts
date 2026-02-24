@@ -285,6 +285,21 @@ export interface SendEventResult {
     error?: string;
 }
 
+/**
+ * Result of create_state command (creates instance and starts actor)
+ */
+export interface CreateStateResult extends CreateStateInstanceResult {
+    actor_running: boolean;
+}
+
+/**
+ * Result of stop_state command
+ */
+export interface StopStateResult {
+    success: boolean;
+    message: string;
+}
+
 // ========================================
 // Middleware Configuration
 // ========================================

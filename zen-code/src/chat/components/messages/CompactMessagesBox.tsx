@@ -1,14 +1,13 @@
 import { Box, Static, Text } from 'ink';
 
-import { useState, useMemo, Fragment, memo, useCallback } from 'react';
-import { useTimeout } from 'usehooks-ts';
+import { useMemo, Fragment, memo } from 'react';
 import MessageHuman from './MessageHuman';
 import MessageAI from './MessageAI';
 import { RenderMessage } from '@langgraph-js/sdk';
 import { getTextContent } from '@langgraph-js/sdk';
 import { getColor } from '@codegraph/union-client';
-import { PlatformStatic } from '../common/PlatformStatic';
 import DynamicRenderer from './DynamicRenderer';
+import ErrorBoundary from '../common/ErrorBoundary';
 
 interface CompactMessagesBoxProps {
     renderMessages: RenderMessage[];
@@ -61,11 +60,13 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
                 const totalSubmessages = msg.sub_messages?.length || 0;
                 const submessages = msg.sub_messages?.slice(-4) || [];
                 const omittedCount = totalSubmessages - submessages.length;
-
+                const Render = () => {
+                    return <ErrorBoundary fallback={msg.name + ' is error'}>{render(msg) as any}</ErrorBoundary>;
+                };
                 return (
                     /** @ts-ignore */
                     <Fragment key={`${groupId}-${idx}-${msg.status}`}>
-                        {render(msg) as any}
+                        <Render></Render>
                         {submessages.length ? (
                             <>
                                 {omittedCount > 0 && (

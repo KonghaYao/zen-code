@@ -6,7 +6,7 @@
 
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import type { StateMachineManager } from '../StateMachineManager.js';
+import { StateMachineManager } from '../StateMachineManager.js';
 
 /**
  * Command types for state machine operations
@@ -16,8 +16,10 @@ export const SMCommandTypeSchema = z.enum([
     'get_state',
     'rollback_to_state',
     'create_state_instance',
+    'create_state',
     'send_event',
     'get_transition_history',
+    'stop_state',
 ]);
 
 /**
@@ -27,7 +29,10 @@ export const SMCommandInputSchema = z.object({
     command: SMCommandTypeSchema.describe('The operation to perform'),
 
     // Common parameters
-    state_id: z.string().optional().describe('Unique identifier for the state instance'),
+    state_id: z
+        .string()
+        .optional()
+        .describe('Unique identifier for the state instance (auto-generated if not provided for create_state)'),
     machine_id: z.string().optional().describe('Unique identifier for the state machine definition'),
 
     // transition_to parameters
@@ -48,6 +53,16 @@ export const SMCommandInputSchema = z.object({
         .string()
         .optional()
         .describe('Parent state ID for nested state machines (for create_state_instance command)'),
+
+    // create_state parameters (start a state machine process/actor)
+    auto_start: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe('Whether to automatically start the actor (for create_state command)'),
+
+    // stop_state parameters
+    force: z.boolean().optional().describe('Force stop the actor even if in non-final state (for stop_state command)'),
 
     // send_event parameters
     event_name: z.string().optional().describe('Name of the event to send (for send_event command)'),
@@ -92,7 +107,7 @@ export function createSMCommandTool(manager: StateMachineManager) {
             }
         },
         {
-            name: 'sm_command',
+            name: 'state_machine_command',
             description: `Execute state machine operations with a unified command interface.
 
 Available commands:
@@ -111,13 +126,22 @@ Available commands:
    - Required: state_id, machine_id
    - Optional: initial_context, parent_state_id
 
-5. **send_event** - Send an event to trigger state transitions
+5. **create_state** - Create and start a state machine process/actor
+   - Required: machine_id
+   - Optional: state_id (auto-generated if not provided), initial_context, parent_state_id, auto_start
+   - Returns the generated state_id in the response
+
+6. **send_event** - Send an event to trigger state transitions
    - Required: state_id, machine_id, event_name
    - Optional: event_payload
 
-6. **get_transition_history** - Get the transition history for a state instance
+7. **get_transition_history** - Get the transition history for a state instance
    - Required: state_id
    - Optional: limit, before_transition_id
+
+8. **stop_state** - Stop a running state machine actor
+   - Required: state_id
+   - Optional: force
 
 Use this tool to manage state machine workflows, track execution progress, and handle error recovery.`,
             schema: SMCommandInputSchema,
@@ -128,7 +152,7 @@ Use this tool to manage state machine workflows, track execution progress, and h
 /**
  * Execute the state machine command
  */
-async function executeSMCommand(manager: StateMachineManager, input: SMCommandInput): Promise<Record<string, unknown>> {
+async function executeSMCommand(manager: StateMachineManager, input: SMCommandInput) {
     const { command } = input;
 
     switch (command) {
@@ -166,6 +190,21 @@ async function executeSMCommand(manager: StateMachineManager, input: SMCommandIn
             );
         }
 
+        case 'create_state': {
+            if (!input.machine_id) throw new Error('machine_id is required for create_state');
+
+            // Auto-generate state_id if not provided
+            const stateId = input.state_id || StateMachineManager.generateStateId(input.machine_id);
+
+            return manager.createState(
+                stateId,
+                input.machine_id,
+                input.initial_context,
+                input.parent_state_id,
+                input.auto_start,
+            );
+        }
+
         case 'send_event': {
             if (!input.state_id) throw new Error('state_id is required for send_event');
             if (!input.machine_id) throw new Error('machine_id is required for send_event');
@@ -178,6 +217,12 @@ async function executeSMCommand(manager: StateMachineManager, input: SMCommandIn
             if (!input.state_id) throw new Error('state_id is required for get_transition_history');
 
             return manager.getTransitionHistory(input.state_id, input.limit, input.before_transition_id);
+        }
+
+        case 'stop_state': {
+            if (!input.state_id) throw new Error('state_id is required for stop_state');
+
+            return manager.stopState(input.state_id, input.force);
         }
 
         default:

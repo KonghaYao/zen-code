@@ -368,6 +368,22 @@ export class SMDatabase {
     }
 
     /**
+     * Get all state instances
+     */
+    async getAllStateInstances(status?: StateInstanceStatus): Promise<StateInstance[]> {
+        let stmt;
+        if (status) {
+            stmt = this.db.prepare('SELECT * FROM state_instances WHERE status = ? ORDER BY created_at DESC');
+            const rows = stmt.all(status) as StateInstanceRow[];
+            return rows.map((row) => this.rowToStateInstance(row));
+        } else {
+            stmt = this.db.prepare('SELECT * FROM state_instances ORDER BY created_at DESC');
+            const rows = stmt.all() as StateInstanceRow[];
+            return rows.map((row) => this.rowToStateInstance(row));
+        }
+    }
+
+    /**
      * Update a state instance
      */
     async updateStateInstance(

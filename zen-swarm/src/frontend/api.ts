@@ -4,13 +4,14 @@
 
 import { createTRPCReact } from '@trpc/react-query';
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
-import type { AppRouter } from '../api/index.js';
+import type { FullAppRouter } from '../api/index.js';
 
 // 创建 tRPC React hook
-export const trpc = createTRPCReact<AppRouter>();
+export const trpc = createTRPCReact<FullAppRouter>();
 
 // 创建 tRPC 客户端实例（供 stores 使用）
-export const apiClient = createTRPCClient<AppRouter>({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const apiClient: any = createTRPCClient<FullAppRouter>({
     links: [
         httpBatchLink({
             url: '/api/trpc',
@@ -19,4 +20,4 @@ export const apiClient = createTRPCClient<AppRouter>({
 });
 
 // 导出类型供使用
-export type { AppRouter };
+export type { FullAppRouter };

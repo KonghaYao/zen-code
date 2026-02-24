@@ -141,4 +141,14 @@ export {
     Cat,
     Dog,
     PawPrint,
+    // Additional icons for SM View
+    Layers,
+    GitBranch,
+    ArrowRight,
+    Circle,
+    Undo,
+    Redo,
+    Edit2,
+    History,
+    XCircle as XClose,
 } from 'lucide-react';

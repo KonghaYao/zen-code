@@ -79,7 +79,9 @@ describe('SMMiddleware Integration', () => {
             const middleware = await SMMiddleware.create();
             expect(middleware).toBeDefined();
             expect(middleware.name).toBe('SMMiddleware');
-            expect(middleware.tools).toHaveLength(6);
+            // Now uses unified command tool instead of multiple tools
+            expect(middleware.tools).toHaveLength(1);
+            expect(middleware.tools[0]?.name).toBe('state_machine_command');
             await middleware.close();
         });
 
@@ -98,22 +100,20 @@ describe('SMMiddleware Integration', () => {
     });
 
     describe('Tool Registration', () => {
-        it('should provide all required tools', () => {
+        it('should provide unified command tool', () => {
             const tools = smMiddleware.tools;
             const toolNames = tools.map((t) => t.name);
 
-            expect(toolNames).toContain('transition_to');
-            expect(toolNames).toContain('get_state');
-            expect(toolNames).toContain('rollback_to_state');
-            expect(toolNames).toContain('create_state_instance');
-            expect(toolNames).toContain('send_event');
-            expect(toolNames).toContain('get_transition_history');
+            // Now uses unified command tool
+            expect(toolNames).toContain('state_machine_command');
         });
 
-        it('should have correct tool schemas', () => {
-            const transitionTool = smMiddleware.tools.find((t) => t.name === 'transition_to');
-            expect(transitionTool).toBeDefined();
-            expect(transitionTool?.description).toContain('Transition a state instance');
+        it('should have correct tool schema', () => {
+            const commandTool = smMiddleware.tools.find((t) => t.name === 'state_machine_command');
+            expect(commandTool).toBeDefined();
+            expect(commandTool?.description).toContain('transition_to');
+            expect(commandTool?.description).toContain('create_state');
+            expect(commandTool?.description).toContain('stop_state');
         });
     });
 
@@ -295,14 +295,15 @@ describe('SMMiddleware Integration', () => {
     });
 
     describe('Tool Execution via Tool Interface', () => {
-        it('should execute transition_to tool', async () => {
+        it('should execute transition_to command', async () => {
             const manager = smMiddleware.stateMachineManager;
             await manager.createStateInstance('order-201', 'order-workflow', { orderId: 'ORD-201' });
 
-            const transitionTool = smMiddleware.tools.find((t) => t.name === 'transition_to');
-            expect(transitionTool).toBeDefined();
+            const commandTool = smMiddleware.tools.find((t) => t.name === 'state_machine_command');
+            expect(commandTool).toBeDefined();
 
-            const result = await transitionTool!.invoke({
+            const result = await commandTool!.invoke({
+                command: 'transition_to',
                 state_id: 'order-201',
                 machine_id: 'order-workflow',
                 target_state: 'approved',
@@ -313,12 +314,13 @@ describe('SMMiddleware Integration', () => {
             expect(parsed.current_state).toBe('approved');
         });
 
-        it('should execute get_state tool', async () => {
+        it('should execute get_state command', async () => {
             const manager = smMiddleware.stateMachineManager;
             await manager.createStateInstance('order-202', 'order-workflow', { orderId: 'ORD-202' });
 
-            const getStateTool = smMiddleware.tools.find((t) => t.name === 'get_state');
-            const result = await getStateTool!.invoke({
+            const commandTool = smMiddleware.tools.find((t) => t.name === 'state_machine_command');
+            const result = await commandTool!.invoke({
+                command: 'get_state',
                 state_id: 'order-202',
                 machine_id: 'order-workflow',
             });
@@ -328,12 +330,13 @@ describe('SMMiddleware Integration', () => {
             expect(parsed.available_transitions).toContain('approved');
         });
 
-        it('should execute send_event tool', async () => {
+        it('should execute send_event command', async () => {
             const manager = smMiddleware.stateMachineManager;
             await manager.createStateInstance('order-203', 'order-workflow', { orderId: 'ORD-203' });
 
-            const sendEventTool = smMiddleware.tools.find((t) => t.name === 'send_event');
-            const result = await sendEventTool!.invoke({
+            const commandTool = smMiddleware.tools.find((t) => t.name === 'state_machine_command');
+            const result = await commandTool!.invoke({
+                command: 'send_event',
                 state_id: 'order-203',
                 machine_id: 'order-workflow',
                 event_name: 'APPROVE',
@@ -344,10 +347,65 @@ describe('SMMiddleware Integration', () => {
             expect(parsed.current_state).toBe('approved');
         });
 
-        it('should handle errors gracefully in tools', async () => {
-            const transitionTool = smMiddleware.tools.find((t) => t.name === 'transition_to');
+        it('should execute create_state command with auto-generated state_id', async () => {
+            const commandTool = smMiddleware.tools.find((t) => t.name === 'state_machine_command');
 
-            const result = await transitionTool!.invoke({
+            // Test without state_id - should auto-generate
+            const result = await commandTool!.invoke({
+                command: 'create_state',
+                machine_id: 'order-workflow',
+                initial_context: { orderId: 'ORD-AUTO' },
+                auto_start: true,
+            });
+
+            const parsed = JSON.parse(result as string);
+            expect(parsed.success).toBe(true);
+            expect(parsed.initial_state).toBe('pending');
+            expect(parsed.actor_running).toBe(true);
+            // Should have auto-generated state_id
+            expect(parsed.state_id).toBeDefined();
+            expect(parsed.state_id).toMatch(/^order-workflow-/);
+        });
+
+        it('should execute create_state command with provided state_id', async () => {
+            const commandTool = smMiddleware.tools.find((t) => t.name === 'state_machine_command');
+
+            // Test with explicit state_id
+            const result = await commandTool!.invoke({
+                command: 'create_state',
+                state_id: 'order-204',
+                machine_id: 'order-workflow',
+                initial_context: { orderId: 'ORD-204' },
+                auto_start: true,
+            });
+
+            const parsed = JSON.parse(result as string);
+            expect(parsed.success).toBe(true);
+            expect(parsed.state_id).toBe('order-204');
+            expect(parsed.initial_state).toBe('pending');
+            expect(parsed.actor_running).toBe(true);
+        });
+
+        it('should execute stop_state command', async () => {
+            const manager = smMiddleware.stateMachineManager;
+            await manager.createState('order-205', 'order-workflow', { orderId: 'ORD-205' }, undefined, true);
+
+            const commandTool = smMiddleware.tools.find((t) => t.name === 'state_machine_command');
+            const result = await commandTool!.invoke({
+                command: 'stop_state',
+                state_id: 'order-205',
+                force: false,
+            });
+
+            const parsed = JSON.parse(result as string);
+            expect(parsed.success).toBe(true);
+        });
+
+        it('should handle errors gracefully in commands', async () => {
+            const commandTool = smMiddleware.tools.find((t) => t.name === 'state_machine_command');
+
+            const result = await commandTool!.invoke({
+                command: 'transition_to',
                 state_id: 'nonexistent',
                 machine_id: 'order-workflow',
                 target_state: 'approved',

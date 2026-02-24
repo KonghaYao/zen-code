@@ -10,7 +10,7 @@ import { logger } from 'hono/logger';
 import { serve } from 'bun';
 import { swarmGraph } from './graphBuilder.js';
 import { createTRPCHonoRoute } from './api/hono.js';
-import { agentPackage, cronStorage, cronScheduler } from './config/loader.js';
+import { agentPackage, cronStorage, cronScheduler, stateMachineManager, smDatabase } from './config/loader.js';
 import dashboard from './index.html';
 
 // 1. 注册 graph（自动提供 HTTP API 和流式支持）
@@ -28,7 +28,7 @@ app.use(logger());
 console.log('Mounting LangGraph routes at /api/langgraph');
 app.route('/api/langgraph', LGApp);
 
-const trpcRoute = createTRPCHonoRoute(agentPackage, cronStorage, cronScheduler);
+const trpcRoute = createTRPCHonoRoute(agentPackage, cronStorage, cronScheduler, stateMachineManager, smDatabase);
 app.route('/api/trpc', trpcRoute);
 
 app.get('/health', (c) => {
