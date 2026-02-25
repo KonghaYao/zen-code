@@ -97,6 +97,7 @@ const ChatControllerInternal: React.FC<ChatControllerProps> = ({ children }) => 
         switchToAgent: panelState.switchToAgent,
         switchToTask: panelState.switchToTask,
         switchToMcp: panelState.switchToMcp,
+        switchToProcess: panelState.switchToProcess,
         closePanel: panelState.closePanel,
         handleExecuteTask,
         hasPendingInteractions,

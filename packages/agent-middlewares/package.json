@@ -12,6 +12,7 @@
         "fs-extra": "^11.3.3",
         "glob": "^11.1.0",
         "path-exists": "^5.0.0",
+        "pidusage": "^4",
         "tempy": "^3.2.0",
         "xdg-basedir": "^5.1.0",
         "zod": "^4"

@@ -46,6 +46,7 @@
         "node-sqlite3-wasm": "^0.8.53",
         "openai": "^6.16.0",
         "path-exists": "^5.0.0",
+        "pidusage": "^4",
         "proper-lockfile": "^4.1.2",
         "string-width": "^8.1.0",
         "tempy": "^3.1.0",

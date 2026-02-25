@@ -13,7 +13,16 @@
 import { useState, useCallback } from 'react';
 import { useFocusManager } from 'ink';
 
-export type ChatView = 'chat' | 'history' | 'knowledge' | 'settings' | 'model-provider' | 'agent' | 'task' | 'mcp';
+export type ChatView =
+    | 'chat'
+    | 'history'
+    | 'knowledge'
+    | 'settings'
+    | 'model-provider'
+    | 'agent'
+    | 'task'
+    | 'mcp'
+    | 'process';
 
 interface UseChatPanelsResult {
     activeView: ChatView;
@@ -25,6 +34,7 @@ interface UseChatPanelsResult {
     switchToAgent: () => void;
     switchToTask: () => void;
     switchToMcp: () => void;
+    switchToProcess: () => void;
     closePanel: () => void;
 }
 
@@ -70,6 +80,10 @@ export function useChatPanels(): UseChatPanelsResult {
         setActiveView('mcp');
     }, []);
 
+    const switchToProcess = useCallback(() => {
+        setActiveView('process');
+    }, []);
+
     const closePanel = useCallback(() => {
         setActiveView('chat');
         focusManager.focus('global-input');
@@ -88,6 +102,7 @@ export function useChatPanels(): UseChatPanelsResult {
         switchToAgent,
         switchToTask,
         switchToMcp,
+        switchToProcess,
         closePanel,
     };
 }

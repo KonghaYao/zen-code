@@ -86,5 +86,29 @@ export const taskCommand: CommandDefinition = {
     },
 };
 
+/**
+ * /process 命令 - 打开进程管理器
+ */
+export const processCommand: CommandDefinition = {
+    name: 'process',
+    description: '打开进程管理器面板',
+    aliases: ['ps', 'proc'],
+    usage: '/process',
+    execute: async (args: string[], context: CommandContext): Promise<CommandResult> => {
+        context.switchToProcess?.();
+        return {
+            success: true,
+            message: '打开进程管理器',
+            shouldClearInput: true,
+        };
+    },
+};
+
 // 导出所有命令
-export const builtinCommands: CommandDefinition[] = [initCommand, helpCommand, taskCommand, providerCommand];
+export const builtinCommands: CommandDefinition[] = [
+    initCommand,
+    helpCommand,
+    taskCommand,
+    providerCommand,
+    processCommand,
+];

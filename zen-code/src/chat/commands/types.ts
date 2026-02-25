@@ -54,6 +54,8 @@ export interface CommandContext {
     switchToTask?: () => void;
     /** 切换到 MCP 配置面板 */
     switchToMcp?: () => void;
+    /** 切换到进程管理器面板 */
+    switchToProcess?: () => void;
     /** 关闭面板返回聊天 */
     closePanel?: () => void;
     /** 启动 Ralph 循环模式 */

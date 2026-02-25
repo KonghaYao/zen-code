@@ -160,15 +160,31 @@ export function UniversalPanel<T extends Record<string, any>>({ config, onClose 
                         Enter
                     </Text>
                     :确认
+                    {onDelete && (
+                        <>
+                            <Text color="cyan" bold>
+                                {' '}
+                                Backspace
+                            </Text>
+                            :删除
+                        </>
+                    )}
                     <Text color="cyan" bold>
+                        {' '}
                         /
                     </Text>
                     :搜索
+                    {filterable && (
+                        <>
+                            <Text color="cyan" bold>
+                                {' '}
+                                Tab
+                            </Text>
+                            :过滤
+                        </>
+                    )}
                     <Text color="cyan" bold>
-                        Tab
-                    </Text>
-                    :过滤
-                    <Text color="cyan" bold>
+                        {' '}
                         ESC
                     </Text>
                     :关闭

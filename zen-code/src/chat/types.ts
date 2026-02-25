@@ -14,3 +14,13 @@ export interface Message {
     spend_time?: number;
     tool_input?: string;
 }
+
+export interface ProcessInfo {
+    pid: number;
+    command: string;
+    startTime: number;
+    duration: number; // 运行时长 (ms)
+    cpu: number; // CPU 使用率 (%)
+    memory: number; // 内存使用率 (bytes)
+    status: 'running' | 'stopped' | 'zombie';
+}

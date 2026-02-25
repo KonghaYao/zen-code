@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text } from 'ink';
 import { useSettings } from '../../context/SettingsContext';
 import { useChat } from '@langgraph-js/sdk/react';
@@ -6,6 +6,7 @@ import { MCPStatusPanel } from '../panels/mcp/MCPStatusPanel';
 import { Shimmer, useInput } from 'ink-pro';
 import { useLoadingTimer, formatDuration } from '../../hooks/useSystemResources';
 import SystemInfoBar from '../common/SystemInfoBar';
+import { processManager } from '../../services/ProcessManagerService.js';
 import path from 'path';
 
 /**
@@ -18,9 +19,22 @@ const StatusBar: React.FC = () => {
     const { currentChatId, renderMessages } = useChat();
     const { loading: chatLoading, stopGeneration } = useChat();
     const isYoloMode = process.env.YOLO_MODE === 'true';
+    const [backgroundProcessCount, setBackgroundProcessCount] = useState(0);
+
+    // 轮询后台进程数量（每 2 秒）
+    useEffect(() => {
+        const updateProcessCount = async () => {
+            const processes = await processManager.getProcessList();
+            setBackgroundProcessCount(processes.length);
+        };
+
+        updateProcessCount();
+        const interval = setInterval(updateProcessCount, 2000);
+        return () => clearInterval(interval);
+    }, []);
 
     // Ctrl+C 处理逻辑 - 使用 useCallback 避免重复注册
-    const handleInput = React.useCallback(
+    const handleInput = useCallback(
         (input: string, key: any) => {
             if (key.ctrl && input === 'c') {
                 // if (chatLoading) {
@@ -82,6 +96,12 @@ const StatusBar: React.FC = () => {
                         </Text>
                     )}
                     <MCPStatusPanel />
+                    {backgroundProcessCount > 0 && (
+                        <Text color="magenta" bold>
+                            {' '}
+                            ● BG ({backgroundProcessCount})
+                        </Text>
+                    )}
                     {shouldShowCompressionHint && (
                         <Text color="red" bold>
                             {' '}

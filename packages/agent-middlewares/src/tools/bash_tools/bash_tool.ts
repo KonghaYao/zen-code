@@ -1,16 +1,9 @@
 import { tool, ToolRuntime } from '@langchain/core/tools';
 import { z } from 'zod';
-import { execa, type ResultPromise } from 'execa';
+import { execa } from 'execa';
 import type { BaseAgentStateType } from '../../index.js';
-
-// 管理后台进程的状态
-export interface ManagedProcess {
-    process: ResultPromise;
-    stdout: string[];
-    stderr: string[];
-}
-
-export const background_processes = new Map<number, ManagedProcess>();
+import type { ManagedProcess } from './bash_manager.js';
+import { background_processes } from './bash_manager.js';
 
 // 检测操作系统
 const isWindows = process.platform === 'win32';
@@ -99,6 +92,8 @@ export const bash_tool = tool(
                     process: child_process,
                     stdout: [],
                     stderr: [],
+                    command: command, // 记录执行命令
+                    startTime: Date.now(), // 记录启动时间
                 };
                 background_processes.set(child_process.pid, managed_process);
 

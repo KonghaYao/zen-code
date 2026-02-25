@@ -26,3 +26,4 @@ export const LazyModelProviderPanel = lazy(() =>
 export const LazyAgentPanel = lazy(() => import('../panels/AgentPanel').then((m) => ({ default: m.default })));
 export const LazyTaskPanel = lazy(() => import('../panels/TaskPanel').then((m) => ({ default: m.default })));
 export const LazyMcpPanel = lazy(() => import('../panels/mcp/McpPanel').then((m) => ({ default: m.default })));
+export const LazyProcessPanel = lazy(() => import('../panels/ProcessPanel').then((m) => ({ default: m.default })));

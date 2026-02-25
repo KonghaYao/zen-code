@@ -40,6 +40,7 @@ export const ChatInput: React.FC = memo(() => {
         switchToAgent,
         switchToTask,
         switchToMcp,
+        switchToProcess,
         closePanel,
     } = useChatPanel();
 
@@ -68,6 +69,7 @@ export const ChatInput: React.FC = memo(() => {
         switchToAgent,
         switchToTask,
         switchToMcp,
+        switchToProcess,
         closePanel,
         startRalphLoop,
     });
