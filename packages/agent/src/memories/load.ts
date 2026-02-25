@@ -9,7 +9,7 @@
  */
 
 import { readFileSync, statSync, existsSync, readdirSync, lstatSync } from 'fs';
-import { join, resolve } from 'path';
+import { join, resolve, relative } from 'path';
 import { parse } from 'yaml';
 
 // Maximum size for MEMORY.md files (10MB)
@@ -40,8 +40,22 @@ function _isSafePath(path: string, baseDir: string): boolean {
     try {
         const resolvedPath = resolve(path);
         const resolvedBase = resolve(baseDir);
-        const relativePath = resolvedPath.substring(resolvedBase.length);
-        return resolvedPath === resolvedBase || relativePath.startsWith('/') || relativePath === '';
+
+        // Use relative() to check if path is within baseDir (cross-platform)
+        const relativePath = relative(resolvedBase, resolvedPath);
+
+        // Check if path is within baseDir:
+        // 1. Empty string = same directory = safe
+        // 2. Starts with '..' = goes outside = unsafe
+        // 3. Contains ':' = cross-drive on Windows = unsafe (relative() returns absolute path)
+        // 4. Otherwise = goes down = safe
+        if (!relativePath) {
+            return true;
+        }
+        if (relativePath.startsWith('..') || relativePath.includes(':')) {
+            return false;
+        }
+        return true;
     } catch (error) {
         return false;
     }

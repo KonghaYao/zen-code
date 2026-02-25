@@ -23,8 +23,9 @@
  */
 
 import { readFileSync, statSync, existsSync, readdirSync, lstatSync } from 'fs';
-import { join, resolve } from 'path';
+import { join, resolve, sep, relative, dirname, basename } from 'path';
 import { parse } from 'yaml';
+import { homedir } from 'os';
 
 // Maximum size for SKILL.md files (10MB)
 const MAX_SKILL_FILE_SIZE = 10 * 1024 * 1024;
@@ -65,28 +66,32 @@ function _isSafePath(path: string, baseDir: string): boolean {
         const resolvedPath = resolve(path);
         const resolvedBase = resolve(baseDir);
 
-        // Check if the resolved path is within the base directory
-        // This catches symlinks that point outside the base directory
-        const relativePath = resolvedPath.substring(resolvedBase.length);
+        // Use relative() to check if path is within baseDir (cross-platform)
+        const relativePath = relative(resolvedBase, resolvedPath);
 
-        // If the path starts with the base directory and the next character is path separator
-        // or if they are exactly equal, it's safe
-        if (resolvedPath === resolvedBase || relativePath.startsWith('/') || relativePath === '') {
+        // Check if path is within baseDir:
+        // 1. Empty string = same directory = safe
+        // 2. Starts with '..' = goes outside = unsafe
+        // 3. Contains ':' = cross-drive on Windows = unsafe (relative() returns absolute path)
+        // 4. Otherwise = goes down = safe
+        if (!relativePath) {
             return true;
         }
-
-        // For user skills directories, allow symlinks within the user's home directory
-        // This enables shared skill libraries via symlinks
-        if (baseDir.includes('/.claude/skills')) {
-            const os = require('os');
-            const homedir = os.homedir();
-            // Check if the resolved path is within the user's home directory
-            if (resolvedPath.startsWith(homedir)) {
-                return true;
+        if (relativePath.startsWith('..') || relativePath.includes(':')) {
+            // Path goes outside baseDir - check home directory exemption
+            const skillsPathSuffix = `${sep}.claude${sep}skills`;
+            if (baseDir.includes(skillsPathSuffix)) {
+                const home = homedir();
+                const relToHome = relative(home, resolvedPath);
+                // If within home directory (empty or doesn't go up, and not cross-drive)
+                if (!relToHome || (!relToHome.startsWith('..') && !relToHome.includes(':'))) {
+                    return true;
+                }
             }
+            return false;
         }
 
-        return false;
+        return true;
     } catch (error) {
         // Error resolving paths (e.g., circular symlinks, too many levels)
         return false;
@@ -179,7 +184,8 @@ function _parseSkillMetadata(skillMdPath: string, source: 'user' | 'project'): S
         }
 
         // Validate name format per spec (warn but still load for backwards compatibility)
-        const directoryName = skillMdPath.split('/').slice(-2)[0];
+        // Use dirname/basename for cross-platform path handling
+        const directoryName = basename(dirname(skillMdPath));
         const [isValid, error] = _validateSkillName(String(name), directoryName);
         if (!isValid) {
             console.warn(
