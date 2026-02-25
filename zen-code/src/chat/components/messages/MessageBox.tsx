@@ -37,16 +37,8 @@ export const MessagesBox = memo(function MessagesBox({
         <Box
             key={message.id ? `${prefix}-${message.id}` : `${prefix}-msg-${index}`}
             flexDirection="column"
-            borderStyle={isCurrent ? 'double' : 'single'}
-            borderLeft
             paddingLeft={1}
             paddingBottom={1}
-            borderBottom={false}
-            borderTop={false}
-            borderRight={false}
-            borderLeftColor={
-                message.type === 'ai' ? getColor('teal') : message.type === 'human' ? getColor('amber') : 'yellow'
-            }
         >
             {message.type === 'human' ? (
                 <MessageHuman content={message.content} messageNumber={index + 1 + startIndex} />

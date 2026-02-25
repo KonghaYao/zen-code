@@ -119,22 +119,7 @@ const MessageItem = memo(function MessageItem({
     loading,
 }: MessageItemProps) {
     return (
-        <Box
-            flexDirection="column"
-            borderStyle={isCurrent ? 'double' : 'single'}
-            paddingBottom={1}
-            borderLeft={false}
-            borderBottom={false}
-            borderTop={message.type === 'group' ? false : true}
-            borderRight={false}
-            borderTopColor={
-                message.type === 'ai'
-                    ? getColor('teal')
-                    : message.type === 'human'
-                      ? getColor('amber')
-                      : getColor('rose')
-            }
-        >
+        <Box flexDirection="column" paddingBottom={1}>
             {/* 如果不是 skipMessage，显示消息内容 */}
             {message.type === 'human' ? (
                 <MessageHuman content={message.content} messageNumber={displayIndex + 1 + startIndex} />
