@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import type { Model } from '../../types/index.js';
+import type { Model } from '../../../types/index.js';
 import { FormField, FormInput, FormSelect, FormCheckbox } from '../../ui/form/FormField.js';
 import { FormButtons } from '../../ui/form/FormButtons.js';
 
@@ -25,11 +25,11 @@ const createInitialFormData = (model: Model | null) => ({
     model_provider: model?.model_provider ?? '',
     stream_usage: model?.stream_usage ?? false,
     enable_thinking: model?.enable_thinking ?? false,
-    temperature: model?.temperature ?? '',
-    max_tokens: model?.max_tokens ?? '',
-    top_p: model?.top_p ?? '',
-    frequency_penalty: model?.frequency_penalty ?? '',
-    presence_penalty: model?.presence_penalty ?? '',
+    temperature: model?.temperature?.toString() ?? '',
+    max_tokens: model?.max_tokens?.toString() ?? '',
+    top_p: model?.top_p?.toString() ?? '',
+    frequency_penalty: model?.frequency_penalty?.toString() ?? '',
+    presence_penalty: model?.presence_penalty?.toString() ?? '',
 });
 
 export function ModelForm(props: ModelFormProps) {

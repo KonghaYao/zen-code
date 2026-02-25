@@ -6,7 +6,8 @@
         "declaration": true,
         "declarationMap": true,
         "composite": true,
-        "tsBuildInfoFile": "./tsconfig.tsbuildinfo"
+        "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
+        "ignoreDeprecations": "6.0"
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "dist", "**/__tests__/**"]

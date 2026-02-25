@@ -80,7 +80,7 @@ export const agentsRouter = router({
     get: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
         const agent = await ctx.agentPackage.storage.getAgent(input.id);
         if (!agent) {
-            handleNotFound('Agent', input.id);
+            throw handleNotFound('Agent', input.id);
         }
         // Transform database row format to frontend expected format
         return {
@@ -94,7 +94,7 @@ export const agentsRouter = router({
     getWithDependencies: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
         const agentWithDeps = await ctx.agentPackage.storage.getAgentWithDependencies(input.id);
         if (!agentWithDeps) {
-            handleNotFound('Agent', input.id);
+            throw handleNotFound('Agent', input.id);
         }
 
         // 获取完整的 tools 和 middlewares 配置

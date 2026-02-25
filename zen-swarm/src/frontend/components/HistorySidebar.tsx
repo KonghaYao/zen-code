@@ -11,7 +11,10 @@ import { useChat } from '@langgraph-js/sdk/react';
 import type { Thread } from '@langgraph-js/sdk';
 import { formatDate, getStatusEmoji } from '../utils/chatHelpers.js';
 
-type HistoryThread = Thread<any>;
+// 定义历史记录线程类型，包含可选的 title 字段
+type HistoryThread = Thread<{ messages: any[] }> & {
+    title?: string;
+};
 
 interface HistorySidebarProps {
     onSwitchToChat?: () => void;
@@ -31,12 +34,14 @@ export function HistorySidebar(props: HistorySidebarProps) {
     };
 
     // 过滤历史记录（规则：js-combine-iterations）
-    const filteredHistory = historyList.filter((thread: HistoryThread) => {
+    const filteredHistory = (historyList as HistoryThread[]).filter((thread) => {
         const query = searchQuery.toLowerCase();
+        const metadata = thread.metadata as Record<string, unknown> | undefined;
+        const title = (thread as any).title as string | undefined;
         return (
             thread.thread_id.toLowerCase().includes(query) ||
-            thread.title?.toLowerCase().includes(query) ||
-            thread.metadata?.agent_id?.toLowerCase().includes(query)
+            (title?.toLowerCase()?.includes(query) ?? false) ||
+            ((metadata?.agent_id as string)?.toLowerCase()?.includes(query) ?? false)
         );
     });
 
@@ -83,15 +88,18 @@ export function HistorySidebar(props: HistorySidebarProps) {
                                     </span>
                                     <div className="flex-1 min-w-0">
                                         <div className="text-sm truncate">
-                                            {thread.title || thread.thread_id.slice(0, 12)}
+                                            {(thread as any).title || thread.thread_id.slice(0, 12)}
                                         </div>
                                         <div className="text-xs text-[var(--color-text-muted)] mt-0.5 flex items-center gap-1">
                                             <span className="truncate">{formatDate(thread.updated_at)}</span>
-                                            {thread.metadata?.agent_id && (
+                                            {((thread.metadata as Record<string, unknown>)?.agent_id as string) && (
                                                 <>
                                                     <span>·</span>
                                                     <span className="truncate max-w-16 font-mono text-[var(--color-primary)]">
-                                                        {thread.metadata.agent_id}
+                                                        {
+                                                            (thread.metadata as Record<string, unknown>)
+                                                                .agent_id as string
+                                                        }
                                                     </span>
                                                 </>
                                             )}

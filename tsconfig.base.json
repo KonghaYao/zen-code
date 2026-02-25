@@ -87,12 +87,7 @@
         "allowJs": true,
 
         // 使用 define 定义类字段
-        "useDefineForClassFields": true,
-
-        // 解析非相对模块的基准目录
-        "paths": {
-            "@codegraph/*": ["packages/*/src"]
-        }
+        "useDefineForClassFields": true
     },
     "exclude": [
         "node_modules",

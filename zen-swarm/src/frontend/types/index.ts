@@ -57,9 +57,10 @@ export interface Prompt {
     current_version: number;
     description?: string;
     content: string;
-    change_note?: string;
+    change_note?: string | null; // 后端返回 null，不是 undefined
     created_at?: string;
     updated_at?: string;
+    metadata?: any;
 }
 
 export interface PromptVersion {
@@ -67,8 +68,8 @@ export interface PromptVersion {
     prompt_id: string;
     version: number;
     content: string;
-    metadata?: string;
-    change_note?: string;
+    metadata?: string | null; // 后端返回 null，不是 undefined
+    change_note?: string | null; // 后端返回 null，不是 undefined
     created_at: string;
 }
 
@@ -93,7 +94,6 @@ export interface Tool {
     id: string;
     name: string;
     description: string;
-    schema: string; // JSON string
     parameters: string | null; // JSON string or null
     created_at?: string;
     updated_at?: string;
@@ -109,8 +109,7 @@ export interface Middleware {
     id: string;
     name: string;
     description: string;
-    priority: number;
-    config: string; // JSON string
+    parameters: string | null; // JSON string or null
     created_at?: string;
     updated_at?: string;
 }

@@ -170,3 +170,5 @@ function QuickAccessSection({ title, items }: QuickAccessSectionProps) {
         </div>
     );
 }
+
+export default DashboardView;

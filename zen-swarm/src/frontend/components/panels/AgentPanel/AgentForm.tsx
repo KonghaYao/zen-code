@@ -4,11 +4,14 @@
 
 import { useState, useEffect } from 'react';
 import type { Agent, Model, Prompt, Tool, Middleware } from '../../../types/index.js';
-import { apiClient } from '../../../api.js';
 import { Select } from '../../ui/Select.js';
 
 interface AgentFormProps {
     agent: Agent | null;
+    models: Model[];
+    prompts: Prompt[];
+    tools: Tool[];
+    middlewares: Middleware[];
     onSave: (formData: any) => Promise<void>;
     onCancel: () => void;
 }
@@ -25,38 +28,9 @@ export function AgentForm(props: AgentFormProps) {
     });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [models, setModels] = useState<Model[]>([]);
-    const [prompts, setPrompts] = useState<Prompt[]>([]);
-    const [tools, setTools] = useState<Tool[]>([]);
-    const [middlewares, setMiddlewares] = useState<Middleware[]>([]);
-    const [optionsLoading, setOptionsLoading] = useState(false);
 
-    // 使用 apiClient 获取选项数据
-    useEffect(() => {
-        const loadOptions = async () => {
-            setOptionsLoading(true);
-            try {
-                const [modelsData, promptsData, toolsData, middlewaresData] = await Promise.all([
-                    apiClient.models.list.query(),
-                    apiClient.prompts.list.query(),
-                    apiClient.tools.list.query(),
-                    apiClient.middlewares.list.query(),
-                ]);
-                setModels(modelsData);
-                setPrompts(promptsData);
-                setTools(toolsData);
-                setMiddlewares(middlewaresData);
-            } catch (e: any) {
-                setError(e.message);
-            } finally {
-                setOptionsLoading(false);
-            }
-        };
-
-        loadOptions();
-    }, []);
-
-    const optionsLoaded = !optionsLoading && models.length > 0;
+    const { models, prompts, tools, middlewares } = props;
+    const optionsLoaded = models.length > 0;
 
     // Initialize form data when agent prop changes
     useEffect(() => {
@@ -68,8 +42,8 @@ export function AgentForm(props: AgentFormProps) {
                 description: props.agent.description || '',
                 system_prompt: props.agent.system_prompt || '',
                 model: props.agent.model || '',
-                tools: { ...props.agent.tools } || {},
-                middleware: { ...props.agent.middlewares } || {},
+                tools: { ...(props.agent.tools || {}) },
+                middleware: { ...(props.agent.middlewares || {}) },
             });
         } else {
             // Reset form for create mode

@@ -4,7 +4,7 @@
  * 支持 macOS 风格红绿灯按钮
  */
 
-import { Suspense, useCallback } from 'react';
+import { Suspense, ReactNode, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { AppId } from '../app-registry/index.js';
 import { LoadingSpinner } from '../LoadingSpinner.js';
@@ -13,7 +13,7 @@ import { TrafficLights } from '../ui/TrafficLights.js';
 interface AppWindowProps {
     appId: AppId;
     appName: string;
-    appIcon: string;
+    appIcon: ReactNode;
     isFullScreen?: boolean;
     onClose?: () => void;
     children: React.ReactNode;

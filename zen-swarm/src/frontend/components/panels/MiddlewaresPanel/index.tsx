@@ -37,11 +37,9 @@ export function MiddlewaresPanel({ onClose }: MiddlewaresPanelProps) {
 
                 {!isLoading && !error && middlewares.length > 0 && (
                     <div className="grid gap-4">
-                        {middlewares
-                            .sort((a, b) => a.priority - b.priority)
-                            .map((middleware) => (
-                                <MiddlewareCard key={middleware.id} middleware={middleware} />
-                            ))}
+                        {middlewares.map((middleware) => (
+                            <MiddlewareCard key={middleware.id} middleware={middleware} />
+                        ))}
                     </div>
                 )}
             </div>

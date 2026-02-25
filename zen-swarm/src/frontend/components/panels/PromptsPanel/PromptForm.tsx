@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import type { Prompt } from '../../types/index.js';
+import type { Prompt } from '../../../types/index.js';
 
 export type FormMode = 'create' | 'edit' | 'newVersion';
 

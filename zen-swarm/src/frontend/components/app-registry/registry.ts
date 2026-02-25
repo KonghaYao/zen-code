@@ -13,9 +13,10 @@ import { WorkspaceView } from '../../views/WorkspaceView.js';
 import { FinderView } from '../../views/Finder/index.js';
 import { CronView } from '../../views/CronView.js';
 import { SMView } from '../../views/SM/index.js';
+import { MonitorView } from '../../views/MonitorView.js';
 
 // Lucide icons from Icons.tsx
-import { BarChart3, Settings, FolderOpen, Folder, Clock, GitBranch } from '../../components/ui/Icons.js';
+import { BarChart3, Settings, FolderOpen, Folder, Clock, GitBranch, Activity } from '../../components/ui/Icons.js';
 
 /**
  * 应用注册表
@@ -60,12 +61,21 @@ export const appRegistry: AppRegistryItem[] = [
         contextMenuActions: ['open', 'help'],
     },
     {
+        id: 'monitor',
+        name: 'Monitor',
+        icon: React.createElement(Activity, { size: 24 }),
+        description: '进程监控面板',
+        viewComponent: MonitorView,
+        keyboardShortcut: 'Cmd+5',
+        contextMenuActions: ['open', 'help'],
+    },
+    {
         id: 'sm',
         name: 'State Machine',
         icon: React.createElement(GitBranch, { size: 24 }),
         description: '状态机管理与可视化',
         viewComponent: SMView,
-        keyboardShortcut: 'Cmd+5',
+        keyboardShortcut: 'Cmd+6',
         contextMenuActions: ['open', 'help'],
     },
     {
@@ -74,7 +84,7 @@ export const appRegistry: AppRegistryItem[] = [
         icon: React.createElement(Clock, { size: 24 }),
         description: '定时任务管理',
         viewComponent: CronView,
-        keyboardShortcut: 'Cmd+6',
+        keyboardShortcut: 'Cmd+7',
         contextMenuActions: ['open', 'help'],
     },
 ];

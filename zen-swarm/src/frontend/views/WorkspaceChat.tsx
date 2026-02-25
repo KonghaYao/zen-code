@@ -33,6 +33,9 @@ export const WorkspaceChat: React.FC<WorkspaceChatProps> = ({ workspaceId, rootP
             autoRestoreLastSession
             historyFilter={{
                 metadata: { path: rootPath },
+                status: null,
+                sortBy: 'updated_at',
+                sortOrder: 'desc',
             }}
         >
             <WorkspaceContent workspaceId={workspaceId} rootPath={rootPath} />

@@ -43,7 +43,7 @@ export function DockLayout() {
         console.log('🔍 DockLayout - hash:', hash, 'path:', path);
 
         // 只返回有效的应用 ID，否则默认为 dashboard
-        if (['dashboard', 'config', 'workspaces', 'finder', 'sm', 'cron'].includes(path)) {
+        if (['dashboard', 'config', 'workspaces', 'finder', 'sm', 'monitor', 'cron'].includes(path)) {
             return path as AppId;
         }
         // 如果路径为空或无效，默认为 dashboard
@@ -117,7 +117,7 @@ export function DockLayout() {
             <DesktopWallpaper />
 
             {/* 顶部状态栏 */}
-            <MenuBar appName={currentApp?.name ?? 'Zen Swarm'} appIcon={currentApp?.icon ?? '🐝'} />
+            <MenuBar appName={currentApp?.name ?? 'Zen Swarm'} appIcon={String(currentApp?.icon ?? '🐝')} />
 
             {/* 桌面主内容区域 */}
             <main className="flex-1 flex flex-col min-h-0 overflow-hidden mt-7 mb-20">

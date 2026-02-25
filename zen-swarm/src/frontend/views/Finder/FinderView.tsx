@@ -329,7 +329,7 @@ export const FinderView: React.FC = () => {
             if (isSidebarItem) {
                 // 侧边栏项目 - 所有侧边栏项目都是目录（文件夹）
                 targetPath = (item as any).path;
-                targetPaths = [targetPath];
+                targetPaths = targetPath ? [targetPath] : [];
                 explicitType = 'directory';
             } else if (item) {
                 // Finder 项目

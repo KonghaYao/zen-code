@@ -3,13 +3,13 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
-import { ZenSwarmSqliteStorage } from '../storage.js';
+import { ZenSwarmMcpStorage } from '../storage.js';
 
 describe('MCP Config Storage', () => {
-    let storage: ZenSwarmSqliteStorage;
+    let storage: ZenSwarmMcpStorage;
 
     beforeAll(async () => {
-        storage = new ZenSwarmSqliteStorage(':memory:');
+        storage = new ZenSwarmMcpStorage(':memory:');
         await storage.initialize();
     });
 
@@ -73,7 +73,7 @@ describe('MCP Config Storage', () => {
         });
 
         const enabledConfigs = await storage.getEnabledMcpConfigs();
-        expect(enabledConfigs.every((c) => c.enabled === 1)).toBe(true);
+        expect(enabledConfigs.every((c: { enabled: number }) => c.enabled === 1)).toBe(true);
     });
 
     it('should update MCP config', async () => {

@@ -11,7 +11,7 @@ export const trpc = createTRPCReact<FullAppRouter>();
 
 // 创建 tRPC 客户端实例（供 stores 使用）
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const apiClient: any = createTRPCClient<FullAppRouter>({
+export const apiClient = createTRPCClient<FullAppRouter>({
     links: [
         httpBatchLink({
             url: '/api/trpc',

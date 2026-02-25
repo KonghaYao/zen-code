@@ -227,14 +227,11 @@ export class BunSqliteStorage extends BaseStorage {
 
             // 迁移现有数据到 prompt_versions
             for (const p of promptsWithContent) {
-                this.db.run(
-                    'INSERT INTO prompt_versions (id, prompt_id, version, content, metadata, created_at) VALUES (?, ?, 1, ?, ?, ?)',
-                    `${p.id}-v1`,
-                    p.id,
-                    p.content,
-                    p.metadata,
-                    p.created_at,
-                );
+                this.db
+                    .prepare(
+                        'INSERT INTO prompt_versions (id, prompt_id, version, content, metadata, created_at) VALUES (?, ?, 1, ?, ?, ?)',
+                    )
+                    .run(`${p.id}-v1`, p.id, p.content, p.metadata, p.created_at);
             }
         }
 

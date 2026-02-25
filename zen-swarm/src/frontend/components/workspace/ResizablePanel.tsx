@@ -67,7 +67,8 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({
     // ========================================
     const handleResizeStart = useCallback(
         (e: React.MouseEvent) => {
-            if (!containerRef.current) return;
+            const container = containerRef?.current;
+            if (!container) return;
 
             setResizeState({
                 isResizing: true,
@@ -81,9 +82,10 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({
 
     const handleMouseMove = useCallback(
         (e: MouseEvent) => {
-            if (!resizeState.isResizing || resizeState.panel !== id || !containerRef.current) return;
+            const container = containerRef?.current;
+            if (!resizeState.isResizing || resizeState.panel !== id || !container) return;
 
-            const containerWidth = containerRef.current.offsetWidth;
+            const containerWidth = container.offsetWidth;
             const maxWidth = containerWidth * (maxWidthPercent / 100);
             const delta = e.clientX - resizeState.startX;
 
@@ -100,7 +102,7 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({
 
             setWidth(newWidth);
         },
-        [resizeState, id, containerRef, maxWidthPercent, minPanelWidth, position],
+        [resizeState, id, maxWidthPercent, minPanelWidth, position],
     );
 
     const handleResizeEnd = useCallback(() => {
@@ -127,6 +129,7 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({
                 document.removeEventListener('mouseup', handleResizeEnd);
             };
         }
+        return undefined;
     }, [resizeState, id, handleMouseMove, handleResizeEnd]);
 
     // ========================================

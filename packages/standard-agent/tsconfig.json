@@ -5,14 +5,15 @@
         "composite": true,
 
         // 生成声明映射（用于调试，可禁用以提升性能）
-        "declarationMap": true,
+        "declarationMap": false,
 
         // 生成源映射（用于调试，可禁用以提升性能）
-        "sourceMap": true,
+        "sourceMap": false,
 
         // 明确设置根目录和基础 URL
         "rootDir": "./src",
-        "baseUrl": "."
+        "baseUrl": ".",
+        "ignoreDeprecations": "6.0"
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "dist", "**/__tests__/**", "**/*.test.ts"]

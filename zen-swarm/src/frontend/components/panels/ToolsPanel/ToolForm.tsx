@@ -17,7 +17,6 @@ export function ToolForm(props: ToolFormProps) {
         name: '',
         description: '',
         parameters: '',
-        schema: '',
     });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -29,10 +28,6 @@ export function ToolForm(props: ToolFormProps) {
                 name: props.tool.name,
                 description: props.tool.description || '',
                 parameters: props.tool.parameters || '',
-                schema:
-                    typeof props.tool.schema === 'string'
-                        ? props.tool.schema
-                        : JSON.stringify(props.tool.schema, null, 2),
             });
         } else {
             setFormData({
@@ -40,7 +35,6 @@ export function ToolForm(props: ToolFormProps) {
                 name: '',
                 description: '',
                 parameters: '',
-                schema: '',
             });
         }
     }, [props.tool]);
@@ -51,24 +45,23 @@ export function ToolForm(props: ToolFormProps) {
         setError(null);
 
         try {
-            // Validate schema JSON
-            let schemaObj = null;
-            if (formData.schema.trim()) {
-                schemaObj = JSON.parse(formData.schema);
+            // Validate parameters JSON if provided
+            let parametersObj = null;
+            if (formData.parameters.trim()) {
+                parametersObj = JSON.parse(formData.parameters);
             }
 
             const data = {
                 id: formData.id,
                 name: formData.name,
                 description: formData.description,
-                parameters: formData.parameters,
-                schema: schemaObj,
+                parameters: parametersObj,
             };
 
             await props.onSave(data);
         } catch (e: any) {
             if (e instanceof SyntaxError) {
-                setError('Invalid JSON in schema field');
+                setError('Invalid JSON in parameters field');
             } else {
                 setError(e.message);
             }
@@ -128,17 +121,6 @@ export function ToolForm(props: ToolFormProps) {
                 <textarea
                     value={formData.parameters}
                     onChange={handleChange('parameters')}
-                    rows={3}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                    placeholder='{"type": "object", "properties": {...}}'
-                />
-            </div>
-
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Schema (JSON)</label>
-                <textarea
-                    value={formData.schema}
-                    onChange={handleChange('schema')}
                     rows={6}
                     className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                     placeholder='{"type": "object", "properties": {...}}'

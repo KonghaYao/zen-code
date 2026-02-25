@@ -59,7 +59,7 @@ export const mcpRouter = router({
     get: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
         const row = await mcpStorage.getMcpConfig(input.id);
         if (!row) {
-            handleNotFound('MCP config', input.id);
+            throw handleNotFound('MCP config', input.id);
         }
         return {
             id: row.id,
@@ -77,7 +77,7 @@ export const mcpRouter = router({
     getByName: publicProcedure.input(z.object({ name: z.string() })).query(async ({ input }) => {
         const row = await mcpStorage.getMcpConfigByName(input.name);
         if (!row) {
-            handleNotFound('MCP config', input.name);
+            throw handleNotFound('MCP config', input.name);
         }
         return {
             id: row.id,

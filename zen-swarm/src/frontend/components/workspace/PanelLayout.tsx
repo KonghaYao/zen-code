@@ -213,6 +213,7 @@ export const PanelLayout: React.FC<PanelLayoutProps> = ({
                 document.removeEventListener('mouseup', handleResizeEnd);
             };
         }
+        return undefined;
     }, [resizeState, handleMouseMove, handleResizeEnd]);
 
     // ========================================

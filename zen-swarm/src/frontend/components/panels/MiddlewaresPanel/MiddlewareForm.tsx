@@ -16,8 +16,7 @@ export function MiddlewareForm(props: MiddlewareFormProps) {
         id: '',
         name: '',
         description: '',
-        priority: 50,
-        config: '',
+        parameters: '',
     });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -28,19 +27,14 @@ export function MiddlewareForm(props: MiddlewareFormProps) {
                 id: props.middleware.id,
                 name: props.middleware.name,
                 description: props.middleware.description || '',
-                priority: props.middleware.priority,
-                config:
-                    typeof props.middleware.config === 'string'
-                        ? props.middleware.config
-                        : JSON.stringify(props.middleware.config, null, 2),
+                parameters: props.middleware.parameters || '',
             });
         } else {
             setFormData({
                 id: '',
                 name: '',
                 description: '',
-                priority: 50,
-                config: '',
+                parameters: '',
             });
         }
     }, [props.middleware]);
@@ -51,24 +45,23 @@ export function MiddlewareForm(props: MiddlewareFormProps) {
         setError(null);
 
         try {
-            // Validate config JSON
-            let configObj = {};
-            if (formData.config.trim()) {
-                configObj = JSON.parse(formData.config);
+            // Validate parameters JSON if provided
+            let parametersObj = null;
+            if (formData.parameters.trim()) {
+                parametersObj = JSON.parse(formData.parameters);
             }
 
             const data = {
                 id: formData.id,
                 name: formData.name,
                 description: formData.description,
-                priority: formData.priority,
-                config: configObj,
+                parameters: parametersObj,
             };
 
             await props.onSave(data);
         } catch (e: any) {
             if (e instanceof SyntaxError) {
-                setError('Invalid JSON in config field');
+                setError('Invalid JSON in parameters field');
             } else {
                 setError(e.message);
             }
@@ -79,8 +72,7 @@ export function MiddlewareForm(props: MiddlewareFormProps) {
 
     const handleChange =
         (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-            const value = field === 'priority' ? parseInt(e.target.value, 10) : e.target.value;
-            setFormData({ ...formData, [field]: value });
+            setFormData({ ...formData, [field]: e.target.value });
         };
 
     return (
@@ -125,28 +117,10 @@ export function MiddlewareForm(props: MiddlewareFormProps) {
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Priority ({formData.priority})</label>
-                <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value={formData.priority}
-                    onChange={handleChange('priority')}
-                    className="w-full"
-                />
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                    <span>Higher Priority (0)</span>
-                    <span>Normal (50)</span>
-                    <span>Lower Priority (100)</span>
-                </div>
-            </div>
-
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Config (JSON)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Parameters (JSON)</label>
                 <textarea
-                    value={formData.config}
-                    onChange={handleChange('config')}
+                    value={formData.parameters}
+                    onChange={handleChange('parameters')}
                     rows={6}
                     className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                     placeholder='{"key": "value", ...}'

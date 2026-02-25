@@ -51,7 +51,7 @@ export class ToolRegistry {
         return Array.from(this._implementations.values());
     }
 
-    async execute<Params, Result>(id: string, params: unknown): Promise<Result> {
+    async execute<Params, Result>(id: string, params: unknown, runtime?: unknown): Promise<Result> {
         const impl = this._implementations.get(id) as ToolImplementation<Params, Result> | undefined;
         if (!impl) {
             throw new Error(`Tool implementation not found: ${id}`);
@@ -66,7 +66,7 @@ export class ToolRegistry {
             params = result.data as Params;
         }
 
-        return await impl.execute(params as Params);
+        return await impl.execute(params as Params, runtime);
     }
 }
 

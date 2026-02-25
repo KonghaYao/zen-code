@@ -14,6 +14,7 @@ import { cronRouter } from './cron.js';
 import { filesRouter } from './files.js';
 import { workspacesRouter } from './workspaces.js';
 import { createSMRouter, SMRouter } from './sm.js';
+import { monitorRouter } from './monitor.js';
 import type { StateMachineManager } from '../middlewares/sm/StateMachineManager.js';
 import type { SMDatabase } from '../middlewares/sm/database.js';
 
@@ -32,6 +33,7 @@ export const appRouter = router({
     cron: cronRouter,
     files: filesRouter,
     workspaces: workspacesRouter,
+    monitor: monitorRouter,
 });
 
 // ========================================
@@ -53,6 +55,7 @@ export function createMergedRouter(stateMachineManager?: StateMachineManager, sm
             files: filesRouter,
             workspaces: workspacesRouter,
             sm: smRouter,
+            monitor: monitorRouter,
         });
     }
     return appRouter;

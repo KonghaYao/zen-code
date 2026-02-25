@@ -348,7 +348,15 @@ export function ConfigView() {
         switch (activeTab) {
             case 'agents':
                 return (
-                    <AgentForm agent={editingItem as Agent | null} onSave={handleSave} onCancel={handleModalClose} />
+                    <AgentForm
+                        agent={editingItem as Agent | null}
+                        models={models}
+                        prompts={prompts}
+                        tools={tools}
+                        middlewares={middlewares}
+                        onSave={handleSave}
+                        onCancel={handleModalClose}
+                    />
                 );
             case 'models':
                 return (

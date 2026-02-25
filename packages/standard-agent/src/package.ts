@@ -80,8 +80,12 @@ export class AgentPackage {
         });
     }
 
-    async addPrompt(data: z.infer<typeof import('./index.js').PromptSchema>): Promise<void> {
-        await this.repository.addPrompt(data);
+    async addPrompt(
+        data: z.infer<typeof import('./index.js').PromptSchema>,
+        content: string,
+        changeNote?: string,
+    ): Promise<void> {
+        await this.repository.addPrompt(data, content, changeNote);
     }
 
     async addTool(data: z.infer<typeof ToolSchema>): Promise<void> {

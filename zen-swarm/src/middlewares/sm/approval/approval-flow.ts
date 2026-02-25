@@ -683,7 +683,7 @@ export const approvalFlowActions = {
         ...context,
         metadata: {
             ...context.metadata,
-            escalationLevel: (context.metadata.escalationLevel || 0) + 1,
+            escalationLevel: ((context.metadata.escalationLevel as number) || 0) + 1,
         },
     }),
 
@@ -692,7 +692,7 @@ export const approvalFlowActions = {
         metadata: {
             ...context.metadata,
             approvers: {
-                ...context.metadata.approvers,
+                ...(context.metadata.approvers as Record<number, { decision: string; timestamp: Date }>),
                 [params.level]: {
                     decision: params.decision,
                     timestamp: new Date(),
@@ -706,7 +706,7 @@ export const approvalFlowActions = {
         metadata: {
             ...context.metadata,
             approvers: {
-                ...context.metadata.approvers,
+                ...(context.metadata.approvers as Record<number, { decision: string; timestamp: Date }>),
                 [params.level]: {
                     decision: 'reject',
                     timestamp: new Date(),
@@ -720,7 +720,7 @@ export const approvalFlowActions = {
         metadata: {
             ...context.metadata,
             approvers: {
-                ...context.metadata.approvers,
+                ...(context.metadata.approvers as Record<number, { decision: string; timestamp: Date }>),
                 [params.level]: {
                     decision: 'edit',
                     timestamp: new Date(),
