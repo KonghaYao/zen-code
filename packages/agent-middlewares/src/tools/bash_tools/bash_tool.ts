@@ -79,7 +79,7 @@ export const bash_tool = tool(
             try {
                 const child_process = execa(defaultShell, [...shellArgs, command], {
                     cwd: runtime.state.cwd,
-                    timeout,
+                    timeout: timeout ?? 20000, // 默认 20 秒超时
                     reject: false,
                     windowsVerbatimArguments: isWindows, // Windows 特殊处理
                 });
@@ -115,7 +115,7 @@ export const bash_tool = tool(
             try {
                 const result = await execa(defaultShell, [...shellArgs, command], {
                     cwd: runtime.state.cwd,
-                    timeout,
+                    timeout: timeout ?? 20000, // 默认 20 秒超时
                     reject: false,
                     windowsVerbatimArguments: isWindows,
                 });
@@ -152,7 +152,7 @@ Notes:
         schema: z.object({
             description: z.string().describe('what you want to do'),
             command: z.string().optional().describe('The command to execute (required for running commands)'),
-            timeout: z.number().optional().describe('Timeout in ms (default: 120000)'),
+            timeout: z.number().optional().describe('Timeout in ms (default: 20000)'),
             run_in_background: z.boolean().optional().describe('Run command in background'),
             kill_process_id: z.string().optional().describe('ID of process to kill'),
             get_output_id: z.string().optional().describe('ID of process to get output from'),
