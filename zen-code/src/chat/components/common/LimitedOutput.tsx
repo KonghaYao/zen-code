@@ -1,5 +1,4 @@
-import { Box, Text } from 'ink';
-import { useWindowSize } from '@codegraph/union-client';
+import { Box, Text, useStdout } from 'ink';
 
 interface LimitedOutputProps {
     content: string;
@@ -23,9 +22,11 @@ export const LimitedOutput = ({
     paddingX = 0,
     showOmittedInfo = true,
 }: LimitedOutputProps) => {
+    const { stdout } = useStdout();
+
     if (!content) return null;
 
-    const { width } = useWindowSize();
+    const width = stdout.columns;
     const lines = content.split('\n').map((i) => i.slice(0, width - 10));
     const omittedCount = Math.max(0, lines.length - maxLines);
     const lastLines = lines.slice(-maxLines).join('\n');
