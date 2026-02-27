@@ -119,7 +119,7 @@ export const FilePickerRenderer: InteractionRenderer<FilePickerContent> = {
      */
     defaultConfig: {
         layout: {
-            border: true,
+            border: false,
             padding: 1,
         },
         interaction: {

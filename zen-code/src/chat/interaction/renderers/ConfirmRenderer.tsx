@@ -83,7 +83,7 @@ export const ConfirmRenderer: InteractionRenderer<ConfirmContent> = {
      */
     defaultConfig: {
         layout: {
-            border: true,
+            border: false,
             padding: 1,
         },
         interaction: {

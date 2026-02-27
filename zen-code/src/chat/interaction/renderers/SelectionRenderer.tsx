@@ -134,7 +134,7 @@ export const SelectionRenderer: InteractionRenderer<SelectionContent> = {
      */
     defaultConfig: {
         layout: {
-            border: true,
+            border: false,
             padding: 1,
         },
         interaction: {

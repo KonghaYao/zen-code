@@ -92,7 +92,7 @@ export const InputRenderer: InteractionRenderer<InputContent> = {
      */
     defaultConfig: {
         layout: {
-            border: true,
+            border: false,
             padding: 1,
         },
         interaction: {

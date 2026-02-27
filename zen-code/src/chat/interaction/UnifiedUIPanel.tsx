@@ -137,7 +137,7 @@ export const UnifiedUIPanel: React.FC = () => {
     }
 
     return (
-        <Box flexDirection="column" borderColor="cyan" borderStyle="single" width="100%">
+        <Box flexDirection="column" width="100%">
             {/* 标题栏 */}
             <Box justifyContent="space-between" paddingX={1} marginBottom={1}>
                 <Text color="cyan" bold>
