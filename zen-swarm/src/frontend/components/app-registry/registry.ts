@@ -14,9 +14,19 @@ import { FinderView } from '../../views/Finder/index.js';
 import { CronView } from '../../views/CronView.js';
 import { SMView } from '../../views/SM/index.js';
 import { MonitorView } from '../../views/MonitorView.js';
+import { TerminalView } from '../../components/terminal/TerminalView.js';
 
 // Lucide icons from Icons.tsx
-import { BarChart3, Settings, FolderOpen, Folder, Clock, GitBranch, Activity } from '../../components/ui/Icons.js';
+import {
+    BarChart3,
+    Settings,
+    FolderOpen,
+    Folder,
+    Clock,
+    GitBranch,
+    Activity,
+    Terminal as TerminalIcon,
+} from '../../components/ui/Icons.js';
 
 /**
  * 应用注册表
@@ -85,6 +95,15 @@ export const appRegistry: AppRegistryItem[] = [
         description: '定时任务管理',
         viewComponent: CronView,
         keyboardShortcut: 'Cmd+7',
+        contextMenuActions: ['open', 'help'],
+    },
+    {
+        id: 'terminal',
+        name: 'Terminal',
+        icon: React.createElement(TerminalIcon, { size: 24 }),
+        description: 'Web 终端',
+        viewComponent: TerminalView,
+        keyboardShortcut: 'Cmd+8',
         contextMenuActions: ['open', 'help'],
     },
 ];

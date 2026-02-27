@@ -1,0 +1,222 @@
+/**
+ * Terminal 组件
+ * xterm.js 封装，实现真实终端渲染
+ */
+
+import { useEffect, useRef, useCallback, useState, forwardRef, useImperativeHandle } from 'react';
+import { Terminal as XTerm } from 'xterm';
+import { FitAddon } from 'xterm-addon-fit';
+import { WebLinksAddon } from 'xterm-addon-web-links';
+import { useTerminal } from '../../hooks/useTerminal.js';
+import type { TerminalOptions, TerminalTheme } from './types.js';
+import 'xterm/css/xterm.css';
+
+// 默认主题（VS Code Dark+ 风格）
+const DEFAULT_THEME: TerminalTheme = {
+    background: '#1e1e1e',
+    foreground: '#d4d4d4',
+    cursor: '#ffffff',
+    cursorAccent: '#000000',
+    selection: 'rgba(255, 255, 255, 0.3)',
+    black: '#000000',
+    red: '#cd3131',
+    green: '#0dbc79',
+    yellow: '#e5e510',
+    blue: '#2472c8',
+    magenta: '#bc3fbc',
+    cyan: '#11a8cd',
+    white: '#e5e5e5',
+    brightBlack: '#666666',
+    brightRed: '#f14c4c',
+    brightGreen: '#23d18b',
+    brightYellow: '#f5f543',
+    brightBlue: '#3b8eea',
+    brightMagenta: '#d670d6',
+    brightCyan: '#29b8db',
+    brightWhite: '#e5e5e5',
+};
+
+// 默认配置
+const DEFAULT_OPTIONS: TerminalOptions = {
+    fontSize: 14,
+    fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+    theme: DEFAULT_THEME,
+    cursorBlink: true,
+    cursorStyle: 'block',
+    scrollback: 10000,
+};
+
+export interface TerminalRef {
+    clear: () => void;
+    write: (data: string) => void;
+    focus: () => void;
+}
+
+interface TerminalProps {
+    sessionId: string;
+    options?: Partial<TerminalOptions>;
+    onReady?: () => void;
+    onError?: (error: Error) => void;
+}
+
+export const Terminal = forwardRef<TerminalRef, TerminalProps>(function Terminal(
+    { sessionId, options, onReady, onError },
+    ref,
+) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const xtermRef = useRef<XTerm | null>(null);
+    const fitAddonRef = useRef<FitAddon | null>(null);
+    const [isReady, setIsReady] = useState(false);
+
+    const { sendInput, resize, onOutput, wsStatus } = useTerminal();
+
+    // 使用 ref 存储最新的函数引用，避免闭包问题
+    const sendInputRef = useRef(sendInput);
+    const wsStatusRef = useRef(wsStatus);
+
+    // 更新 ref
+    useEffect(() => {
+        sendInputRef.current = sendInput;
+        wsStatusRef.current = wsStatus;
+    });
+
+    // 合并配置
+    const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
+
+    // 暴露方法给父组件
+    useImperativeHandle(
+        ref,
+        () => ({
+            clear: () => {
+                xtermRef.current?.clear();
+            },
+            write: (data: string) => {
+                xtermRef.current?.write(data);
+            },
+            focus: () => {
+                xtermRef.current?.focus();
+            },
+        }),
+        [],
+    );
+
+    // 初始化 xterm.js
+    useEffect(() => {
+        if (!containerRef.current || xtermRef.current) return;
+
+        console.log('[Terminal] Initializing xterm, sessionId:', sessionId);
+
+        const xterm = new XTerm({
+            cursorBlink: mergedOptions.cursorBlink,
+            cursorStyle: mergedOptions.cursorStyle,
+            fontSize: mergedOptions.fontSize,
+            fontFamily: mergedOptions.fontFamily,
+            theme: mergedOptions.theme,
+            scrollback: mergedOptions.scrollback,
+            allowProposedApi: true,
+        });
+
+        const fitAddon = new FitAddon();
+        const webLinksAddon = new WebLinksAddon();
+
+        xterm.loadAddon(fitAddon);
+        xterm.loadAddon(webLinksAddon);
+
+        xterm.open(containerRef.current);
+        fitAddon.fit();
+
+        xtermRef.current = xterm;
+        fitAddonRef.current = fitAddon;
+
+        // 立即聚焦终端
+        xterm.focus();
+        console.log('[Terminal] xterm initialized and focused');
+
+        // 立即注册输出回调（在 setIsReady 之前，确保缓冲区消息能被正确处理）
+        const outputUnsubscribe = onOutput(sessionId, (data) => {
+            console.log(
+                '[Terminal] onOutput callback (init), sessionId:',
+                sessionId,
+                'data:',
+                JSON.stringify(data.slice(0, 50)),
+            );
+            xterm.write(data);
+        });
+
+        // 用户输入发送到服务端
+        // 使用 ref 获取最新的状态，避免闭包捕获旧值
+        const dataDisposable = xterm.onData((data) => {
+            console.log('[Terminal] onData triggered');
+            console.log('[Terminal]   - data:', JSON.stringify(data));
+            console.log('[Terminal]   - wsStatus:', wsStatusRef.current);
+            console.log('[Terminal]   - sendInput:', typeof sendInputRef.current);
+
+            if (wsStatusRef.current === 'connected') {
+                const sent = sendInputRef.current(sessionId, data);
+                console.log('[Terminal]   - sendInput result:', sent);
+            } else {
+                console.warn('[Terminal] WebSocket not connected, input ignored. wsStatus:', wsStatusRef.current);
+            }
+        });
+
+        setIsReady(true);
+        onReady?.();
+
+        return () => {
+            console.log('[Terminal] Disposing xterm');
+            outputUnsubscribe();
+            dataDisposable.dispose();
+            xterm.dispose();
+            xtermRef.current = null;
+            fitAddonRef.current = null;
+            setIsReady(false);
+        };
+    }, [sessionId, onOutput]); // 包含 onOutput 依赖
+
+    // 不再需要单独的监听输出 effect（已在初始化时注册）
+
+    // 窗口大小变化时自动调整
+    useEffect(() => {
+        if (!isReady || !fitAddonRef.current) return;
+
+        const handleResize = () => {
+            if (fitAddonRef.current && xtermRef.current) {
+                fitAddonRef.current.fit();
+                const dims = fitAddonRef.current.proposeDimensions();
+                if (dims) {
+                    resize(sessionId, dims.cols, dims.rows);
+                }
+            }
+        };
+
+        // 初始调整
+        handleResize();
+
+        // 监听窗口大小变化
+        const resizeObserver = new ResizeObserver(handleResize);
+        if (containerRef.current) {
+            resizeObserver.observe(containerRef.current);
+        }
+
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            resizeObserver.disconnect();
+            window.removeEventListener('resize', handleResize);
+        };
+    }, [sessionId, isReady, resize]);
+
+    return (
+        <div
+            ref={containerRef}
+            className="h-full w-full"
+            style={{
+                backgroundColor: mergedOptions.theme.background,
+                padding: '8px',
+            }}
+            onClick={() => xtermRef.current?.focus()}
+        />
+    );
+});
+
+export type { TerminalProps, TerminalOptions, TerminalTheme };
