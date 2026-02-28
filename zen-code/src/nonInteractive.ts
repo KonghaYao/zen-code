@@ -65,8 +65,10 @@ export async function runNonInteractive(prompt?: string, useStdin: boolean = fal
         const initialState = {
             messages: [new HumanMessage(finalPrompt)],
             provider_id: config.provider_id,
+            provider_type: config.provider_type || config.provider_id,
             model_id: config.model_id,
             enable_thinking: config.enable_thinking,
+            cwd: process.cwd(), // 添加 cwd 字段，供 filesystem tools 使用
         };
 
         // 调用 Graph

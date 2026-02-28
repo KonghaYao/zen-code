@@ -1,6 +1,9 @@
 {
     "extends": "../../tsconfig.base.json",
     "compilerOptions": {
+        // 覆盖 base config 的 noEmit: true，允许生成输出文件
+        "noEmit": false,
+
         // 项目引用配置
         "composite": true,
 

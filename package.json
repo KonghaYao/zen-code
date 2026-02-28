@@ -43,7 +43,7 @@
         "execa": "^9.6.1",
         "glob": "^11.1.0",
         "hono": "^4.11.4",
-        "langchain": "^1.2.25",
+        "langchain": "1.1.1",
         "micromatch": "^4.0.0",
         "openai": "^6.16.0",
         "react": "^19.2.3",

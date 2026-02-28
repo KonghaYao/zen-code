@@ -92,11 +92,12 @@ const SettingsProviderInternal = ({
 
     const extraParams = useMemo(() => {
         return {
-            provider_id: config?.provider_id || 'default',
+            provider_id: config?.provider_id || 'openai',
             model_id: config?.model_id || AVAILABLE_MODELS[0]?.id || 'default',
             mcp_config: config?.mcp_config,
             enable_thinking: config?.enable_thinking ?? true,
             switch_command: config?.switch_command || '',
+            cwd: process.cwd(), // 添加 cwd 字段，供 filesystem tools 使用
         };
     }, [
         config?.provider_id,

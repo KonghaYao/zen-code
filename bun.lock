@@ -18,7 +18,7 @@
         "execa": "^9.6.1",
         "glob": "^11.1.0",
         "hono": "^4.11.4",
-        "langchain": "^1.2.25",
+        "langchain": "1.1.1",
         "micromatch": "^4.0.0",
         "openai": "^6.16.0",
         "react": "^19.2.3",
@@ -69,17 +69,21 @@
         "@langgraph-js/agent-middlewares": "workspace:^",
         "@langgraph-js/pure-graph": "^3.2.5",
         "@langgraph-js/standard-agent": "workspace:^",
+        "execa": "^9.5.2",
         "extract-zip": "^2.0.1",
         "fs-extra": "^11.3.3",
         "hono": "^4.11.4",
         "langchain": "^1.1.1",
         "path-exists": "^5.0.0",
         "tempy": "^3.1.0",
+        "uuid": "^11.1.0",
         "xdg-basedir": "^5.1.0",
+        "zod": "^4",
       },
       "devDependencies": {
         "@types/fs-extra": "^11.0.4",
         "@types/node": "^20.19.30",
+        "@types/uuid": "^10.0.0",
         "typescript": "^5.9.3",
         "vitest": "^4.0.18",
       },
@@ -1616,6 +1620,8 @@
     "@babel/helper-compilation-targets/lru-cache": ["lru-cache@5.1.1", "https://registry.npmmirror.com/lru-cache/-/lru-cache-5.1.1.tgz", { "dependencies": { "yallist": "^3.0.2" } }, "sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w=="],
 
     "@babel/helper-compilation-targets/semver": ["semver@6.3.1", "https://registry.npmmirror.com/semver/-/semver-6.3.1.tgz", { "bin": { "semver": "bin/semver.js" } }, "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="],
+
+    "@codegraph/agent/uuid": ["uuid@11.1.0", "https://registry.npmmirror.com/uuid/-/uuid-11.1.0.tgz", { "bin": { "uuid": "dist/esm/bin/uuid" } }, "sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A=="],
 
     "@langchain/anthropic/@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.74.0", "https://registry.npmmirror.com/@anthropic-ai/sdk/-/sdk-0.74.0.tgz", { "dependencies": { "json-schema-to-ts": "^3.1.1" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-srbJV7JKsc5cQ6eVuFzjZO7UR3xEPJqPamHFIe29bs38Ij2IripoAhC0S5NslNbaFUYqBKypmmpzMTpqfHEUDw=="],
 

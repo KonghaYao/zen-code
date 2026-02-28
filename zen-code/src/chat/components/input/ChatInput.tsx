@@ -9,7 +9,7 @@
  * - Context for shared actions
  */
 
-import React, { useCallback, memo } from 'react';
+import React, { useCallback, memo, useState } from 'react';
 import { Box } from 'ink';
 import { useChat } from '@langgraph-js/sdk/react';
 import { useSettings } from '../../context/SettingsContext';
@@ -18,7 +18,9 @@ import { useSkills } from '../../hooks/useSkills';
 import { useAgents } from '../../hooks/useAgents';
 import { useRalphLoop } from '../../hooks/useRalphLoop';
 import { useChatPanel } from '../../context/ChatPanelContext';
+import { useShellCommand } from '../../hooks/useShellCommand';
 import { ChatInputBuffer } from './ChatInputBuffer';
+import { ShellOutputPreview } from '../ShellOutputPreview';
 
 import { notify } from '../../../utils/notify';
 import { metadataOfChat } from '../../../utils';
@@ -30,6 +32,14 @@ import { metadataOfChat } from '../../../utils';
 export const ChatInput: React.FC = memo(() => {
     const { userInput, setUserInput, loading, renderMessages, sendMessage } = useChat();
     const { extraParams, manager } = useSettings();
+
+    // Shell command hook for executing ! commands
+    const {
+        executeCommand: executeShellCommand,
+        activeCommand: shellCommand,
+        clearOutput: clearShellOutput,
+        isExecuting: isShellExecuting,
+    } = useShellCommand();
 
     // Get panel actions from context (no props drilling)
     const {
@@ -79,6 +89,16 @@ export const ChatInput: React.FC = memo(() => {
         async (inputValue: string) => {
             if (!inputValue) return;
 
+            // Shell command处理 (! 前缀)
+            if (inputValue.startsWith('!')) {
+                const command = inputValue.slice(1).trim();
+                if (command) {
+                    await executeShellCommand(command);
+                    setUserInput('');
+                }
+                return;
+            }
+
             // Command优先处理
             if (inputValue.startsWith('/')) {
                 const commandHandled = await commandHandler.executeCommand(inputValue);
@@ -100,7 +120,7 @@ export const ChatInput: React.FC = memo(() => {
             );
             notify('Zen Code 完成任务');
         },
-        [commandHandler, setUserInput],
+        [commandHandler, setUserInput, executeShellCommand],
     );
 
     return (
@@ -115,6 +135,9 @@ export const ChatInput: React.FC = memo(() => {
             borderBottom={false}
             borderRight={false}
         >
+            {/* Shell 命令输出预览 */}
+            {shellCommand && <ShellOutputPreview commandResult={shellCommand} onClose={clearShellOutput} />}
+
             {/* 命令错误显示 */}
             <commandHandler.CommandErrorUI />
 

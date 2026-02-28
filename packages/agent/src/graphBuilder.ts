@@ -34,7 +34,6 @@ async function invokeAgent(agentId: string, pkg: AgentPackage, state: CodeStateT
     const agent = await createStandardAgentV2(agentId, pkg, state, runtime);
 
     state.thread_id = getThreadId(runtime);
-    // @ts-expect-error - Runtime type from langchain is incompatible with Agent.invoke() params
     // This is a known type mismatch in the library, the runtime works correctly at runtime
     const response = await agent.invoke(state, {
         recursionLimit: 500,
