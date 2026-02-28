@@ -36,15 +36,6 @@ const smDatabase = new SMDatabase({ db: sharedDb });
 const stateMachineManager = new StateMachineManager({ database: smDatabase });
 await stateMachineManager.initialize();
 
-// 导出单例
-export const agentPackage = new AgentPackage(agentStorage);
-
-// 注册中间件实现（传入 stateMachineManager）
-await createMiddlewareRegistry(agentPackage, stateMachineManager);
-
-// 注册工具实现
-await createToolRegistry(agentPackage);
-
 // ========================================
 // Cron 系统
 // ========================================
@@ -61,6 +52,23 @@ export const cronScheduler = new CronScheduler(cronStorage, cronExecutor);
 
 // 启动调度器
 await cronScheduler.start();
+
+// ========================================
+// Agent Package
+// ========================================
+
+// 导出单例
+export const agentPackage = new AgentPackage(agentStorage);
+
+// 注册中间件实现（传入 stateMachineManager 和 cron 依赖）
+await createMiddlewareRegistry(agentPackage, {
+    stateMachineManager,
+    cronStorage,
+    cronScheduler,
+});
+
+// 注册工具实现
+await createToolRegistry(agentPackage);
 
 // 导出存储实例供外部使用
 export { agentStorage, mcpStorage, sharedDb, smDatabase, stateMachineManager };
