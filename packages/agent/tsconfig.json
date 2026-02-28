@@ -15,8 +15,7 @@
 
         // 明确设置根目录和基础 URL
         "rootDir": "./src",
-        "baseUrl": ".",
-        "ignoreDeprecations": "6.0"
+        "baseUrl": "."
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "dist", "**/__tests__/**", "**/*.test.ts"]

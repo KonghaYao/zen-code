@@ -12,7 +12,7 @@
         "@langchain/mcp-adapters": "^1.1.1",
         "@langchain/openai": "^1.2.2",
         "@langgraph-js/pro": "^2.2.0",
-        "@langgraph-js/pure-graph": "^3.2.5",
+        "@langgraph-js/pure-graph": "^3.3.0",
         "@langgraph-js/sdk": "^4.6.4",
         "eventemitter3": "^5.0.1",
         "execa": "^9.6.1",
@@ -67,7 +67,7 @@
         "@langchain/mcp-adapters": "^1.1.1",
         "@langchain/openai": "^1.2.2",
         "@langgraph-js/agent-middlewares": "workspace:^",
-        "@langgraph-js/pure-graph": "^3.2.5",
+        "@langgraph-js/pure-graph": "^3.3.0",
         "@langgraph-js/standard-agent": "workspace:^",
         "execa": "^9.5.2",
         "extract-zip": "^2.0.1",
@@ -192,7 +192,7 @@
         "@langchain/langgraph": "^1.1.0",
         "@langchain/mcp-adapters": "^1.1.1",
         "@langchain/openai": "1.1.3",
-        "@langgraph-js/pure-graph": "^3.2.5",
+        "@langgraph-js/pure-graph": "^3.3.0",
         "@langgraph-js/standard-agent": "workspace:^",
         "chalk": "^5.6.2",
         "diff-match-patch": "^1.0.5",
@@ -261,7 +261,7 @@
         "@langchain/google-genai": "^2.1.19",
         "@langchain/langgraph": "^1.1.0",
         "@langgraph-js/agent-middlewares": "workspace:^",
-        "@langgraph-js/pure-graph": "^3.2.5",
+        "@langgraph-js/pure-graph": "^3.3.0",
         "@langgraph-js/sdk": "^4.6.4",
         "@langgraph-js/standard-agent": "workspace:^",
         "@nanostores/react": "^1.0.0",
@@ -463,7 +463,7 @@
 
     "@langgraph-js/pro": ["@langgraph-js/pro@2.2.0", "https://registry.npmmirror.com/@langgraph-js/pro/-/pro-2.2.0.tgz", { "dependencies": { "@langchain/core": "^1.0.1", "@langchain/langgraph": "^1.0.1", "@langchain/langgraph-swarm": "^1.0.0", "@langchain/openai": "^1.0.0", "langchain": "^1.1.1", "openai": "^6.9.1", "zod": "^4" } }, "sha512-x7l035FVEk+S5uXXfu0vQqjsSaLp10CWDTWXyiEU6sJm5D8S+OWZxDfwJe17+yFI8ZWkMFgZ75i5G4sWCS2dFA=="],
 
-    "@langgraph-js/pure-graph": ["@langgraph-js/pure-graph@3.2.5", "https://registry.npmmirror.com/@langgraph-js/pure-graph/-/pure-graph-3.2.5.tgz", { "dependencies": { "@langchain/core": "^1.0.6", "@langchain/langgraph": "^1.0.2", "@langchain/langgraph-checkpoint": "^1.0.0", "@langgraph-js/pro": "^2.0.0", "camelcase-keys": "^10.0.0", "eventemitter3": "^5.0.1", "kysely": "^0.28.8", "langchain": "^1.0.6", "uuid": "^13.0.0", "zod": "^4", "zod-defaults": "^0.2.3" }, "optionalDependencies": { "@hono/zod-validator": "^0.7.3", "@langchain/langgraph-checkpoint-postgres": "^1.0.0", "@langchain/langgraph-checkpoint-redis": "^1.0.0", "hono": "^4.9.9", "kysely-bun-worker": "^1.2.1", "kysely-wasm": "^1.2.1", "node-sqlite3-wasm": "^0.8.51", "pg": "^8.16.3", "redis": "^5.8.3" } }, "sha512-zh4eKYHJLtqMwXFX8R1bL2Uc2MX8Z6T4tGv3A7sLip2Y06Z1KjofzSHZTVQwfENzQr58LJ6l4QA06DbArJguAg=="],
+    "@langgraph-js/pure-graph": ["@langgraph-js/pure-graph@3.3.0", "", { "dependencies": { "@langchain/core": "^1.0.6", "@langchain/langgraph": "^1.0.2", "@langchain/langgraph-checkpoint": "^1.0.0", "@langgraph-js/pro": "^2.0.0", "camelcase-keys": "^10.0.0", "eventemitter3": "^5.0.1", "kysely": "^0.28.8", "langchain": "^1.0.6", "uuid": "^13.0.0", "zod": "^4", "zod-defaults": "^0.2.3" }, "optionalDependencies": { "@hono/zod-validator": "^0.7.3", "@langchain/langgraph-checkpoint-postgres": "^1.0.0", "@langchain/langgraph-checkpoint-redis": "^1.0.0", "hono": "^4.9.9", "kysely-bun-worker": "^1.2.1", "kysely-wasm": "^1.2.1", "node-sqlite3-wasm": "^0.8.51", "pg": "^8.16.3", "redis": "^5.8.3" } }, "sha512-raBqeTtp7KdjZAWP04FxZFQMkEVJsiTwdUW9sBY292pLuUOaq5ZNcfGaa88uCy23bf00c8Bhbb1CDKXx8vQMlw=="],
 
     "@langgraph-js/sdk": ["@langgraph-js/sdk@4.6.4", "https://registry.npmmirror.com/@langgraph-js/sdk/-/sdk-4.6.4.tgz", { "dependencies": { "@langchain/langgraph-sdk": "^1.0.0", "camelcase-keys": "^10.0.1", "change-case": "^5.4.4", "eventemitter3": "^5.0.1", "nanostores": "^1.0.1", "partial-json": "^0.1.7", "ts-debounce": "^4.0.0", "zod": "^4", "zod-to-json-schema": "^3.24.5" }, "peerDependencies": { "@nanostores/react": "^1.0.0", "@nanostores/solid": "^1.0.0", "@nanostores/vue": "^1.0.0", "react": "^19||^18", "solid-js": "^1.0.0", "vue": "^3.0.0" }, "optionalPeers": ["@nanostores/react", "@nanostores/solid", "@nanostores/vue", "react", "solid-js", "vue"] }, "sha512-DlhRrAr/RUGoh5iA1ihIOFWKEHPLE7aDLgKr237sWz1z1fDQ8hZCxKL42zBcGO3r06pAqfZ4K8VgNWQrCP+4OA=="],
 
