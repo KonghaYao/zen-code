@@ -13,12 +13,7 @@
         // 明确设置根目录和基础 URL
         "rootDir": "./src",
         "baseUrl": ".",
-
-        // 引用其他包
-        "paths": {
-            "@codegraph/config": ["../config/src"],
-            "@codegraph/ink-pro": ["../ink-pro/src"]
-        }
+        "ignoreDeprecations": "6.0"
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "dist"]
