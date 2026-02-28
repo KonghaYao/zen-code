@@ -40,7 +40,6 @@ export const initChatModel = async (modelId: string, options: InitChatModelOptio
             outputVersion,
         });
     } else if (modelProvider === 'gemini' || modelProvider === 'google') {
-        console.log(process.env.GOOGLE_BASE_URL);
         // Google Gemini support
         model = new ChatGoogleGenerativeAI({
             model: modelId,

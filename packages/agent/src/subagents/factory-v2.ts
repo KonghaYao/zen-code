@@ -6,7 +6,7 @@
  */
 
 import { initChatModel } from '../utils/initChatModel.js';
-import { AgentMiddleware, createAgent, DynamicStructuredTool, Runtime, tool } from 'langchain';
+import { AgentMiddleware, createAgent, DynamicStructuredTool, ReactAgent, Runtime, tool } from 'langchain';
 import { CodeAnnotation, CodeState, CodeStateType } from '../state.js';
 import { anthropicPromptCachingMiddleware } from '@langgraph-js/standard-agent';
 import { MCPWithConfigMiddleware } from '../middlewares/mcpWithConfig.js';
@@ -47,7 +47,7 @@ export async function createStandardAgentV2(
     state: CodeStateType,
     runtime: Runtime,
     options?: { parent_id?: string },
-) {
+): Promise<ReactAgent> {
     const isSubAgent = !!options?.parent_id;
     // Load agent configuration
     const agentConfig = await pkg.getAgent(agentId);
@@ -92,23 +92,23 @@ export async function createStandardAgentV2(
         // Directly use the ToolImplementation's execute function
         // Wrap it to handle ToolMessage return type
         const langChainTool = tool(
-            async (input) => {
+            async (input, runtime) => {
                 // Call ToolImplementation.execute with validated params
-                const result = await toolImpl.execute(input);
+                const result = await toolImpl.execute(input, runtime);
                 // Handle ToolMessage return type - extract content
                 if (result && typeof result === 'object' && 'content' in result) {
-                    return (result as any).content;
+                    return (result as { content: string }).content;
                 }
                 return result;
             },
             {
                 name: toolImpl.name,
                 description: toolImpl.description,
-                schema: toolImpl.paramsSchema as any,
+                schema: toolImpl.paramsSchema,
             },
         );
 
-        tools.push(langChainTool as any as DynamicStructuredTool);
+        tools.push(langChainTool as DynamicStructuredTool);
     }
 
     // Build middleware chain
@@ -117,7 +117,7 @@ export async function createStandardAgentV2(
         if (middlewareId === 'subagents' && isSubAgent) continue;
         const subagentsImpl = pkg.middlewares.getImplementation(middlewareId);
         if (!params) {
-            break;
+            continue;
         }
 
         middleware.push(await subagentsImpl!.execute(params.customParams || {}));
@@ -140,7 +140,8 @@ export async function createStandardAgentV2(
 
     middleware.push(
         humanInTheLoopMiddleware({
-            /** @ts-ignore */
+            // @ts-expect-error - interruptOn type is more restrictive than we need
+            // This is a known limitation in the type definition
             interruptOn,
         }),
     );
@@ -151,7 +152,7 @@ export async function createStandardAgentV2(
     }
 
     // Load system prompt
-    const promptConfig = await pkg.getPrompt(agentConfig.systemPromptId);
+    const promptConfig = await pkg.getPromptWithContent(agentConfig.systemPromptId);
     if (!promptConfig) {
         throw new Error(`Prompt not found: ${agentConfig.systemPromptId}`);
     }
@@ -163,10 +164,9 @@ export async function createStandardAgentV2(
         model,
         systemPrompt,
         tools,
-        /** @ts-ignore */
         stateSchema: CodeAnnotation,
         middleware,
-    });
+    }) as any as ReactAgent;
 }
 
 /**

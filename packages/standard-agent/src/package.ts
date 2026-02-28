@@ -25,12 +25,15 @@ export class AgentPackage {
     getModel!: AgentRepository['getModel'];
     getPrompt!: AgentRepository['getPrompt'];
     getPromptByName!: AgentRepository['getPromptByName'];
+    getPromptWithContent!: AgentRepository['getPromptWithContent'];
+    getPromptByNameWithContent!: AgentRepository['getPromptByNameWithContent'];
     getTool!: AgentRepository['getTool'];
     getMiddleware!: AgentRepository['getMiddleware'];
     getAgent!: AgentRepository['getAgent'];
 
     listModels!: AgentRepository['listModels'];
     listPrompts!: AgentRepository['listPrompts'];
+    listPromptsWithContent!: AgentRepository['listPromptsWithContent'];
     listTools!: AgentRepository['listTools'];
     listMiddlewares!: AgentRepository['listMiddlewares'];
     listAgents!: AgentRepository['listAgents'];
@@ -50,12 +53,15 @@ export class AgentPackage {
         this.getModel = this.repository.getModel.bind(this.repository);
         this.getPrompt = this.repository.getPrompt.bind(this.repository);
         this.getPromptByName = this.repository.getPromptByName.bind(this.repository);
+        this.getPromptWithContent = this.repository.getPromptWithContent.bind(this.repository);
+        this.getPromptByNameWithContent = this.repository.getPromptByNameWithContent.bind(this.repository);
         this.getTool = this.repository.getTool.bind(this.repository);
         this.getMiddleware = this.repository.getMiddleware.bind(this.repository);
         this.getAgent = this.repository.getAgent.bind(this.repository);
 
         this.listModels = this.repository.listModels.bind(this.repository);
         this.listPrompts = this.repository.listPrompts.bind(this.repository);
+        this.listPromptsWithContent = this.repository.listPromptsWithContent.bind(this.repository);
         this.listTools = this.repository.listTools.bind(this.repository);
         this.listMiddlewares = this.repository.listMiddlewares.bind(this.repository);
         this.listAgents = this.repository.listAgents.bind(this.repository);
