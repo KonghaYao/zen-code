@@ -555,22 +555,22 @@ export class MemoryStorage extends BaseStorage {
         if (!agent) return undefined;
 
         const tools: Record<string, boolean | any> = {};
-        const toolRows = this.agentTools.get(id) || [];
+        const toolRows = (this.agentTools.get(id) || []).filter((row) => row.enabled === 1);
         for (const row of toolRows) {
             if (row.custom_params) {
                 tools[row.tool_id] = this.safeParse(row.custom_params);
             } else {
-                tools[row.tool_id] = this.intToBool(row.enabled);
+                tools[row.tool_id] = true;
             }
         }
 
         const middlewares: Record<string, boolean | any> = {};
-        const middlewareRows = this.agentMiddlewares.get(id) || [];
+        const middlewareRows = (this.agentMiddlewares.get(id) || []).filter((row) => row.enabled === 1);
         for (const row of middlewareRows) {
             if (row.custom_params) {
                 middlewares[row.middleware_id] = this.safeParse(row.custom_params);
             } else {
-                middlewares[row.middleware_id] = this.intToBool(row.enabled);
+                middlewares[row.middleware_id] = true;
             }
         }
 

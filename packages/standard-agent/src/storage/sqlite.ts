@@ -818,8 +818,8 @@ export class BunSqliteStorage extends BaseStorage {
 
         if (!agent) return undefined;
 
-        // Get tools
-        const toolStmt = this.db.prepare('SELECT * FROM agent_tools WHERE agent_id = ?');
+        // Get tools (only enabled)
+        const toolStmt = this.db.prepare('SELECT * FROM agent_tools WHERE agent_id = ? AND enabled = 1');
         const toolRows = toolStmt.all(id) as AgentToolRow[];
 
         const tools: Record<string, boolean | any> = {};
@@ -827,12 +827,12 @@ export class BunSqliteStorage extends BaseStorage {
             if (row.custom_params) {
                 tools[row.tool_id] = this.safeParse(row.custom_params);
             } else {
-                tools[row.tool_id] = this.intToBool(row.enabled);
+                tools[row.tool_id] = true;
             }
         }
 
-        // Get middlewares
-        const middlewareStmt = this.db.prepare('SELECT * FROM agent_middlewares WHERE agent_id = ?');
+        // Get middlewares (only enabled)
+        const middlewareStmt = this.db.prepare('SELECT * FROM agent_middlewares WHERE agent_id = ? AND enabled = 1');
         const middlewareRows = middlewareStmt.all(id) as AgentMiddlewareRow[];
 
         const middlewares: Record<string, boolean | any> = {};
@@ -840,7 +840,7 @@ export class BunSqliteStorage extends BaseStorage {
             if (row.custom_params) {
                 middlewares[row.middleware_id] = this.safeParse(row.custom_params);
             } else {
-                middlewares[row.middleware_id] = this.intToBool(row.enabled);
+                middlewares[row.middleware_id] = true;
             }
         }
 
