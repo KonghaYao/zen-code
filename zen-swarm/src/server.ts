@@ -76,6 +76,17 @@ console.log(`   LangGraph API: http://127.0.0.1:${port}/api/langgraph`);
 console.log(`   tRPC API: http://127.0.0.1:${port}/api/trpc`);
 console.log(`   Terminal WebSocket: ws://127.0.0.1:${port}/ws/terminal`);
 
+async function openBrowser(url: string): Promise<void> {
+    const platform = process.platform;
+    const cmd = platform === 'darwin' ? 'open' : platform === 'win32' ? 'start' : 'xdg-open';
+    try {
+        const proc = Bun.spawn([cmd, url], { stdout: 'ignore', stderr: 'ignore' });
+        await proc.exited;
+    } catch {
+        // 无浏览器环境（服务器场景），静默忽略
+    }
+}
+
 serve({
     routes: {
         '/ui': dashboard,
@@ -103,3 +114,5 @@ serve({
         close: handleTerminalClose,
     },
 });
+
+openBrowser(`http://127.0.0.1:${port}/ui`);
