@@ -1,0 +1,155 @@
+name: Build Zen Swarm Binaries
+
+on:
+    push:
+        tags:
+            - 'zen-swarm/v*'
+    workflow_dispatch:
+        inputs:
+            version:
+                description: 'Version tag (e.g. zen-swarm/v1.0.0)'
+                required: false
+                default: 'dev'
+
+permissions:
+    contents: write
+
+# 三平台矩阵并行构建
+jobs:
+    build:
+        name: Build (${{ matrix.label }})
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    # Linux x64 — 用官方 ubuntu runner 直接编译最快
+                    - os: ubuntu-latest
+                      label: linux-x64
+                      bun_target: bun-linux-x64-modern
+                      artifact_name: zen-swarm-linux-x64
+                      exe_suffix: ''
+
+                    # macOS arm64 — Apple Silicon runner，原生编译省去交叉编译问题
+                    - os: macos-latest
+                      label: darwin-arm64
+                      bun_target: bun-darwin-arm64
+                      artifact_name: zen-swarm-darwin-arm64
+                      exe_suffix: ''
+
+                    # Windows x64
+                    - os: windows-latest
+                      label: windows-x64
+                      bun_target: bun-windows-x64
+                      artifact_name: zen-swarm-windows-x64
+                      exe_suffix: '.exe'
+
+        runs-on: ${{ matrix.os }}
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            # 安装根 monorepo 及所有 workspace 依赖
+            - name: Install dependencies
+              run: bun install --frozen-lockfile
+
+            # 构建 zen-swarm 依赖的 workspace packages（standard-agent 等有 dist 产物的包）
+            - name: Build workspace packages
+              run: bun run --filter './packages/*' build
+              continue-on-error: true # 部分包可能无 build 脚本，忽略错误
+
+            # 编译 zen-swarm 为独立二进制（命令直接写在此处，不依赖 package.json scripts）
+            - name: Compile zen-swarm binary
+              working-directory: zen-swarm
+              run: bun build src/server.ts --compile --minify --target ${{ matrix.bun_target }} --outfile ./dist/${{ matrix.artifact_name }}${{ matrix.exe_suffix }}
+
+            # 校验产物存在
+            - name: Verify binary exists (Unix)
+              if: matrix.os != 'windows-latest'
+              working-directory: zen-swarm
+              run: |
+                  ls -lh dist/
+                  file dist/${{ matrix.artifact_name }}
+
+            - name: Verify binary exists (Windows)
+              if: matrix.os == 'windows-latest'
+              working-directory: zen-swarm
+              shell: pwsh
+              run: |
+                  Get-ChildItem dist/
+                  $size = (Get-Item "dist/${{ matrix.artifact_name }}${{ matrix.exe_suffix }}").Length
+                  Write-Host "Binary size: $([math]::Round($size/1MB, 2)) MB"
+
+            # 上传为 GitHub Actions artifact（保留 7 天）
+            - name: Upload binary artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ matrix.artifact_name }}
+                  path: zen-swarm/dist/${{ matrix.artifact_name }}${{ matrix.exe_suffix }}
+                  retention-days: 7
+                  if-no-files-found: error
+
+    # 当由 tag 触发时，把三个 artifact 附加到 GitHub Release
+    release:
+        name: Attach to GitHub Release
+        needs: build
+        if: startsWith(github.ref, 'refs/tags/zen-swarm/v')
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Download all artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  path: ./release-assets
+                  # 下载 build job 中所有 artifact
+                  pattern: 'zen-swarm-*'
+                  merge-multiple: false
+
+            - name: List downloaded assets
+              run: find ./release-assets -type f | sort
+
+            # 将文件平铺到同一目录，方便后续上传
+            - name: Flatten artifact directories
+              run: |
+                  mkdir -p ./flat
+                  find ./release-assets -type f -exec cp {} ./flat/ \;
+                  ls -lh ./flat/
+
+            - name: Create or update GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ github.ref_name }}
+                  name: 'Zen Swarm ${{ github.ref_name }}'
+                  draft: false
+                  prerelease: ${{ contains(github.ref_name, '-') }}
+                  files: ./flat/*
+                  body: |
+                      ## Zen Swarm ${{ github.ref_name }}
+
+                      ### 下载说明
+
+                      | 平台 | 文件名 |
+                      |------|--------|
+                      | Linux x64 | `zen-swarm-linux-x64` |
+                      | macOS Apple Silicon | `zen-swarm-darwin-arm64` |
+                      | Windows x64 | `zen-swarm-windows-x64.exe` |
+
+                      ### 快速开始
+
+                      ```bash
+                      # Linux / macOS
+                      chmod +x zen-swarm-*
+                      ./zen-swarm-linux-x64   # 或 ./zen-swarm-darwin-arm64
+                      ```
+
+                      ```powershell
+                      # Windows
+                      .\zen-swarm-windows-x64.exe
+                      ```
+
+                      服务器启动后访问 http://127.0.0.1:8124/ui
