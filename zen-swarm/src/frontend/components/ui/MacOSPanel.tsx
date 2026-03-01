@@ -45,12 +45,10 @@ export const MacOSPanel = memo(function MacOSPanel({
         <div className={`flex flex-col h-full ${className}`}>
             {/* macOS Style Header - 透明背景 */}
             {showTrafficLights && (
-                <header className="flex-shrink-0 bg-transparent px-4 py-3 flex items-center justify-between border-b border-[var(--color-border-subtle)]">
+                <header className="flex-shrink-0 bg-transparent px-4 py-3 flex items-center justify-between border-b border-border-subtle">
                     <div className="flex items-center gap-3">
                         <TrafficLights onClose={onClose} disabled={disableTrafficLights} />
-                        {title && (
-                            <h2 className="text-lg font-medium text-[var(--color-text-primary)] ml-2">{title}</h2>
-                        )}
+                        {title && <h2 className="text-lg font-medium text-text-primary ml-2">{title}</h2>}
                     </div>
                     {headerRight && <div className="flex items-center gap-2">{headerRight}</div>}
                 </header>
@@ -86,10 +84,10 @@ export const MacOSPanelHeader = memo(function MacOSPanelHeader({
     }
 
     return (
-        <header className="flex-shrink-0 bg-transparent px-4 py-3 flex items-center justify-between border-b border-[var(--color-border-subtle)]">
+        <header className="flex-shrink-0 bg-transparent px-4 py-3 flex items-center justify-between border-b border-border-subtle">
             <div className="flex items-center gap-3">
                 <TrafficLights onClose={onClose} disabled={disableTrafficLights} />
-                {title && <h2 className="text-lg font-medium text-[var(--color-text-primary)] ml-2">{title}</h2>}
+                {title && <h2 className="text-lg font-medium text-text-primary ml-2">{title}</h2>}
             </div>
             {headerRight && <div className="flex items-center gap-2">{headerRight}</div>}
         </header>

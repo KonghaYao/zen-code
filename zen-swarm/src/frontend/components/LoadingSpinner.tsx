@@ -22,14 +22,14 @@ export function LoadingSpinner(props: LoadingSpinnerProps) {
     return (
         <div className="flex items-center justify-center space-x-2">
             <div className={`${sizeClass()} loading-spinner`} />
-            {props.text && <span className="text-[var(--color-text-muted)] text-sm">{props.text}</span>}
+            {props.text && <span className="text-text-muted text-sm">{props.text}</span>}
         </div>
     );
 }
 
 export function LoadingOverlay() {
     return (
-        <div className="text-center py-8 text-[var(--color-text-muted)]">
+        <div className="text-center py-8 text-text-muted">
             <LoadingSpinner size="lg" />
         </div>
     );

@@ -20,15 +20,15 @@ export function MonitorTabs({ activeTab, onTabChange }: MonitorTabsProps) {
     ];
 
     return (
-        <div className="flex items-center gap-1 border-b border-[var(--color-border-subtle)]">
+        <div className="flex items-center gap-1 border-b border-border-subtle">
             {tabs.map((tab) => (
                 <button
                     key={tab.id}
                     onClick={() => onTabChange(tab.id)}
                     className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 ${
                         activeTab === tab.id
-                            ? 'text-[var(--color-primary)] border-b-2 border-[var(--color-primary)]'
-                            : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                            ? 'text-primary border-b-2 border-primary'
+                            : 'text-text-muted hover:text-text-primary'
                     }`}
                 >
                     <span>{tab.icon}</span>

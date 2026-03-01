@@ -137,7 +137,7 @@ function formatFileSize(bytes: number): string {
  * 大文件提示组件
  */
 const LargeFileTip: React.FC<{ size: number }> = ({ size }) => (
-    <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)]">
+    <div className="flex flex-col items-center justify-center h-full text-text-muted">
         <div className="text-4xl mb-4">📦</div>
         <p className="text-lg font-medium mb-2">File too large to preview</p>
         <p className="text-sm">File size: {formatFileSize(size)}</p>
@@ -149,11 +149,11 @@ const LargeFileTip: React.FC<{ size: number }> = ({ size }) => (
  * 二进制文件提示组件
  */
 const BinaryFileTip: React.FC<{ name: string }> = ({ name }) => (
-    <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)]">
+    <div className="flex flex-col items-center justify-center h-full text-text-muted">
         <div className="text-4xl mb-4">🔗</div>
         <p className="text-lg font-medium mb-2">Binary file</p>
         <p className="text-sm">This file type cannot be previewed</p>
-        <p className="text-sm mt-1 text-[var(--color-text-tertiary)]">{name}</p>
+        <p className="text-sm mt-1 text-text-tertiary">{name}</p>
     </div>
 );
 
@@ -161,7 +161,7 @@ const BinaryFileTip: React.FC<{ name: string }> = ({ name }) => (
  * 空状态组件
  */
 const EmptyState: React.FC = () => (
-    <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)]">
+    <div className="flex flex-col items-center justify-center h-full text-text-muted">
         <div className="text-4xl mb-4">📄</div>
         <p className="text-lg font-medium mb-2">No file selected</p>
         <p className="text-sm">Select a file from the tree to preview</p>
@@ -181,7 +181,7 @@ const LoadingState: React.FC = () => (
  * 错误状态组件
  */
 const ErrorState: React.FC<{ message: string }> = ({ message }) => (
-    <div className="flex flex-col items-center justify-center h-full text-[var(--color-error)]">
+    <div className="flex flex-col items-center justify-center h-full text-error">
         <div className="text-4xl mb-4">⚠️</div>
         <p className="text-lg font-medium mb-2">Failed to load file</p>
         <p className="text-sm">{message}</p>
@@ -202,11 +202,11 @@ const CodePreview: React.FC<{ content: string; language: string; filePath: strin
     return (
         <div className="h-full flex flex-col">
             {/* 文件信息栏 */}
-            <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-tertiary)]">
-                <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-border-subtle bg-bg-tertiary">
+                <div className="flex items-center gap-2 text-sm text-text-secondary">
                     <span className="font-mono">{filePath}</span>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-[var(--color-text-muted)]">
+                <div className="flex items-center gap-3 text-xs text-text-muted">
                     <span>{lineCount} lines</span>
                     <span>{language}</span>
                     <span>{formatFileSize(content.length)}</span>
@@ -218,13 +218,13 @@ const CodePreview: React.FC<{ content: string; language: string; filePath: strin
                 <pre className="font-mono text-sm leading-relaxed">
                     <code className={`language-${language}`}>
                         {lines.map((line, index) => (
-                            <div key={index} className="flex hover:bg-[var(--color-bg-tertiary)]">
+                            <div key={index} className="flex hover:bg-bg-tertiary">
                                 {/* 行号 */}
-                                <span className="select-none w-12 px-3 py-0.5 text-right text-[var(--color-text-muted)] border-r border-[var(--color-border-subtle)] mr-3">
+                                <span className="select-none w-12 px-3 py-0.5 text-right text-text-muted border-r border-border-subtle mr-3">
                                     {index + 1}
                                 </span>
                                 {/* 代码内容 */}
-                                <span className="flex-1 px-3 py-0.5 text-[var(--color-text-primary)] whitespace-pre">
+                                <span className="flex-1 px-3 py-0.5 text-text-primary whitespace-pre">
                                     {line || ' '}
                                 </span>
                             </div>
@@ -343,7 +343,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ selectedNode }) => {
 
     if (selectedNode.type === 'directory') {
         return (
-            <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)]">
+            <div className="flex flex-col items-center justify-center h-full text-text-muted">
                 <div className="text-4xl mb-4">📁</div>
                 <p className="text-lg font-medium mb-2">{selectedNode.name}</p>
                 <p className="text-sm">Select a file to preview its contents</p>

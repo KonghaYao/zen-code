@@ -101,15 +101,15 @@ const Column: React.FC<ColumnProps> = ({
 
     if (data.loading) {
         return (
-            <div className="w-56 border-r border-[var(--color-border-subtle)] flex items-center justify-center bg-[var(--color-bg-primary)]">
-                <Loader2 className="w-5 h-5 animate-spin text-[var(--color-text-muted)]" />
+            <div className="w-56 border-r border-border-subtle flex items-center justify-center bg-bg-primary">
+                <Loader2 className="w-5 h-5 animate-spin text-text-muted" />
             </div>
         );
     }
 
     if (data.error) {
         return (
-            <div className="w-56 border-r border-[var(--color-border-subtle)] flex items-center justify-center bg-[var(--color-bg-primary)] p-4">
+            <div className="w-56 border-r border-border-subtle flex items-center justify-center bg-bg-primary p-4">
                 <p className="text-sm text-red-500 text-center">{data.error}</p>
             </div>
         );
@@ -117,8 +117,8 @@ const Column: React.FC<ColumnProps> = ({
 
     if (data.items.length === 0) {
         return (
-            <div className="w-56 border-r border-[var(--color-border-subtle)] flex items-center justify-center bg-[var(--color-bg-primary)]">
-                <p className="text-sm text-[var(--color-text-muted)]">Empty</p>
+            <div className="w-56 border-r border-border-subtle flex items-center justify-center bg-bg-primary">
+                <p className="text-sm text-text-muted">Empty</p>
             </div>
         );
     }
@@ -126,7 +126,7 @@ const Column: React.FC<ColumnProps> = ({
     return (
         <div
             ref={columnRef}
-            className={`w-56 border-r border-[var(--color-border-subtle)] overflow-y-auto bg-[var(--color-bg-primary)] ${
+            className={`w-56 border-r border-border-subtle overflow-y-auto bg-bg-primary ${
                 isActive ? 'bg-opacity-100' : 'bg-opacity-50'
             }`}
         >
@@ -139,9 +139,7 @@ const Column: React.FC<ColumnProps> = ({
                         key={item.path}
                         data-path={item.path}
                         className={`flex items-center justify-between px-3 py-1.5 cursor-pointer transition-colors ${
-                            isSelected
-                                ? 'bg-[var(--color-primary)] text-white'
-                                : 'hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)]'
+                            isSelected ? 'bg-primary text-white' : 'hover:bg-bg-secondary text-text-primary'
                         }`}
                         onClick={(e) => {
                             onSelect(item, e);
@@ -163,7 +161,7 @@ const Column: React.FC<ColumnProps> = ({
                         {/* Arrow for folders */}
                         {hasChildren && (
                             <ChevronRight
-                                className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white/70' : 'text-[var(--color-text-muted)]'}`}
+                                className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white/70' : 'text-text-muted'}`}
                             />
                         )}
                     </div>
@@ -305,7 +303,7 @@ export const FinderColumnView: React.FC<FinderColumnViewProps> = ({
             {/* Empty state */}
             {columns.length === 0 && !loading && (
                 <div className="flex items-center justify-center h-full flex-1">
-                    <div className="text-center text-[var(--color-text-muted)]">
+                    <div className="text-center text-text-muted">
                         <span className="text-4xl block mb-4">📂</span>
                         <p>No content</p>
                     </div>

@@ -43,8 +43,8 @@ export const HumanMessage: React.FC<HumanMessageProps> = ({ message, messageNumb
 
     return (
         <div className="flex flex-col animate-slide-in">
-            <div className="text-xs text-[var(--color-text-muted)] mb-2">Message #{messageNumber} · You</div>
-            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] p-4 rounded-lg text-[var(--color-text-primary)] leading-relaxed">
+            <div className="text-xs text-text-muted mb-2">Message #{messageNumber} · You</div>
+            <div className="bg-bg-secondary border border-border-subtle p-4 rounded-lg text-text-primary leading-relaxed">
                 {content}
             </div>
         </div>

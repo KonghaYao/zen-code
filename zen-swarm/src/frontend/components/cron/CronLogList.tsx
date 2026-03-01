@@ -19,7 +19,7 @@ export function CronLogList(props: CronLogListProps) {
 
     if (logs.length === 0) {
         return (
-            <div className="text-center py-8 text-[var(--color-text-muted)]">
+            <div className="text-center py-8 text-text-muted">
                 <p className="text-2xl mb-2">📋</p>
                 <p>No execution logs yet</p>
             </div>
@@ -33,7 +33,7 @@ export function CronLogList(props: CronLogListProps) {
         <div className="space-y-6">
             {Object.entries(groupedLogs).map(([date, dateLogs]) => (
                 <div key={date}>
-                    <h4 className="text-sm font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-2 sticky top-0 bg-[var(--color-bg-tertiary)] py-1">
+                    <h4 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-2 sticky top-0 bg-bg-tertiary py-1">
                         {date}
                     </h4>
                     <div className="space-y-2">
@@ -57,8 +57,8 @@ export function CronLogList(props: CronLogListProps) {
                         disabled={isLoading}
                         className={`px-4 py-2 text-sm rounded-lg ${
                             isLoading
-                                ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] cursor-not-allowed'
-                                : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)]'
+                                ? 'bg-bg-secondary text-text-muted cursor-not-allowed'
+                                : 'bg-bg-secondary text-text-primary hover:bg-bg-tertiary'
                         }`}
                     >
                         {isLoading ? 'Loading...' : 'Load More'}

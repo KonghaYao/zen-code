@@ -38,9 +38,9 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({ onOpenMana
     return (
         <div className="flex items-center gap-2 flex-wrap">
             {/* Workspace 列表 */}
-            <div className="flex items-center gap-1 bg-[var(--color-bg-secondary)] rounded p-1">
+            <div className="flex items-center gap-1 bg-bg-secondary rounded p-1">
                 {workspaces.length === 0 ? (
-                    <span className="px-3 py-1.5 text-sm text-[var(--color-text-secondary)]">No workspaces</span>
+                    <span className="px-3 py-1.5 text-sm text-text-secondary">No workspaces</span>
                 ) : (
                     workspaces.map((workspace) => (
                         <button
@@ -50,8 +50,8 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({ onOpenMana
                                 flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors duration-150 min-w-0 max-w-[300px]
                                 ${
                                     currentWorkspace?.id === workspace.id
-                                        ? 'bg-[var(--color-primary)] text-white'
-                                        : 'hover:bg-[var(--color-bg-hover)] text-[var(--color-text-primary)]'
+                                        ? 'bg-primary text-white'
+                                        : 'hover:bg-bg-hover text-text-primary'
                                 }
                             `}
                         >
@@ -65,10 +65,10 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({ onOpenMana
             {/* 管理按钮 */}
             <button
                 onClick={onOpenManage}
-                className="p-1.5 hover:bg-[var(--color-bg-hover)] rounded transition-colors duration-150"
+                className="p-1.5 hover:bg-bg-hover rounded transition-colors duration-150"
                 title="Manage Workspaces"
             >
-                <Settings className="w-5 h-5 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]" />
+                <Settings className="w-5 h-5 text-text-secondary hover:text-text-primary" />
             </button>
         </div>
     );

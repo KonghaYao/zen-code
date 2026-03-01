@@ -82,20 +82,18 @@ export function DataTable<T extends Record<string, any>>({
         <div className="overflow-x-auto">
             <table className="w-full border-collapse">
                 <thead>
-                    <tr className="border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-tertiary)]">
+                    <tr className="border-b border-border-subtle bg-bg-tertiary">
                         {columns.map((column) => (
                             <th
                                 key={column.key}
                                 style={{ width: column.width }}
-                                className={`text-left font-semibold text-[var(--color-text-secondary)] ${sizeClasses[size]} ${column.align === 'center' ? 'text-center' : ''} ${column.align === 'right' ? 'text-right' : ''}`}
+                                className={`text-left font-semibold text-text-secondary ${sizeClasses[size]} ${column.align === 'center' ? 'text-center' : ''} ${column.align === 'right' ? 'text-right' : ''}`}
                             >
                                 {column.title}
                             </th>
                         ))}
                         {actions && actions.length > 0 && (
-                            <th
-                                className={`text-right font-semibold text-[var(--color-text-secondary)] ${sizeClasses[size]}`}
-                            >
+                            <th className={`text-right font-semibold text-text-secondary ${sizeClasses[size]}`}>
                                 Actions
                             </th>
                         )}
@@ -105,13 +103,13 @@ export function DataTable<T extends Record<string, any>>({
                     {dataSource.map((record, index) => (
                         <tr
                             key={getRowKey(record, index)}
-                            className={`border-b border-[var(--color-border-subtle)] hover:bg-[var(--color-bg-secondary)] transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+                            className={`border-b border-border-subtle hover:bg-bg-secondary transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
                             onClick={() => onRowClick?.(record, index)}
                         >
                             {columns.map((column) => (
                                 <td
                                     key={column.key}
-                                    className={`${sizeClasses[size]} text-[var(--color-text-primary)] ${column.align === 'center' ? 'text-center' : ''} ${column.align === 'right' ? 'text-right' : ''}`}
+                                    className={`${sizeClasses[size]} text-text-primary ${column.align === 'center' ? 'text-center' : ''} ${column.align === 'right' ? 'text-right' : ''}`}
                                 >
                                     {getCellValue(record, column, index)}
                                 </td>

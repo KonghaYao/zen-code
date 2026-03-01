@@ -156,17 +156,15 @@ export function CronView() {
             <div className="flex-shrink-0 mb-6">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-2xl font-semibold text-[var(--color-text-primary)]">Cron Tasks</h1>
-                        <p className="text-sm text-[var(--color-text-muted)] mt-1">
-                            Schedule and manage automated tasks
-                        </p>
+                        <h1 className="text-2xl font-semibold text-text-primary">Cron Tasks</h1>
+                        <p className="text-sm text-text-muted mt-1">Schedule and manage automated tasks</p>
                     </div>
                     <button
                         onClick={() => {
                             setEditingTask(null);
                             setShowForm(true);
                         }}
-                        className="px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white rounded-lg text-sm font-medium transition-colors"
+                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium transition-colors"
                     >
                         + New Task
                     </button>
@@ -189,8 +187,8 @@ export function CronView() {
                             onClick={() => handleTabChange(tab.id)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                                 activeTab === tab.id
-                                    ? 'bg-[var(--color-primary)] text-white'
-                                    : 'text-[var(--color-text-primary)] hover:bg-[var(--color-bg-secondary)]'
+                                    ? 'bg-primary text-white'
+                                    : 'text-text-primary hover:bg-bg-secondary'
                             }`}
                         >
                             <span>{tab.icon}</span>
@@ -202,15 +200,13 @@ export function CronView() {
 
             {/* Content Area */}
             <div className="flex-1 min-h-0 overflow-hidden">
-                <div className="bg-white rounded-lg border border-[var(--color-border-subtle)] flex flex-col min-h-0">
-                    <div className="p-4 border-b border-[var(--color-border-subtle)] flex-shrink-0">
+                <div className="bg-white rounded-lg border border-border-subtle flex flex-col min-h-0">
+                    <div className="p-4 border-b border-border-subtle flex-shrink-0">
                         <div className="flex items-center gap-3">
                             <span className="text-xl">{activeTabConfig?.icon}</span>
                             <div>
-                                <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-                                    {activeTabConfig?.label}
-                                </h2>
-                                <p className="text-sm text-[var(--color-text-muted)]">{activeTabConfig?.description}</p>
+                                <h2 className="text-lg font-semibold text-text-primary">{activeTabConfig?.label}</h2>
+                                <p className="text-sm text-text-muted">{activeTabConfig?.description}</p>
                             </div>
                         </div>
                     </div>
@@ -218,7 +214,7 @@ export function CronView() {
                         {activeTab === 'tasks' && (
                             <>
                                 {isLoading ? (
-                                    <div className="text-center py-8 text-[var(--color-text-muted)]">Loading...</div>
+                                    <div className="text-center py-8 text-text-muted">Loading...</div>
                                 ) : (
                                     <CronTaskList
                                         tasks={tasksQuery.data || []}

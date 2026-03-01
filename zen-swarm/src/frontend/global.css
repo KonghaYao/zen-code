@@ -1,5 +1,61 @@
 @import 'tailwindcss';
 @import 'tailwindcss/preflight.css' layer(base);
+
+/* ============================================
+   TAILWIND v4 THEME — Design Token Mapping
+   把 CSS 变量注册为 Tailwind 主题 token，
+   这样就能直接用 bg-bg-tertiary、text-text-muted
+   等标准写法，不再需要 [var(--...)] 丑陋语法
+   ============================================ */
+
+@theme {
+    /* ---- Neutral palette ---- */
+    --color-neutral-50: #fafafa;
+    --color-neutral-100: #f5f5f5;
+    --color-neutral-200: #e5e5e5;
+    --color-neutral-300: #d4d4d4;
+    --color-neutral-400: #a3a3a3;
+    --color-neutral-500: #737373;
+    --color-neutral-600: #525252;
+    --color-neutral-700: #404040;
+    --color-neutral-800: #262626;
+    --color-neutral-900: #171717;
+    --color-neutral-950: #0a0a0a;
+
+    /* ---- Brand / Primary ---- */
+    --color-primary: #3b82f6;
+    --color-primary-hover: #2563eb;
+    --color-primary-light: #dbeafe;
+    --color-primary-dark: #1e40af;
+
+    /* ---- Semantic ---- */
+    --color-success: #22c55e;
+    --color-success-light: #dcfce7;
+    --color-warning: #f59e0b;
+    --color-warning-light: #fef3c7;
+    --color-error: #ef4444;
+    --color-error-light: #fee2e2;
+
+    /* ---- Backgrounds ---- */
+    --color-bg-primary: #fafafa;
+    --color-bg-secondary: #ffffff;
+    --color-bg-tertiary: #f5f5f5;
+    --color-bg-elevated: #ffffff;
+    --color-bg-hover: #f5f5f5;
+
+    /* ---- Text ---- */
+    --color-text-primary: #0a0a0a;
+    --color-text-secondary: #525252;
+    --color-text-tertiary: #737373;
+    --color-text-muted: #a3a3a3;
+
+    /* ---- Borders ---- */
+    --color-border-subtle: #e5e5e5;
+    --color-border-default: #d4d4d4;
+    --color-border-strong: #a3a3a3;
+    --color-border-primary: #3b82f6;
+    --color-border-hover: #d4d4d4;
+}
 /**
  * Zen Swarm Global Design System
  * Minimal/Clean Aesthetic

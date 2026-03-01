@@ -30,19 +30,17 @@ export function CronTaskCard(props: CronTaskCardProps) {
         <div
             className={`bg-white rounded-lg border transition-all ${
                 task.enabled
-                    ? 'border-[var(--color-border-subtle)] hover:shadow-sm hover:border-[var(--color-primary)]'
-                    : 'border-[var(--color-border-subtle)] opacity-60'
+                    ? 'border-border-subtle hover:shadow-sm hover:border-primary'
+                    : 'border-border-subtle opacity-60'
             }`}
         >
             {/* 卡片头部 */}
-            <div className="p-4 border-b border-[var(--color-border-subtle)]">
+            <div className="p-4 border-b border-border-subtle">
                 <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                         {/* 标题行 */}
                         <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-base font-semibold text-[var(--color-text-primary)] truncate">
-                                {task.name}
-                            </h3>
+                            <h3 className="text-base font-semibold text-text-primary truncate">{task.name}</h3>
                             <span
                                 className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${
                                     task.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
@@ -61,9 +59,7 @@ export function CronTaskCard(props: CronTaskCardProps) {
 
                         {/* 描述 */}
                         {task.description && (
-                            <p className="text-sm text-[var(--color-text-secondary)] line-clamp-2">
-                                {task.description}
-                            </p>
+                            <p className="text-sm text-text-secondary line-clamp-2">{task.description}</p>
                         )}
                     </div>
 
@@ -75,7 +71,7 @@ export function CronTaskCard(props: CronTaskCardProps) {
                             className={`p-1.5 rounded transition-colors ${
                                 task.enabled
                                     ? 'bg-blue-50 hover:bg-blue-100 text-blue-600'
-                                    : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-muted)] cursor-not-allowed'
+                                    : 'bg-bg-tertiary text-text-muted cursor-not-allowed'
                             }`}
                             title="Run now"
                         >
@@ -94,7 +90,7 @@ export function CronTaskCard(props: CronTaskCardProps) {
                         </button>
                         <button
                             onClick={() => props.onEdit(task)}
-                            className="p-1.5 rounded transition-colors bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                            className="p-1.5 rounded transition-colors bg-bg-secondary hover:bg-bg-tertiary text-text-secondary hover:text-text-primary"
                             title="Edit"
                         >
                             <Edit className="w-4 h-4" />
@@ -115,18 +111,18 @@ export function CronTaskCard(props: CronTaskCardProps) {
                 {/* Cron 表达式和 Agent */}
                 <div className="flex flex-wrap items-center gap-4 text-sm">
                     <div className="flex items-center gap-2">
-                        <span className="text-[var(--color-text-muted)]">⏰</span>
-                        <code className="bg-[var(--color-bg-tertiary)] px-2 py-0.5 rounded text-[var(--color-text-primary)] font-mono text-xs">
+                        <span className="text-text-muted">⏰</span>
+                        <code className="bg-bg-tertiary px-2 py-0.5 rounded text-text-primary font-mono text-xs">
                             {task.cron_expression}
                         </code>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className="text-[var(--color-text-muted)]">🤖</span>
+                        <span className="text-text-muted">🤖</span>
                         <span className="text-blue-600 font-medium">{agentName || task.agent_id}</span>
                     </div>
                     {task.max_retries > 0 && (
                         <div className="flex items-center gap-2">
-                            <span className="text-[var(--color-text-muted)]">🔄</span>
+                            <span className="text-text-muted">🔄</span>
                             <span className="text-orange-600 text-xs">Max retries: {task.max_retries}</span>
                         </div>
                     )}

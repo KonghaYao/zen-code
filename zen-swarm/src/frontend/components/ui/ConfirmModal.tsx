@@ -54,7 +54,7 @@ export function ConfirmModal(props: ConfirmModalProps) {
     return (
         <Modal open={open} onClose={onCancel} title={title}>
             <div className="space-y-6">
-                <p className="text-[var(--color-text-secondary)]">{message}</p>
+                <p className="text-text-secondary">{message}</p>
 
                 <div className="flex justify-end gap-3">
                     <button onClick={handleCancel} disabled={isLoading} className="btn-secondary">

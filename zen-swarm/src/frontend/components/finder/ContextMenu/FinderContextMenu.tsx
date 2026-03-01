@@ -27,7 +27,7 @@ interface MenuItemProps {
 
 const MenuItem: React.FC<MenuItemProps> = ({ item, onClose }) => {
     if (item.separator) {
-        return <div className="h-px bg-[var(--color-border-subtle)] my-1 mx-3" />;
+        return <div className="h-px bg-border-subtle my-1 mx-3" />;
     }
 
     const handleClick = () => {
@@ -43,15 +43,15 @@ const MenuItem: React.FC<MenuItemProps> = ({ item, onClose }) => {
             disabled={item.disabled}
             className={`w-full flex items-center justify-between px-3 py-1.5 text-sm ${
                 item.disabled
-                    ? 'text-[var(--color-text-muted)] cursor-not-allowed'
-                    : 'text-[var(--color-text-primary)] hover:bg-[var(--color-primary)] hover:text-white'
+                    ? 'text-text-muted cursor-not-allowed'
+                    : 'text-text-primary hover:bg-primary hover:text-white'
             }`}
         >
             <div className="flex items-center gap-2">
                 {item.icon && <span className="text-base">{item.icon}</span>}
                 <span>{item.label}</span>
             </div>
-            {item.shortcut && <span className="text-xs text-[var(--color-text-muted)]">{item.shortcut}</span>}
+            {item.shortcut && <span className="text-xs text-text-muted">{item.shortcut}</span>}
         </button>
     );
 };
@@ -311,7 +311,7 @@ export const FinderContextMenu: React.FC<FinderContextMenuProps> = ({
     return (
         <div
             ref={menuRef}
-            className="fixed min-w-56 bg-white rounded-lg shadow-xl border border-[var(--color-border-subtle)] py-1 z-[9999]"
+            className="fixed min-w-56 bg-white rounded-lg shadow-xl border border-border-subtle py-1 z-[9999]"
             style={{
                 left: pos.x,
                 top: pos.y,

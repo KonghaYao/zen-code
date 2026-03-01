@@ -19,10 +19,10 @@ export function ToolsPanel({ onClose }: ToolsPanelProps) {
     return (
         <div className="flex flex-col h-full">
             {/* macOS Style Header with Traffic Lights */}
-            <header className="flex-shrink-0 bg-transparent px-4 py-3 flex items-center border-b border-[var(--color-border-subtle)]">
+            <header className="flex-shrink-0 bg-transparent px-4 py-3 flex items-center border-b border-border-subtle">
                 <div className="flex items-center gap-3">
                     <TrafficLights onClose={onClose} />
-                    <h2 className="text-xl font-semibold text-[var(--color-text-primary)] ml-2">
+                    <h2 className="text-xl font-semibold text-text-primary ml-2">
                         Tools
                         <span className="badge badge-primary ml-3">{tools.length}</span>
                     </h2>

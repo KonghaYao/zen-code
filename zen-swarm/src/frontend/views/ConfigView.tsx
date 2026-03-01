@@ -405,8 +405,8 @@ export function ConfigView() {
         <div className="flex gap-6 h-full overflow-hidden">
             {/* 左侧导航列 */}
             <aside className="w-64 flex-shrink-0">
-                <nav className="h-full bg-white rounded-lg border border-[var(--color-border-subtle)] p-2 flex flex-col">
-                    <h2 className="px-3 py-2 text-sm font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
+                <nav className="h-full bg-white rounded-lg border border-border-subtle p-2 flex flex-col">
+                    <h2 className="px-3 py-2 text-sm font-semibold text-text-muted uppercase tracking-wider">
                         AI Configuration
                     </h2>
                     <ul className="mt-2 space-y-1 overflow-y-auto flex-1">
@@ -416,15 +416,15 @@ export function ConfigView() {
                                     onClick={() => handleTabChange(tab.id)}
                                     className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-colors ${
                                         activeTab === tab.id
-                                            ? 'bg-[var(--color-primary)] text-white'
-                                            : 'text-[var(--color-text-primary)] hover:bg-[var(--color-bg-secondary)]'
+                                            ? 'bg-primary text-white'
+                                            : 'text-text-primary hover:bg-bg-secondary'
                                     }`}
                                 >
                                     <span className="text-xl">{tab.icon}</span>
                                     <div className="flex-1 min-w-0">
                                         <p className="font-medium truncate">{tab.label}</p>
                                         <p
-                                            className={`text-xs truncate ${activeTab === tab.id ? 'text-white/80' : 'text-[var(--color-text-muted)]'}`}
+                                            className={`text-xs truncate ${activeTab === tab.id ? 'text-white/80' : 'text-text-muted'}`}
                                         >
                                             {tab.description}
                                         </p>
@@ -433,7 +433,7 @@ export function ConfigView() {
                                         className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                                             activeTab === tab.id
                                                 ? 'bg-white/20 text-white'
-                                                : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-muted)]'
+                                                : 'bg-bg-tertiary text-text-muted'
                                         }`}
                                     >
                                         {getTabCount(tab.id)}
@@ -442,7 +442,7 @@ export function ConfigView() {
                             </li>
                         ))}
                     </ul>
-                    <h2 className="px-3 py-2 mt-4 text-sm font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
+                    <h2 className="px-3 py-2 mt-4 text-sm font-semibold text-text-muted uppercase tracking-wider">
                         Resources
                     </h2>
                     <ul className="mt-2 space-y-1 overflow-y-auto">
@@ -452,15 +452,15 @@ export function ConfigView() {
                                     onClick={() => handleTabChange(tab.id)}
                                     className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-colors ${
                                         activeTab === tab.id
-                                            ? 'bg-[var(--color-primary)] text-white'
-                                            : 'text-[var(--color-text-primary)] hover:bg-[var(--color-bg-secondary)]'
+                                            ? 'bg-primary text-white'
+                                            : 'text-text-primary hover:bg-bg-secondary'
                                     }`}
                                 >
                                     <span className="text-xl">{tab.icon}</span>
                                     <div className="flex-1 min-w-0">
                                         <p className="font-medium truncate">{tab.label}</p>
                                         <p
-                                            className={`text-xs truncate ${activeTab === tab.id ? 'text-white/80' : 'text-[var(--color-text-muted)]'}`}
+                                            className={`text-xs truncate ${activeTab === tab.id ? 'text-white/80' : 'text-text-muted'}`}
                                         >
                                             {tab.description}
                                         </p>
@@ -469,7 +469,7 @@ export function ConfigView() {
                                         className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                                             activeTab === tab.id
                                                 ? 'bg-white/20 text-white'
-                                                : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-muted)]'
+                                                : 'bg-bg-tertiary text-text-muted'
                                         }`}
                                     >
                                         {getTabCount(tab.id)}
@@ -483,20 +483,16 @@ export function ConfigView() {
 
             {/* 右侧内容区 */}
             <main className="flex-1 min-w-0 flex flex-col">
-                <div className="bg-white rounded-lg border border-[var(--color-border-subtle)] flex flex-col min-h-0">
+                <div className="bg-white rounded-lg border border-border-subtle flex flex-col min-h-0">
                     <div className="p-6 flex-shrink-0">
                         <div className="flex items-center justify-between mb-6">
                             <div>
-                                <h1 className="text-2xl font-semibold text-[var(--color-text-primary)]">
-                                    {activeTabConfig?.label}
-                                </h1>
-                                <p className="text-sm text-[var(--color-text-muted)] mt-1">
-                                    {activeTabConfig?.description}
-                                </p>
+                                <h1 className="text-2xl font-semibold text-text-primary">{activeTabConfig?.label}</h1>
+                                <p className="text-sm text-text-muted mt-1">{activeTabConfig?.description}</p>
                             </div>
                             <button
                                 onClick={handleCreateClick}
-                                className="px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={!activeTabConfig?.editable}
                             >
                                 {getActionLabel()}

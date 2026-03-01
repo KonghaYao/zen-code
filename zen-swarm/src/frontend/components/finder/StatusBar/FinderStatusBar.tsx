@@ -78,20 +78,20 @@ export const FinderStatusBar: React.FC<FinderStatusBarProps> = ({ currentPath, i
     }
 
     return (
-        <div className="flex items-center justify-between px-4 py-1.5 bg-[var(--color-bg-secondary)] border-t border-[var(--color-border-subtle)] text-xs">
+        <div className="flex items-center justify-between px-4 py-1.5 bg-bg-secondary border-t border-border-subtle text-xs">
             {/* Left side: Status text */}
-            <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
+            <div className="flex items-center gap-2 text-text-secondary">
                 {loading && <Loader2 className="w-3 h-3 animate-spin" />}
                 <span>{statusText}</span>
             </div>
 
             {/* Center: Path bar (optional) */}
-            <div className="flex items-center gap-1 text-[var(--color-text-muted)]">
+            <div className="flex items-center gap-1 text-text-muted">
                 <span className="opacity-50">{currentPath}</span>
             </div>
 
             {/* Right side: Available space (placeholder) */}
-            <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
+            <div className="flex items-center gap-2 text-text-muted">
                 <span>Available: --</span>
             </div>
         </div>

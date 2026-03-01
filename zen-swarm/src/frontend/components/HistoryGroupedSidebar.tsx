@@ -14,6 +14,7 @@ import { useChat } from '@langgraph-js/sdk/react';
 import type { Thread } from '@langgraph-js/sdk';
 import { formatDate } from '../utils/chatHelpers.js';
 import { useWorkspaceStore } from '../stores/workspace.js';
+import { PlusIcon } from 'lucide-react';
 
 // 定义历史记录线程类型，包含可选的 title 字段
 type HistoryThread = Thread<{ messages: any[] }> & {
@@ -59,7 +60,7 @@ const ExpandIcon: React.FC<{ isExpanded: boolean; onClick: () => void }> = ({ is
             e.stopPropagation();
             onClick();
         }}
-        className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+        className="text-text-muted hover:text-text-primary transition-colors"
     >
         <svg
             className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
@@ -74,7 +75,7 @@ const ExpandIcon: React.FC<{ isExpanded: boolean; onClick: () => void }> = ({ is
 
 // 记录数量徽章
 const CountBadge: React.FC<{ count: number }> = ({ count }) => (
-    <span className="text-[10px] px-1.5 py-0.5 bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] rounded-full font-medium">
+    <span className="text-[10px] px-1.5 py-0.5 bg-bg-tertiary text-text-secondary rounded-full font-medium">
         {count}
     </span>
 );
@@ -86,12 +87,10 @@ const NewChatButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
             e.stopPropagation();
             onClick();
         }}
-        className="ml-1 w-5 h-5 flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] rounded transition-colors"
+        className="ml-1 w-5 h-5 flex items-center justify-center text-text-muted hover:text-primary hover:bg-primary-light rounded transition-colors"
         title="New chat in this workspace"
     >
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
+        <PlusIcon></PlusIcon>
     </button>
 );
 
@@ -102,17 +101,10 @@ const ManageWorkspaceButton: React.FC<{ onClick: () => void }> = ({ onClick }) =
             e.stopPropagation();
             onClick();
         }}
-        className="ml-1 w-5 h-5 flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] rounded transition-colors"
+        className="ml-1 w-5 h-5 flex items-center justify-center text-text-muted hover:text-primary hover:bg-primary-light rounded transition-colors"
         title="Manage workspace"
     >
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-            />
-        </svg>
+        <PlusIcon></PlusIcon>
     </button>
 );
 
@@ -127,15 +119,11 @@ const HistoryItem: React.FC<{
             onClick={onClick}
             className={`
                 w-full text-left px-2 py-1.5 rounded transition-colors duration-150 text-xs
-                ${
-                    isCurrent
-                        ? 'bg-[var(--color-primary-light)] text-[var(--color-primary-dark)]'
-                        : 'hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]'
-                }
+                ${isCurrent ? 'bg-primary-light text-primary-dark' : 'hover:bg-bg-tertiary text-text-secondary'}
             `}
         >
             <div className="text-xs truncate">{(thread as any).title || thread.thread_id.slice(0, 12)}</div>
-            <div className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{formatDate(thread.updated_at)}</div>
+            <div className="text-[10px] text-text-muted mt-0.5">{formatDate(thread.updated_at)}</div>
         </button>
     );
 };
@@ -224,11 +212,11 @@ export function HistoryGroupedSidebar({ onManageWorkspace, onAddWorkspace }: His
         const workspace = workspaces.find((w) => w.rootPath === rootPath);
         if (workspace) {
             // 先切换到目标 workspace
-            await setCurrentWorkspace(workspace.id);
+            // await setCurrentWorkspace(workspace.id);
 
             // 等待 ChatProvider 重新渲染（因为 historyFilter 会改变）
             // 使用 setTimeout 确保 React 完成状态更新和 historyFilter 更新
-            await new Promise((resolve) => setTimeout(resolve, 200));
+            // await new Promise((resolve) => setTimeout(resolve, 200));
 
             // 创建新 chat，指定 metadata 为目标 workspace 的 path
             createNewChat({
@@ -253,14 +241,14 @@ export function HistoryGroupedSidebar({ onManageWorkspace, onAddWorkspace }: His
 
     return (
         <div
-            className="flex-shrink-0 bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] flex flex-col h-full overflow-hidden"
+            className="flex-shrink-0 bg-bg-secondary text-text-primary flex flex-col h-full overflow-hidden"
             style={{ width: '240px' }}
         >
             {/* 顶部：Add Workspace Button */}
             <div className="p-3">
                 <button
                     onClick={handleAddWorkspace}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded text-xs font-medium text-white transition-colors duration-150"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-primary hover:bg-primary-hover rounded text-xs font-medium text-white transition-colors duration-150"
                 >
                     <span className="text-sm">+</span>
                     <span>Add Workspace</span>
@@ -270,7 +258,7 @@ export function HistoryGroupedSidebar({ onManageWorkspace, onAddWorkspace }: His
             {/* 中间：分组列表 */}
             <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1">
                 {historyGroups.length === 0 ? (
-                    <div className="text-center py-8 text-xs text-[var(--color-text-muted)]">No conversations yet</div>
+                    <div className="text-center py-8 text-xs text-text-muted">No conversations yet</div>
                 ) : (
                     historyGroups.map((group) => {
                         const isCurrentWorkspace = currentWorkspace?.rootPath === group.rootPath;
@@ -278,11 +266,11 @@ export function HistoryGroupedSidebar({ onManageWorkspace, onAddWorkspace }: His
                         return (
                             <div
                                 key={group.rootPath}
-                                className={`rounded ${isCurrentWorkspace ? 'bg-[var(--color-bg-tertiary)]' : ''}`}
+                                className={`rounded ${isCurrentWorkspace ? 'bg-bg-tertiary' : ''}`}
                             >
                                 {/* 分组标题 */}
                                 <div
-                                    className="flex items-center gap-1.5 px-2 py-1.5 cursor-pointer hover:bg-[var(--color-bg-tertiary)] rounded"
+                                    className="flex items-center gap-1.5 px-2 py-1.5 cursor-pointer hover:bg-bg-tertiary rounded"
                                     onClick={() => toggleGroup(group.rootPath)}
                                 >
                                     <ExpandIcon

@@ -103,9 +103,7 @@ export const Select: React.FC<SelectProps> = ({
 
     if (loading) {
         return (
-            <div
-                className={`px-3 py-2 bg-white border border-[var(--color-border-subtle)] rounded-lg text-[var(--color-text-muted)] ${className}`}
-            >
+            <div className={`px-3 py-2 bg-white border border-border-subtle rounded-lg text-text-muted ${className}`}>
                 {loadingText}
             </div>
         );
@@ -123,30 +121,22 @@ export const Select: React.FC<SelectProps> = ({
                 disabled={disabled}
                 className={`
                     w-full px-3 py-2 bg-white border rounded-lg
-                    text-left text-[var(--color-text-primary)] focus:outline-none transition-colors duration-150
-                    disabled:bg-[var(--color-bg-tertiary)] disabled:text-[var(--color-text-tertiary)] disabled:cursor-not-allowed
+                    text-left text-text-primary focus:outline-none transition-colors duration-150
+                    disabled:bg-bg-tertiary disabled:text-text-tertiary disabled:cursor-not-allowed
                     flex items-center justify-between
-                    ${
-                        isOpen
-                            ? 'border-[var(--color-primary)]'
-                            : 'border-[var(--color-border-default)] hover:border-[var(--color-border-strong)]'
-                    }
+                    ${isOpen ? 'border-primary' : 'border-border-default hover:border-border-strong'}
                     ${className}
                 `}
             >
-                <span className={value ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-muted)]'}>
-                    {displayValue}
-                </span>
-                <ChevronDown
-                    className={`w-4 h-4 text-[var(--color-text-muted)] transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                />
+                <span className={value ? 'text-text-primary' : 'text-text-muted'}>{displayValue}</span>
+                <ChevronDown className={`w-4 h-4 text-text-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className="absolute z-50 w-full mt-1 bg-white border border-[var(--color-border-subtle)] rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <div className="absolute z-50 w-full mt-1 bg-white border border-border-subtle rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {validOptions.length === 0 ? (
-                        <div className="px-3 py-2 text-[var(--color-text-muted)] text-sm">No options available</div>
+                        <div className="px-3 py-2 text-text-muted text-sm">No options available</div>
                     ) : (
                         validOptions.map((option, index) => (
                             <button
@@ -157,10 +147,10 @@ export const Select: React.FC<SelectProps> = ({
                                     w-full px-3 py-2 text-left text-sm transition-colors duration-100
                                     ${
                                         option.value === value
-                                            ? 'bg-[var(--color-primary-light)] text-[var(--color-primary-dark)]'
-                                            : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)]'
+                                            ? 'bg-primary-light text-primary-dark'
+                                            : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'
                                     }
-                                    ${index === highlightedIndex ? 'bg-[var(--color-bg-tertiary)]' : ''}
+                                    ${index === highlightedIndex ? 'bg-bg-tertiary' : ''}
                                 `}
                             >
                                 {option.label}

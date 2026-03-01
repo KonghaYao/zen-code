@@ -120,7 +120,7 @@ function getLanguage(extension?: string): string {
 
 const ImagePreview: React.FC<{ content: string; path: string }> = ({ content, path }) => {
     return (
-        <div className="flex items-center justify-center h-full bg-[var(--color-bg-secondary)]">
+        <div className="flex items-center justify-center h-full bg-bg-secondary">
             <img
                 src={`data:image/*;base64,${content}`}
                 alt={path.split('/').pop() || ''}
@@ -140,7 +140,7 @@ const VideoPreview: React.FC<{ content: string; path: string }> = ({ content, pa
 
 const AudioPreview: React.FC<{ content: string; path: string }> = ({ content, path }) => {
     return (
-        <div className="flex flex-col items-center justify-center h-full bg-[var(--color-bg-secondary)] gap-4">
+        <div className="flex flex-col items-center justify-center h-full bg-bg-secondary gap-4">
             <div className="text-6xl">🎵</div>
             <p className="text-lg font-medium">{path.split('/').pop()}</p>
             <audio src={`data:audio/*;base64,${content}`} controls className="w-64" />
@@ -177,10 +177,10 @@ const MarkdownPreview: React.FC<{ content: string }> = ({ content }) => {
 
 const BinaryPreview: React.FC<{ path: string; size: number }> = ({ path, size }) => {
     return (
-        <div className="flex flex-col items-center justify-center h-full gap-4 text-[var(--color-text-muted)]">
+        <div className="flex flex-col items-center justify-center h-full gap-4 text-text-muted">
             <span className="text-6xl">📦</span>
             <div className="text-center">
-                <p className="text-lg font-medium text-[var(--color-text-primary)]">{path.split('/').pop()}</p>
+                <p className="text-lg font-medium text-text-primary">{path.split('/').pop()}</p>
                 <p className="text-sm mt-2">Binary file - {formatSize(size)}</p>
                 <p className="text-xs mt-1">Preview not available</p>
             </div>
@@ -264,13 +264,13 @@ export const FinderPreview: React.FC<FinderPreviewProps> = ({ path, loading: ini
     if (!path) return null;
 
     return (
-        <div className="w-80 border-l border-[var(--color-border-subtle)] bg-white flex flex-col h-full">
+        <div className="w-80 border-l border-border-subtle bg-white flex flex-col h-full">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)]">
-                <span className="text-sm font-medium text-[var(--color-text-primary)]">Preview</span>
+            <div className="flex items-center justify-between px-4 py-2 border-b border-border-subtle bg-bg-secondary">
+                <span className="text-sm font-medium text-text-primary">Preview</span>
                 <button
                     onClick={onClose}
-                    className="p-1 rounded text-[var(--color-text-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)]"
+                    className="p-1 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary"
                 >
                     <X className="w-4 h-4" />
                 </button>
@@ -280,13 +280,13 @@ export const FinderPreview: React.FC<FinderPreviewProps> = ({ path, loading: ini
             <div className="flex-1 overflow-hidden">
                 {loading && (
                     <div className="flex items-center justify-center h-full">
-                        <Loader2 className="w-6 h-6 animate-spin text-[var(--color-text-muted)]" />
+                        <Loader2 className="w-6 h-6 animate-spin text-text-muted" />
                     </div>
                 )}
 
                 {error && (
                     <div className="flex items-center justify-center h-full">
-                        <div className="text-center text-[var(--color-text-muted)] p-4">
+                        <div className="text-center text-text-muted p-4">
                             <span className="text-4xl block mb-4">⚠️</span>
                             <p className="text-sm">{error}</p>
                         </div>

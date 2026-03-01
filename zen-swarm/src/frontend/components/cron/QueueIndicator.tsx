@@ -13,7 +13,7 @@ export function QueueIndicator(props: QueueIndicatorProps) {
     const { queueStatus, schedulerStatus } = props;
 
     return (
-        <div className="flex items-center gap-4 p-3 bg-[var(--color-bg-secondary)] rounded-lg border border-[var(--color-border-subtle)]">
+        <div className="flex items-center gap-4 p-3 bg-bg-secondary rounded-lg border border-border-subtle">
             {/* Scheduler Status */}
             <div className="flex items-center gap-2">
                 <div
@@ -21,7 +21,7 @@ export function QueueIndicator(props: QueueIndicatorProps) {
                         schedulerStatus.isRunning ? 'bg-green-500 animate-pulse' : 'bg-red-500'
                     }`}
                 />
-                <span className="text-sm text-[var(--color-text-secondary)]">
+                <span className="text-sm text-text-secondary">
                     Scheduler:{' '}
                     <span className={schedulerStatus.isRunning ? 'text-green-600' : 'text-red-600'}>
                         {schedulerStatus.isRunning ? 'Running' : 'Stopped'}
@@ -32,18 +32,15 @@ export function QueueIndicator(props: QueueIndicatorProps) {
             {/* Scheduled Count */}
             <div className="flex items-center gap-2">
                 <span className="text-lg">⏰</span>
-                <span className="text-sm text-[var(--color-text-secondary)]">
-                    Scheduled:{' '}
-                    <span className="font-medium text-[var(--color-text-primary)]">
-                        {schedulerStatus.scheduledCount}
-                    </span>
+                <span className="text-sm text-text-secondary">
+                    Scheduled: <span className="font-medium text-text-primary">{schedulerStatus.scheduledCount}</span>
                 </span>
             </div>
 
             {/* Running Count */}
             <div className="flex items-center gap-2">
                 <span className="text-lg">🔄</span>
-                <span className="text-sm text-[var(--color-text-secondary)]">
+                <span className="text-sm text-text-secondary">
                     Running: <span className="font-medium text-purple-600">{queueStatus.running.length}</span>
                 </span>
             </div>
@@ -51,7 +48,7 @@ export function QueueIndicator(props: QueueIndicatorProps) {
             {/* Queue Count */}
             <div className="flex items-center gap-2">
                 <span className="text-lg">📋</span>
-                <span className="text-sm text-[var(--color-text-secondary)]">
+                <span className="text-sm text-text-secondary">
                     Queued: <span className="font-medium text-blue-600">{queueStatus.queued.length}</span>
                 </span>
             </div>

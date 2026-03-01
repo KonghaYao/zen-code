@@ -44,8 +44,8 @@ const DialogWrapper: React.FC<DialogWrapperProps> = ({ title, children, onClose,
         >
             <div className={`${width} bg-white rounded-xl shadow-2xl overflow-hidden`}>
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)]">
-                    <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">{title}</h3>
+                <div className="px-6 py-4 border-b border-border-subtle bg-bg-secondary">
+                    <h3 className="text-lg font-semibold text-text-primary">{title}</h3>
                 </div>
                 {children}
             </div>
@@ -97,16 +97,14 @@ const NewFolderDialog: React.FC<NewFolderDialogProps> = ({ currentPath, onClose,
                 <div className="flex items-center gap-4 mb-4">
                     <span className="text-4xl">📁</span>
                     <div className="flex-1">
-                        <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                            Folder name
-                        </label>
+                        <label className="block text-sm font-medium text-text-secondary mb-1">Folder name</label>
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                             autoFocus
-                            className="w-full px-3 py-2 border border-[var(--color-border-subtle)] rounded-lg focus:outline-none focus:border-[var(--color-primary)]"
+                            className="w-full px-3 py-2 border border-border-subtle rounded-lg focus:outline-none focus:border-primary"
                         />
                     </div>
                 </div>
@@ -116,14 +114,14 @@ const NewFolderDialog: React.FC<NewFolderDialogProps> = ({ currentPath, onClose,
                 <div className="flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] rounded-lg"
+                        className="px-4 py-2 text-sm text-text-secondary hover:bg-bg-tertiary rounded-lg"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSubmit}
                         disabled={loading || !name.trim()}
-                        className="px-4 py-2 text-sm bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 disabled:opacity-50"
+                        className="px-4 py-2 text-sm bg-primary text-white rounded-lg hover:opacity-90 disabled:opacity-50"
                     >
                         {loading ? 'Creating...' : 'Create'}
                     </button>
@@ -177,27 +175,25 @@ const NewFileDialog: React.FC<NewFileDialogProps> = ({ currentPath, onClose, onS
         <DialogWrapper title="New File" onClose={onClose} width="w-[500px]">
             <div className="p-6">
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                        File name
-                    </label>
+                    <label className="block text-sm font-medium text-text-secondary mb-1">File name</label>
                     <input
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         autoFocus
-                        className="w-full px-3 py-2 border border-[var(--color-border-subtle)] rounded-lg focus:outline-none focus:border-[var(--color-primary)]"
+                        className="w-full px-3 py-2 border border-border-subtle rounded-lg focus:outline-none focus:border-primary"
                     />
                 </div>
 
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                    <label className="block text-sm font-medium text-text-secondary mb-1">
                         Initial content (optional)
                     </label>
                     <textarea
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                         rows={6}
-                        className="w-full px-3 py-2 border border-[var(--color-border-subtle)] rounded-lg focus:outline-none focus:border-[var(--color-primary)] font-mono text-sm resize-none"
+                        className="w-full px-3 py-2 border border-border-subtle rounded-lg focus:outline-none focus:border-primary font-mono text-sm resize-none"
                         placeholder="Enter file content..."
                     />
                 </div>
@@ -207,14 +203,14 @@ const NewFileDialog: React.FC<NewFileDialogProps> = ({ currentPath, onClose, onS
                 <div className="flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] rounded-lg"
+                        className="px-4 py-2 text-sm text-text-secondary hover:bg-bg-tertiary rounded-lg"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSubmit}
                         disabled={loading || !name.trim()}
-                        className="px-4 py-2 text-sm bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 disabled:opacity-50"
+                        className="px-4 py-2 text-sm bg-primary text-white rounded-lg hover:opacity-90 disabled:opacity-50"
                     >
                         {loading ? 'Creating...' : 'Create'}
                     </button>
@@ -272,16 +268,14 @@ const RenameDialog: React.FC<RenameDialogProps> = ({ targetPath, onClose, onSucc
         <DialogWrapper title="Rename" onClose={onClose}>
             <div className="p-6">
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                        New name
-                    </label>
+                    <label className="block text-sm font-medium text-text-secondary mb-1">New name</label>
                     <input
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                         autoFocus
-                        className="w-full px-3 py-2 border border-[var(--color-border-subtle)] rounded-lg focus:outline-none focus:border-[var(--color-primary)]"
+                        className="w-full px-3 py-2 border border-border-subtle rounded-lg focus:outline-none focus:border-primary"
                     />
                 </div>
 
@@ -290,14 +284,14 @@ const RenameDialog: React.FC<RenameDialogProps> = ({ targetPath, onClose, onSucc
                 <div className="flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] rounded-lg"
+                        className="px-4 py-2 text-sm text-text-secondary hover:bg-bg-tertiary rounded-lg"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSubmit}
                         disabled={loading || !name.trim()}
-                        className="px-4 py-2 text-sm bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 disabled:opacity-50"
+                        className="px-4 py-2 text-sm bg-primary text-white rounded-lg hover:opacity-90 disabled:opacity-50"
                     >
                         {loading ? 'Renaming...' : 'Rename'}
                     </button>
@@ -346,16 +340,16 @@ const DeleteDialog: React.FC<DeleteDialogProps> = ({ targetPaths, onClose, onSuc
                 <div className="flex items-start gap-4 mb-4">
                     <div className="text-4xl">🗑️</div>
                     <div>
-                        <p className="text-[var(--color-text-primary)]">Are you sure you want to delete {itemName}?</p>
-                        <p className="text-sm text-[var(--color-text-muted)] mt-2">This action cannot be undone.</p>
+                        <p className="text-text-primary">Are you sure you want to delete {itemName}?</p>
+                        <p className="text-sm text-text-muted mt-2">This action cannot be undone.</p>
                     </div>
                 </div>
 
                 {/* Show list of items if multiple */}
                 {isMultiple && (
-                    <div className="max-h-40 overflow-y-auto border border-[var(--color-border-subtle)] rounded-lg p-2 mb-4">
+                    <div className="max-h-40 overflow-y-auto border border-border-subtle rounded-lg p-2 mb-4">
                         {targetPaths.map((path) => (
-                            <div key={path} className="text-sm text-[var(--color-text-secondary)] truncate">
+                            <div key={path} className="text-sm text-text-secondary truncate">
                                 {path}
                             </div>
                         ))}
@@ -367,7 +361,7 @@ const DeleteDialog: React.FC<DeleteDialogProps> = ({ targetPaths, onClose, onSuc
                 <div className="flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] rounded-lg"
+                        className="px-4 py-2 text-sm text-text-secondary hover:bg-bg-tertiary rounded-lg"
                     >
                         Cancel
                     </button>
@@ -436,7 +430,7 @@ const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({ currentPa
         <DialogWrapper title="Create Workspace" onClose={onClose} width="w-[500px]">
             <div className="p-6">
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                    <label className="block text-sm font-medium text-text-secondary mb-1">
                         Name <span className="text-red-400">*</span>
                     </label>
                     <input
@@ -445,12 +439,12 @@ const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({ currentPa
                         onChange={(e) => setName(e.target.value)}
                         placeholder="e.g., my-project"
                         autoFocus
-                        className="w-full px-3 py-2 border border-[var(--color-border-subtle)] rounded-lg focus:outline-none focus:border-[var(--color-primary)]"
+                        className="w-full px-3 py-2 border border-border-subtle rounded-lg focus:outline-none focus:border-primary"
                     />
                 </div>
 
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                    <label className="block text-sm font-medium text-text-secondary mb-1">
                         Root Path <span className="text-red-400">*</span>
                     </label>
                     <input
@@ -458,21 +452,21 @@ const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({ currentPa
                         value={rootPath}
                         onChange={(e) => setRootPath(e.target.value)}
                         placeholder="e.g., /Users/xxx/projects/my-project"
-                        className="w-full px-3 py-2 border border-[var(--color-border-subtle)] rounded-lg focus:outline-none focus:border-[var(--color-primary)] font-mono text-sm"
+                        className="w-full px-3 py-2 border border-border-subtle rounded-lg focus:outline-none focus:border-primary font-mono text-sm"
                     />
-                    <p className="text-xs text-[var(--color-text-muted)] mt-1">Path to the project directory</p>
+                    <p className="text-xs text-text-muted mt-1">Path to the project directory</p>
                 </div>
 
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                        Description <span className="text-[var(--color-text-muted)]">(optional)</span>
+                    <label className="block text-sm font-medium text-text-secondary mb-1">
+                        Description <span className="text-text-muted">(optional)</span>
                     </label>
                     <textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         placeholder="e.g., Main project workspace"
                         rows={3}
-                        className="w-full px-3 py-2 border border-[var(--color-border-subtle)] rounded-lg focus:outline-none focus:border-[var(--color-primary)] resize-none"
+                        className="w-full px-3 py-2 border border-border-subtle rounded-lg focus:outline-none focus:border-primary resize-none"
                     />
                 </div>
 
@@ -481,14 +475,14 @@ const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({ currentPa
                 <div className="flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] rounded-lg"
+                        className="px-4 py-2 text-sm text-text-secondary hover:bg-bg-tertiary rounded-lg"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSubmit}
                         disabled={loading || !name.trim() || !rootPath.trim()}
-                        className="px-4 py-2 text-sm bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 disabled:opacity-50"
+                        className="px-4 py-2 text-sm bg-primary text-white rounded-lg hover:opacity-90 disabled:opacity-50"
                     >
                         {loading ? 'Creating...' : 'Create'}
                     </button>

@@ -57,8 +57,8 @@ interface InfoRowProps {
 
 const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => (
     <div className="flex items-start justify-between py-1.5">
-        <span className="text-xs text-[var(--color-text-muted)]">{label}</span>
-        <span className="text-xs text-[var(--color-text-primary)] text-right max-w-48 truncate">{value}</span>
+        <span className="text-xs text-text-muted">{label}</span>
+        <span className="text-xs text-text-primary text-right max-w-48 truncate">{value}</span>
     </div>
 );
 
@@ -75,17 +75,13 @@ const GeneralTab: React.FC<GeneralTabProps> = ({ metadata, loading }) => {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-32">
-                <Loader2 className="w-5 h-5 animate-spin text-[var(--color-text-muted)]" />
+                <Loader2 className="w-5 h-5 animate-spin text-text-muted" />
             </div>
         );
     }
 
     if (!metadata) {
-        return (
-            <div className="flex items-center justify-center h-32 text-[var(--color-text-muted)]">
-                No information available
-            </div>
-        );
+        return <div className="flex items-center justify-center h-32 text-text-muted">No information available</div>;
     }
 
     const isDirectory = metadata.type === 'Folder';
@@ -93,11 +89,11 @@ const GeneralTab: React.FC<GeneralTabProps> = ({ metadata, loading }) => {
     return (
         <div className="p-4 space-y-4">
             {/* Preview icon and name */}
-            <div className="flex items-center gap-4 pb-4 border-b border-[var(--color-border-subtle)]">
+            <div className="flex items-center gap-4 pb-4 border-b border-border-subtle">
                 <div className="text-5xl">{getFileIcon(isDirectory ? 'directory' : 'file', metadata.extension)}</div>
                 <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[var(--color-text-primary)] truncate">{metadata.name}</p>
-                    <p className="text-xs text-[var(--color-text-muted)] mt-1">{metadata.type}</p>
+                    <p className="font-medium text-text-primary truncate">{metadata.name}</p>
+                    <p className="text-xs text-text-muted mt-1">{metadata.type}</p>
                 </div>
             </div>
 
@@ -110,9 +106,9 @@ const GeneralTab: React.FC<GeneralTabProps> = ({ metadata, loading }) => {
             </div>
 
             {/* Location info */}
-            <div className="pt-4 border-t border-[var(--color-border-subtle)] space-y-0">
+            <div className="pt-4 border-t border-border-subtle space-y-0">
                 <div className="mb-2">
-                    <span className="text-xs font-medium text-[var(--color-text-secondary)]">Location</span>
+                    <span className="text-xs font-medium text-text-secondary">Location</span>
                 </div>
                 <InfoRow
                     label="Where"
@@ -125,9 +121,9 @@ const GeneralTab: React.FC<GeneralTabProps> = ({ metadata, loading }) => {
             </div>
 
             {/* Tags (placeholder) */}
-            <div className="pt-4 border-t border-[var(--color-border-subtle)]">
+            <div className="pt-4 border-t border-border-subtle">
                 <div className="mb-2">
-                    <span className="text-xs font-medium text-[var(--color-text-secondary)]">Tags</span>
+                    <span className="text-xs font-medium text-text-secondary">Tags</span>
                 </div>
                 <div className="flex flex-wrap gap-1">
                     <button className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200">
@@ -137,13 +133,13 @@ const GeneralTab: React.FC<GeneralTabProps> = ({ metadata, loading }) => {
             </div>
 
             {/* Comments (placeholder) */}
-            <div className="pt-4 border-t border-[var(--color-border-subtle)]">
+            <div className="pt-4 border-t border-border-subtle">
                 <div className="mb-2">
-                    <span className="text-xs font-medium text-[var(--color-text-secondary)]">Comments</span>
+                    <span className="text-xs font-medium text-text-secondary">Comments</span>
                 </div>
                 <textarea
                     placeholder="No comments"
-                    className="w-full h-16 text-xs p-2 border border-[var(--color-border-subtle)] rounded resize-none focus:outline-none focus:border-[var(--color-primary)]"
+                    className="w-full h-16 text-xs p-2 border border-border-subtle rounded resize-none focus:outline-none focus:border-primary"
                 />
             </div>
         </div>
@@ -163,17 +159,13 @@ const MetadataTab: React.FC<MetadataTabProps> = ({ metadata, loading }) => {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-32">
-                <Loader2 className="w-5 h-5 animate-spin text-[var(--color-text-muted)]" />
+                <Loader2 className="w-5 h-5 animate-spin text-text-muted" />
             </div>
         );
     }
 
     if (!metadata) {
-        return (
-            <div className="flex items-center justify-center h-32 text-[var(--color-text-muted)]">
-                No metadata available
-            </div>
-        );
+        return <div className="flex items-center justify-center h-32 text-text-muted">No metadata available</div>;
     }
 
     return (
@@ -205,7 +197,7 @@ const MetadataTab: React.FC<MetadataTabProps> = ({ metadata, loading }) => {
             {metadata.encoding && <InfoRow label="Encoding" value={metadata.encoding} />}
 
             {/* Dates */}
-            <div className="pt-4 border-t border-[var(--color-border-subtle)]">
+            <div className="pt-4 border-t border-border-subtle">
                 <InfoRow label="Created" value={new Date(metadata.created).toISOString()} />
                 <InfoRow label="Modified" value={new Date(metadata.modified).toISOString()} />
                 {metadata.accessed && <InfoRow label="Accessed" value={new Date(metadata.accessed).toISOString()} />}
@@ -286,20 +278,20 @@ export const FinderInspector: React.FC<FinderInspectorProps> = ({ path, tab, onC
     if (!path) return null;
 
     return (
-        <div className="w-72 border-l border-[var(--color-border-subtle)] bg-white flex flex-col h-full">
+        <div className="w-72 border-l border-border-subtle bg-white flex flex-col h-full">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)]">
-                <span className="text-sm font-medium text-[var(--color-text-primary)]">Inspector</span>
+            <div className="flex items-center justify-between px-4 py-2 border-b border-border-subtle bg-bg-secondary">
+                <span className="text-sm font-medium text-text-primary">Inspector</span>
                 <button
                     onClick={onClose}
-                    className="p-1 rounded text-[var(--color-text-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)]"
+                    className="p-1 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary"
                 >
                     <X className="w-4 h-4" />
                 </button>
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-[var(--color-border-subtle)]">
+            <div className="flex border-b border-border-subtle">
                 {[
                     { id: 'general' as const, label: 'General' },
                     { id: 'metadata' as const, label: 'More Info' },
@@ -309,8 +301,8 @@ export const FinderInspector: React.FC<FinderInspectorProps> = ({ path, tab, onC
                         onClick={() => onTabChange(t.id)}
                         className={`flex-1 px-4 py-2 text-sm transition-colors ${
                             tab === t.id
-                                ? 'text-[var(--color-primary)] border-b-2 border-[var(--color-primary)]'
-                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                                ? 'text-primary border-b-2 border-primary'
+                                : 'text-text-muted hover:text-text-primary'
                         }`}
                     >
                         {t.label}

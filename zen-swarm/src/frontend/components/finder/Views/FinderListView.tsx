@@ -79,8 +79,8 @@ const ColumnHeader: React.FC<ColumnHeaderProps> = ({ column, sortBy, sortOrder, 
     return (
         <div
             className={`relative flex items-center gap-1 px-3 py-2 select-none ${
-                column.sortable ? 'cursor-pointer hover:bg-[var(--color-bg-tertiary)]' : ''
-            } ${isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)]'}`}
+                column.sortable ? 'cursor-pointer hover:bg-bg-tertiary' : ''
+            } ${isActive ? 'text-primary' : 'text-text-muted'}`}
             style={{ width: column.width }}
             onClick={() => column.sortable && onSort(column.id)}
         >
@@ -93,11 +93,11 @@ const ColumnHeader: React.FC<ColumnHeaderProps> = ({ column, sortBy, sortOrder, 
 
             {/* Resize handle */}
             <div
-                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[var(--color-primary)] group"
+                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary group"
                 onMouseDown={handleMouseDown}
             >
                 <div
-                    className={`h-full w-px ${isResizing ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border-subtle)] group-hover:bg-[var(--color-primary)]'}`}
+                    className={`h-full w-px ${isResizing ? 'bg-primary' : 'bg-border-subtle group-hover:bg-primary'}`}
                 />
             </div>
         </div>
@@ -120,8 +120,8 @@ interface RowProps {
 const Row: React.FC<RowProps> = ({ item, columns, isSelected, onSelect, onDoubleClick, onContextMenu }) => {
     return (
         <div
-            className={`flex items-center border-b border-[var(--color-border-subtle)] cursor-pointer transition-colors group ${
-                isSelected ? 'bg-[var(--color-primary)] bg-opacity-10' : 'hover:bg-[var(--color-bg-secondary)]'
+            className={`flex items-center border-b border-border-subtle cursor-pointer transition-colors group ${
+                isSelected ? 'bg-primary bg-opacity-10' : 'hover:bg-bg-secondary'
             }`}
             onClick={(e) => onSelect(item, e)}
             onDoubleClick={() => onDoubleClick(item)}
@@ -132,37 +132,33 @@ const Row: React.FC<RowProps> = ({ item, columns, isSelected, onSelect, onDouble
                 .map((column) => (
                     <div
                         key={column.id}
-                        className={`px-3 py-2 text-sm truncate ${
-                            isSelected ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-primary)]'
-                        }`}
+                        className={`px-3 py-2 text-sm truncate ${isSelected ? 'text-primary' : 'text-text-primary'}`}
                         style={{ width: column.width }}
                     >
                         {column.id === 'name' && (
                             <div className="flex items-center gap-2">
                                 <span className="text-base">{item.icon}</span>
                                 <span className={`truncate ${isSelected ? 'font-medium' : ''}`}>{item.name}</span>
-                                {item.isHidden && (
-                                    <span className="text-xs text-[var(--color-text-muted)]">(hidden)</span>
-                                )}
+                                {item.isHidden && <span className="text-xs text-text-muted">(hidden)</span>}
                             </div>
                         )}
                         {column.id === 'size' && (
-                            <span className={isSelected ? '' : 'text-[var(--color-text-secondary)]'}>
+                            <span className={isSelected ? '' : 'text-text-secondary'}>
                                 {item.type === 'file' ? formatFileSize(item.size) : '--'}
                             </span>
                         )}
                         {column.id === 'kind' && (
-                            <span className={isSelected ? '' : 'text-[var(--color-text-secondary)]'}>
+                            <span className={isSelected ? '' : 'text-text-secondary'}>
                                 {item.type === 'directory' ? 'Folder' : getFileKind(item.extension)}
                             </span>
                         )}
                         {column.id === 'modifiedAt' && (
-                            <span className={isSelected ? '' : 'text-[var(--color-text-secondary)]'}>
+                            <span className={isSelected ? '' : 'text-text-secondary'}>
                                 {formatDate(item.modifiedAt)}
                             </span>
                         )}
                         {column.id === 'createdAt' && (
-                            <span className={isSelected ? '' : 'text-[var(--color-text-secondary)]'}>
+                            <span className={isSelected ? '' : 'text-text-secondary'}>
                                 {formatDate(item.createdAt)}
                             </span>
                         )}
@@ -177,10 +173,10 @@ const Row: React.FC<RowProps> = ({ item, columns, isSelected, onSelect, onDouble
                             e.stopPropagation();
                             // Download or open
                         }}
-                        className="p-1 rounded hover:bg-[var(--color-bg-tertiary)]"
+                        className="p-1 rounded hover:bg-bg-tertiary"
                         title="Open"
                     >
-                        <Eye className="w-4 h-4 text-[var(--color-text-muted)]" />
+                        <Eye className="w-4 h-4 text-text-muted" />
                     </button>
                 )}
             </div>
@@ -217,7 +213,7 @@ export const FinderListView: React.FC<FinderListViewProps> = ({
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full">
-                <div className="flex flex-col items-center gap-4 text-[var(--color-text-muted)]">
+                <div className="flex flex-col items-center gap-4 text-text-muted">
                     <Loader2 className="w-8 h-8 animate-spin" />
                     <span>Loading...</span>
                 </div>
@@ -229,7 +225,7 @@ export const FinderListView: React.FC<FinderListViewProps> = ({
     if (items.length === 0) {
         return (
             <div className="flex items-center justify-center h-full">
-                <div className="flex flex-col items-center gap-4 text-[var(--color-text-muted)]">
+                <div className="flex flex-col items-center gap-4 text-text-muted">
                     <span className="text-6xl">📂</span>
                     <div className="text-center">
                         <p className="text-lg font-medium">This folder is empty</p>
@@ -243,7 +239,7 @@ export const FinderListView: React.FC<FinderListViewProps> = ({
     return (
         <div ref={containerRef} className="flex flex-col h-full overflow-auto">
             {/* Header */}
-            <div className="sticky top-0 z-10 flex items-center bg-[var(--color-bg-tertiary)] border-b border-[var(--color-border-subtle)]">
+            <div className="sticky top-0 z-10 flex items-center bg-bg-tertiary border-b border-border-subtle">
                 {columns
                     .filter((c) => c.visible)
                     .map((column) => (
@@ -274,7 +270,7 @@ export const FinderListView: React.FC<FinderListViewProps> = ({
             </div>
 
             {/* Footer with count */}
-            <div className="sticky bottom-0 px-4 py-2 bg-[var(--color-bg-secondary)] border-t border-[var(--color-border-subtle)] text-xs text-[var(--color-text-muted)]">
+            <div className="sticky bottom-0 px-4 py-2 bg-bg-secondary border-t border-border-subtle text-xs text-text-muted">
                 {items.length} item{items.length !== 1 ? 's' : ''}
                 {selection.selectedPaths.size > 0 && (
                     <span className="ml-4">{selection.selectedPaths.size} selected</span>

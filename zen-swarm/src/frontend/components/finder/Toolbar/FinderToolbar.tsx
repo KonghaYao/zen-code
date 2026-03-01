@@ -59,9 +59,7 @@ const ViewModeIcon: React.FC<{ mode: FinderViewMode; active: boolean; onClick: (
         <button
             onClick={onClick}
             className={`p-1.5 rounded transition-colors ${
-                active
-                    ? 'bg-[var(--color-primary)] text-white'
-                    : 'text-[var(--color-text-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)]'
+                active ? 'bg-primary text-white' : 'text-text-muted hover:bg-bg-tertiary hover:text-text-primary'
             }`}
             title={mode.charAt(0).toUpperCase() + mode.slice(1) + ' View'}
         >
@@ -87,7 +85,7 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ path, onNavigate }) => {
             <div className="flex items-center gap-1 text-sm">
                 <button
                     onClick={() => onNavigate('/')}
-                    className="px-2 py-1 rounded hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] font-medium"
+                    className="px-2 py-1 rounded hover:bg-bg-tertiary text-text-primary font-medium"
                 >
                     <Home className="w-4 h-4" />
                 </button>
@@ -99,7 +97,7 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ path, onNavigate }) => {
         <div className="flex items-center gap-1 text-sm overflow-x-auto">
             <button
                 onClick={() => onNavigate('/')}
-                className="px-2 py-1 rounded hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] shrink-0"
+                className="px-2 py-1 rounded hover:bg-bg-tertiary text-text-secondary shrink-0"
             >
                 <Home className="w-4 h-4" />
             </button>
@@ -109,13 +107,13 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ path, onNavigate }) => {
 
                 return (
                     <React.Fragment key={segmentPath}>
-                        <ChevronRight className="w-3 h-3 text-[var(--color-text-muted)] shrink-0" />
+                        <ChevronRight className="w-3 h-3 text-text-muted shrink-0" />
                         <button
                             onClick={() => onNavigate(segmentPath)}
                             className={`px-2 py-1 rounded truncate max-w-[150px] ${
                                 isLast
-                                    ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)] font-medium'
-                                    : 'hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]'
+                                    ? 'bg-primary-light text-primary font-medium'
+                                    : 'hover:bg-bg-tertiary text-text-secondary'
                             }`}
                             title={segment}
                         >
@@ -150,7 +148,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
     const setCurrentPath = useFinderStore((s) => s.setCurrentPath);
 
     return (
-        <div className="flex items-center justify-between px-4 py-2 bg-[var(--color-bg-secondary)] border-b border-[var(--color-border-subtle)]">
+        <div className="flex items-center justify-between px-4 py-2 bg-bg-secondary border-b border-border-subtle">
             {/* Left: Navigation + Breadcrumb */}
             <div className="flex items-center gap-3">
                 {/* Navigation Buttons */}
@@ -158,7 +156,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
                     <button
                         onClick={onNavigateBack}
                         disabled={!navigation.historyIndex || navigation.historyIndex <= 0}
-                        className="p-1.5 rounded text-[var(--color-text-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        className="p-1.5 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         title="Back"
                     >
                         <ChevronLeft className="w-4 h-4" />
@@ -166,7 +164,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
                     <button
                         onClick={onNavigateForward}
                         disabled={!navigation.forwardHistory || navigation.forwardHistory.length === 0}
-                        className="p-1.5 rounded text-[var(--color-text-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        className="p-1.5 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         title="Forward"
                     >
                         <ChevronRight className="w-4 h-4" />
@@ -174,7 +172,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
                     <button
                         onClick={onNavigateUp}
                         disabled={currentPath === '/'}
-                        className="p-1.5 rounded text-[var(--color-text-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        className="p-1.5 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         title="Enclosing Folder"
                     >
                         <ChevronUp className="w-4 h-4" />
@@ -188,7 +186,7 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
             {/* Right: View Options + Actions */}
             <div className="flex items-center gap-2">
                 {/* View Mode Selector */}
-                <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-[var(--color-bg-tertiary)]">
+                <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-bg-tertiary">
                     {(['icons', 'list', 'columns'] as FinderViewMode[]).map((mode) => (
                         <ViewModeIcon
                             key={mode}
@@ -200,20 +198,20 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
                 </div>
 
                 {/* Divider */}
-                <div className="w-px h-6 bg-[var(--color-border-subtle)]" />
+                <div className="w-px h-6 bg-border-subtle" />
 
                 {/* Actions */}
                 <div className="flex items-center gap-1">
                     <button
                         onClick={onNewFolder}
-                        className="p-1.5 rounded text-[var(--color-text-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)] transition-colors"
+                        className="p-1.5 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary transition-colors"
                         title="New Folder (⌘N)"
                     >
                         <FolderOpen className="w-4 h-4" />
                     </button>
                     <button
                         onClick={onNewFile}
-                        className="p-1.5 rounded text-[var(--color-text-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)] transition-colors"
+                        className="p-1.5 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary transition-colors"
                         title="New File (⌘⇧N)"
                     >
                         <FilePlus className="w-4 h-4" />
@@ -224,8 +222,8 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
                         onClick={onToggleHiddenFiles}
                         className={`p-1.5 rounded transition-colors ${
                             showHiddenFiles
-                                ? 'bg-[var(--color-primary-light)] text-[var(--color-primary)]'
-                                : 'text-[var(--color-text-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)]'
+                                ? 'bg-primary-light text-primary'
+                                : 'text-text-muted hover:bg-bg-tertiary hover:text-text-primary'
                         }`}
                         title={`${showHiddenFiles ? 'Hide' : 'Show'} Hidden Files`}
                     >

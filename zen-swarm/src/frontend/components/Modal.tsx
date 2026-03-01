@@ -43,24 +43,24 @@ export function Modal(props: ModalProps) {
         >
             <div
                 className={`
-                    bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col border border-[var(--color-border-subtle)]
+                    bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col border border-border-subtle
                     transition-all duration-200
                     ${!props.open ? 'scale-95 opacity-0' : 'scale-100 opacity-100'}
                 `}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-secondary)]">
-                    <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">{props.title}</h3>
+                <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-secondary">
+                    <h3 className="text-lg font-semibold text-text-primary">{props.title}</h3>
                     <button
                         onClick={props.onClose}
-                        className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors duration-150"
+                        className="text-text-muted hover:text-text-primary transition-colors duration-150"
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="p-6 overflow-y-auto text-[var(--color-text-primary)]">{props.children}</div>
+                <div className="p-6 overflow-y-auto text-text-primary">{props.children}</div>
             </div>
         </div>
     );

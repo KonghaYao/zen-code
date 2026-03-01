@@ -16,7 +16,7 @@ export function Section({ title, actions, children }: SectionProps) {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">{title}</h2>
+                <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
                 {actions}
             </div>
             {children}

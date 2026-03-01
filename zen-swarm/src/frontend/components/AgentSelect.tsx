@@ -45,7 +45,7 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
         return (
             <div className="flex items-center gap-2">
                 <div className="loading-spinner w-4 h-4"></div>
-                <span className="text-sm text-[var(--color-text-muted)]">Loading agents...</span>
+                <span className="text-sm text-text-muted">Loading agents...</span>
             </div>
         );
     }
@@ -53,11 +53,8 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
     if (error) {
         return (
             <div className="flex items-center gap-2">
-                <span className="text-sm text-[var(--color-error)]">{error.message}</span>
-                <button
-                    onClick={() => refetch()}
-                    className="text-xs text-[var(--color-primary)] hover:underline transition-colors"
-                >
+                <span className="text-sm text-error">{error.message}</span>
+                <button onClick={() => refetch()} className="text-xs text-primary hover:underline transition-colors">
                     Retry
                 </button>
             </div>
@@ -67,11 +64,8 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
     if (agents.length === 0) {
         return (
             <div className="flex items-center gap-2">
-                <span className="text-sm text-[var(--color-text-muted)]">No agents available</span>
-                <button
-                    onClick={() => refetch()}
-                    className="text-xs text-[var(--color-primary)] hover:underline transition-colors"
-                >
+                <span className="text-sm text-text-muted">No agents available</span>
+                <button onClick={() => refetch()} className="text-xs text-primary hover:underline transition-colors">
                     Refresh
                 </button>
             </div>
@@ -85,7 +79,7 @@ export const AgentSelect: React.FC<AgentSelectProps> = ({ value, onChange, disab
 
     return (
         <div className="flex items-center gap-2">
-            <label htmlFor="agent-select" className="text-sm font-medium text-[var(--color-text-secondary)]">
+            <label htmlFor="agent-select" className="text-sm font-medium text-text-secondary">
                 Agent:
             </label>
             <Select

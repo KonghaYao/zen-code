@@ -83,20 +83,14 @@ const SidebarItemRow: React.FC<SidebarItemRowProps> = ({ item, isActive, onNavig
     return (
         <div
             className={`flex items-center gap-2 px-3 py-1.5 mx-2 rounded-md cursor-pointer transition-colors group ${
-                isActive
-                    ? 'bg-[var(--color-primary)] text-white'
-                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)]'
+                isActive ? 'bg-primary text-white' : 'text-text-secondary hover:bg-bg-tertiary'
             }`}
             onClick={() => onNavigate(item.path)}
         >
             <span className="text-base">{item.icon}</span>
             <span className="text-sm truncate flex-1">{item.name}</span>
             {item.badge && (
-                <span
-                    className={`px-1.5 py-0.5 text-xs rounded-full ${
-                        isActive ? 'bg-white/20' : 'bg-[var(--color-bg-tertiary)]'
-                    }`}
-                >
+                <span className={`px-1.5 py-0.5 text-xs rounded-full ${isActive ? 'bg-white/20' : 'bg-bg-tertiary'}`}>
                     {item.badge}
                 </span>
             )}
@@ -138,8 +132,8 @@ const SidebarSectionView: React.FC<SidebarSectionViewProps> = ({
             {/* Section Header */}
             <div
                 className={`flex items-center gap-1 px-4 py-1 text-xs font-semibold uppercase tracking-wider ${
-                    section.collapsible ? 'cursor-pointer hover:text-[var(--color-text-primary)]' : ''
-                } text-[var(--color-text-muted)]`}
+                    section.collapsible ? 'cursor-pointer hover:text-text-primary' : ''
+                } text-text-muted`}
                 onClick={section.collapsible ? onToggle : undefined}
             >
                 {section.collapsible && (
@@ -237,7 +231,7 @@ export const FinderSidebar: React.FC<FinderSidebarProps> = ({
 
     // Loading indicator component
     const LoadingSpinner = () => (
-        <div className="px-4 py-2 flex items-center gap-2 text-[var(--color-text-muted)]">
+        <div className="px-4 py-2 flex items-center gap-2 text-text-muted">
             <Loader2 className="w-4 h-4 animate-spin" />
             <span className="text-xs">Loading folders...</span>
         </div>
@@ -245,12 +239,12 @@ export const FinderSidebar: React.FC<FinderSidebarProps> = ({
 
     return (
         <div
-            className="flex flex-col h-full bg-[var(--color-bg-secondary)] border-r border-[var(--color-border-subtle)] overflow-hidden"
+            className="flex flex-col h-full bg-bg-secondary border-r border-border-subtle overflow-hidden"
             style={{ width }}
         >
             {/* Header with close button */}
-            <div className="flex items-center justify-between px-2 py-1 border-b border-[var(--color-border-subtle)]">
-                <span className="text-xs font-semibold text-[var(--color-text-muted)] px-2">PROJECT</span>
+            <div className="flex items-center justify-between px-2 py-1 border-b border-border-subtle">
+                <span className="text-xs font-semibold text-text-muted px-2">PROJECT</span>
                 <div className="flex items-center gap-1">
                     <button
                         onClick={() => {
@@ -292,14 +286,14 @@ export const FinderSidebar: React.FC<FinderSidebarProps> = ({
                             };
                             loadFolders();
                         }}
-                        className="p-1 rounded text-[var(--color-text-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)]"
+                        className="p-1 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary"
                         title="Refresh Folders"
                     >
                         <RefreshCw className={`w-4 h-4 ${loadingFolders ? 'animate-spin' : ''}`} />
                     </button>
                     <button
                         onClick={onToggle}
-                        className="p-1 rounded text-[var(--color-text-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-primary)]"
+                        className="p-1 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary"
                         title="Hide Sidebar"
                     >
                         <ChevronLeft className="w-4 h-4" />

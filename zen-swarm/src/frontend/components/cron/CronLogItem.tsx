@@ -52,7 +52,7 @@ export function CronLogItem(props: CronLogItemProps) {
     const config = statusConfig[log.status];
 
     return (
-        <div className="bg-white rounded-lg border border-[var(--color-border-subtle)] p-3 hover:shadow-sm transition-shadow">
+        <div className="bg-white rounded-lg border border-border-subtle p-3 hover:shadow-sm transition-shadow">
             <div className="flex items-center gap-3">
                 {/* 状态图标 */}
                 <div
@@ -64,9 +64,7 @@ export function CronLogItem(props: CronLogItemProps) {
                 {/* 主内容 */}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                        {taskName && (
-                            <span className="text-sm font-medium text-[var(--color-text-primary)]">{taskName}</span>
-                        )}
+                        {taskName && <span className="text-sm font-medium text-text-primary">{taskName}</span>}
                         <span
                             className={`text-xs font-medium px-1.5 py-0.5 rounded ${config.bgColor} ${config.textColor}`}
                         >
@@ -80,7 +78,7 @@ export function CronLogItem(props: CronLogItemProps) {
                     </div>
 
                     {/* 时间信息 */}
-                    <div className="flex items-center gap-3 text-xs text-[var(--color-text-muted)]">
+                    <div className="flex items-center gap-3 text-xs text-text-muted">
                         <span>{formatTime(log.started_at)}</span>
                         <span>•</span>
                         <span>{formatDuration(log.started_at, log.finished_at)}</span>
@@ -106,9 +104,7 @@ export function CronLogItem(props: CronLogItemProps) {
                 </div>
 
                 {/* ID */}
-                <div className="text-xs text-[var(--color-text-muted)] flex-shrink-0 font-mono">
-                    {log.id.slice(0, 6)}
-                </div>
+                <div className="text-xs text-text-muted flex-shrink-0 font-mono">{log.id.slice(0, 6)}</div>
             </div>
         </div>
     );

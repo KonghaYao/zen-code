@@ -59,7 +59,7 @@ const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({ onClose }) =>
             )}
 
             <div>
-                <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
+                <label className="block text-sm font-medium text-text-primary mb-1">
                     Name <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -68,12 +68,12 @@ const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({ onClose }) =>
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g., zen-swarm"
                     required
-                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-gray-200 rounded text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:border-[var(--color-primary)]"
+                    className="w-full px-3 py-2 bg-bg-secondary border border-gray-200 rounded text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary"
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
+                <label className="block text-sm font-medium text-text-primary mb-1">
                     Root Path <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -82,21 +82,21 @@ const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({ onClose }) =>
                     onChange={(e) => setRootPath(e.target.value)}
                     placeholder="e.g., /Users/xxx/projects/zen-swarm"
                     required
-                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-gray-200 rounded text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:border-[var(--color-primary)]"
+                    className="w-full px-3 py-2 bg-bg-secondary border border-gray-200 rounded text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary"
                 />
-                <p className="text-xs text-[var(--color-text-secondary)] mt-1">Path to the project directory</p>
+                <p className="text-xs text-text-secondary mt-1">Path to the project directory</p>
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
-                    Description <span className="text-[var(--color-text-secondary)]">(optional)</span>
+                <label className="block text-sm font-medium text-text-primary mb-1">
+                    Description <span className="text-text-secondary">(optional)</span>
                 </label>
                 <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="e.g., Main project workspace"
                     rows={3}
-                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-gray-200 rounded text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:border-[var(--color-primary)] resize-none"
+                    className="w-full px-3 py-2 bg-bg-secondary border border-gray-200 rounded text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary resize-none"
                 />
             </div>
 
@@ -104,13 +104,13 @@ const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({ onClose }) =>
                 <button
                     type="button"
                     onClick={onClose}
-                    className="px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                    className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
                 >
                     Cancel
                 </button>
                 <button
                     type="submit"
-                    className="px-4 py-2 text-sm bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white rounded transition-colors"
+                    className="px-4 py-2 text-sm bg-primary hover:bg-primary-dark text-white rounded transition-colors"
                 >
                     Create
                 </button>
@@ -154,7 +154,7 @@ const EditWorkspaceForm: React.FC<EditWorkspaceFormProps> = ({ workspace, onClos
             )}
 
             <div>
-                <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
+                <label className="block text-sm font-medium text-text-primary mb-1">
                     Name <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -162,32 +162,32 @@ const EditWorkspaceForm: React.FC<EditWorkspaceFormProps> = ({ workspace, onClos
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-gray-200 rounded text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:border-[var(--color-primary)]"
+                    className="w-full px-3 py-2 bg-bg-secondary border border-gray-200 rounded text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary"
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
-                    Root Path <span className="text-[var(--color-text-secondary)]">(read-only)</span>
+                <label className="block text-sm font-medium text-text-primary mb-1">
+                    Root Path <span className="text-text-secondary">(read-only)</span>
                 </label>
                 <input
                     type="text"
                     value={workspace.rootPath}
                     readOnly
-                    className="w-full px-3 py-2 bg-[var(--color-bg-tertiary)] border border-gray-200 rounded text-[var(--color-text-secondary)] cursor-not-allowed"
+                    className="w-full px-3 py-2 bg-bg-tertiary border border-gray-200 rounded text-text-secondary cursor-not-allowed"
                 />
-                <p className="text-xs text-[var(--color-text-secondary)] mt-1">Path cannot be changed after creation</p>
+                <p className="text-xs text-text-secondary mt-1">Path cannot be changed after creation</p>
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
-                    Description <span className="text-[var(--color-text-secondary)]">(optional)</span>
+                <label className="block text-sm font-medium text-text-primary mb-1">
+                    Description <span className="text-text-secondary">(optional)</span>
                 </label>
                 <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-gray-200 rounded text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:border-[var(--color-primary)] resize-none"
+                    className="w-full px-3 py-2 bg-bg-secondary border border-gray-200 rounded text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary resize-none"
                 />
             </div>
 
@@ -195,13 +195,13 @@ const EditWorkspaceForm: React.FC<EditWorkspaceFormProps> = ({ workspace, onClos
                 <button
                     type="button"
                     onClick={onClose}
-                    className="px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                    className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
                 >
                     Cancel
                 </button>
                 <button
                     type="submit"
-                    className="px-4 py-2 text-sm bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white rounded transition-colors"
+                    className="px-4 py-2 text-sm bg-primary hover:bg-primary-dark text-white rounded transition-colors"
                 >
                     Save
                 </button>
@@ -223,14 +223,14 @@ interface DeleteConfirmDialogProps {
 const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({ workspace, onConfirm, onCancel }) => {
     return (
         <div>
-            <p className="text-[var(--color-text-primary)] mb-4">
+            <p className="text-text-primary mb-4">
                 Are you sure you want to delete <span className="font-medium">{workspace.name}</span>?
             </p>
-            <p className="text-sm text-[var(--color-text-secondary)] mb-6">This action cannot be undone.</p>
+            <p className="text-sm text-text-secondary mb-6">This action cannot be undone.</p>
             <div className="flex justify-end gap-2">
                 <button
                     onClick={onCancel}
-                    className="px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                    className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
                 >
                     Cancel
                 </button>
@@ -318,20 +318,17 @@ export const WorkspaceManageDialog: React.FC<WorkspaceManageDialogProps> = ({ op
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
             {/* 对话框 */}
-            <div className="relative bg-[var(--color-bg-primary)] border border-gray-200 rounded-lg shadow-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="relative bg-bg-primary border border-gray-200 rounded-lg shadow-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
                 {/* 标题栏 */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
+                    <h2 className="text-lg font-semibold text-text-primary">
                         {mode === 'list' && 'Workspace Management'}
                         {mode === 'create' && 'Create Workspace'}
                         {mode === 'edit' && 'Edit Workspace'}
                         {mode === 'delete' && 'Delete Workspace'}
                     </h2>
-                    <button
-                        onClick={onClose}
-                        className="p-1 hover:bg-[var(--color-bg-hover)] rounded transition-colors"
-                    >
-                        <X className="w-5 h-5 text-[var(--color-text-secondary)]" />
+                    <button onClick={onClose} className="p-1 hover:bg-bg-hover rounded transition-colors">
+                        <X className="w-5 h-5 text-text-secondary" />
                     </button>
                 </div>
 
@@ -342,17 +339,17 @@ export const WorkspaceManageDialog: React.FC<WorkspaceManageDialogProps> = ({ op
                             {/* 新建按钮 */}
                             <button
                                 onClick={() => setMode('create')}
-                                className="w-full px-4 py-3 bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-hover)] border border-gray-200 rounded text-[var(--color-text-primary)] text-left transition-colors"
+                                className="w-full px-4 py-3 bg-bg-secondary hover:bg-bg-hover border border-gray-200 rounded text-text-primary text-left transition-colors"
                             >
                                 <div className="flex items-center gap-2">
-                                    <Plus className="w-5 h-5 text-[var(--color-primary)]" />
+                                    <Plus className="w-5 h-5 text-primary" />
                                     <span className="font-medium">Create New Workspace</span>
                                 </div>
                             </button>
 
                             {/* Workspace 列表 */}
                             {workspaces.length === 0 ? (
-                                <div className="text-center py-8 text-[var(--color-text-secondary)]">
+                                <div className="text-center py-8 text-text-secondary">
                                     <p className="text-sm">No workspaces yet</p>
                                     <p className="text-xs mt-1">Create one to get started</p>
                                 </div>
@@ -362,33 +359,33 @@ export const WorkspaceManageDialog: React.FC<WorkspaceManageDialogProps> = ({ op
                                         <div
                                             key={workspace.id}
                                             className={`
-                                                p-4 bg-[var(--color-bg-secondary)] border rounded transition-colors
+                                                p-4 bg-bg-secondary border rounded transition-colors
                                                 ${
                                                     currentWorkspace?.id === workspace.id
-                                                        ? 'border-[var(--color-primary)] bg-[var(--color-primary-light)]/10'
-                                                        : 'border-gray-200 hover:border-[var(--color-border-hover)]'
+                                                        ? 'border-primary bg-primary-light/10'
+                                                        : 'border-gray-200 hover:border-border-hover'
                                                 }
                                             `}
                                         >
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
-                                                        <Folder className="w-5 h-5 text-[var(--color-text-secondary)] shrink-0" />
-                                                        <h3 className="font-medium text-[var(--color-text-primary)] truncate">
+                                                        <Folder className="w-5 h-5 text-text-secondary shrink-0" />
+                                                        <h3 className="font-medium text-text-primary truncate">
                                                             {workspace.name}
                                                         </h3>
                                                         {currentWorkspace?.id === workspace.id && (
-                                                            <span className="px-2 py-0.5 text-xs bg-[var(--color-primary)] text-white rounded">
+                                                            <span className="px-2 py-0.5 text-xs bg-primary text-white rounded">
                                                                 Current
                                                             </span>
                                                         )}
                                                     </div>
                                                     {workspace.description && (
-                                                        <p className="text-sm text-[var(--color-text-secondary)] mt-1 truncate">
+                                                        <p className="text-sm text-text-secondary mt-1 truncate">
                                                             {workspace.description}
                                                         </p>
                                                     )}
-                                                    <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+                                                    <p className="text-xs text-text-secondary mt-1">
                                                         Last accessed: {formatTime(workspace.lastAccessedAt)}
                                                     </p>
                                                 </div>
@@ -398,10 +395,10 @@ export const WorkspaceManageDialog: React.FC<WorkspaceManageDialogProps> = ({ op
                                                             setSelectedWorkspace(workspace);
                                                             setMode('edit');
                                                         }}
-                                                        className="p-1.5 hover:bg-[var(--color-bg-hover)] rounded transition-colors"
+                                                        className="p-1.5 hover:bg-bg-hover rounded transition-colors"
                                                         title="Edit"
                                                     >
-                                                        <Edit className="w-4 h-4 text-[var(--color-text-secondary)]" />
+                                                        <Edit className="w-4 h-4 text-text-secondary" />
                                                     </button>
                                                     <button
                                                         onClick={() => {
@@ -411,7 +408,7 @@ export const WorkspaceManageDialog: React.FC<WorkspaceManageDialogProps> = ({ op
                                                         className="p-1.5 hover:bg-red-500/10 rounded transition-colors"
                                                         title="Delete"
                                                     >
-                                                        <Trash2 className="w-4 h-4 text-[var(--color-text-secondary)] hover:text-red-400" />
+                                                        <Trash2 className="w-4 h-4 text-text-secondary hover:text-red-400" />
                                                     </button>
                                                 </div>
                                             </div>

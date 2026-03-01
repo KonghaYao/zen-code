@@ -20,7 +20,7 @@ export function CronTaskList(props: CronTaskListProps) {
 
     if (tasks.length === 0) {
         return (
-            <div className="text-center py-12 text-[var(--color-text-muted)]">
+            <div className="text-center py-12 text-text-muted">
                 <p className="text-4xl mb-4">⏰</p>
                 <p className="text-lg">No cron tasks yet</p>
                 <p className="text-sm mt-2">Click "New Task" to create your first scheduled task</p>
@@ -37,7 +37,7 @@ export function CronTaskList(props: CronTaskListProps) {
             {/* 启用的任务 */}
             {enabledTasks.length > 0 && (
                 <div>
-                    <h3 className="text-sm font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
+                    <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-3">
                         Enabled Tasks ({enabledTasks.length})
                     </h3>
                     <div className="space-y-3">
@@ -60,7 +60,7 @@ export function CronTaskList(props: CronTaskListProps) {
             {/* 禁用的任务 */}
             {disabledTasks.length > 0 && (
                 <div>
-                    <h3 className="text-sm font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
+                    <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-3">
                         Disabled Tasks ({disabledTasks.length})
                     </h3>
                     <div className="space-y-3">

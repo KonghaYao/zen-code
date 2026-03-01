@@ -26,17 +26,17 @@ export function ProcessTree({ tree, isLoading }: ProcessTreeProps) {
     };
 
     return (
-        <div className="bg-white border-t border-[var(--color-border-subtle)] p-4">
+        <div className="bg-white border-t border-border-subtle p-4">
             <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-[var(--color-text-primary)]">进程树</h3>
-                {isLoading && <span className="text-xs text-[var(--color-text-muted)]">加载中...</span>}
+                <h3 className="text-sm font-medium text-text-primary">进程树</h3>
+                {isLoading && <span className="text-xs text-text-muted">加载中...</span>}
             </div>
 
             <div className="h-64 overflow-y-auto">
                 {tree ? (
                     <TreeNode node={tree} expanded={expanded} onToggle={toggleExpand} level={0} />
                 ) : (
-                    <p className="text-[var(--color-text-muted)]">没有进程树数据</p>
+                    <p className="text-text-muted">没有进程树数据</p>
                 )}
             </div>
         </div>
@@ -57,22 +57,22 @@ function TreeNode({ node, expanded, onToggle, level }: TreeNodeProps) {
     return (
         <div>
             <div
-                className="flex items-center gap-2 py-1 hover:bg-[var(--color-bg-tertiary)] rounded px-1"
+                className="flex items-center gap-2 py-1 hover:bg-bg-tertiary rounded px-1"
                 style={{ paddingLeft: `${level * 16 + 4}px` }}
             >
                 {hasChildren && (
                     <button
                         onClick={() => onToggle(node.pid)}
-                        className="w-4 h-4 flex items-center justify-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                        className="w-4 h-4 flex items-center justify-center text-xs text-text-muted hover:text-text-primary"
                     >
                         {isExpanded ? '▼' : '▶'}
                     </button>
                 )}
-                <span className="flex-1 text-sm text-[var(--color-text-primary)]">
-                    <span className="font-mono text-[var(--color-text-muted)] mr-2">{node.pid}</span>
+                <span className="flex-1 text-sm text-text-primary">
+                    <span className="font-mono text-text-muted mr-2">{node.pid}</span>
                     {node.name}
                 </span>
-                <span className="text-xs text-[var(--color-text-muted)]">{node.cpuPercent.toFixed(1)}% CPU</span>
+                <span className="text-xs text-text-muted">{node.cpuPercent.toFixed(1)}% CPU</span>
             </div>
 
             {isExpanded && hasChildren && (

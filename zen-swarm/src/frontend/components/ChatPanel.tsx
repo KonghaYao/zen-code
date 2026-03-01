@@ -58,7 +58,7 @@ const MiniInput: React.FC<MiniInputProps> = ({ value, onChange, onSubmit, loadin
     );
 
     return (
-        <div className="p-2 border-t border-[var(--color-border-subtle)] bg-[var(--color-bg-tertiary)]">
+        <div className="p-2 border-t border-border-subtle bg-bg-tertiary">
             <div className="flex gap-2">
                 <textarea
                     value={value}
@@ -73,17 +73,17 @@ const MiniInput: React.FC<MiniInputProps> = ({ value, onChange, onSubmit, loadin
                     placeholder={loading ? 'Thinking...' : 'Message...'}
                     disabled={isDisabled}
                     rows={1}
-                    className="flex-1 px-2 py-1.5 text-xs bg-[var(--color-bg-primary)] border border-[var(--color-border-default)] rounded resize-none text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] disabled:bg-[var(--color-bg-tertiary)] disabled:cursor-not-allowed"
+                    className="flex-1 px-2 py-1.5 text-xs bg-bg-primary border border-border-default rounded resize-none text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary disabled:bg-bg-tertiary disabled:cursor-not-allowed"
                 />
                 <button
                     onClick={handleSubmit}
                     disabled={isDisabled || !value.trim()}
-                    className="px-2 py-1 text-xs font-medium bg-[var(--color-primary)] text-white rounded hover:bg-[var(--color-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="px-2 py-1 text-xs font-medium bg-primary text-white rounded hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                     Send
                 </button>
             </div>
-            <div className="mt-1 text-[10px] text-[var(--color-text-muted)]">Enter to send</div>
+            <div className="mt-1 text-[10px] text-text-muted">Enter to send</div>
         </div>
     );
 };
@@ -154,9 +154,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ modelName, onClose, rootPa
     return (
         <div className="flex flex-col h-full overflow-hidden bg-white">
             {/* Header */}
-            <header className="flex-shrink-0 bg-white border-b border-[var(--color-border-subtle)] px-3 py-2.5 flex items-center justify-between">
+            <header className="flex-shrink-0 bg-white border-b border-border-subtle px-3 py-2.5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <h1 className="text-sm font-medium text-[var(--color-text-primary)]">Chat</h1>
+                    <h1 className="text-sm font-medium text-text-primary">Chat</h1>
                 </div>
                 <div className="flex items-center gap-2">
                     <AgentSelect
@@ -169,7 +169,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ modelName, onClose, rootPa
                     {loading ? (
                         <button
                             onClick={handleStop}
-                            className="px-3 py-1.5 text-xs font-medium bg-white border border-[var(--color-border-default)] text-[var(--color-text-primary)] rounded hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                            className="px-3 py-1.5 text-xs font-medium bg-white border border-border-default text-text-primary rounded hover:bg-bg-tertiary transition-colors"
                         >
                             Stop
                         </button>
@@ -178,14 +178,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ modelName, onClose, rootPa
             </header>
 
             {/* Messages */}
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-3 bg-[var(--color-bg-primary)]">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-3 bg-bg-primary">
                 {renderMessages.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
                         <div className="text-center">
-                            <p className="text-lg font-medium text-[var(--color-text-primary)] mb-2">
-                                Start a conversation
-                            </p>
-                            <p className="text-sm text-[var(--color-text-muted)]">Type your message below</p>
+                            <p className="text-lg font-medium text-text-primary mb-2">Start a conversation</p>
+                            <p className="text-sm text-text-muted">Type your message below</p>
                         </div>
                     </div>
                 ) : (

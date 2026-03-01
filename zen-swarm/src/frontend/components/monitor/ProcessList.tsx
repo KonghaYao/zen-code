@@ -65,14 +65,14 @@ export function ProcessList({
     };
 
     return (
-        <div className="bg-white border border-[var(--color-border-subtle)] rounded-lg overflow-hidden">
+        <div className="bg-white border border-border-subtle rounded-lg overflow-hidden">
             {/* 表头 */}
-            <div className="flex items-center px-4 py-3 bg-[var(--color-bg-secondary)] border-b border-[var(--color-border-subtle)]">
+            <div className="flex items-center px-4 py-3 bg-bg-secondary border-b border-border-subtle">
                 {columns.map((col) => (
                     <button
                         key={col.key}
                         onClick={() => onSort(col.key)}
-                        className={`${col.width} px-2 text-sm font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors`}
+                        className={`${col.width} px-2 text-sm font-medium text-text-muted hover:text-text-primary transition-colors`}
                     >
                         {col.label}
                         {renderSortIcon(col.key)}
@@ -81,9 +81,9 @@ export function ProcessList({
             </div>
 
             {/* 进程列表 */}
-            <div className="divide-y divide-[var(--color-border-subtle)]">
+            <div className="divide-y divide-border-subtle">
                 {filteredProcesses.length === 0 ? (
-                    <div className="px-4 py-8 text-center text-[var(--color-text-muted)]">没有找到进程</div>
+                    <div className="px-4 py-8 text-center text-text-muted">没有找到进程</div>
                 ) : (
                     filteredProcesses.map((proc) => (
                         <ProcessRow
@@ -109,20 +109,20 @@ function ProcessRow({ process, isSelected, onSelect }: ProcessRowProps) {
     return (
         <div
             onClick={onSelect}
-            className={`flex items-center px-4 py-3 hover:bg-[var(--color-bg-tertiary)] cursor-pointer transition-colors ${
-                isSelected ? 'bg-[var(--color-bg-secondary)]' : ''
+            className={`flex items-center px-4 py-3 hover:bg-bg-tertiary cursor-pointer transition-colors ${
+                isSelected ? 'bg-bg-secondary' : ''
             }`}
         >
-            <div className="w-20 px-2 text-sm font-mono text-[var(--color-text-primary)]">{process.pid}</div>
-            <div className="flex-1 px-2 text-sm text-[var(--color-text-primary)] truncate">{process.name}</div>
+            <div className="w-20 px-2 text-sm font-mono text-text-primary">{process.pid}</div>
+            <div className="flex-1 px-2 text-sm text-text-primary truncate">{process.name}</div>
             <div className="w-24 px-2 text-sm">
                 <CPUBar percent={process.cpuPercent} />
             </div>
-            <div className="w-24 px-2 text-sm text-[var(--color-text-primary)]">{formatBytes(process.memoryBytes)}</div>
+            <div className="w-24 px-2 text-sm text-text-primary">{formatBytes(process.memoryBytes)}</div>
             <div className="w-24 px-2 text-sm">
                 <span className={STATUS_COLORS[process.status]}>{STATUS_LABELS[process.status]}</span>
             </div>
-            <div className="w-20 px-2 text-sm text-[var(--color-text-muted)]">{process.agentType || '-'}</div>
+            <div className="w-20 px-2 text-sm text-text-muted">{process.agentType || '-'}</div>
         </div>
     );
 }
@@ -136,13 +136,13 @@ function CPUBar({ percent }: { percent: number }) {
 
     return (
         <div className="flex items-center gap-2">
-            <div className="w-full bg-[var(--color-bg-tertiary)] rounded-full h-1.5 overflow-hidden">
+            <div className="w-full bg-bg-tertiary rounded-full h-1.5 overflow-hidden">
                 <div
                     className={`${getColor()} h-full transition-all duration-300`}
                     style={{ width: `${Math.min(percent, 100)}%` }}
                 />
             </div>
-            <span className="text-xs text-[var(--color-text-muted)] w-10 text-right">{formatPercent(percent)}</span>
+            <span className="text-xs text-text-muted w-10 text-right">{formatPercent(percent)}</span>
         </div>
     );
 }

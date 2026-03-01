@@ -19,9 +19,7 @@ export const agentsColumns: TableColumn<Agent>[] = [
         width: '30%',
         render: (value, record) => (
             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-tertiary)] flex items-center justify-center text-lg">
-                    🤖
-                </div>
+                <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center text-lg">🤖</div>
                 <span className="font-medium">{value}</span>
             </div>
         ),
@@ -30,7 +28,7 @@ export const agentsColumns: TableColumn<Agent>[] = [
         key: 'description',
         title: 'Description',
         render: (value) => (
-            <span className="text-[var(--color-text-muted)] line-clamp-2 block max-w-md" title={value || ''}>
+            <span className="text-text-muted line-clamp-2 block max-w-md" title={value || ''}>
                 {value || '-'}
             </span>
         ),
@@ -72,9 +70,7 @@ export const modelsColumns: TableColumn<Model>[] = [
         width: '40%',
         render: (value, record) => (
             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-tertiary)] flex items-center justify-center text-lg">
-                    🧠
-                </div>
+                <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center text-lg">🧠</div>
                 <span className="font-medium">{value}</span>
             </div>
         ),
@@ -120,9 +116,7 @@ export const promptsColumns: TableColumn<Prompt>[] = [
         width: '35%',
         render: (value, record) => (
             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-tertiary)] flex items-center justify-center text-lg">
-                    📝
-                </div>
+                <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center text-lg">📝</div>
                 <span className="font-medium">{value}</span>
             </div>
         ),
@@ -131,7 +125,7 @@ export const promptsColumns: TableColumn<Prompt>[] = [
         key: 'description',
         title: 'Description',
         render: (value) => (
-            <span className="text-[var(--color-text-muted)] line-clamp-2 block max-w-md" title={value || ''}>
+            <span className="text-text-muted line-clamp-2 block max-w-md" title={value || ''}>
                 {value || '-'}
             </span>
         ),
@@ -172,9 +166,7 @@ export const skillsColumns: TableColumn<any>[] = [
         width: '40%',
         render: (value) => (
             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-tertiary)] flex items-center justify-center text-lg">
-                    ✨
-                </div>
+                <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center text-lg">✨</div>
                 <span className="font-medium">{value}</span>
             </div>
         ),
@@ -183,7 +175,7 @@ export const skillsColumns: TableColumn<any>[] = [
         key: 'description',
         title: 'Description',
         render: (value) => (
-            <span className="text-[var(--color-text-muted)] line-clamp-2 block max-w-md" title={value || ''}>
+            <span className="text-text-muted line-clamp-2 block max-w-md" title={value || ''}>
                 {value || '-'}
             </span>
         ),
@@ -205,9 +197,7 @@ export const mcpColumns: TableColumn<MCPServer>[] = [
         width: '30%',
         render: (value, record) => (
             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-tertiary)] flex items-center justify-center text-lg">
-                    🔗
-                </div>
+                <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center text-lg">🔗</div>
                 <span className="font-medium">{value}</span>
             </div>
         ),
@@ -221,10 +211,7 @@ export const mcpColumns: TableColumn<MCPServer>[] = [
         key: 'command',
         title: 'Command',
         render: (_, record) => (
-            <span
-                className="text-[var(--color-text-muted)] line-clamp-2 block max-w-md"
-                title={record.config.command || ''}
-            >
+            <span className="text-text-muted line-clamp-2 block max-w-md" title={record.config.command || ''}>
                 {record.config.command || '-'}
             </span>
         ),
@@ -266,9 +253,7 @@ export const toolsColumns: TableColumn<Tool>[] = [
         width: '40%',
         render: (value) => (
             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-tertiary)] flex items-center justify-center text-lg">
-                    🔧
-                </div>
+                <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center text-lg">🔧</div>
                 <span className="font-medium">{value}</span>
             </div>
         ),
@@ -277,7 +262,7 @@ export const toolsColumns: TableColumn<Tool>[] = [
         key: 'description',
         title: 'Description',
         render: (value) => (
-            <span className="text-[var(--color-text-muted)] line-clamp-2 block max-w-xl" title={value || ''}>
+            <span className="text-text-muted line-clamp-2 block max-w-xl" title={value || ''}>
                 {value || '-'}
             </span>
         ),
@@ -295,9 +280,7 @@ export const middlewaresColumns: TableColumn<Middleware>[] = [
         width: '35%',
         render: (value) => (
             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-tertiary)] flex items-center justify-center text-lg">
-                    🔌
-                </div>
+                <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center text-lg">🔌</div>
                 <span className="font-medium">{value}</span>
             </div>
         ),
@@ -306,7 +289,7 @@ export const middlewaresColumns: TableColumn<Middleware>[] = [
         key: 'description',
         title: 'Description',
         render: (value) => (
-            <span className="text-[var(--color-text-muted)] line-clamp-2 block max-w-xl" title={value || ''}>
+            <span className="text-text-muted line-clamp-2 block max-w-xl" title={value || ''}>
                 {value || '-'}
             </span>
         ),

@@ -94,8 +94,8 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
             <div
                 className={`
                     flex items-center gap-1 px-2 py-1 cursor-pointer
-                    hover:bg-[var(--color-bg-secondary)] transition-colors duration-100
-                    ${isSelected ? 'bg-[var(--color-primary-light)] hover:bg-[var(--color-primary-light)]' : ''}
+                    hover:bg-bg-secondary transition-colors duration-100
+                    ${isSelected ? 'bg-primary-light hover:bg-primary-light' : ''}
                 `}
                 style={{ paddingLeft: `${depth * 12 + 8}px` }}
                 onClick={handleClick}
@@ -105,7 +105,7 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
                 {isDirectory ? (
                     <button
                         onClick={handleToggle}
-                        className="w-4 h-4 flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-transform duration-150"
+                        className="w-4 h-4 flex items-center justify-center text-text-muted hover:text-text-primary transition-transform duration-150"
                         style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
                     >
                         <ChevronRight className="w-3 h-3" />
@@ -118,7 +118,7 @@ const TreeNodeItem: React.FC<TreeNodeItemProps> = ({
                 <FileIcon icon={node.icon} extension={node.extension} isDirectory={isDirectory} size="sm" />
 
                 {/* 文件名 */}
-                <span className="truncate text-sm text-[var(--color-text-primary)]">{node.name}</span>
+                <span className="truncate text-sm text-text-primary">{node.name}</span>
             </div>
 
             {/* 子节点（仅目录且展开时显示） */}
@@ -156,14 +156,14 @@ export const FileTree: React.FC<FileTreeProps> = ({
     if (loading) {
         return (
             <div className="flex items-center justify-center py-8">
-                <div className="animate-spin w-5 h-5 border-2 border-[var(--color-primary)] border-t-transparent rounded-full" />
+                <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
             </div>
         );
     }
 
     if (tree.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-8 text-[var(--color-text-muted)]">
+            <div className="flex flex-col items-center justify-center py-8 text-text-muted">
                 <span className="text-2xl mb-2">📂</span>
                 <p className="text-sm">Empty folder</p>
             </div>

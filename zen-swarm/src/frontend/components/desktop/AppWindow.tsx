@@ -46,11 +46,9 @@ export function AppWindow({
         >
             {/* macOS Style Title Bar with Traffic Lights */}
             {showTrafficLights && showTitleBar && (
-                <header className="flex-shrink-0 bg-[var(--color-bg-tertiary)] px-4 py-3 flex items-center border-b border-[var(--color-border-subtle)] rounded-t-xl">
+                <header className="flex-shrink-0 bg-bg-tertiary px-4 py-3 flex items-center border-b border-border-subtle rounded-t-xl">
                     <TrafficLights onClose={handleClose} />
-                    <span className="ml-4 text-sm font-medium text-[var(--color-text-secondary)] select-none">
-                        {appName}
-                    </span>
+                    <span className="ml-4 text-sm font-medium text-text-secondary select-none">{appName}</span>
                 </header>
             )}
 

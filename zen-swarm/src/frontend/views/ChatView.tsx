@@ -61,17 +61,17 @@ export function ChatView() {
             <>
                 <div className="flex flex-col h-full bg-white">
                     {/* 欢迎屏幕 */}
-                    <div className="flex-1 flex flex-col items-center justify-center text-[var(--color-text-primary)]">
+                    <div className="flex-1 flex flex-col items-center justify-center text-text-primary">
                         <div className="text-center space-y-4">
                             <div className="text-6xl mb-4 flex justify-center">💬</div>
                             <h1 className="text-2xl font-semibold">Welcome to Chat</h1>
-                            <p className="text-[var(--color-text-secondary)] max-w-md">
+                            <p className="text-text-secondary max-w-md">
                                 Create a workspace to start chatting with AI. A workspace links to a folder on your
                                 computer.
                             </p>
                             <button
                                 onClick={handleAddWorkspace}
-                                className="mt-4 px-6 py-3 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white rounded-lg transition-colors"
+                                className="mt-4 px-6 py-3 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors"
                             >
                                 Create Workspace
                             </button>
@@ -103,7 +103,6 @@ export function ChatView() {
                     status: null,
                     sortBy: 'updated_at',
                     sortOrder: 'desc',
-                    limit: 50,
                 }}
                 key={currentWorkspace.id} // key 确保在 workspace 切换时重新初始化
             >

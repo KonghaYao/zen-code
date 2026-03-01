@@ -31,18 +31,18 @@ const STATUS_LABELS: Record<ProcessStatus, string> = {
 export function ProcessDetail({ process, onKillProcess, onToggleLog, onToggleTree }: ProcessDetailProps) {
     if (!process) {
         return (
-            <div className="bg-white border-t border-[var(--color-border-subtle)] p-6">
-                <p className="text-center text-[var(--color-text-muted)]">选择一个进程查看详情</p>
+            <div className="bg-white border-t border-border-subtle p-6">
+                <p className="text-center text-text-muted">选择一个进程查看详情</p>
             </div>
         );
     }
 
     return (
-        <div className="bg-white border-t border-[var(--color-border-subtle)] p-6">
+        <div className="bg-white border-t border-border-subtle p-6">
             <div className="flex items-start justify-between mb-4">
                 <div>
-                    <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">{process.name}</h3>
-                    <p className="text-sm text-[var(--color-text-muted)]">PID: {process.pid}</p>
+                    <h3 className="text-lg font-semibold text-text-primary">{process.name}</h3>
+                    <p className="text-sm text-text-muted">PID: {process.pid}</p>
                 </div>
                 <button
                     onClick={onKillProcess}
@@ -66,13 +66,13 @@ export function ProcessDetail({ process, onKillProcess, onToggleLog, onToggleTre
             <div className="flex gap-2">
                 <button
                     onClick={onToggleLog}
-                    className="flex-1 px-4 py-2 text-sm bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-bg-secondary)] rounded-md transition-colors"
+                    className="flex-1 px-4 py-2 text-sm bg-bg-tertiary hover:bg-bg-secondary rounded-md transition-colors"
                 >
                     📋 查看日志
                 </button>
                 <button
                     onClick={onToggleTree}
-                    className="flex-1 px-4 py-2 text-sm bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-bg-secondary)] rounded-md transition-colors"
+                    className="flex-1 px-4 py-2 text-sm bg-bg-tertiary hover:bg-bg-secondary rounded-md transition-colors"
                 >
                     🌳 进程树
                 </button>
@@ -80,9 +80,9 @@ export function ProcessDetail({ process, onKillProcess, onToggleLog, onToggleTre
 
             {/* 命令行 */}
             {process.command && (
-                <div className="mt-4 p-3 bg-[var(--color-bg-tertiary)] rounded-md">
-                    <p className="text-xs text-[var(--color-text-muted)] mb-1">命令行</p>
-                    <code className="text-xs text-[var(--color-text-primary)] break-all">{process.command}</code>
+                <div className="mt-4 p-3 bg-bg-tertiary rounded-md">
+                    <p className="text-xs text-text-muted mb-1">命令行</p>
+                    <code className="text-xs text-text-primary break-all">{process.command}</code>
                 </div>
             )}
         </div>
@@ -97,8 +97,8 @@ interface StatItemProps {
 function StatItem({ label, value }: StatItemProps) {
     return (
         <div>
-            <p className="text-xs text-[var(--color-text-muted)] mb-1">{label}</p>
-            <p className="text-sm font-medium text-[var(--color-text-primary)]">{value}</p>
+            <p className="text-xs text-text-muted mb-1">{label}</p>
+            <p className="text-sm font-medium text-text-primary">{value}</p>
         </div>
     );
 }

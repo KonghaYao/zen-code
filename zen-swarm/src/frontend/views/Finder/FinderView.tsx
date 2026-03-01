@@ -562,7 +562,7 @@ export const FinderView: React.FC = () => {
     // ========================================
 
     return (
-        <div ref={containerRef} className="flex flex-col h-full bg-[var(--color-bg-primary)] overflow-hidden">
+        <div ref={containerRef} className="flex flex-col h-full bg-bg-primary overflow-hidden">
             {/* Toolbar */}
             <FinderToolbar
                 currentPath={currentPath}
@@ -584,16 +584,11 @@ export const FinderView: React.FC = () => {
                 {/* Sidebar Toggle Button (when collapsed) */}
                 {sidebarCollapsed && (
                     <div
-                        className="flex items-center justify-center w-8 bg-[var(--color-bg-secondary)] border-r border-[var(--color-border-subtle)] cursor-pointer hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                        className="flex items-center justify-center w-8 bg-bg-secondary border-r border-border-subtle cursor-pointer hover:bg-bg-tertiary transition-colors"
                         onClick={toggleSidebar}
                         title="Show Sidebar"
                     >
-                        <svg
-                            className="w-4 h-4 text-[var(--color-text-muted)]"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
+                        <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -616,7 +611,7 @@ export const FinderView: React.FC = () => {
                         />
                         {/* Resize Handle */}
                         <div
-                            className="w-1 cursor-col-resize bg-transparent hover:bg-[var(--color-primary)] hover:opacity-50 transition-colors"
+                            className="w-1 cursor-col-resize bg-transparent hover:bg-primary hover:opacity-50 transition-colors"
                             onMouseDown={handleSidebarResizeStart}
                         />
                     </>
@@ -628,12 +623,12 @@ export const FinderView: React.FC = () => {
                     <div className="flex-1 overflow-auto" onContextMenu={(e) => handleContextMenu(e)}>
                         {error && (
                             <div className="flex items-center justify-center h-full">
-                                <div className="text-center text-[var(--color-text-muted)]">
+                                <div className="text-center text-text-muted">
                                     <span className="text-4xl mb-4 block">⚠️</span>
                                     <p>{error}</p>
                                     <button
                                         onClick={() => loadDirectory(currentPath)}
-                                        className="mt-4 px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90"
+                                        className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90"
                                     >
                                         重试
                                     </button>
@@ -648,7 +643,7 @@ export const FinderView: React.FC = () => {
                     {preview.isOpen && (
                         <>
                             <div
-                                className="w-1 cursor-col-resize bg-transparent hover:bg-[var(--color-primary)] hover:opacity-50 transition-colors"
+                                className="w-1 cursor-col-resize bg-transparent hover:bg-primary hover:opacity-50 transition-colors"
                                 onMouseDown={handlePreviewResizeStart}
                             />
                             <FinderPreview path={preview.targetPath} loading={preview.loading} onClose={closePreview} />

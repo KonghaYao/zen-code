@@ -42,14 +42,14 @@ export function CardMenu({ items }: CardMenuProps) {
         <div className="relative" ref={menuRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-bg-tertiary text-text-muted hover:text-text-primary transition-colors"
                 aria-label="More options"
             >
                 <MoreVertical className="w-5 h-5" />
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-[var(--color-border-subtle)] py-1 z-50">
+                <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-border-subtle py-1 z-50">
                     {items.map((item, i) => (
                         <button
                             key={i}
@@ -59,7 +59,7 @@ export function CardMenu({ items }: CardMenuProps) {
                             }}
                             className={`
                                 w-full px-4 py-2 text-left text-sm
-                                ${item.variant === 'danger' ? 'text-red-600 hover:bg-red-50' : 'text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)]'}
+                                ${item.variant === 'danger' ? 'text-red-600 hover:bg-red-50' : 'text-text-primary hover:bg-bg-tertiary'}
                             `}
                         >
                             {item.label}

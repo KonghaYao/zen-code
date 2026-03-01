@@ -76,7 +76,7 @@ export const AIMessage: React.FC<AIMessageProps> = ({ message, messageNumber, mo
 
     return (
         <div className="flex flex-col animate-slide-in">
-            <div className="text-xs text-[var(--color-text-muted)] mb-2">
+            <div className="text-xs text-text-muted mb-2">
                 Message #{messageNumber} · {modelName}
             </div>
 
@@ -87,18 +87,18 @@ export const AIMessage: React.FC<AIMessageProps> = ({ message, messageNumber, mo
                     open={showThinking}
                     onToggle={(e) => setShowThinking((e.target as HTMLDetailsElement).open)}
                 >
-                    <summary className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] select-none mb-2 flex items-center gap-2 transition-colors duration-150">
+                    <summary className="text-sm text-text-secondary hover:text-text-primary select-none mb-2 flex items-center gap-2 transition-colors duration-150">
                         <span>Thinking</span>
                         <span className="badge badge-primary">{thinkingLines} lines</span>
                     </summary>
-                    <pre className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border-subtle)] p-4 rounded-lg text-sm text-[var(--color-text-secondary)] overflow-x-auto whitespace-pre-wrap font-mono">
+                    <pre className="bg-bg-tertiary border border-border-subtle p-4 rounded-lg text-sm text-text-secondary overflow-x-auto whitespace-pre-wrap font-mono">
                         {thinkingContent}
                     </pre>
                 </details>
             ) : null}
 
             {/* 消息内容 */}
-            <div className="bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] p-4 rounded-lg text-[var(--color-text-primary)] prose prose-sm max-w-none">
+            <div className="bg-bg-secondary border border-border-subtle p-4 rounded-lg text-text-primary prose prose-sm max-w-none">
                 {displayContent}
             </div>
         </div>

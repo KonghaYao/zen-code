@@ -55,11 +55,7 @@ const IconItem: React.FC<IconItemProps> = ({ item, isSelected, size, onSelect, o
             className={`
                 relative flex flex-col items-center justify-center cursor-pointer rounded-lg transition-all duration-150
                 ${config.padding}
-                ${
-                    isSelected
-                        ? 'bg-[var(--color-primary)] bg-opacity-20 ring-2 ring-[var(--color-primary)]'
-                        : 'hover:bg-[var(--color-bg-secondary)]'
-                }
+                ${isSelected ? 'bg-primary bg-opacity-20 ring-2 ring-primary' : 'hover:bg-bg-secondary'}
             `}
             onClick={(e) => onSelect(item, e)}
             onDoubleClick={() => onDoubleClick(item)}
@@ -74,7 +70,7 @@ const IconItem: React.FC<IconItemProps> = ({ item, isSelected, size, onSelect, o
             <div className="text-center mt-2 w-full">
                 <p
                     className={`${config.name} truncate px-1 ${
-                        isSelected ? 'text-[var(--color-primary)] font-medium' : 'text-[var(--color-text-primary)]'
+                        isSelected ? 'text-primary font-medium' : 'text-text-primary'
                     }`}
                     title={item.name}
                 >
@@ -82,13 +78,13 @@ const IconItem: React.FC<IconItemProps> = ({ item, isSelected, size, onSelect, o
                 </p>
                 {/* Show size for files in larger views */}
                 {size === 'xl' && item.type === 'file' && (
-                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{formatFileSize(item.size)}</p>
+                    <p className="text-xs text-text-muted mt-0.5">{formatFileSize(item.size)}</p>
                 )}
             </div>
 
             {/* Selection indicator */}
             {isSelected && (
-                <div className="absolute top-1 right-1 w-4 h-4 bg-[var(--color-primary)] rounded-full flex items-center justify-center">
+                <div className="absolute top-1 right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
                     <Check className="w-3 h-3 text-white" />
                 </div>
             )}
@@ -148,7 +144,7 @@ export const FinderIconView: React.FC<FinderIconViewProps> = ({
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full">
-                <div className="flex flex-col items-center gap-4 text-[var(--color-text-muted)]">
+                <div className="flex flex-col items-center gap-4 text-text-muted">
                     <Loader2 className="w-8 h-8 animate-spin" />
                     <span>Loading...</span>
                 </div>
@@ -160,7 +156,7 @@ export const FinderIconView: React.FC<FinderIconViewProps> = ({
     if (items.length === 0) {
         return (
             <div className="flex items-center justify-center h-full">
-                <div className="flex flex-col items-center gap-4 text-[var(--color-text-muted)]">
+                <div className="flex flex-col items-center gap-4 text-text-muted">
                     <span className="text-6xl">📂</span>
                     <div className="text-center">
                         <p className="text-lg font-medium">This folder is empty</p>

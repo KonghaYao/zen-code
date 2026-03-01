@@ -112,21 +112,17 @@ interface StatCardProps {
 
 function StatCard({ icon, title, value, subtitle, loading, description }: StatCardProps) {
     return (
-        <div className="bg-white rounded-lg border border-[var(--color-border-subtle)] p-6 shadow-sm">
+        <div className="bg-white rounded-lg border border-border-subtle p-6 shadow-sm">
             <div className="flex items-start justify-between">
                 <div>
-                    <p className="text-sm font-medium text-[var(--color-text-muted)]">{title}</p>
-                    <p className="text-3xl font-semibold text-[var(--color-text-primary)] mt-2">
+                    <p className="text-sm font-medium text-text-muted">{title}</p>
+                    <p className="text-3xl font-semibold text-text-primary mt-2">
                         {loading ? '...' : value}
-                        {subtitle && (
-                            <span className="text-lg font-normal text-[var(--color-text-muted)] ml-1">
-                                / {subtitle}
-                            </span>
-                        )}
+                        {subtitle && <span className="text-lg font-normal text-text-muted ml-1">/ {subtitle}</span>}
                     </p>
-                    {description && <p className="text-xs text-[var(--color-text-muted)] mt-1">{description}</p>}
+                    {description && <p className="text-xs text-text-muted mt-1">{description}</p>}
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-[var(--color-bg-tertiary)] flex items-center justify-center text-2xl">
+                <div className="w-12 h-12 rounded-lg bg-bg-tertiary flex items-center justify-center text-2xl">
                     {icon}
                 </div>
             </div>
@@ -141,28 +137,24 @@ interface QuickAccessSectionProps {
 
 function QuickAccessSection({ title, items }: QuickAccessSectionProps) {
     return (
-        <div className="bg-white rounded-lg border border-[var(--color-border-subtle)] p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">{title}</h3>
+        <div className="bg-white rounded-lg border border-border-subtle p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-text-primary mb-4">{title}</h3>
             {items.length === 0 ? (
-                <p className="text-[var(--color-text-muted)] text-sm">No items yet</p>
+                <p className="text-text-muted text-sm">No items yet</p>
             ) : (
                 <ul className="space-y-3">
                     {items.map((item) => (
                         <li
                             key={item.id}
-                            className="flex items-center justify-between py-2 border-b border-[var(--color-border-subtle)] last:border-0"
+                            className="flex items-center justify-between py-2 border-b border-border-subtle last:border-0"
                         >
                             <div>
-                                <p className="font-medium text-[var(--color-text-primary)]">{item.name}</p>
+                                <p className="font-medium text-text-primary">{item.name}</p>
                                 {item.description && (
-                                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5 line-clamp-1">
-                                        {item.description}
-                                    </p>
+                                    <p className="text-xs text-text-muted mt-0.5 line-clamp-1">{item.description}</p>
                                 )}
                             </div>
-                            <button className="text-sm text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]">
-                                Open
-                            </button>
+                            <button className="text-sm text-primary hover:text-primary-hover">Open</button>
                         </li>
                     ))}
                 </ul>

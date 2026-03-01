@@ -33,24 +33,24 @@ export function MainLayout(props: MainLayoutProps) {
     const isFullScreen = activeTab === 'chat' || activeTab === 'workspaces';
 
     return (
-        <div className="h-screen flex flex-col overflow-hidden bg-[var(--color-bg-primary)]">
+        <div className="h-screen flex flex-col overflow-hidden bg-bg-primary">
             {/* Header */}
-            <header className="flex-shrink-0 bg-white border-b border-[var(--color-border-subtle)] px-6 py-4">
+            <header className="flex-shrink-0 bg-white border-b border-border-subtle px-6 py-4">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-[var(--color-primary)] flex items-center justify-center">
+                        <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
                             <span className="text-lg font-bold text-white">Z</span>
                         </div>
                         <div>
-                            <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Zen Swarm</h1>
-                            <p className="text-xs text-[var(--color-text-muted)]">Multi-Agent Dashboard</p>
+                            <h1 className="text-xl font-semibold text-text-primary">Zen Swarm</h1>
+                            <p className="text-xs text-text-muted">Multi-Agent Dashboard</p>
                         </div>
                     </div>
                 </div>
             </header>
 
             {/* Tab Navigation */}
-            <nav className="flex-shrink-0 bg-white border-b border-[var(--color-border-subtle)] px-6">
+            <nav className="flex-shrink-0 bg-white border-b border-border-subtle px-6">
                 <div className="max-w-7xl mx-auto flex space-x-1">
                     {tabs.map((tab) => {
                         const isActive = activeTab === tab.id;
@@ -62,8 +62,8 @@ export function MainLayout(props: MainLayoutProps) {
                                     relative px-4 py-3 text-sm font-medium transition-colors duration-150 border-b-2
                                     ${
                                         isActive
-                                            ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
-                                            : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)]'
+                                            ? 'border-primary text-primary'
+                                            : 'border-transparent text-text-secondary hover:text-text-primary hover:bg-bg-tertiary'
                                     }
                                 `}
                             >

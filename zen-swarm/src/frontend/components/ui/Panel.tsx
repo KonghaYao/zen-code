@@ -88,10 +88,10 @@ export function GenericPanel<T>(props: PanelProps<T>) {
         <div className="flex flex-col h-full">
             {/* macOS Style Header with Traffic Lights */}
             {showTrafficLights && (
-                <header className="flex-shrink-0 bg-transparent px-4 py-3 flex items-center justify-between border-b border-[var(--color-border-subtle)]">
+                <header className="flex-shrink-0 bg-transparent px-4 py-3 flex items-center justify-between border-b border-border-subtle">
                     <div className="flex items-center gap-3">
                         <TrafficLights onClose={onClose} />
-                        <h2 className="text-xl font-semibold text-[var(--color-text-primary)] flex items-center gap-3 ml-2">
+                        <h2 className="text-xl font-semibold text-text-primary flex items-center gap-3 ml-2">
                             {resourceName}
                             <span className="badge badge-primary">{items.length}</span>
                         </h2>
