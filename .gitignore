@@ -148,3 +148,8 @@ deno.lock
 **/*/rg
 .xyd
 data
+
+claude-blog
+claude-blog-cn
+
+*.py

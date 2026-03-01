@@ -59,17 +59,14 @@ export function DockContainer({ activeApp, onAppChange, notifications = {} }: Do
             const itemCenterX = rect.left + rect.width / 2;
             const distance = Math.abs(mouseX - itemCenterX);
 
-            // 放大参数
-            const maxDistance = 150; // 最大影响距离
+            // 放大参数 - 高斯分布实现苹果风格平滑波形
             const minSize = 52; // 最小尺寸
-            const maxSize = 76; // 最大尺寸
+            const maxSize = 88; // 最大尺寸
+            const sigma = 90; // 标准差，控制影响范围的宽窄
 
-            let size = minSize;
-            if (distance < maxDistance) {
-                // 根据距离计算大小 (越近越大)
-                const ratio = 1 - distance / maxDistance;
-                size = minSize + (maxSize - minSize) * Math.pow(ratio, 1.5);
-            }
+            // 高斯分布：峰值平滑，边缘自然衰减
+            const gaussianFactor = Math.exp(-(distance * distance) / (2 * sigma * sigma));
+            const size = minSize + (maxSize - minSize) * gaussianFactor;
 
             item.style.setProperty('--dock-item-size', `${size}px`);
         });
