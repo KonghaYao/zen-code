@@ -20,6 +20,8 @@ export type MultiLineProps = {
     readonly disabled?: boolean;
     readonly maxVisibleLines?: number; // Maximum visible lines (auto-calculate if not provided)
     readonly enableVirtualScroll?: boolean; // Enable virtual scrolling
+    /** Optional per-line syntax colorizer. Receives the raw line string, returns a chalk-colored string. */
+    readonly colorizeContent?: (line: string) => string;
 };
 
 /**
@@ -31,10 +33,12 @@ interface LineRendererProps {
     showCursor: boolean;
     cursorColumn: number;
     isFocused: boolean;
+    /** Optional syntax colorizer: receives raw line string, returns chalk-colored string */
+    colorizeContent?: (line: string) => string;
 }
 
 /**
- * LineRenderer - renders a single line with optional cursor
+ * LineRenderer - renders a single line with optional cursor and syntax highlighting
  * Memoized for performance optimization
  */
 const LineRenderer = memo(function LineRenderer({
@@ -43,36 +47,35 @@ const LineRenderer = memo(function LineRenderer({
     showCursor,
     cursorColumn,
     isFocused,
+    colorizeContent,
 }: LineRendererProps) {
     const renderedLine = useMemo(() => {
-        if (!showCursor || !isFocused) {
-            return content;
-        }
-
         // cursorColumn is character index, but for proper rendering with wide chars,
         // we need to render character-by-character
         const chars = Array.from(content); // Use Array.from to handle surrogate pairs properly
 
-        let result = '';
-        let currentIndex = 0;
-
-        for (const char of chars) {
-            // Check if this character should have the cursor
-            if (currentIndex === cursorColumn) {
-                result += chalk.inverse(char || ' ');
-            } else {
-                result += char;
-            }
-            currentIndex++;
+        if (!showCursor || !isFocused) {
+            // No cursor needed — just colorize if a function is provided
+            return colorizeContent ? colorizeContent(content) : content;
         }
 
-        // If cursor is at the end of the line
-        if (cursorColumn >= chars.length) {
-            result += chalk.inverse(' ');
+        // Build the raw line with cursor mark inserted (using a sentinel character approach
+        // is fragile with ANSI, so we colorize each segment around the cursor position)
+        let before = chars.slice(0, cursorColumn).join('');
+        const cursorChar = chars[cursorColumn] ?? ' ';
+        let after = chars.slice(cursorColumn + 1).join('');
+
+        // Apply syntax coloring to the raw segments before adding chalk.inverse
+        if (colorizeContent) {
+            // Colorize the full raw line, then split at cursor boundary to preserve ANSI
+            // We colorize each part separately so ANSI codes don't straddle the cursor
+            before = colorizeContent(before);
+            after = colorizeContent(after);
+            // The cursor character itself gets the raw char with inverse (no extra colorize)
         }
 
-        return result;
-    }, [content, showCursor, cursorColumn, isFocused]);
+        return before + chalk.inverse(cursorChar) + after;
+    }, [content, showCursor, cursorColumn, isFocused, colorizeContent]);
 
     return <Text>{renderedLine}</Text>;
 });
@@ -93,6 +96,7 @@ export function MultiLineTextInput({
     disabled = false,
     maxVisibleLines: maxVisibleLinesProp,
     enableVirtualScroll = true,
+    colorizeContent,
 }: MultiLineProps) {
     const { isFocused } = useFocus({ autoFocus, id });
 
@@ -373,6 +377,7 @@ export function MultiLineTextInput({
                         showCursor={showCursor && actualLineNumber === cursorLine}
                         cursorColumn={cursorColumn}
                         isFocused={isFocused}
+                        colorizeContent={colorizeContent}
                     />
                 );
             })}

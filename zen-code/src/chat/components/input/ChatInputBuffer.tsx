@@ -6,6 +6,7 @@ import { useSkillAutocomplete } from '../../hooks/useSkillAutocomplete';
 import { useAgentAutocomplete } from '../../hooks/useAgentAutocomplete';
 import { SkillAutocompleteHintUI } from './SkillAutocompleteUI';
 import { AgentAutocompleteHintUI } from './AgentAutocompleteUI';
+import { colorizeInputLine } from './inputColorizer';
 import type { Skill, Agent } from '@codegraph/config';
 import { useBufferedMessageSender } from '../../hooks/useBufferedMessageSender';
 
@@ -67,15 +68,23 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
     // 计算是否为命令输入（基于 internalValue）
     const isCommandInput = useMemo(() => internalValue.startsWith('/'), [internalValue]);
 
+    // 计算是否处于「纯命令阶段」：以 / 开头且不含空格（命令名还未确定，尚未开始写参数）
+    // /help → 纯命令阶段，屏蔽 skill 建议
+    // /i djidji # → 已有参数，允许 skill 建议
+    const isPureCommandPhase = useMemo(
+        () => internalValue.startsWith('/') && !internalValue.includes(' '),
+        [internalValue],
+    );
+
     // Check for skill/agent autocomplete trigger when input changes
     // Intentionally omit checkTrigger functions from dependencies to avoid infinite loops
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
-        if (!isCommandInput) {
+        if (!isPureCommandPhase) {
             skillAutocomplete.checkTrigger(internalValue);
             agentAutocomplete.checkTrigger(internalValue);
         }
-    }, [internalValue, isCommandInput]);
+    }, [internalValue, isPureCommandPhase]);
 
     // 处理输入变化，同步到外部和命令检测（避免循环更新）
     const handleChange = useCallback(
@@ -237,6 +246,7 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
                     value={internalValue}
                     onChange={handleChange}
                     onSubmit={handleSubmit}
+                    colorizeContent={colorizeInputLine}
                     onHotKey={(input, key) => {
                         if (key.escape) {
                             handleEsc();
