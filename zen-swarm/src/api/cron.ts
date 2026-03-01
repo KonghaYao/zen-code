@@ -103,13 +103,23 @@ export const cronRouter = router({
             }
         }
 
+        // 如果更新了 enabled 或 cron_expression，需要先处理调度器
+        const shouldReschedule = updates.enabled !== undefined || updates.cron_expression !== undefined;
+
+        if (shouldReschedule) {
+            // 取消现有调度（无论是否启用）
+            ctx.cronScheduler.unscheduleTask(id);
+        }
+
         // 更新任务
         await ctx.cronStorage.updateTask(input);
 
-        // 重新调度任务
-        const task = await ctx.cronStorage.getTask(id);
-        if (task) {
-            ctx.cronScheduler.scheduleTask(task);
+        // 重新调度任务（如果需要）
+        if (shouldReschedule) {
+            const task = await ctx.cronStorage.getTask(id);
+            if (task && task.enabled) {
+                ctx.cronScheduler.scheduleTask(task);
+            }
         }
 
         return { id };
@@ -132,26 +142,25 @@ export const cronRouter = router({
      * 切换任务启用状态
      */
     toggleTask: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+        // 先获取任务，验证存在性
         const task = await ctx.cronStorage.getTask(input.id);
         if (!task) {
             handleNotFound('CronTask', input.id);
         }
 
-        const enabled = !task!.enabled;
-        await ctx.cronStorage.updateTask({ id: input.id, enabled });
+        const newEnabled = !task.enabled;
 
-        if (enabled) {
-            // 启用：重新调度
-            const updated = await ctx.cronStorage.getTask(input.id);
-            if (updated) {
-                ctx.cronScheduler.scheduleTask(updated);
-            }
+        if (newEnabled) {
+            // 启用：先调度再更新数据库（保证调度器状态正确）
+            ctx.cronScheduler.scheduleTask({ ...task, enabled: newEnabled });
+            await ctx.cronStorage.updateTask({ id: input.id, enabled: newEnabled });
         } else {
-            // 禁用：取消调度
+            // 禁用：先取消调度再更新数据库
             ctx.cronScheduler.unscheduleTask(input.id);
+            await ctx.cronStorage.updateTask({ id: input.id, enabled: newEnabled });
         }
 
-        return { id: input.id, enabled };
+        return { id: input.id, enabled: newEnabled };
     }),
 
     /**

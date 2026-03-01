@@ -7,6 +7,7 @@ import { trpc } from '../../api.js';
 import type { CronTask, CronTaskInput } from '../../types/cron.js';
 import { CronExpressionInput } from './CronExpressionInput.js';
 import { VariablesEditor } from './VariablesEditor.js';
+import { validateCronExpression } from '../../../cron/validation.js';
 
 interface CronTaskFormProps {
     task?: CronTask | null; // 如果提供，则为编辑模式
@@ -99,10 +100,10 @@ export function CronTaskForm(props: CronTaskFormProps) {
             newErrors.name = 'Name is required';
         }
 
-        if (!formData.cron_expression.trim()) {
-            newErrors.cron_expression = 'Cron expression is required';
-        } else if (formData.cron_expression.split(/\s+/).length !== 5) {
-            newErrors.cron_expression = 'Invalid cron expression format';
+        // 使用统一的验证函数
+        const cronValidation = validateCronExpression(formData.cron_expression);
+        if (!cronValidation.valid) {
+            newErrors.cron_expression = cronValidation.error || 'Invalid cron expression';
         }
 
         if (!formData.prompt.trim()) {

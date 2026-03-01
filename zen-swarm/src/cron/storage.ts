@@ -20,6 +20,7 @@ export class CronStorage {
     constructor(dbPath: string = './data/index.db') {
         this.db = new Database(dbPath, { create: true });
         this.db.run('PRAGMA foreign_keys = ON');
+        this.db.run('PRAGMA journal_mode = WAL'); // 提高并发性能
     }
 
     async initialize(): Promise<void> {

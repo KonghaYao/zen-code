@@ -152,4 +152,10 @@ export {
     Edit2,
     History,
     XCircle as XClose,
+    // Additional icons for ConfigDrawer and ChatPanel
+    Bot,
+    Brain,
+    Link2,
+    Key,
+    Square,
 } from 'lucide-react';

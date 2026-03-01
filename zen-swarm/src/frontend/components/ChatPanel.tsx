@@ -4,24 +4,37 @@
  * 功能：
  * - 消息展示（Human、AI、Tool）
  * - 输入框
- * - Agent 选择器
+ * - Agent / Model 状态徽章（只读，点击打开 Config Drawer）
+ * - ⚙️ 按钮展开/收起 Config Drawer
  * - Stop 生成按钮
  * - 消息滚动与自动跟随
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useChat } from '@langgraph-js/sdk/react';
+import { Bot, Brain, Settings, Square } from 'lucide-react';
 import { HumanMessage, AIMessage, ToolMessage } from './index.js';
-import { AgentSelect } from './AgentSelect.js';
 
 // ========================================
 // Types
 // ========================================
 
+export type ConfigDrawerSection = 'agents' | 'models' | 'mcp' | 'prompts';
+
 interface ChatPanelProps {
     modelName?: string;
     onClose?: () => void;
     rootPath: string;
+    /** 当前选中的 Agent ID（由 ChatView 管理） */
+    selectedAgentId?: string;
+    /** 当前 Agent 名称（由 ChatView 传入） */
+    currentAgentName?: string;
+    /** 当前使用的 Model 名称（由 ChatView 管理） */
+    currentModelName?: string;
+    /** 打开 Config Drawer 并跳到指定分区 */
+    onOpenConfig?: (section?: ConfigDrawerSection) => void;
+    /** Config Drawer 是否处于打开状态（用于高亮 ⚙️ 按钮） */
+    configDrawerOpen?: boolean;
 }
 
 // ========================================
@@ -92,11 +105,20 @@ const MiniInput: React.FC<MiniInputProps> = ({ value, onChange, onSubmit, loadin
 // ChatPanel Component
 // ========================================
 
-export const ChatPanel: React.FC<ChatPanelProps> = ({ modelName, onClose, rootPath }) => {
+export const ChatPanel: React.FC<ChatPanelProps> = ({
+    modelName,
+    onClose,
+    rootPath,
+    selectedAgentId,
+    currentAgentName = '—',
+    currentModelName,
+    onOpenConfig,
+    configDrawerOpen,
+}) => {
     const chatStore = useChat();
-    const { userInput, setUserInput, loading, renderMessages, sendMessage, stopGeneration, currentAgent } = chatStore;
+    const { userInput, setUserInput, loading, renderMessages, sendMessage, stopGeneration } = chatStore;
 
-    const [selectedAgentId, setSelectedAgentId] = useState<string>(currentAgent || '');
+    const activeAgentName = currentAgentName;
     const [isUserNearBottom, setIsUserNearBottom] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -146,22 +168,55 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ modelName, onClose, rootPa
         <div className="flex flex-col h-full overflow-hidden bg-white">
             {/* Header */}
             <header className="flex-shrink-0 bg-white border-b border-border-subtle px-3 py-2.5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <h1 className="text-sm font-medium text-text-primary">Chat</h1>
+                {/* 左侧：标题 + 状态徽章 */}
+                <div className="flex items-center gap-2 min-w-0">
+                    <h1 className="text-sm font-medium text-text-primary flex-shrink-0">Chat</h1>
+
+                    {/* Agent 徽章 */}
+                    <button
+                        onClick={() => onOpenConfig?.('agents')}
+                        title="切换 Agent"
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-bg-secondary hover:bg-bg-tertiary border border-border-subtle text-xs text-text-secondary transition-colors max-w-[120px]"
+                    >
+                        <Bot className="w-3 h-3" />
+                        <span className="truncate">{activeAgentName}</span>
+                    </button>
+
+                    {/* Model 徽章 */}
+                    {currentModelName && (
+                        <button
+                            onClick={() => onOpenConfig?.('models')}
+                            title="切换 Model"
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-bg-secondary hover:bg-bg-tertiary border border-border-subtle text-xs text-text-secondary transition-colors max-w-[120px]"
+                        >
+                            <Brain className="w-3 h-3" />
+                            <span className="truncate">{currentModelName}</span>
+                        </button>
+                    )}
                 </div>
-                <div className="flex items-center gap-2">
-                    <AgentSelect
-                        value={selectedAgentId}
-                        onChange={(agentId) => {
-                            setSelectedAgentId(agentId);
-                        }}
-                        disabled={loading}
-                    />
+
+                {/* 右侧：⚙️ 按钮 + Stop */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Config 按钮 */}
+                    <button
+                        onClick={() => onOpenConfig?.()}
+                        title={configDrawerOpen ? '收起配置' : '展开配置'}
+                        className={`p-1.5 rounded transition-colors ${
+                            configDrawerOpen
+                                ? 'bg-primary text-white'
+                                : 'bg-white border border-border-default text-text-secondary hover:bg-bg-tertiary'
+                        }`}
+                    >
+                        <Settings className="w-4 h-4" />
+                    </button>
+
+                    {/* Stop 按钮 */}
                     {loading ? (
                         <button
                             onClick={handleStop}
-                            className="px-3 py-1.5 text-xs font-medium bg-white border border-border-default text-text-primary rounded hover:bg-bg-tertiary transition-colors"
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-white border border-border-default text-text-primary rounded hover:bg-bg-tertiary transition-colors"
                         >
+                            <Square className="w-3 h-3" />
                             Stop
                         </button>
                     ) : null}

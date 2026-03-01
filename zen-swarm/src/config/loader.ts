@@ -40,12 +40,18 @@ await stateMachineManager.initialize();
 // Cron 系统
 // ========================================
 
+// 获取服务器端口（默认 8124）
+const port = process.env.PORT ? parseInt(process.env.PORT) : 8124;
+
 // Cron 存储实例
 export const cronStorage = new CronStorage('./data/index.db');
 await cronStorage.initialize();
 
 // Cron 执行器
-export const cronExecutor = new CronExecutor(cronStorage);
+export const cronExecutor = new CronExecutor(cronStorage, {
+    apiBaseUrl: process.env.LANGGRAPH_API_URL || `http://127.0.0.1:${port}`,
+    maxExecutionTime: 10 * 60 * 1000, // 10 分钟
+});
 
 // Cron 调度器
 export const cronScheduler = new CronScheduler(cronStorage, cronExecutor);

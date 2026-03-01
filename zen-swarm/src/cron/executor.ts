@@ -7,8 +7,10 @@ import type { CronTask, CronLogStatus } from './types.js';
 import type { CronStorage } from './storage.js';
 import { replaceVariables } from './variable-replacer.js';
 
-// LangGraph API 配置
-const LANGGRAPH_API_URL = process.env.LANGGRAPH_API_URL || 'http://127.0.0.1:8124';
+export interface ExecutorOptions {
+    apiBaseUrl?: string;
+    maxExecutionTime?: number; // 最大执行时间（毫秒）
+}
 
 export interface ExecutorResult {
     success: boolean;
@@ -18,11 +20,13 @@ export interface ExecutorResult {
 
 export class CronExecutor {
     private storage: CronStorage;
-    private maxExecutionTime: number; // 最大执行时间（毫秒）
+    private apiBaseUrl: string;
+    private maxExecutionTime: number;
 
-    constructor(storage: CronStorage, options?: { maxExecutionTime?: number }) {
+    constructor(storage: CronStorage, options: ExecutorOptions = {}) {
         this.storage = storage;
-        this.maxExecutionTime = options?.maxExecutionTime ?? 10 * 60 * 1000; // 默认 10 分钟
+        this.apiBaseUrl = options.apiBaseUrl ?? process.env.LANGGRAPH_API_URL ?? 'http://127.0.0.1:8124';
+        this.maxExecutionTime = options.maxExecutionTime ?? 10 * 60 * 1000; // 默认 10 分钟
     }
 
     /**
@@ -81,7 +85,7 @@ export class CronExecutor {
      * @returns Thread 信息
      */
     private async createThread(agentId: string): Promise<{ thread_id: string }> {
-        const response = await fetch(`${LANGGRAPH_API_URL}/api/langgraph/threads`, {
+        const response = await fetch(`${this.apiBaseUrl}/api/langgraph/threads`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -108,7 +112,7 @@ export class CronExecutor {
      * @param prompt 用户输入
      */
     private async runAgent(threadId: string, agentId: string, prompt: string): Promise<void> {
-        const response = await fetch(`${LANGGRAPH_API_URL}/api/langgraph/threads/${threadId}/runs`, {
+        const response = await fetch(`${this.apiBaseUrl}/api/langgraph/threads/${threadId}/runs`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -149,7 +153,7 @@ export class CronExecutor {
         while (Date.now() - startTime < this.maxExecutionTime) {
             try {
                 // 获取 thread 状态
-                const response = await fetch(`${LANGGRAPH_API_URL}/api/langgraph/threads/${threadId}/state`);
+                const response = await fetch(`${this.apiBaseUrl}/api/langgraph/threads/${threadId}/state`);
 
                 if (!response.ok) {
                     throw new Error(`Failed to get thread state: ${response.status}`);

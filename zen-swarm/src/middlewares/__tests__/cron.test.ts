@@ -289,4 +289,160 @@ describe('CronMiddleware', () => {
             expect(mockScheduler.unscheduleTask).toHaveBeenCalledWith('workflow-test');
         });
     });
+
+    describe('concurrent execution handling', () => {
+        it('should handle multiple concurrent triggers of the same task', async () => {
+            const tool = middleware.tools[0];
+
+            // Create a task
+            await tool.invoke({
+                command: 'create',
+                task: {
+                    id: 'concurrent-test',
+                    name: 'Concurrent Test',
+                    cron_expression: '0 9 * * *',
+                    prompt: 'Test',
+                    agent_id: 'agents/default',
+                },
+            });
+
+            // Trigger multiple times concurrently
+            const [trigger1, trigger2, trigger3] = await Promise.all([
+                tool.invoke({ command: 'trigger', task_id: 'concurrent-test' }),
+                tool.invoke({ command: 'trigger', task_id: 'concurrent-test' }),
+                tool.invoke({ command: 'trigger', task_id: 'concurrent-test' }),
+            ]);
+
+            const parsed1 = JSON.parse(trigger1 as string);
+            const parsed2 = JSON.parse(trigger2 as string);
+            const parsed3 = JSON.parse(trigger3 as string);
+
+            expect(parsed1.success).toBe(true);
+            expect(parsed2.success).toBe(true);
+            expect(parsed3.success).toBe(true);
+
+            // Verify unique log IDs for each trigger
+            expect(parsed1.logId).toBeDefined();
+            expect(parsed2.logId).toBeDefined();
+            expect(parsed3.logId).toBeDefined();
+            expect(parsed1.logId).not.toBe(parsed2.logId);
+            expect(parsed2.logId).not.toBe(parsed3.logId);
+            expect(parsed3.logId).not.toBe(parsed1.logId);
+
+            // Verify triggerManually was called three times
+            expect(mockScheduler.triggerManually).toHaveBeenCalledTimes(3);
+        });
+    });
+
+    describe('cron expression validation', () => {
+        it('should accept valid cron expressions', async () => {
+            const tool = middleware.tools[0];
+            const validExpressions = [
+                '0 9 * * *', // Daily at 9am
+                '* * * * *', // Every minute
+                '*/5 * * * *', // Every 5 minutes
+                '0 9 * * 1-5', // Weekdays at 9am
+                '0 0 1 * *', // First of month at midnight
+                '0 0,12 * * *', // Midnight and noon
+                '0 0-12/2 * * *', // Every 2 hours from midnight to noon
+            ];
+
+            for (const expr of validExpressions) {
+                await tool.invoke({
+                    command: 'create',
+                    task: {
+                        id: `cron-validation-${expr.replace(/[^a-zA-Z0-9]/g, '')}`,
+                        name: 'Validation Test',
+                        cron_expression: expr,
+                        prompt: 'Test',
+                        agent_id: 'agents/default',
+                    },
+                });
+                expect(mockScheduler.scheduleTask).toHaveBeenCalled();
+            }
+        });
+
+        it('should handle edge values', async () => {
+            const tool = middleware.tools[0];
+            const edgeExpressions = [
+                '59 23 31 12 6', // Max valid values
+                '0 0 1 1 0', // Min valid values
+            ];
+
+            for (const expr of edgeExpressions) {
+                const result = await tool.invoke({
+                    command: 'create',
+                    task: {
+                        id: `edge-${expr.replace(/[^a-zA-Z0-9]/g, '')}`,
+                        name: 'Edge Test',
+                        cron_expression: expr,
+                        prompt: 'Test',
+                        agent_id: 'agents/default',
+                    },
+                });
+                const parsed = JSON.parse(result as string);
+                expect(parsed.success).toBe(true);
+            }
+        });
+    });
+
+    describe('task update edge cases', () => {
+        it('should handle updating enabled to false', async () => {
+            const tool = middleware.tools[0];
+
+            // Create enabled task
+            await tool.invoke({
+                command: 'create',
+                task: {
+                    id: 'update-test',
+                    name: 'Update Test',
+                    cron_expression: '0 9 * * *',
+                    prompt: 'Test',
+                    agent_id: 'agents/default',
+                    enabled: true,
+                },
+            });
+            expect(mockScheduler.scheduleTask).toHaveBeenCalled();
+
+            // Update to disabled
+            const result = await tool.invoke({
+                command: 'update',
+                task_id: 'update-test',
+                updates: { enabled: false },
+            });
+
+            const parsed = JSON.parse(result as string);
+            expect(parsed.success).toBe(true);
+            // Note: The middleware's update command only calls scheduler.scheduleTask,
+            // the unschedule/reschedule logic is handled at the API level (api/cron.ts)
+        });
+
+        it('should handle updating cron expression while enabled', async () => {
+            const tool = middleware.tools[0];
+
+            // Create task
+            await tool.invoke({
+                command: 'create',
+                task: {
+                    id: 'expr-update-test',
+                    name: 'Expression Update Test',
+                    cron_expression: '0 9 * * *',
+                    prompt: 'Test',
+                    agent_id: 'agents/default',
+                    enabled: true,
+                },
+            });
+
+            // Update expression (should reschedule)
+            const result = await tool.invoke({
+                command: 'update',
+                task_id: 'expr-update-test',
+                updates: { cron_expression: '0 10 * * *' },
+            });
+
+            const parsed = JSON.parse(result as string);
+            expect(parsed.success).toBe(true);
+            expect(mockScheduler.scheduleTask).toHaveBeenCalled();
+        });
+    });
 });

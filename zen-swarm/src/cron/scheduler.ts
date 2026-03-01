@@ -166,12 +166,11 @@ export class CronScheduler {
 
                 if (result.success) {
                     // 执行成功
-                    this.queue.markCompleted(task.id);
-                    await this.processQueue(task.id);
+                    await this.markSuccess(task.id, logId);
                     return;
                 }
 
-                // 执行失败
+                // 执行失败但未达到重试上限
                 if (retryCount < maxRetries) {
                     retryCount++;
                     console.log(`[Cron] Retrying task "${task.name}" (${retryCount}/${maxRetries})`);
@@ -179,25 +178,46 @@ export class CronScheduler {
                         status: 'running',
                         retry_count: retryCount,
                     });
-                    await this.sleep(1000 * retryCount); // 指数退避
-                } else {
-                    // 重试次数用尽
-                    this.queue.markCompleted(task.id);
-                    await this.processQueue(task.id);
+                    await this.sleep(1000 * Math.pow(2, retryCount)); // 指数退避
+                    continue;
                 }
+
+                // 达到重试上限，记录失败
+                throw new Error(`Max retries (${maxRetries}) exceeded`);
             } catch (error) {
-                console.error(`[Cron] Execution error for task "${task.name}":`, error);
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                console.error(`[Cron] Execution error for task "${task.name}":`, errorMessage);
 
-                if (retryCount >= maxRetries) {
-                    this.queue.markCompleted(task.id);
-                    await this.processQueue(task.id);
-                    return;
-                }
-
-                retryCount++;
-                await this.sleep(1000 * retryCount);
+                // 标记执行失败
+                await this.markFailed(task.id, logId, errorMessage);
+                return;
             }
         }
+    }
+
+    /**
+     * 标记执行成功并处理队列
+     */
+    private async markSuccess(taskId: string, logId: string): Promise<void> {
+        this.queue.markCompleted(taskId);
+        await this.storage.updateLog(logId, {
+            status: 'success',
+            finished_at: new Date().toISOString(),
+        });
+        await this.processQueue(taskId);
+    }
+
+    /**
+     * 标记执行失败并处理队列
+     */
+    private async markFailed(taskId: string, logId: string, errorMessage: string): Promise<void> {
+        this.queue.markCompleted(taskId);
+        await this.storage.updateLog(logId, {
+            status: 'failed',
+            error_message: errorMessage,
+            finished_at: new Date().toISOString(),
+        });
+        await this.processQueue(taskId);
     }
 
     /**
@@ -205,25 +225,20 @@ export class CronScheduler {
      * @param completedTaskId 刚完成的任务 ID
      */
     private async processQueue(completedTaskId: string): Promise<void> {
-        // 检查队列中是否有等待的同任务
-        const queueStatus = this.queue.getStatus();
-        const waitingForSameTask = queueStatus.queued.find((item) => item.taskId === completedTaskId);
+        // 直接从队列取出，避免检查和取出的时间差
+        const next = this.queue.dequeue();
 
-        if (waitingForSameTask) {
-            // 从队列中取出
-            const next = this.queue.dequeue();
-            if (next && next.taskId === completedTaskId) {
-                console.log(`[Cron] Processing queued execution for task "${completedTaskId}"`);
+        if (next && next.taskId === completedTaskId) {
+            console.log(`[Cron] Processing queued execution for task "${completedTaskId}"`);
 
-                // 更新日志状态
-                await this.storage.updateLog(next.logId, { status: 'running' });
-                this.queue.markRunning(next.taskId, next.logId);
+            // 更新日志状态
+            await this.storage.updateLog(next.logId, { status: 'running' });
+            this.queue.markRunning(next.taskId, next.logId);
 
-                // 获取任务配置并执行
-                const task = await this.storage.getTask(next.taskId);
-                if (task) {
-                    await this.executeWithRetry(task, next.logId);
-                }
+            // 获取任务配置并执行
+            const task = await this.storage.getTask(next.taskId);
+            if (task) {
+                await this.executeWithRetry(task, next.logId);
             }
         }
     }

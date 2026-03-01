@@ -15,92 +15,29 @@ import type { CronTask, CronLog } from '../cron/types.js';
 // Schemas
 // ========================================
 
-const CreateTaskSchema = z.object({
-    id: z.string().min(1).describe('Unique identifier for the task'),
-    name: z.string().min(1).describe('Human-readable name for the task'),
-    description: z.string().optional().describe('Description of what the task does'),
+const TaskSchema = z.object({
+    id: z.string().min(1).describe('Task ID'),
+    name: z.string().min(1).describe('Task name'),
+    description: z.string().optional().describe('Task description'),
     cron_expression: z
         .string()
         .min(5)
-        .describe(
-            'Cron expression (5 fields: minute hour day-of-month month day-of-week). E.g., "0 9 * * 1-5" for weekdays at 9am',
-        ),
-    prompt: z.string().min(1).describe('The prompt/instructions for the agent to execute'),
-    agent_id: z.string().min(1).describe('The ID of the agent to use for execution'),
-    enabled: z.boolean().optional().default(true).describe('Whether the task is enabled'),
-    max_retries: z.number().min(0).max(10).optional().default(0).describe('Maximum retry count on failure'),
-    variables: z.record(z.string(), z.string()).optional().describe('Variables to substitute in the prompt'),
+        .describe('Cron expression (5 fields: minute hour day-of-month month day-of-week)'),
+    prompt: z.string().min(1).describe('Prompt to execute'),
+    agent_id: z.string().min(1).describe('Agent ID to use'),
+    enabled: z.boolean().optional().default(true).describe('Enabled state'),
+    max_retries: z.number().min(0).max(10).optional().default(0).describe('Max retry count'),
+    variables: z.record(z.string(), z.string()).optional().describe('Variables (key-value object, NOT JSON string)'),
 });
 
-const UpdateTaskSchema = z.object({
-    id: z.string().min(1).describe('The task ID to update'),
-    name: z.string().min(1).optional().describe('New name for the task'),
-    description: z.string().optional().describe('New description'),
-    cron_expression: z.string().min(5).optional().describe('New cron expression'),
-    prompt: z.string().min(1).optional().describe('New prompt'),
-    agent_id: z.string().min(1).optional().describe('New agent ID'),
-    enabled: z.boolean().optional().describe('New enabled state'),
-    max_retries: z.number().min(0).max(10).optional().describe('New max retry count'),
-    variables: z.record(z.string(), z.string()).optional().describe('New variables'),
+const CronCommandSchema = z.object({
+    command: z.enum(['list', 'get', 'upsert', 'delete', 'toggle', 'trigger', 'logs', 'status']),
+    filter: z.enum(['all', 'enabled', 'disabled']).optional(),
+    task_id: z.string().optional(),
+    task: TaskSchema.optional(),
+    limit: z.number().min(1).max(100).optional(),
+    offset: z.number().min(0).optional(),
 });
-
-const CronCommandSchema = z.discriminatedUnion('command', [
-    // List tasks
-    z.object({
-        command: z.literal('list'),
-        filter: z.enum(['all', 'enabled', 'disabled']).optional().describe('Filter tasks by status'),
-    }),
-
-    // Get task details
-    z.object({
-        command: z.literal('get'),
-        task_id: z.string().describe('The task ID to retrieve'),
-    }),
-
-    // Create task
-    z.object({
-        command: z.literal('create'),
-        task: CreateTaskSchema.describe('The task configuration'),
-    }),
-
-    // Update task
-    z.object({
-        command: z.literal('update'),
-        task_id: z.string().describe('The task ID to update'),
-        updates: UpdateTaskSchema.omit({ id: true }).describe('The fields to update'),
-    }),
-
-    // Delete task
-    z.object({
-        command: z.literal('delete'),
-        task_id: z.string().describe('The task ID to delete'),
-    }),
-
-    // Toggle task (pause/resume)
-    z.object({
-        command: z.literal('toggle'),
-        task_id: z.string().describe('The task ID to toggle'),
-    }),
-
-    // Trigger task manually
-    z.object({
-        command: z.literal('trigger'),
-        task_id: z.string().describe('The task ID to trigger'),
-    }),
-
-    // Get logs
-    z.object({
-        command: z.literal('logs'),
-        task_id: z.string().optional().describe('Filter by task ID (omit for all tasks)'),
-        limit: z.number().min(1).max(100).optional().describe('Number of logs to return'),
-        offset: z.number().min(0).optional().describe('Offset for pagination'),
-    }),
-
-    // Get queue/scheduler status
-    z.object({
-        command: z.literal('status'),
-    }),
-]);
 
 // ========================================
 // Types
@@ -120,25 +57,42 @@ export type CronCommandInput = z.infer<typeof CronCommandSchema>;
 const CRON_TOOL_DESCRIPTION = `
 Manage cron scheduled tasks in the zen-swarm system.
 
+⚠️ CRITICAL: All object parameters (task, updates) MUST be passed as JavaScript objects, NOT as JSON strings!
+- WRONG: "task": "{\\"id\\": \\"...\\", ...}" (This is a string)
+- CORRECT: "task": {"id": "...", ...} (This is an object)
+- Do NOT use JSON.stringify() on nested object parameters!
+
 ## Available Commands
 
 ### list
 List all cron tasks.
+
 \`\`\`json
-{ "command": "list", "filter": "all" | "enabled" | "disabled" }
+{
+  "command": "list",
+  "filter": "all" | "enabled" | "disabled"
+}
 \`\`\`
 
 ### get
 Get details of a specific task.
-\`\`\`json
-{ "command": "get", "task_id": "my-task-id" }
-\`\`\`
 
-### create
-Create a new scheduled task.
 \`\`\`json
 {
-  "command": "create",
+  "command": "get",
+  "task_id": "my-task-id"
+}
+\`\`\`
+
+### upsert
+Create a new task or update an existing one.
+If task ID exists, it will be updated. If not, a new task will be created.
+
+The \`task\` parameter MUST be a JavaScript object, NOT a JSON string. Do NOT use JSON.stringify().
+
+\`\`\`json
+{
+  "command": "upsert",
   "task": {
     "id": "daily-report",
     "name": "Daily Report",
@@ -153,44 +107,56 @@ Create a new scheduled task.
 }
 \`\`\`
 
-### update
-Update an existing task.
-\`\`\`json
-{
-  "command": "update",
-  "task_id": "daily-report",
-  "updates": { "enabled": false }
-}
-\`\`\`
+Note: The \`variables\` field is an object with string values, also MUST NOT be a JSON string.
 
 ### delete
 Delete a task permanently.
+
 \`\`\`json
-{ "command": "delete", "task_id": "daily-report" }
+{
+  "command": "delete",
+  "task_id": "daily-report"
+}
 \`\`\`
 
 ### toggle
 Toggle task enabled state (pause/resume).
+
 \`\`\`json
-{ "command": "toggle", "task_id": "daily-report" }
+{
+  "command": "toggle",
+  "task_id": "daily-report"
+}
 \`\`\`
 
 ### trigger
 Manually trigger a task execution.
+
 \`\`\`json
-{ "command": "trigger", "task_id": "daily-report" }
+{
+  "command": "trigger",
+  "task_id": "daily-report"
+}
 \`\`\`
 
 ### logs
 View execution history and logs.
+
 \`\`\`json
-{ "command": "logs", "task_id": "daily-report", "limit": 20 }
+{
+  "command": "logs",
+  "task_id": "daily-report",
+  "limit": 20
+}
 \`\`\`
 
 ### status
 Get scheduler and queue status.
+
 \`\`\`json
-{ "command": "status" }
+{
+  "command": "status"
+}
 \`\`\`
 
 ## Cron Expression Format
@@ -282,18 +248,29 @@ function createCronTool(storage: CronStorage, scheduler: CronScheduler) {
                         );
                     }
 
-                    case 'create': {
+                    case 'upsert': {
                         try {
-                            await storage.insertTask(input.task);
+                            const existing = await storage.getTask(input.task.id);
+                            const message = existing
+                                ? `Task "${input.task.name}" updated`
+                                : `Task "${input.task.name}" created and scheduled`;
+
+                            if (existing) {
+                                await storage.updateTask(input.task);
+                            } else {
+                                await storage.insertTask(input.task);
+                            }
+
                             const task = await storage.getTask(input.task.id);
                             if (task) {
                                 scheduler.scheduleTask(task);
                             }
+
                             return JSON.stringify(
                                 {
                                     success: true,
                                     id: input.task.id,
-                                    message: `Task "${input.task.name}" created and scheduled`,
+                                    message,
                                 },
                                 null,
                                 2,
@@ -303,53 +280,7 @@ function createCronTool(storage: CronStorage, scheduler: CronScheduler) {
                             return JSON.stringify(
                                 {
                                     success: false,
-                                    error: `Failed to create task: ${message}`,
-                                },
-                                null,
-                                2,
-                            );
-                        }
-                    }
-
-                    case 'update': {
-                        try {
-                            const existing = await storage.getTask(input.task_id);
-                            if (!existing) {
-                                return JSON.stringify(
-                                    {
-                                        success: false,
-                                        error: `Task not found: ${input.task_id}`,
-                                    },
-                                    null,
-                                    2,
-                                );
-                            }
-
-                            await storage.updateTask({
-                                id: input.task_id,
-                                ...input.updates,
-                            });
-
-                            const task = await storage.getTask(input.task_id);
-                            if (task) {
-                                scheduler.scheduleTask(task);
-                            }
-
-                            return JSON.stringify(
-                                {
-                                    success: true,
-                                    id: input.task_id,
-                                    message: `Task "${existing.name}" updated`,
-                                },
-                                null,
-                                2,
-                            );
-                        } catch (error) {
-                            const message = error instanceof Error ? error.message : String(error);
-                            return JSON.stringify(
-                                {
-                                    success: false,
-                                    error: `Failed to update task: ${message}`,
+                                    error: `Failed to upsert task: ${message}`,
                                 },
                                 null,
                                 2,
