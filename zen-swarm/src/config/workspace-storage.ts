@@ -141,7 +141,7 @@ export class WorkspaceStorage {
             input.rootPath,
             input.description ?? null,
             now,
-            now, // Set last_accessed_at to now on creation
+            null, // last_accessed_at is no longer used
             now,
         );
 
@@ -195,21 +195,6 @@ export class WorkspaceStorage {
         if (result.changes === 0) {
             throw new Error(`Failed to delete workspace with id "${id}"`);
         }
-    }
-
-    async updateLastAccessed(id: string): Promise<void> {
-        const existing = await this.getWorkspaceById(id);
-        if (!existing) {
-            throw new Error(`Workspace with id "${id}" not found`);
-        }
-
-        const stmt = this.db.prepare(`
-            UPDATE workspaces
-            SET last_accessed_at = ?, updated_at = ?
-            WHERE id = ?
-        `);
-
-        stmt.run(this.now(), this.now(), id);
     }
 
     async validatePath(path: string): Promise<{ valid: boolean; error?: string }> {

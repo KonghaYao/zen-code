@@ -80,6 +80,9 @@ interface WorkspaceState {
     // 刷新
     refresh: () => Promise<void>;
 
+    // 根据 path 获取 workspace
+    getWorkspaceByPath: (rootPath: string) => Workspace | undefined;
+
     // 清除错误
     clearError: () => void;
 
@@ -101,6 +104,7 @@ const initialState: Omit<
     | 'openManageDialog'
     | 'closeManageDialog'
     | 'refresh'
+    | 'getWorkspaceByPath'
     | 'clearError'
     | 'reset'
 > = {
@@ -221,15 +225,21 @@ export const useWorkspaceStore = create<WorkspaceState>()(
                         console.log('[createWorkspace] Result:', result);
                         const newWorkspace = result.workspace;
 
-                        set((state) => ({
-                            workspaces: [...state.workspaces, newWorkspace],
-                            currentWorkspace: newWorkspace,
-                            isFirstLaunch: false,
-                            isRefreshing: false,
-                        }));
+                        set((state) => {
+                            // 如果当前没有 workspace，自动切换到新的
+                            const shouldSwitch = !state.currentWorkspace;
+                            return {
+                                workspaces: [...state.workspaces, newWorkspace],
+                                currentWorkspace: shouldSwitch ? newWorkspace : state.currentWorkspace,
+                                isFirstLaunch: false,
+                                isRefreshing: false,
+                            };
+                        });
 
-                        // 保存到 localStorage
-                        localStorage.setItem('workspace:last-id', newWorkspace.id);
+                        // 保存到 localStorage（如果是当前 workspace）
+                        if (get().currentWorkspace?.id === newWorkspace.id) {
+                            localStorage.setItem('workspace:last-id', newWorkspace.id);
+                        }
 
                         return newWorkspace;
                     } catch (error) {
@@ -330,6 +340,15 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
                 refresh: async () => {
                     await get().loadWorkspaces();
+                },
+
+                // ========================================
+                // 根据 path 获取 workspace
+                // ========================================
+
+                getWorkspaceByPath: (rootPath: string) => {
+                    const workspaces = get().workspaces;
+                    return workspaces.find((w) => w.rootPath === rootPath);
                 },
 
                 // ========================================

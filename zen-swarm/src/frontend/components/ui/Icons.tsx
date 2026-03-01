@@ -141,6 +141,7 @@ export {
     Cat,
     Dog,
     PawPrint,
+    MessageSquare,
     // Additional icons for SM View
     Layers,
     GitBranch,

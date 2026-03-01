@@ -1,29 +1,26 @@
 /**
- * WorkspaceContent - Workspace 内容区域（被 KeepAlive 缓存）
+ * ChatPanel - Chat 面板组件（独立提取）
  *
  * 功能：
- * - 四栏布局：Chat History、Chat、Preview Panel、File Tree
- * - 文件树加载和管理
- * - 文件选择和预览
+ * - 消息展示（Human、AI、Tool）
+ * - 输入框
+ * - Agent 选择器
+ * - Stop 生成按钮
+ * - 消息滚动与自动跟随
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { apiClient } from '../api.js';
 import { useChat } from '@langgraph-js/sdk/react';
-import { PanelLayout, PanelItem } from '../components/workspace/index.js';
-import { FileTree } from '../components/fileExplorer/index.js';
-import type { TreeNode } from '../components/fileExplorer/FileTree/FileTree.js';
-import { PreviewPanel } from '../components/fileExplorer/Preview/index.js';
-import { HistorySidebar } from '../components/HistorySidebar.js';
-import { HumanMessage, AIMessage, ToolMessage } from '../components/index.js';
-import { AgentSelect } from '../components/AgentSelect.js';
+import { HumanMessage, AIMessage, ToolMessage } from './index.js';
+import { AgentSelect } from './AgentSelect.js';
 
 // ========================================
 // Types
 // ========================================
 
-interface WorkspaceContentProps {
-    workspaceId: string;
+interface ChatPanelProps {
+    modelName?: string;
+    onClose?: () => void;
     rootPath: string;
 }
 
@@ -92,14 +89,10 @@ const MiniInput: React.FC<MiniInputProps> = ({ value, onChange, onSubmit, loadin
 };
 
 // ========================================
-// Chat Panel Component - 第二栏
+// ChatPanel Component
 // ========================================
 
-const ChatPanelContent: React.FC<{ modelName?: string; onClose?: () => void; rootPath: string }> = ({
-    modelName,
-    onClose,
-    rootPath,
-}) => {
+export const ChatPanel: React.FC<ChatPanelProps> = ({ modelName, onClose, rootPath }) => {
     const chatStore = useChat();
     const {
         userInput,
@@ -116,11 +109,6 @@ const ChatPanelContent: React.FC<{ modelName?: string; onClose?: () => void; roo
     const [isUserNearBottom, setIsUserNearBottom] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
-
-    // Debug: Log state changes
-    useEffect(() => {
-        console.log('ChatPanelContent: selectedAgentId changed to:', selectedAgentId);
-    }, [selectedAgentId]);
 
     // 检测用户是否在底部
     useEffect(() => {
@@ -164,7 +152,7 @@ const ChatPanelContent: React.FC<{ modelName?: string; onClose?: () => void; roo
     };
 
     return (
-        <div className="flex flex-col h-full overflow-hidden bg-white border-r border-[var(--color-border-subtle)]">
+        <div className="flex flex-col h-full overflow-hidden bg-white">
             {/* Header */}
             <header className="flex-shrink-0 bg-white border-b border-[var(--color-border-subtle)] px-3 py-2.5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -174,7 +162,6 @@ const ChatPanelContent: React.FC<{ modelName?: string; onClose?: () => void; roo
                     <AgentSelect
                         value={selectedAgentId}
                         onChange={(agentId) => {
-                            console.log('ChatPanelContent: Agent changed to', agentId);
                             setSelectedAgentId(agentId);
                         }}
                         disabled={loading}
@@ -242,127 +229,5 @@ const ChatPanelContent: React.FC<{ modelName?: string; onClose?: () => void; roo
     );
 };
 
-// ========================================
-// Workspace Content Component
-// ========================================
-
-export const WorkspaceContent: React.FC<WorkspaceContentProps> = ({ workspaceId, rootPath }) => {
-    // ========================================
-    // State - 文件树（每个 workspace 独立）
-    // ========================================
-    const [tree, setTree] = useState<TreeNode[]>([]);
-    const [treeLoading, setTreeLoading] = useState(false);
-    const [treeError, setTreeError] = useState<string | null>(null);
-    const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
-    const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
-
-    // ========================================
-    // Effects - 加载文件树
-    // ========================================
-    useEffect(() => {
-        const loadTree = async () => {
-            setTreeLoading(true);
-            try {
-                const result = await apiClient.files.tree.query({
-                    path: rootPath,
-                    maxDepth: 3,
-                });
-                setTree(result.tree);
-            } catch (err: any) {
-                console.error('Failed to load file tree:', err);
-                setTreeError(err.message || 'Failed to load file tree');
-            } finally {
-                setTreeLoading(false);
-            }
-        };
-
-        loadTree();
-    }, [rootPath, workspaceId]);
-
-    // ========================================
-    // Handlers - 文件树
-    // ========================================
-    const handleTreeSelect = useCallback((node: TreeNode) => {
-        setSelectedNode(node);
-    }, []);
-
-    const handleTreeToggleExpand = useCallback((path: string) => {
-        setExpandedPaths((prev) => {
-            const next = new Set(prev);
-            if (next.has(path)) {
-                next.delete(path);
-            } else {
-                next.add(path);
-            }
-            return next;
-        });
-    }, []);
-
-    // ========================================
-    // Render
-    // ========================================
-    return (
-        <PanelLayout
-            panels={[
-                { id: 'history', position: 'left', defaultWidth: 240 },
-                { id: 'chat', position: 'left', defaultWidth: 320 },
-                { id: 'preview', position: 'center' },
-                { id: 'tree', position: 'right', defaultWidth: 250 },
-            ]}
-            minPanelWidth={200}
-            maxWidthPercent={35}
-        >
-            {/* 第一栏：Chat History */}
-            <PanelItem
-                id="history"
-                position="left"
-                className="flex flex-col bg-[var(--color-bg-secondary)] border-r border-[var(--color-border-subtle)]"
-            >
-                <HistorySidebar />
-            </PanelItem>
-
-            {/* 第二栏：Chat */}
-            <PanelItem id="chat" position="left">
-                <ChatPanelContent modelName="AI" rootPath={rootPath} />
-            </PanelItem>
-
-            {/* 第三栏：文件预览 */}
-            <PanelItem id="preview" position="center" className="bg-[var(--color-bg-primary)]">
-                <PreviewPanel selectedNode={selectedNode} rootPath={rootPath} />
-            </PanelItem>
-
-            {/* 第四栏：文件树 */}
-            <PanelItem
-                id="tree"
-                position="right"
-                className="flex flex-col border-l border-gray-200 bg-[var(--color-bg-secondary)]"
-            >
-                <div className="flex-1 overflow-y-auto overflow-x-hidden">
-                    {treeError && (
-                        <div className="m-4 p-3 bg-red-500/10 border border-red-500/30 rounded text-red-400 text-sm">
-                            <div className="flex items-center gap-2">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                                    />
-                                </svg>
-                                <span>{treeError}</span>
-                            </div>
-                        </div>
-                    )}
-                    <FileTree
-                        tree={tree}
-                        selectedPath={selectedNode?.path ?? null}
-                        expandedPaths={expandedPaths}
-                        onSelect={handleTreeSelect}
-                        onToggleExpand={handleTreeToggleExpand}
-                        loading={treeLoading}
-                    />
-                </div>
-            </PanelItem>
-        </PanelLayout>
-    );
-};
+// 导出别名，用于向后兼容
+export const ChatPanelContent = ChatPanel;

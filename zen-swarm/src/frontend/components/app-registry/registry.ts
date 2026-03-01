@@ -7,9 +7,10 @@ import type { AppRegistryItem, AppId } from './types.js';
 import React from 'react';
 
 // 直接导入视图组件（不支持懒加载，因为没有 default export）
+import { ChatView } from '../../views/ChatView.js';
 import { DashboardView } from '../../views/DashboardView.js';
 import { ConfigView } from '../../views/ConfigView.js';
-import { WorkspaceView } from '../../views/WorkspaceView.js';
+// import { WorkspaceView } from '../../views/WorkspaceView.js'; // 已废弃
 import { FinderView } from '../../views/Finder/index.js';
 import { CronView } from '../../views/CronView.js';
 import { SMView } from '../../views/SM/index.js';
@@ -18,6 +19,7 @@ import { TerminalView } from '../../components/terminal/TerminalView.js';
 
 // Lucide icons from Icons.tsx
 import {
+    MessageSquare,
     BarChart3,
     Settings,
     FolderOpen,
@@ -34,13 +36,22 @@ import {
  */
 export const appRegistry: AppRegistryItem[] = [
     {
+        id: 'chat',
+        name: 'Chat',
+        icon: React.createElement(MessageSquare, { size: 24 }),
+        description: 'AI 聊天助手',
+        viewComponent: ChatView,
+        defaultOpen: true,
+        keyboardShortcut: 'Cmd+1',
+        contextMenuActions: ['open', 'help'],
+    },
+    {
         id: 'dashboard',
         name: 'Dashboard',
         icon: React.createElement(BarChart3, { size: 24 }),
         description: '概览仪表盘',
         viewComponent: DashboardView,
-        defaultOpen: true,
-        keyboardShortcut: 'Cmd+1',
+        keyboardShortcut: 'Cmd+2',
         contextMenuActions: ['open', 'help'],
     },
     {
@@ -49,7 +60,7 @@ export const appRegistry: AppRegistryItem[] = [
         icon: React.createElement(Settings, { size: 24 }),
         description: 'AI 配置与资源管理',
         viewComponent: ConfigView,
-        keyboardShortcut: 'Cmd+2',
+        keyboardShortcut: 'Cmd+3',
         contextMenuActions: ['open', 'help'],
     },
     {
@@ -58,18 +69,18 @@ export const appRegistry: AppRegistryItem[] = [
         icon: React.createElement(FolderOpen, { size: 24 }),
         description: 'macOS 风格文件管理器',
         viewComponent: FinderView,
-        keyboardShortcut: 'Cmd+3',
-        contextMenuActions: ['open', 'help'],
-    },
-    {
-        id: 'workspaces',
-        name: 'Workspace',
-        icon: React.createElement(Folder, { size: 24 }),
-        description: 'VSCode 风格工作空间',
-        viewComponent: WorkspaceView,
         keyboardShortcut: 'Cmd+4',
         contextMenuActions: ['open', 'help'],
     },
+    // {
+    //     id: 'workspaces',
+    //     name: 'Workspace',
+    //     icon: React.createElement(Folder, { size: 24 }),
+    //     description: 'VSCode 风格工作空间',
+    //     viewComponent: WorkspaceView,
+    //     keyboardShortcut: 'Cmd+5',
+    //     contextMenuActions: ['open', 'help'],
+    // },
     {
         id: 'monitor',
         name: 'Monitor',

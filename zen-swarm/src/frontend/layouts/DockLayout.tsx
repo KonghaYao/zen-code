@@ -13,6 +13,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner.js';
 import type { AppId } from '../components/app-registry/types.js';
 
 // 导入视图组件
+import { ChatView } from '../views/ChatView.js';
 import { DashboardView } from '../views/DashboardView.js';
 import { ConfigView } from '../views/ConfigView.js';
 import { CronView } from '../views/CronView.js';
@@ -40,24 +41,20 @@ export function DockLayout() {
             path = path.slice(0, queryIndex);
         }
 
-        console.log('🔍 DockLayout - hash:', hash, 'path:', path);
-
-        // 只返回有效的应用 ID，否则默认为 dashboard
-        if (['dashboard', 'config', 'workspaces', 'finder', 'sm', 'monitor', 'cron', 'terminal'].includes(path)) {
+        // 只返回有效的应用 ID，否则默认为 chat
+        if (['chat', 'dashboard', 'config', 'finder', 'sm', 'monitor', 'cron', 'terminal'].includes(path)) {
             return path as AppId;
         }
-        // 如果路径为空或无效，默认为 dashboard
-        console.log('⚠️ DockLayout - Invalid path, defaulting to dashboard');
-        return 'dashboard';
+        // 如果路径为空或无效，默认为 chat
+        return 'chat';
     }, [location.hash]);
 
     const currentApp = activeApp ? getAppById(activeApp) : null;
-    const isFullScreen = activeApp === 'workspaces';
+    const isFullScreen = false; // 所有应用都使用窗口模式
 
     // 处理应用切换（由 DockContainer 调用）
     const handleAppChange = useCallback(
         (appId: AppId) => {
-            console.log('🔄 DockLayout - handleAppChange called with:', appId);
             navigate(`#/${appId}`);
         },
         [navigate],
@@ -76,7 +73,6 @@ export function DockLayout() {
 
         const ViewComponent = currentApp.viewComponent;
         const handleClose = () => {
-            console.log('❌ DockLayout - handleClose called, navigating to dashboard');
             navigate('#/');
         };
 

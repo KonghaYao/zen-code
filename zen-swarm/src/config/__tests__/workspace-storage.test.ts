@@ -46,7 +46,7 @@ describe('WorkspaceStorage', () => {
             expect(workspace.description).toBe('Test workspace');
             expect(workspace.createdAt).toBeDefined();
             expect(workspace.updatedAt).toBeDefined();
-            expect(workspace.lastAccessedAt).toBeDefined();
+            expect(workspace.lastAccessedAt).toBeUndefined();
         });
 
         it('should throw error if name already exists', async () => {
@@ -138,33 +138,25 @@ describe('WorkspaceStorage', () => {
             expect(all.find((w) => w.id === ws2.id)).toBeDefined();
         });
 
-        it('should sort by last_accessed_at', async () => {
+        it('should sort by created_at descending', async () => {
             const ws1 = await storage.createWorkspace({
                 name: 'test-workspace-9',
                 rootPath: testDir,
             });
 
             // Wait to ensure different timestamps
-            await new Promise((resolve) => setTimeout(resolve, 100));
+            await new Promise((resolve) => setTimeout(resolve, 10));
 
             const ws2 = await storage.createWorkspace({
                 name: 'test-workspace-10',
                 rootPath: testDir,
             });
 
-            // At this point, ws2 should be first (newer created, more recent last_accessed)
-            let all = await storage.getAllWorkspaces();
-            let ws2Index = all.findIndex((w) => w.id === ws2.id);
-            expect(ws2Index).toBe(0); // ws2 should be first
-
-            // Now update ws1's last_accessed_at to make it more recent
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            await storage.updateLastAccessed(ws1.id);
-
-            // Now ws1 should be first
-            all = await storage.getAllWorkspaces();
+            // ws2 was created later, so it should appear first (DESC order)
+            const all = await storage.getAllWorkspaces();
+            const ws2Index = all.findIndex((w) => w.id === ws2.id);
             const ws1Index = all.findIndex((w) => w.id === ws1.id);
-            expect(ws1Index).toBe(0); // ws1 should be first after update
+            expect(ws2Index).toBeLessThan(ws1Index); // ws2 should be before ws1
         });
     });
 
@@ -230,29 +222,6 @@ describe('WorkspaceStorage', () => {
 
         it('should throw error if workspace not found', async () => {
             await expect(storage.deleteWorkspace('nonexistent-id')).rejects.toThrow('not found');
-        });
-    });
-
-    describe('updateLastAccessed', () => {
-        it('should update last_accessed_at', async () => {
-            const created = await storage.createWorkspace({
-                name: 'test-workspace-15',
-                rootPath: testDir,
-            });
-
-            const originalLastAccessed = created.lastAccessedAt;
-
-            // Wait a bit to ensure different timestamp
-            await new Promise((resolve) => setTimeout(resolve, 10));
-
-            await storage.updateLastAccessed(created.id);
-
-            const updated = await storage.getWorkspaceById(created.id);
-            expect(updated?.lastAccessedAt).not.toBe(originalLastAccessed);
-            // Verify that timestamp is actually different
-            const originalTime = new Date(originalLastAccessed || '').getTime();
-            const updatedTime = new Date(updated?.lastAccessedAt || '').getTime();
-            expect(updatedTime).toBeGreaterThan(originalTime);
         });
     });
 

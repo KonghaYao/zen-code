@@ -136,20 +136,6 @@ export const workspacesRouter = router({
         return { id: input.id, success: true };
     }),
 
-    // 更新最后访问时间
-    updateLastAccessed: publicProcedure.input(GetWorkspaceInputSchema).mutation(async ({ input }) => {
-        const storage = await getStorage();
-
-        const existing = await storage.getWorkspaceById(input.id);
-        if (!existing) {
-            handleNotFound('Workspace', input.id);
-        }
-
-        await storage.updateLastAccessed(input.id);
-
-        return { id: input.id, success: true };
-    }),
-
     // 验证路径
     validatePath: publicProcedure.input(ValidatePathInputSchema).query(async ({ input }) => {
         const storage = await getStorage();

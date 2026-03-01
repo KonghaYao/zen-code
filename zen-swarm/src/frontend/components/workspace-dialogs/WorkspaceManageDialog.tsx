@@ -21,6 +21,7 @@ import { X, Plus, Edit, Trash2, Folder } from '../ui/Icons.js';
 interface WorkspaceManageDialogProps {
     open: boolean;
     onClose: () => void;
+    initialWorkspaceId?: string; // 如果提供，直接进入编辑模式
 }
 
 // ========================================
@@ -248,12 +249,23 @@ const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({ workspace, on
 // 主组件
 // ========================================
 
-export const WorkspaceManageDialog: React.FC<WorkspaceManageDialogProps> = ({ open, onClose }) => {
+export const WorkspaceManageDialog: React.FC<WorkspaceManageDialogProps> = ({ open, onClose, initialWorkspaceId }) => {
     const workspaces = useWorkspaces();
     const currentWorkspace = useCurrentWorkspace();
 
     const [mode, setMode] = useState<'list' | 'create' | 'edit' | 'delete'>('list');
     const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
+
+    // 如果提供了 initialWorkspaceId，直接进入编辑模式
+    React.useEffect(() => {
+        if (open && initialWorkspaceId) {
+            const workspace = workspaces.find((w) => w.id === initialWorkspaceId);
+            if (workspace) {
+                setSelectedWorkspace(workspace);
+                setMode('edit');
+            }
+        }
+    }, [open, initialWorkspaceId, workspaces]);
 
     // 重置模式当对话框关闭时
     React.useEffect(() => {
