@@ -22,6 +22,7 @@ interface TerminalStore {
     setActiveSession: (sessionId: string | null) => void;
     updateSession: (sessionId: string, updates: Partial<TerminalSessionState>) => void;
     renameSession: (sessionId: string, name: string) => void;
+    syncSessions: (sessions: TerminalSessionInfo[]) => void; // 同步服务端会话列表（重连时使用）
 
     // WebSocket 状态更新
     setWsStatus: (status: WebSocketStatus) => void;
@@ -42,6 +43,11 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
     // 添加会话
     addSession: (session: TerminalSessionInfo) => {
         set((state) => {
+            // 避免重复添加同一会话（可能同时收到 created 和 list 消息）
+            if (state.sessions.some((s) => s.sessionId === session.sessionId)) {
+                return state;
+            }
+
             const newSession: TerminalSessionState = {
                 ...session,
                 name: `终端 ${state.sessions.length + 1}`,
@@ -97,6 +103,34 @@ export const useTerminalStore = create<TerminalStore>((set, get) => ({
         set((state) => ({
             sessions: state.sessions.map((s) => (s.sessionId === sessionId ? { ...s, name } : s)),
         }));
+    },
+
+    // 同步服务端会话列表（重连时使用）
+    syncSessions: (serverSessions: TerminalSessionInfo[]) => {
+        set((state) => {
+            // 仅保留本地存在的会话，添加服务端有但本地没有的会话
+            const existingIds = new Set(state.sessions.map((s) => s.sessionId));
+            const newSessions: TerminalSessionState[] = [...state.sessions];
+
+            for (const serverSession of serverSessions) {
+                if (!existingIds.has(serverSession.sessionId)) {
+                    // 服务端有但本地没有的会话，添加到本地
+                    newSessions.push({
+                        ...serverSession,
+                        name: `终端 ${newSessions.length + 1}`,
+                        isActive: false,
+                    });
+                }
+            }
+
+            // 如果当前没有激活会话但有服务端会话，自动激活第一个
+            const activeId = state.activeSessionId ?? (newSessions.length > 0 ? newSessions[0].sessionId : null);
+
+            return {
+                sessions: newSessions,
+                activeSessionId: activeId,
+            };
+        });
     },
 
     // WebSocket 状态

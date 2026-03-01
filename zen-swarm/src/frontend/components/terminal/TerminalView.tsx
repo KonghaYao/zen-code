@@ -1,9 +1,15 @@
 /**
  * TerminalView 主视图组件
  * 整合终端标签、工具栏和终端实例
+ *
+ * 关键特性：
+ * - 终端会话持久化：关闭浏览器/断联不会销毁会话
+ * - 重连恢复：重连后自动恢复历史输出
+ * - 用户主动删除：只有点击关闭按钮才会销毁会话
+ * - 不自动创建：刷新页面不会新建终端，需手动点击"新建"
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Terminal, TerminalRef } from './Terminal.js';
 import { TerminalTabs } from './TerminalTabs.js';
@@ -16,7 +22,6 @@ const DEFAULT_ROWS = 24;
 
 export function TerminalView() {
     const terminalRef = useRef<TerminalRef>(null);
-    const [isFirstLoad, setIsFirstLoad] = useState(true);
 
     const { wsStatus, createSession, destroySession, connect, sessions, activeSessionId } = useTerminal();
 
@@ -29,7 +34,7 @@ export function TerminalView() {
         createSession(DEFAULT_COLS, DEFAULT_ROWS);
     }, [wsStatus, createSession]);
 
-    // 关闭终端
+    // 关闭终端（用户主动删除 → 销毁会话）
     const handleCloseTerminal = useCallback(
         (sessionId: string) => {
             destroySession(sessionId);
@@ -41,14 +46,6 @@ export function TerminalView() {
     const handleClear = useCallback(() => {
         terminalRef.current?.clear();
     }, []);
-
-    // 首次加载自动创建一个终端
-    useEffect(() => {
-        if (isFirstLoad && wsStatus === 'connected' && sessions.length === 0) {
-            handleNewTerminal();
-            setIsFirstLoad(false);
-        }
-    }, [isFirstLoad, wsStatus, sessions.length, handleNewTerminal]);
 
     // 获取当前激活的会话
     const activeSession = sessions.find((s) => s.sessionId === activeSessionId);
@@ -63,7 +60,7 @@ export function TerminalView() {
                 onReconnect={connect}
             />
 
-            {/* 标签栏 */}
+            {/* 标签栏 - 关闭按钮会销毁会话 */}
             <TerminalTabs onNewTerminal={handleNewTerminal} onCloseTerminal={handleCloseTerminal} />
 
             {/* 终端区域 */}
@@ -78,6 +75,7 @@ export function TerminalView() {
                             transition={{ duration: 0.15 }}
                             className="absolute inset-0"
                         >
+                            {/* Terminal 组件会自动处理重连恢复 */}
                             <Terminal sessionId={activeSession.sessionId} ref={terminalRef} />
                         </motion.div>
                     ) : wsStatus !== 'connected' ? (
@@ -90,6 +88,7 @@ export function TerminalView() {
                         >
                             <div className="text-6xl opacity-40">⚠️</div>
                             <div className="text-lg">终端服务未连接</div>
+                            <div className="text-sm text-white/40">会话将在重连后恢复</div>
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
@@ -109,6 +108,7 @@ export function TerminalView() {
                         >
                             <div className="text-6xl opacity-40">💻</div>
                             <div className="text-lg">没有打开的终端</div>
+                            <div className="text-sm text-white/40">点击下方按钮或工具栏 + 新建终端</div>
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
@@ -132,11 +132,12 @@ export function TerminalView() {
                                 大小: {activeSession.cols}×{activeSession.rows}
                             </span>
                             <span>目录: {activeSession.cwd}</span>
+                            {activeSession.exited && <span className="text-yellow-400">已退出</span>}
                         </>
                     )}
                 </div>
                 <div className="flex items-center gap-2">
-                    <span>快捷键: Cmd+T 新建 | Cmd+W 关闭</span>
+                    <span>会话持久化 | 关闭浏览器不会终止进程</span>
                 </div>
             </div>
         </div>

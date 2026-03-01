@@ -36,11 +36,13 @@ let storeSetWsError: ((error: string | null) => void) | null = null;
 let storeAddSession: ((session: TerminalSessionInfo) => void) | null = null;
 let storeRemoveSession: ((sessionId: string) => void) | null = null;
 let storeUpdateSession: ((sessionId: string, updates: Partial<TerminalSessionState>) => void) | null = null;
+let storeSyncSessions: ((sessions: TerminalSessionInfo[]) => void) | null = null;
+
+// 历史输出回调（用于重连后恢复）
+const historyCallbacks = new Map<string, (history: string[]) => void>();
 
 // 处理输出消息
 function handleOutput(sessionId: string, data: string) {
-    console.log('[useTerminal] handleOutput, sessionId:', sessionId, 'data:', JSON.stringify(data.slice(0, 50)));
-
     const callbacks = outputCallbacksBySession.get(sessionId);
 
     if (callbacks && callbacks.size > 0) {
@@ -54,7 +56,6 @@ function handleOutput(sessionId: string, data: string) {
         });
     } else {
         // 没有回调，缓冲消息
-        console.log('[useTerminal] No callbacks for session, buffering...');
         let buffer = outputBufferBySession.get(sessionId);
         if (!buffer) {
             buffer = [];
@@ -77,7 +78,15 @@ function flushBuffer(sessionId: string, callback: (data: string) => void) {
         const dataToFlush = [...buffer];
         buffer.length = 0; // 清空缓冲区
         // 同步写入
-        dataToFlush.forEach((data) => callback(data));
+        dataToFlush.forEach((data) => {
+            console.log(
+                '[useTerminal] Flushing buffer entry, length:',
+                data.length,
+                'preview:',
+                JSON.stringify(data.slice(0, 30)),
+            );
+            callback(data);
+        });
     }
 }
 
@@ -88,8 +97,33 @@ function handleMessage(event: MessageEvent) {
 
         switch (msg.type) {
             case 'created':
-                console.log('[useTerminal] Session created:', msg.session.sessionId);
                 storeAddSession?.(msg.session);
+                break;
+
+            case 'attached':
+                // 重连后附加成功，恢复会话和历史输出
+                // 检查会话是否已存在，避免重复添加（如果 list 消息已经添加过了）
+                const currentSessions = useTerminalStore.getState().sessions;
+                const sessionExists = currentSessions.some((s) => s.sessionId === msg.session.sessionId);
+
+                if (!sessionExists) {
+                    storeAddSession?.(msg.session);
+                }
+
+                // 触发历史回调
+                const historyCb = historyCallbacks.get(msg.session.sessionId);
+                if (historyCb) {
+                    historyCb(msg.history);
+                    historyCallbacks.delete(msg.session.sessionId);
+                }
+                break;
+
+            case 'history':
+                // 历史输出响应
+                const cb = historyCallbacks.get(msg.sessionId);
+                if (cb) {
+                    cb(msg.history);
+                }
                 break;
 
             case 'output':
@@ -98,9 +132,10 @@ function handleMessage(event: MessageEvent) {
 
             case 'destroyed':
                 storeRemoveSession?.(msg.sessionId);
-                // 清理该 session 的回调
+                // 清理该 session 的回调和缓冲
                 outputCallbacksBySession.delete(msg.sessionId);
                 outputBufferBySession.delete(msg.sessionId);
+                historyCallbacks.delete(msg.sessionId);
                 break;
 
             case 'exit':
@@ -113,7 +148,8 @@ function handleMessage(event: MessageEvent) {
                 break;
 
             case 'list':
-                // 同步会话列表（可选）
+                // 同步会话列表（重连时服务端会发送所有现有会话）
+                storeSyncSessions?.(msg.sessions);
                 break;
         }
     } catch (error) {
@@ -138,11 +174,9 @@ function connectGlobal() {
             storeSetWsStatus?.('connected');
             storeSetWsError?.(null);
             reconnectAttempts = 0;
-            console.log('[useTerminal] WebSocket connected (global)');
         };
 
         ws.onmessage = (event) => {
-            console.log('[useTerminal] raw message received:', event.data.slice(0, 100));
             handleMessage(event);
         };
 
@@ -154,13 +188,11 @@ function connectGlobal() {
 
         ws.onclose = () => {
             storeSetWsStatus?.('disconnected');
-            console.log('[useTerminal] WebSocket disconnected');
 
             // 自动重连
             if (reconnectAttempts < maxReconnectAttempts) {
                 reconnectAttempts++;
                 const delay = Math.min(1000 * reconnectAttempts, 5000);
-                console.log(`[useTerminal] Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
                 reconnectTimeout = window.setTimeout(connectGlobal, delay);
             }
         };
@@ -190,7 +222,6 @@ function sendGlobal(msg: TerminalClientMessage): boolean {
         globalWs.send(JSON.stringify(msg));
         return true;
     }
-    console.warn('[useTerminal] WebSocket not connected, cannot send:', msg.type);
     return false;
 }
 
@@ -198,7 +229,8 @@ function sendGlobal(msg: TerminalClientMessage): boolean {
 let connectionRefCount = 0;
 
 export function useTerminal() {
-    const { setWsStatus, setWsError, addSession, removeSession, updateSession, activeSessionId } = useTerminalStore();
+    const { setWsStatus, setWsError, addSession, removeSession, updateSession, activeSessionId, syncSessions } =
+        useTerminalStore();
 
     // 注册 store 方法到全局引用
     useEffect(() => {
@@ -207,12 +239,12 @@ export function useTerminal() {
         storeAddSession = addSession;
         storeRemoveSession = removeSession;
         storeUpdateSession = updateSession;
-    }, [setWsStatus, setWsError, addSession, removeSession, updateSession]);
+        storeSyncSessions = syncSessions;
+    }, [setWsStatus, setWsError, addSession, removeSession, updateSession, syncSessions]);
 
     // 管理连接生命周期
     useEffect(() => {
         connectionRefCount++;
-        console.log('[useTerminal] Mounting, refCount:', connectionRefCount);
 
         if (connectionRefCount === 1) {
             // 第一个使用者，建立连接
@@ -221,7 +253,6 @@ export function useTerminal() {
 
         return () => {
             connectionRefCount--;
-            console.log('[useTerminal] Unmounting, refCount:', connectionRefCount);
 
             if (connectionRefCount === 0) {
                 // 最后一个使用者，断开连接
@@ -272,6 +303,17 @@ export function useTerminal() {
         return send({ type: 'list' });
     }, [send]);
 
+    // 附加到已存在的会话（用于重连恢复）
+    const attachSession = useCallback(
+        (sessionId: string, onHistory?: (history: string[]) => void) => {
+            if (onHistory) {
+                historyCallbacks.set(sessionId, onHistory);
+            }
+            return send({ type: 'attach', sessionId });
+        },
+        [send],
+    );
+
     // 手动重连
     const connect = useCallback(() => {
         disconnectGlobal();
@@ -286,8 +328,6 @@ export function useTerminal() {
 
     // 注册输出回调（按 sessionId）
     const onOutput = useCallback((sessionId: string, callback: (data: string) => void) => {
-        console.log('[useTerminal] onOutput registered for session:', sessionId);
-
         let callbacks = outputCallbacksBySession.get(sessionId);
         if (!callbacks) {
             callbacks = new Set();
@@ -300,7 +340,6 @@ export function useTerminal() {
 
         return () => {
             callbacks?.delete(callback);
-            console.log('[useTerminal] onOutput unregistered for session:', sessionId);
         };
     }, []);
 
@@ -319,6 +358,7 @@ export function useTerminal() {
         createSession,
         destroySession,
         listSessions,
+        attachSession, // 重连恢复
 
         // 终端操作
         sendInput,

@@ -1,9 +1,11 @@
 /**
  * Terminal 组件
  * xterm.js 封装，实现真实终端渲染
+ *
+ * 支持断线重连：重连时会自动恢复历史输出
  */
 
-import { useEffect, useRef, useCallback, useState, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
@@ -67,8 +69,9 @@ export const Terminal = forwardRef<TerminalRef, TerminalProps>(function Terminal
     const xtermRef = useRef<XTerm | null>(null);
     const fitAddonRef = useRef<FitAddon | null>(null);
     const [isReady, setIsReady] = useState(false);
+    const hasAttachedRef = useRef(false); // 跟踪是否已附加到会话
 
-    const { sendInput, resize, onOutput, wsStatus } = useTerminal();
+    const { sendInput, resize, onOutput, wsStatus, attachSession } = useTerminal();
 
     // 使用 ref 存储最新的函数引用，避免闭包问题
     const sendInputRef = useRef(sendInput);
@@ -104,8 +107,6 @@ export const Terminal = forwardRef<TerminalRef, TerminalProps>(function Terminal
     useEffect(() => {
         if (!containerRef.current || xtermRef.current) return;
 
-        console.log('[Terminal] Initializing xterm, sessionId:', sessionId);
-
         const xterm = new XTerm({
             cursorBlink: mergedOptions.cursorBlink,
             cursorStyle: mergedOptions.cursorStyle,
@@ -130,32 +131,17 @@ export const Terminal = forwardRef<TerminalRef, TerminalProps>(function Terminal
 
         // 立即聚焦终端
         xterm.focus();
-        console.log('[Terminal] xterm initialized and focused');
 
         // 立即注册输出回调（在 setIsReady 之前，确保缓冲区消息能被正确处理）
         const outputUnsubscribe = onOutput(sessionId, (data) => {
-            console.log(
-                '[Terminal] onOutput callback (init), sessionId:',
-                sessionId,
-                'data:',
-                JSON.stringify(data.slice(0, 50)),
-            );
             xterm.write(data);
         });
 
         // 用户输入发送到服务端
         // 使用 ref 获取最新的状态，避免闭包捕获旧值
         const dataDisposable = xterm.onData((data) => {
-            console.log('[Terminal] onData triggered');
-            console.log('[Terminal]   - data:', JSON.stringify(data));
-            console.log('[Terminal]   - wsStatus:', wsStatusRef.current);
-            console.log('[Terminal]   - sendInput:', typeof sendInputRef.current);
-
             if (wsStatusRef.current === 'connected') {
-                const sent = sendInputRef.current(sessionId, data);
-                console.log('[Terminal]   - sendInput result:', sent);
-            } else {
-                console.warn('[Terminal] WebSocket not connected, input ignored. wsStatus:', wsStatusRef.current);
+                sendInputRef.current(sessionId, data);
             }
         });
 
@@ -163,15 +149,33 @@ export const Terminal = forwardRef<TerminalRef, TerminalProps>(function Terminal
         onReady?.();
 
         return () => {
-            console.log('[Terminal] Disposing xterm');
             outputUnsubscribe();
             dataDisposable.dispose();
             xterm.dispose();
             xtermRef.current = null;
             fitAddonRef.current = null;
             setIsReady(false);
+            hasAttachedRef.current = false;
         };
     }, [sessionId, onOutput]); // 包含 onOutput 依赖
+
+    // 重连恢复：WebSocket 重连后附加到已有会话并恢复历史输出
+    useEffect(() => {
+        if (!isReady || !xtermRef.current || wsStatus !== 'connected' || hasAttachedRef.current) return;
+
+        // 标记已附加，避免重复附加
+        hasAttachedRef.current = true;
+
+        // 附加到会话并恢复历史输出
+        attachSession(sessionId, (history) => {
+            if (xtermRef.current && history.length > 0) {
+                // 清空当前终端内容
+                xtermRef.current.clear();
+                // 写入历史输出
+                history.forEach((line) => xtermRef.current?.write(line));
+            }
+        });
+    }, [sessionId, isReady, wsStatus, attachSession]);
 
     // 不再需要单独的监听输出 effect（已在初始化时注册）
 

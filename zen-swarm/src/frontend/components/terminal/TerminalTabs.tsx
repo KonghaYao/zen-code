@@ -1,6 +1,10 @@
 /**
  * TerminalTabs 组件
  * 多终端标签页管理
+ *
+ * 关键特性：
+ * - 关闭标签会真正销毁终端会话（杀死进程）
+ * - 断联/关闭浏览器不会销毁会话，只有用户点击关闭才会
  */
 
 import { useCallback, useState } from 'react';
@@ -42,10 +46,12 @@ export function TerminalTabs({ onNewTerminal, onCloseTerminal }: TerminalTabsPro
         setEditValue('');
     }, [editingId, editValue, renameSession]);
 
-    // 关闭标签
+    // 关闭标签（销毁会话）
     const handleClose = useCallback(
         (e: React.MouseEvent, sessionId: string) => {
             e.stopPropagation();
+            // 用户主动点击关闭 → 销毁会话
+            // 注意：这只是前端发起的关闭请求，会杀死后端进程
             onCloseTerminal(sessionId);
         },
         [onCloseTerminal],
@@ -102,10 +108,11 @@ export function TerminalTabs({ onNewTerminal, onCloseTerminal }: TerminalTabsPro
                             <span className="flex-1 truncate text-sm">{session.name}</span>
                         )}
 
-                        {/* 关闭按钮 */}
+                        {/* 关闭按钮 - 点击会销毁终端会话 */}
                         <button
                             onClick={(e) => handleClose(e, session.sessionId)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-white/20 rounded"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-red-500/30 rounded"
+                            title="关闭终端（会终止进程）"
                         >
                             <X size={14} />
                         </button>

@@ -4,12 +4,58 @@
  *
  * Bun 环境：使用 Bun.Terminal 官方 API
  * Node.js 环境：使用 node-pty
+ *
+ * 支持输出缓存：断线重连后可恢复历史输出
  */
 
 import { spawn } from 'child_process';
 import type { TerminalSessionInfo } from './types.js';
 
 const isBun = typeof Bun !== 'undefined';
+
+/**
+ * Ring Buffer 实现 - 固定大小的循环缓冲区
+ * 用于存储终端输出历史
+ */
+class RingBuffer<T> {
+    private buffer: (T | undefined)[];
+    private head = 0;
+    private count = 0;
+
+    constructor(private capacity: number) {
+        this.buffer = new Array(capacity);
+    }
+
+    push(item: T): void {
+        this.buffer[this.head] = item;
+        this.head = (this.head + 1) % this.capacity;
+        if (this.count < this.capacity) this.count++;
+    }
+
+    getAll(): T[] {
+        if (this.count < this.capacity) {
+            return this.buffer.slice(0, this.count) as T[];
+        }
+        // 环形缓冲区已满，需要按正确顺序返回
+        const result: T[] = [];
+        for (let i = 0; i < this.capacity; i++) {
+            const idx = (this.head + i) % this.capacity;
+            const item = this.buffer[idx];
+            if (item !== undefined) result.push(item);
+        }
+        return result;
+    }
+
+    get length(): number {
+        return this.count;
+    }
+
+    clear(): void {
+        this.buffer = new Array(this.capacity);
+        this.head = 0;
+        this.count = 0;
+    }
+}
 
 // 检测 node-pty 是否可用
 let pty: typeof import('node-pty') | null = null;
@@ -31,6 +77,9 @@ function getDefaultShell(): string {
     return process.env.SHELL || '/bin/bash';
 }
 
+// 默认输出缓冲区大小（行数）
+const DEFAULT_BUFFER_SIZE = 10000;
+
 export class TerminalSession {
     private ptyProcess: import('node-pty').IPty | null = null;
     private bunTerminal: Bun.Terminal | null = null;
@@ -47,16 +96,21 @@ export class TerminalSession {
     private _pid: number = 0;
     private _isPtyMode: boolean = false;
 
-    constructor(sessionId: string, cols: number, rows: number, cwd?: string) {
+    // 输出缓冲区 - 用于断线重连后恢复历史
+    private outputBuffer: RingBuffer<string>;
+    private maxBufferSize: number;
+
+    constructor(sessionId: string, cols: number, rows: number, cwd?: string, maxBufferSize?: number) {
         this.sessionId = sessionId;
         this.createdAt = Date.now();
         this.cwd = cwd ?? process.cwd();
         this._cols = cols;
         this._rows = rows;
+        this.maxBufferSize = maxBufferSize ?? DEFAULT_BUFFER_SIZE;
+        this.outputBuffer = new RingBuffer<string>(this.maxBufferSize);
 
         if (isPtyWorking && pty) {
             // Node.js 环境：使用 node-pty（完整 PTY 支持）
-            console.log('[TerminalSession] Using node-pty mode');
             this._isPtyMode = true;
             const shell = getDefaultShell();
             this.ptyProcess = pty.spawn(shell, [], {
@@ -74,6 +128,8 @@ export class TerminalSession {
 
             this.ptyProcess.onData((data) => {
                 if (!this.isExited) {
+                    // 缓存输出用于重连恢复
+                    this.outputBuffer.push(data);
                     this.outputCallbacks.forEach((cb) => cb(data));
                 }
             });
@@ -99,17 +155,10 @@ export class TerminalSession {
                     const decoder = new TextDecoder();
                     const str = decoder.decode(data);
 
-                    console.log(
-                        '[TerminalSession] Bun.Terminal data received, str:',
-                        JSON.stringify(str.slice(0, 30)),
-                        'callbacks:',
-                        self.outputCallbacks.size,
-                    );
                     if (!self.isExited && str) {
-                        self.outputCallbacks.forEach((cb) => {
-                            console.log('[TerminalSession] calling output callback');
-                            cb(str);
-                        });
+                        // 缓存输出用于重连恢复
+                        self.outputBuffer.push(str);
+                        self.outputCallbacks.forEach((cb) => cb(str));
                     }
                 },
             });
@@ -127,7 +176,6 @@ export class TerminalSession {
             });
             this.bunProcess = proc;
             this._pid = proc.pid;
-            console.log('[TerminalSession] Bun process started, pid:', proc.pid);
 
             // 监听退出
             proc.exited
@@ -157,6 +205,8 @@ export class TerminalSession {
             this.childProcess.stdout?.on('data', (data: Buffer) => {
                 if (!this.isExited) {
                     const str = data.toString();
+                    // 缓存输出用于重连恢复
+                    this.outputBuffer.push(str);
                     this.outputCallbacks.forEach((cb) => cb(str));
                 }
             });
@@ -164,6 +214,8 @@ export class TerminalSession {
             this.childProcess.stderr?.on('data', (data: Buffer) => {
                 if (!this.isExited) {
                     const str = data.toString();
+                    // 缓存输出用于重连恢复
+                    this.outputBuffer.push(str);
                     this.outputCallbacks.forEach((cb) => cb(str));
                 }
             });
@@ -257,6 +309,21 @@ export class TerminalSession {
         return () => {
             this.exitCallbacks.delete(callback);
         };
+    }
+
+    /**
+     * 获取历史输出（用于断线重连后恢复）
+     * @returns 历史输出字符串数组
+     */
+    getHistory(): string[] {
+        return this.outputBuffer.getAll();
+    }
+
+    /**
+     * 获取缓冲区大小
+     */
+    get bufferSize(): number {
+        return this.outputBuffer.length;
     }
 
     /**

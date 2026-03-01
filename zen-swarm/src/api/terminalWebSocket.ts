@@ -1,6 +1,11 @@
 /**
  * 终端 WebSocket 处理器
  * 处理客户端与终端会话之间的通信
+ *
+ * 关键特性：
+ * - 会话持久化：关闭浏览器/断联不会销毁会话
+ * - 重连恢复：重连后可恢复历史输出
+ * - 用户主动删除：只有用户点击删除才会销毁会话
  */
 
 import type { ServerWebSocket } from 'bun';
@@ -12,7 +17,7 @@ import {
 
 // WebSocket 数据附加类型
 interface TerminalWebSocketData {
-    sessionId?: string;
+    sessionIds: Set<string>; // 支持同时监控多个会话
 }
 
 // 创建响应消息的辅助函数
@@ -41,7 +46,7 @@ export function handleTerminalMessage(ws: ServerWebSocket<TerminalWebSocketData>
                 }
 
                 const session = manager.create(msg.cols, msg.rows, msg.cwd);
-                ws.data.sessionId = session.sessionId;
+                ws.data.sessionIds.add(session.sessionId);
 
                 // 发送创建成功消息
                 ws.send(
@@ -51,8 +56,8 @@ export function handleTerminalMessage(ws: ServerWebSocket<TerminalWebSocketData>
                     }),
                 );
 
-                // 监听输出
-                manager.onOutput(session.sessionId, (data: string) => {
+                // 监听输出（传入 ws 作为标识符，确保独占监听）
+                const unsubscribe = manager.onOutput(session.sessionId, ws, (data: string) => {
                     ws.send(
                         createMessage({
                             type: 'output',
@@ -62,13 +67,58 @@ export function handleTerminalMessage(ws: ServerWebSocket<TerminalWebSocketData>
                     );
                 });
 
-                // 监听退出
+                // 监听退出（但不销毁会话，只通知前端）
                 manager.onExit(session.sessionId, (code: number) => {
                     ws.send(
                         createMessage({
                             type: 'exit',
                             sessionId: session.sessionId,
                             code,
+                        }),
+                    );
+                    // 会话退出时取消订阅
+                    unsubscribe?.();
+                    ws.data.sessionIds.delete(session.sessionId);
+                });
+                break;
+            }
+
+            case 'attach': {
+                // 重连时附加到已存在的会话
+                const session = manager.getSession(msg.sessionId);
+                if (!session) {
+                    ws.send(
+                        createMessage({
+                            type: 'error',
+                            sessionId: msg.sessionId,
+                            message: 'Terminal session not found',
+                        }),
+                    );
+                    return;
+                }
+
+                // 添加到监控列表
+                ws.data.sessionIds.add(msg.sessionId);
+
+                // 获取历史输出
+                const history = manager.getHistory(msg.sessionId) ?? [];
+
+                // 发送附加成功消息（包含历史输出）
+                ws.send(
+                    createMessage({
+                        type: 'attached',
+                        session,
+                        history,
+                    }),
+                );
+
+                // 监听后续输出（传入 ws 作为标识符，确保独占监听）
+                manager.onOutput(msg.sessionId, ws, (data: string) => {
+                    ws.send(
+                        createMessage({
+                            type: 'output',
+                            sessionId: msg.sessionId,
+                            data,
                         }),
                     );
                 });
@@ -102,6 +152,7 @@ export function handleTerminalMessage(ws: ServerWebSocket<TerminalWebSocketData>
             }
 
             case 'destroy': {
+                // 只有用户主动调用 destroy 才真正销毁会话
                 if (manager.destroy(msg.sessionId)) {
                     ws.send(
                         createMessage({
@@ -109,6 +160,7 @@ export function handleTerminalMessage(ws: ServerWebSocket<TerminalWebSocketData>
                             sessionId: msg.sessionId,
                         }),
                     );
+                    ws.data.sessionIds.delete(msg.sessionId);
                 }
                 break;
             }
@@ -144,22 +196,21 @@ export function handleTerminalMessage(ws: ServerWebSocket<TerminalWebSocketData>
 
 /**
  * 处理 WebSocket 连接关闭
+ * 注意：不再自动销毁会话，会话会持续运行直到用户主动删除
  */
 export function handleTerminalClose(ws: ServerWebSocket<TerminalWebSocketData>): void {
-    const manager = getTerminalManager();
-    // 关闭与此连接关联的所有会话
-    // 这里简单处理：关闭最后一个会话
-    // 实际应用中可能需要更精细的会话管理
-    if (ws.data.sessionId) {
-        manager.destroy(ws.data.sessionId);
-    }
+    // 断联时不销毁会话，会话继续在后台运行
+    // 用户重连后可以通过 attach 恢复
 }
 
 /**
  * 处理 WebSocket 连接打开
  */
 export function handleTerminalOpen(ws: ServerWebSocket<TerminalWebSocketData>): void {
-    // 发送连接成功消息
+    // 初始化会话集合
+    ws.data.sessionIds = new Set();
+
+    // 发送连接成功消息和当前所有会话列表
     ws.send(
         createMessage({
             type: 'list',

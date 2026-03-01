@@ -11,6 +11,9 @@ export class TerminalManager {
     private sessions: Map<string, TerminalSession> = new Map();
     private maxSessionsPerConnection = 10;
 
+    // WebSocket 输出监听器跟踪（sessionId -> WebSocket -> unsubscribe）
+    private outputUnsubscribes: Map<string, Map<unknown, () => void>> = new Map();
+
     /**
      * 创建新的终端会话
      */
@@ -75,20 +78,49 @@ export class TerminalManager {
         if (session) {
             session.kill();
             this.sessions.delete(sessionId);
+            // 清理监听器
+            this.cleanupSessionListeners(sessionId);
             return true;
         }
         return false;
     }
 
     /**
-     * 注册输出监听
+     * 注册输出监听（WebSocket 独占模式）
+     * 每个 sessionId 同一时间只允许一个 WebSocket 监听输出
+     * 如果已有监听器，会先取消旧的监听器
      */
-    onOutput(sessionId: string, callback: (data: string) => void): (() => void) | undefined {
+    onOutput(sessionId: string, ws: unknown, callback: (data: string) => void): (() => void) | undefined {
         const session = this.sessions.get(sessionId);
-        if (session) {
-            return session.onOutput(callback);
+        if (!session) return undefined;
+
+        // 获取或创建 sessionId 的监听器映射
+        let wsUnsubscribes = this.outputUnsubscribes.get(sessionId);
+        if (!wsUnsubscribes) {
+            wsUnsubscribes = new Map();
+            this.outputUnsubscribes.set(sessionId, wsUnsubscribes);
         }
-        return undefined;
+
+        // 如果该 WebSocket 已经有监听器，先取消它
+        const existingUnsubscribe = wsUnsubscribes.get(ws);
+        if (existingUnsubscribe) {
+            existingUnsubscribe();
+        }
+
+        // 注册新的监听器
+        const unsubscribe = session.onOutput(callback);
+        if (unsubscribe) {
+            wsUnsubscribes.set(ws, unsubscribe);
+        }
+
+        // 返回取消函数
+        return () => {
+            unsubscribe?.();
+            wsUnsubscribes.delete(ws);
+            if (wsUnsubscribes.size === 0) {
+                this.outputUnsubscribes.delete(sessionId);
+            }
+        };
     }
 
     /**
@@ -100,6 +132,36 @@ export class TerminalManager {
             return session.onExit(callback);
         }
         return undefined;
+    }
+
+    /**
+     * 清理会话的所有监听器
+     */
+    private cleanupSessionListeners(sessionId: string): void {
+        const wsUnsubscribes = this.outputUnsubscribes.get(sessionId);
+        if (wsUnsubscribes) {
+            wsUnsubscribes.forEach((unsubscribe) => unsubscribe());
+            wsUnsubscribes.clear();
+            this.outputUnsubscribes.delete(sessionId);
+        }
+    }
+
+    /**
+     * 获取会话历史输出（用于断线重连后恢复）
+     */
+    getHistory(sessionId: string): string[] | null {
+        const session = this.sessions.get(sessionId);
+        if (session) {
+            return session.getHistory();
+        }
+        return null;
+    }
+
+    /**
+     * 检查会话是否存在
+     */
+    hasSession(sessionId: string): boolean {
+        return this.sessions.has(sessionId);
     }
 
     /**
@@ -122,6 +184,11 @@ export class TerminalManager {
     destroyAll(): void {
         this.sessions.forEach((session) => session.kill());
         this.sessions.clear();
+        this.outputUnsubscribes.forEach((wsUnsubscribes) => {
+            wsUnsubscribes.forEach((unsubscribe) => unsubscribe());
+            wsUnsubscribes.clear();
+        });
+        this.outputUnsubscribes.clear();
     }
 }
 
