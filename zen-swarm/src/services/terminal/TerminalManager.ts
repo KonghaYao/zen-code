@@ -198,6 +198,13 @@ let terminalManager: TerminalManager | null = null;
 export function getTerminalManager(): TerminalManager {
     if (!terminalManager) {
         terminalManager = new TerminalManager();
+        // 进程退出时清理所有终端会话
+        const cleanup = () => {
+            terminalManager?.destroyAll();
+        };
+        process.once('SIGTERM', cleanup);
+        process.once('SIGINT', cleanup);
+        process.once('exit', cleanup);
     }
     return terminalManager;
 }

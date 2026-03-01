@@ -9,7 +9,7 @@
  * - 底部有 [+ Add Workspace] 按钮
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useChat } from '@langgraph-js/sdk/react';
 import type { Thread } from '@langgraph-js/sdk';
 import { formatDate } from '../utils/chatHelpers.js';
@@ -164,6 +164,18 @@ export function HistoryGroupedSidebar({ onManageWorkspace, onAddWorkspace }: His
         }
         return initial;
     });
+
+    // currentWorkspace 异步加载完成后，自动展开其分组
+    useEffect(() => {
+        if (currentWorkspace) {
+            setExpandedGroups((prev) => {
+                if (prev.has(currentWorkspace.rootPath)) return prev;
+                const next = new Set(prev);
+                next.add(currentWorkspace.rootPath);
+                return next;
+            });
+        }
+    }, [currentWorkspace?.rootPath]);
 
     // ========================================
     // 分组逻辑

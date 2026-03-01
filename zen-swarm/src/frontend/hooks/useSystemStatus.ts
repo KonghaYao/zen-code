@@ -122,43 +122,50 @@ export function useSystemStatus(updateInterval: number = 30000) {
 
     // 获取电池状态
     useEffect(() => {
-        if ('getBattery' in navigator) {
-            (navigator as any).getBattery().then((battery: any) => {
-                const updateBattery = () => {
-                    setSystemStatus((prev) => ({
-                        ...prev,
-                        battery: {
-                            level: battery.level,
-                            charging: battery.charging,
-                            chargingTime: battery.chargingTime,
-                            dischargingTime: battery.dischargingTime,
-                        },
-                    }));
-                };
-
-                // 初始获取
-                updateBattery();
-
-                // 监听事件
-                battery.addEventListener('levelchange', updateBattery);
-                battery.addEventListener('chargingchange', updateBattery);
-                battery.addEventListener('chargingtimechange', updateBattery);
-                battery.addEventListener('dischargingtimechange', updateBattery);
-
-                return () => {
-                    battery.removeEventListener('levelchange', updateBattery);
-                    battery.removeEventListener('chargingchange', updateBattery);
-                    battery.removeEventListener('chargingtimechange', updateBattery);
-                    battery.removeEventListener('dischargingtimechange', updateBattery);
-                };
-            });
-        } else {
+        if (!('getBattery' in navigator)) {
             // 如果不支持，使用模拟值
-            setSystemStatus((prev) => ({
-                ...prev,
-                battery: DEFAULT_BATTERY,
-            }));
+            setSystemStatus((prev) => ({ ...prev, battery: DEFAULT_BATTERY }));
+            return;
         }
+
+        let mounted = true;
+        let batteryObj: any = null;
+        let updateBattery: (() => void) | null = null;
+
+        (navigator as any).getBattery().then((battery: any) => {
+            if (!mounted) return;
+            batteryObj = battery;
+            updateBattery = () => {
+                setSystemStatus((prev) => ({
+                    ...prev,
+                    battery: {
+                        level: battery.level,
+                        charging: battery.charging,
+                        chargingTime: battery.chargingTime,
+                        dischargingTime: battery.dischargingTime,
+                    },
+                }));
+            };
+
+            // 初始获取
+            updateBattery();
+
+            // 监听事件
+            battery.addEventListener('levelchange', updateBattery);
+            battery.addEventListener('chargingchange', updateBattery);
+            battery.addEventListener('chargingtimechange', updateBattery);
+            battery.addEventListener('dischargingtimechange', updateBattery);
+        });
+
+        return () => {
+            mounted = false;
+            if (batteryObj && updateBattery) {
+                batteryObj.removeEventListener('levelchange', updateBattery);
+                batteryObj.removeEventListener('chargingchange', updateBattery);
+                batteryObj.removeEventListener('chargingtimechange', updateBattery);
+                batteryObj.removeEventListener('dischargingtimechange', updateBattery);
+            }
+        };
     }, []);
 
     // 监听网络状态

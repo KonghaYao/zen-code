@@ -3,7 +3,7 @@
  * macOS 风格的列表显示，支持多列排序
  */
 
-import React, { useMemo, useRef, useCallback, useState } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import type { FinderFileItem, ViewOptions, SelectionState, SortBy, ListColumn } from '../../../types/finder.js';
 import { useFinderStore, formatFileSize, formatDate, getFileKind } from '../../../stores/finder.js';
 import { Loader2, ChevronUp, Eye } from '../../ui/Icons.js';
@@ -66,10 +66,12 @@ const ColumnHeader: React.FC<ColumnHeaderProps> = ({ column, sortBy, sortOrder, 
                 setIsResizing(false);
                 document.removeEventListener('mousemove', handleMouseMove);
                 document.removeEventListener('mouseup', handleMouseUp);
+                window.removeEventListener('blur', handleMouseUp);
             };
 
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
+            window.addEventListener('blur', handleMouseUp);
         },
         [column.id, onResize],
     );

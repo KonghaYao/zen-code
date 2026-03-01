@@ -30,14 +30,15 @@ export function FormButtons(props: FormButtonsProps) {
                     type="button"
                     onClick={onCancel}
                     disabled={isSaving}
-                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:bg-gray-200 disabled:text-gray-500 rounded-lg text-sm font-medium transition-colors"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
                 >
                     {cancelText}
                 </button>
                 <button
                     type="submit"
                     disabled={isSaving}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 rounded-lg text-sm font-medium transition-colors"
+                    aria-busy={isSaving}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
                 >
                     {isSaving ? 'Saving...' : saveText || defaultSaveText}
                 </button>

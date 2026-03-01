@@ -9,11 +9,14 @@
 
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { DockLayout } from './layouts/DockLayout.js';
+import { SetupWizard } from './views/SetupWizard/index.js';
 
 export function App() {
     return (
         <HashRouter>
             <Routes>
+                {/* 新用户初始化向导路由（优先匹配） */}
+                <Route path="/setup" element={<SetupWizard />} />
                 {/* 主要应用路由 - 使用 DockLayout 布局 */}
                 <Route path="*" element={<DockLayout />} />
             </Routes>

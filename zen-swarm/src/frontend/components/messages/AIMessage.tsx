@@ -93,7 +93,7 @@ export const AIMessage: React.FC<AIMessageProps> = ({ message, messageNumber, mo
                     open={showThinking}
                     onToggle={(e) => setShowThinking((e.target as HTMLDetailsElement).open)}
                 >
-                    <summary className="text-sm text-text-secondary hover:text-text-primary select-none mb-2 flex items-center gap-2 transition-colors duration-150">
+                    <summary className="text-sm text-text-secondary hover:text-text-primary select-none mb-2 flex items-center gap-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:rounded">
                         <span>Thinking</span>
                         <span className="badge badge-primary">{thinkingLines} lines</span>
                     </summary>

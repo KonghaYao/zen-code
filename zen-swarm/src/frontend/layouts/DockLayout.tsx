@@ -3,7 +3,7 @@
  * macOS 风格桌面布局，使用 Tailwind CSS 和 React Router
  */
 
-import { Suspense, useCallback, useMemo } from 'react';
+import { Suspense, useCallback, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { DockContainer } from '../components/dock/index.js';
@@ -11,6 +11,7 @@ import { MenuBar, DesktopWallpaper } from '../components/desktop/index.js';
 import { getAppById } from '../components/app-registry/index.js';
 import { LoadingSpinner } from '../components/LoadingSpinner.js';
 import type { AppId } from '../components/app-registry/types.js';
+import { useProviders } from '../hooks/useProviders.js';
 
 // 导入视图组件
 import { ChatView } from '../views/ChatView.js';
@@ -21,6 +22,14 @@ import { AppWindow } from '../components/desktop/index.js';
 export function DockLayout() {
     const location = useLocation();
     const navigate = useNavigate();
+    const { data: providers, isLoading: isProvidersLoading } = useProviders();
+
+    // 检测是否需要初始化：providers 加载完成且为空时跳转到 /setup
+    useEffect(() => {
+        if (!isProvidersLoading && providers && providers.length === 0) {
+            navigate('/setup', { replace: true });
+        }
+    }, [isProvidersLoading, providers, navigate]);
 
     // 从 URL 派生 activeApp 状态（移除 #/ 前缀）
     const activeApp = useMemo(() => {
@@ -110,6 +119,14 @@ export function DockLayout() {
         <div className="flex flex-col h-screen w-screen overflow-hidden">
             {/* 桌面壁纸 */}
             <DesktopWallpaper />
+
+            {/* providers 加载中时显示全屏加载，避免短暂闪烁主界面 */}
+            {isProvidersLoading && (
+                <div className="fixed inset-0 z-40 flex items-center justify-center gap-4 text-white/80">
+                    <LoadingSpinner />
+                    <span>初始化中...</span>
+                </div>
+            )}
 
             {/* 顶部状态栏 */}
             <MenuBar appName={currentApp?.name ?? 'Zen Swarm'} appIcon={currentApp?.icon} />

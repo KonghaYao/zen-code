@@ -2,6 +2,7 @@
  * CronLogList 组件 - 执行日志列表
  */
 
+import { useMemo } from 'react';
 import type { CronLog, CronTask } from '../../types/cron.js';
 import { CronLogItem } from './CronLogItem.js';
 
@@ -27,7 +28,7 @@ export function CronLogList(props: CronLogListProps) {
     }
 
     // 按日期分组
-    const groupedLogs = groupLogsByDate(logs);
+    const groupedLogs = useMemo(() => groupLogsByDate(logs), [logs]);
 
     return (
         <div className="space-y-6">

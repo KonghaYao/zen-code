@@ -123,6 +123,7 @@ function handleMessage(event: MessageEvent) {
                 const cb = historyCallbacks.get(msg.sessionId);
                 if (cb) {
                     cb(msg.history);
+                    historyCallbacks.delete(msg.sessionId);
                 }
                 break;
 
@@ -213,6 +214,8 @@ function disconnectGlobal() {
         globalWs.close();
         globalWs = null;
     }
+    // 清理孤儿回调（WS 断开后无法收到 destroyed 消息）
+    historyCallbacks.clear();
     storeSetWsStatus?.('disconnected');
 }
 

@@ -406,9 +406,16 @@ button {
     padding: var(--space-2) var(--space-4);
 }
 
+button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
 button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-tertiary);
 }
 
 /* Primary Button */
@@ -886,10 +893,17 @@ select option {
     background-color: #1db954;
 }
 
+/* Focus state */
+.traffic-light:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
 /* Disabled state */
 .traffic-light.disabled {
-    cursor: default;
-    opacity: 0.6;
+    cursor: not-allowed;
+    opacity: 0.4;
+    pointer-events: none;
 }
 
 /* Dark mode adjustments */
@@ -999,6 +1013,12 @@ select option {
     /* Remove default button styles */
     -webkit-appearance: none;
     appearance: none;
+}
+
+.dock-icon-btn:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.9);
+    outline-offset: 3px;
+    border-radius: 14px;
 }
 
 .dock-icon-btn:hover {

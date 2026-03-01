@@ -9,7 +9,7 @@
  * 规则引用：rerender-hoist-jsx (静态 JSX)
  */
 
-import { ReactNode } from 'react';
+import { ReactNode, useId } from 'react';
 
 interface FormFieldProps {
     label: string;
@@ -21,15 +21,24 @@ interface FormFieldProps {
 
 export function FormField(props: FormFieldProps) {
     const { label, required, error, children, className = '' } = props;
+    const errorId = useId();
 
     return (
         <div className={className}>
             <label className="block text-sm font-medium text-gray-700 mb-1">
                 {label}
-                {required && <span className="text-red-500 ml-1">*</span>}
+                {required && (
+                    <span className="text-red-500 ml-1" aria-label="required">
+                        *
+                    </span>
+                )}
             </label>
             {children}
-            {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+            {error && (
+                <p id={errorId} className="mt-1 text-xs text-red-600" role="alert" aria-live="polite">
+                    {error}
+                </p>
+            )}
         </div>
     );
 }
@@ -43,9 +52,10 @@ export function FormInput(props: InputProps) {
 
     return (
         <input
+            aria-invalid={error || undefined}
             {...rest}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 placeholder-gray-400 ${
-                error ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-transparent'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-gray-900 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed placeholder-gray-400 ${
+                error ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-blue-500'
             }`}
         />
     );
@@ -60,9 +70,10 @@ export function FormTextarea(props: TextareaProps) {
 
     return (
         <textarea
+            aria-invalid={error || undefined}
             {...rest}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 placeholder-gray-400 resize-none ${
-                error ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-transparent'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-gray-900 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed placeholder-gray-400 resize-none ${
+                error ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-blue-500'
             }`}
         />
     );
@@ -78,9 +89,10 @@ export function FormSelect(props: SelectProps) {
 
     return (
         <select
+            aria-invalid={error || undefined}
             {...rest}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 ${
-                error ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-transparent'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-gray-900 cursor-pointer transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed ${
+                error ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-blue-500'
             }`}
         >
             {children}

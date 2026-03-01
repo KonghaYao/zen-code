@@ -75,12 +75,16 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
 
         return (
             <button
-                className="h-full px-1.5 flex items-center gap-1 rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-default"
+                className="h-full px-1.5 flex items-center gap-1 rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
                 aria-label={`电池 ${percentage}%${isCharging ? ' 正在充电' : ''}`}
                 title={`电池: ${percentage}%${isCharging ? ' (充电中)' : ''}`}
             >
                 <Battery width={20} height={20} className={getBatteryColor()} />
-                {isCharging && <span className="text-xs">⚡</span>}
+                {isCharging && (
+                    <span className="text-xs" aria-hidden="true">
+                        ⚡
+                    </span>
+                )}
                 {percentage < 100 && <span className="text-[11px] font-medium opacity-90">{percentage}%</span>}
             </button>
         );
@@ -93,14 +97,14 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
 
         return (
             <button
-                className="h-full px-1.5 flex items-center rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-default"
+                className="h-full px-1.5 flex items-center rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
                 aria-label={`${online ? '已连接网络' : '网络断开'} ${networkType}`}
                 title={`网络: ${online ? '已连接' : '已断开'}${type ? ` (${type})` : ''}${effectiveType ? ` (${effectiveType})` : ''}`}
             >
                 {online ? (
-                    <Wifi width={18} height={18} className="text-white opacity-80" />
+                    <Wifi width={18} height={18} className="text-white opacity-80" aria-hidden="true" />
                 ) : (
-                    <WifiOff width={18} height={18} className="text-white opacity-50" />
+                    <WifiOff width={18} height={18} className="text-white opacity-50" aria-hidden="true" />
                 )}
             </button>
         );
@@ -118,11 +122,11 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
 
         return (
             <button
-                className="h-full px-1.5 flex items-center gap-1 rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-default"
+                className="h-full px-1.5 flex items-center gap-1 rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
                 aria-label={`内存使用 ${usagePercent}%`}
                 title={`内存使用: ${formatBytes(memory.usedJSHeapSize || 0)} / ${formatBytes(memory.jsHeapSizeLimit || 0)} (${usagePercent}%)`}
             >
-                <HardDrive width={16} height={16} className="text-white opacity-80" />
+                <HardDrive width={16} height={16} className="text-white opacity-80" aria-hidden="true" />
             </button>
         );
     };
@@ -148,10 +152,10 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
             <div className="flex items-center h-full gap-0.5">
                 {/* Apple Logo */}
                 <button
-                    className="h-full px-3 flex items-center rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-default"
+                    className="h-full px-3 flex items-center rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
                     aria-label="Apple Menu"
                 >
-                    <Apple width={16} height={16} className="opacity-90" />
+                    <Apple width={16} height={16} className="opacity-90" aria-hidden="true" />
                 </button>
 
                 {/* 应用名称 */}
@@ -201,18 +205,18 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
 
                 {/* 搜索 */}
                 <button
-                    className="h-full px-1.5 flex items-center rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-default"
+                    className="h-full px-1.5 flex items-center rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
                     aria-label="搜索"
                 >
-                    <Search width={16} height={16} className="opacity-80" />
+                    <Search width={16} height={16} className="opacity-80" aria-hidden="true" />
                 </button>
 
                 {/* 控制中心 */}
                 <button
-                    className="h-full px-1.5 flex items-center rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-default"
+                    className="h-full px-1.5 flex items-center rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
                     aria-label="控制中心"
                 >
-                    <Settings width={16} height={16} className="opacity-80" />
+                    <Settings width={16} height={16} className="opacity-80" aria-hidden="true" />
                 </button>
 
                 {/* 分隔线 */}

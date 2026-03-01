@@ -6,6 +6,8 @@ import { create } from 'zustand';
 import { apiClient } from '../api.js';
 import type { MonitorTab, MonitorView, ProcessInfo, ProcessTreeNode } from '../components/monitor/types.js';
 
+const MAX_LOG_LINES = 500;
+
 interface MonitorState {
     // 视图状态
     activeTab: MonitorTab;
@@ -125,7 +127,14 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
 
         try {
             const processes = await apiClient.monitor.listProcesses.query({ view: viewMode });
-            set({ processes, isLoading: false });
+            // 清理已消失进程的日志
+            const activePids = new Set(processes.map((p) => p.pid));
+            set((state) => {
+                const cleanedLogs = Object.fromEntries(
+                    Object.entries(state.logs).filter(([pid]) => activePids.has(Number(pid))),
+                );
+                return { processes, isLoading: false, logs: cleanedLogs };
+            });
         } catch (error: any) {
             set({
                 error: error.message || 'Failed to fetch processes',
@@ -157,8 +166,11 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
             if (result.success) {
                 // 刷新进程列表
                 await get().refreshProcesses();
-                // 清除选中状态
-                set({ selectedPid: null });
+                // 清除选中状态，并清理该进程的日志
+                set((state) => {
+                    const { [pid]: _, ...remainingLogs } = state.logs;
+                    return { selectedPid: null, logs: remainingLogs };
+                });
             } else {
                 set({ error: 'Failed to kill process', isLoading: false });
             }
@@ -184,12 +196,17 @@ export const useMonitorStore = create<MonitorState>((set, get) => ({
 
     // 添加日志行（用于实时更新）
     appendLog: (pid, line) => {
-        set((state) => ({
-            logs: {
-                ...state.logs,
-                [pid]: [...(state.logs[pid] || []), line],
-            },
-        }));
+        set((state) => {
+            const prev = state.logs[pid] || [];
+            const next = [...prev, line];
+            const trimmed = next.length > MAX_LOG_LINES ? next.slice(next.length - MAX_LOG_LINES) : next;
+            return {
+                logs: {
+                    ...state.logs,
+                    [pid]: trimmed,
+                },
+            };
+        });
     },
 
     // 切换日志面板
