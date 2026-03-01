@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-import path from 'path';
 import type { ContextMenuItem } from '../../../types/finder.js';
 import { useFinderStore } from '../../../stores/finder.js';
 import { useWorkspaceStore } from '../../../stores/workspace.js';
@@ -77,6 +76,47 @@ export const FinderContextMenu: React.FC<FinderContextMenuProps> = ({
     const rootPath = useFinderStore((s) => s.rootPath);
     const { createWorkspace, setCurrentWorkspace } = useWorkspaceStore();
 
+    // Helper functions to replace Node.js 'path' module
+    const normalizePath = (p: string): string => p.replace(/\\/g, '/');
+    const joinPaths = (...parts: string[]): string => parts.join('/').replace(/\/+/g, '/');
+    const resolvePath = (from: string, to?: string): string => {
+        const normalized = normalizePath(from + '/' + (to || ''));
+        const parts = normalized.split('/').filter(Boolean);
+        const result: string[] = [];
+
+        for (const part of parts) {
+            if (part === '..') {
+                result.pop();
+            } else if (part !== '.') {
+                result.push(part);
+            }
+        }
+
+        return '/' + result.join('/');
+    };
+    const getRelativePath = (from: string, to: string): string => {
+        const fromParts = normalizePath(from).split('/').filter(Boolean);
+        const toParts = normalizePath(to).split('/').filter(Boolean);
+        let commonPrefix = 0;
+
+        while (
+            commonPrefix < fromParts.length &&
+            commonPrefix < toParts.length &&
+            fromParts[commonPrefix] === toParts[commonPrefix]
+        ) {
+            commonPrefix++;
+        }
+
+        const upLevels = fromParts.length - commonPrefix;
+        const relativeParts = Array(upLevels).fill('..').concat(toParts.slice(commonPrefix));
+        return relativeParts.join('/') || '.';
+    };
+    const getBasename = (p: string): string => {
+        const normalized = normalizePath(p);
+        const parts = normalized.split('/').filter(Boolean);
+        return parts[parts.length - 1] || '';
+    };
+
     // Convert relative path to absolute path for workspace creation
     // SidebarItem paths are relative (e.g., "packages", "/packages") but workspaces need absolute paths
     const resolveToAbsolutePath = useCallback(
@@ -93,7 +133,7 @@ export const FinderContextMenu: React.FC<FinderContextMenuProps> = ({
             console.log('[resolveToAbsolutePath] isRealAbsolutePath:', isRealAbsolutePath);
 
             if (isRealAbsolutePath) {
-                const resolved = path.resolve(inputPath);
+                const resolved = resolvePath(inputPath);
                 console.log('[resolveToAbsolutePath] resolved (absolute):', resolved);
                 return resolved;
             }
@@ -102,7 +142,7 @@ export const FinderContextMenu: React.FC<FinderContextMenuProps> = ({
             // Remove leading slash if present, then resolve against rootPath
             const relativePath = inputPath.startsWith('/') ? inputPath.slice(1) : inputPath;
             console.log('[resolveToAbsolutePath] relativePath:', relativePath);
-            const resolved = path.resolve(rootPath, relativePath);
+            const resolved = resolvePath(rootPath, relativePath);
             console.log('[resolveToAbsolutePath] resolved (relative):', resolved);
             return resolved;
         },
@@ -123,7 +163,7 @@ export const FinderContextMenu: React.FC<FinderContextMenuProps> = ({
     const copyRelativePath = useCallback(
         async (targetPath: string) => {
             try {
-                const relative = path.relative(rootPath, targetPath);
+                const relative = getRelativePath(rootPath, targetPath);
                 await navigator.clipboard.writeText(relative);
             } catch (err) {
                 console.error('Failed to copy to clipboard:', err);
@@ -145,8 +185,8 @@ export const FinderContextMenu: React.FC<FinderContextMenuProps> = ({
                 // Convert to absolute path for workspace creation
                 const absolutePath = resolveToAbsolutePath(targetPath);
 
-                // Use path.basename to extract folder name
-                const name = path.basename(absolutePath) || 'Untitled Workspace';
+                // Use getBasename to extract folder name
+                const name = getBasename(absolutePath) || 'Untitled Workspace';
 
                 // Log for debugging
                 console.log('Creating workspace:', {

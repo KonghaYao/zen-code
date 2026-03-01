@@ -14,12 +14,11 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useChat } from '@langgraph-js/sdk/react';
 import { Bot, Brain, Settings, Square } from 'lucide-react';
 import { HumanMessage, AIMessage, ToolMessage } from './index.js';
+import type { ConfigDrawerSection } from './ConfigDrawer.js';
 
 // ========================================
 // Types
 // ========================================
-
-export type ConfigDrawerSection = 'agents' | 'models' | 'mcp' | 'prompts';
 
 interface ChatPanelProps {
     modelName?: string;
@@ -47,9 +46,27 @@ interface MiniInputProps {
     onSubmit: (value: string) => void;
     loading?: boolean;
     disabled?: boolean;
+    /** Agent 徽章内容 */
+    agentBadge?: React.ReactNode;
+    /** Model 徽章内容 */
+    modelBadge?: React.ReactNode;
+    /** Config 按钮内容 */
+    configButton?: React.ReactNode;
+    /** Stop 按钮内容 */
+    stopButton?: React.ReactNode;
 }
 
-const MiniInput: React.FC<MiniInputProps> = ({ value, onChange, onSubmit, loading, disabled }) => {
+const MiniInput: React.FC<MiniInputProps> = ({
+    value,
+    onChange,
+    onSubmit,
+    loading,
+    disabled,
+    agentBadge,
+    modelBadge,
+    configButton,
+    stopButton,
+}) => {
     const isDisabled = disabled || loading;
     const isComposingRef = useRef(false);
 
@@ -71,32 +88,46 @@ const MiniInput: React.FC<MiniInputProps> = ({ value, onChange, onSubmit, loadin
     );
 
     return (
-        <div className="p-2 border-t border-border-subtle bg-bg-tertiary">
-            <div className="flex gap-2">
-                <textarea
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onCompositionStart={() => {
-                        isComposingRef.current = true;
-                    }}
-                    onCompositionEnd={() => {
-                        isComposingRef.current = false;
-                    }}
-                    placeholder={loading ? 'Thinking...' : 'Message...'}
-                    disabled={isDisabled}
-                    rows={1}
-                    className="flex-1 px-2 py-1.5 text-xs bg-bg-primary border border-border-default rounded resize-none text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary disabled:bg-bg-tertiary disabled:cursor-not-allowed"
-                />
-                <button
-                    onClick={handleSubmit}
-                    disabled={isDisabled || !value.trim()}
-                    className="px-2 py-1 text-xs font-medium bg-primary text-white rounded hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                    Send
-                </button>
+        <div className="border-t border-border-subtle bg-bg-tertiary">
+            {/* 徽章行 */}
+            {(agentBadge || modelBadge || configButton || stopButton) && (
+                <div className="px-2 py-1.5 flex items-center gap-2 border-b border-border-subtle">
+                    {agentBadge}
+                    {modelBadge}
+                    <div className="flex-1" />
+                    {configButton}
+                    {stopButton}
+                </div>
+            )}
+
+            {/* 输入行 */}
+            <div className="p-2">
+                <div className="flex gap-2">
+                    <textarea
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        onCompositionStart={() => {
+                            isComposingRef.current = true;
+                        }}
+                        onCompositionEnd={() => {
+                            isComposingRef.current = false;
+                        }}
+                        placeholder={loading ? 'Thinking...' : 'Message...'}
+                        disabled={isDisabled}
+                        rows={1}
+                        className="flex-1 px-2 py-1.5 text-xs bg-bg-primary border border-border-default rounded resize-none text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary disabled:bg-bg-tertiary disabled:cursor-not-allowed"
+                    />
+                    <button
+                        onClick={handleSubmit}
+                        disabled={isDisabled || !value.trim()}
+                        className="px-2 py-1 text-xs font-medium bg-primary text-white rounded hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        Send
+                    </button>
+                </div>
+                <div className="mt-1 text-[10px] text-text-muted">Enter to send</div>
             </div>
-            <div className="mt-1 text-[10px] text-text-muted">Enter to send</div>
         </div>
     );
 };
@@ -167,60 +198,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     return (
         <div className="flex flex-col h-full overflow-hidden bg-white">
             {/* Header */}
-            <header className="flex-shrink-0 bg-white border-b border-border-subtle px-3 py-2.5 flex items-center justify-between">
-                {/* 左侧：标题 + 状态徽章 */}
-                <div className="flex items-center gap-2 min-w-0">
-                    <h1 className="text-sm font-medium text-text-primary flex-shrink-0">Chat</h1>
-
-                    {/* Agent 徽章 */}
-                    <button
-                        onClick={() => onOpenConfig?.('agents')}
-                        title="切换 Agent"
-                        className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-bg-secondary hover:bg-bg-tertiary border border-border-subtle text-xs text-text-secondary transition-colors max-w-[120px]"
-                    >
-                        <Bot className="w-3 h-3" />
-                        <span className="truncate">{activeAgentName}</span>
-                    </button>
-
-                    {/* Model 徽章 */}
-                    {currentModelName && (
-                        <button
-                            onClick={() => onOpenConfig?.('models')}
-                            title="切换 Model"
-                            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-bg-secondary hover:bg-bg-tertiary border border-border-subtle text-xs text-text-secondary transition-colors max-w-[120px]"
-                        >
-                            <Brain className="w-3 h-3" />
-                            <span className="truncate">{currentModelName}</span>
-                        </button>
-                    )}
-                </div>
-
-                {/* 右侧：⚙️ 按钮 + Stop */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* Config 按钮 */}
-                    <button
-                        onClick={() => onOpenConfig?.()}
-                        title={configDrawerOpen ? '收起配置' : '展开配置'}
-                        className={`p-1.5 rounded transition-colors ${
-                            configDrawerOpen
-                                ? 'bg-primary text-white'
-                                : 'bg-white border border-border-default text-text-secondary hover:bg-bg-tertiary'
-                        }`}
-                    >
-                        <Settings className="w-4 h-4" />
-                    </button>
-
-                    {/* Stop 按钮 */}
-                    {loading ? (
-                        <button
-                            onClick={handleStop}
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-white border border-border-default text-text-primary rounded hover:bg-bg-tertiary transition-colors"
-                        >
-                            <Square className="w-3 h-3" />
-                            Stop
-                        </button>
-                    ) : null}
-                </div>
+            <header className="flex-shrink-0 bg-white border-b border-border-subtle px-3 py-2.5">
+                <h1 className="text-sm font-medium text-text-primary">Chat</h1>
             </header>
 
             {/* Messages */}
@@ -268,7 +247,58 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             </div>
 
             {/* Input */}
-            <MiniInput value={userInput} onChange={setUserInput} onSubmit={handleSubmit} loading={loading} />
+            <MiniInput
+                value={userInput}
+                onChange={setUserInput}
+                onSubmit={handleSubmit}
+                loading={loading}
+                agentBadge={
+                    <button
+                        onClick={() => onOpenConfig?.('agents')}
+                        title="切换 Agent"
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-bg-secondary hover:bg-bg-tertiary border border-border-subtle text-xs text-text-secondary transition-colors max-w-[120px]"
+                    >
+                        <Bot className="w-3 h-3" />
+                        <span className="truncate">{activeAgentName}</span>
+                    </button>
+                }
+                modelBadge={
+                    currentModelName && (
+                        <button
+                            onClick={() => onOpenConfig?.('models')}
+                            title="切换 Model"
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-bg-secondary hover:bg-bg-tertiary border border-border-subtle text-xs text-text-secondary transition-colors max-w-[120px]"
+                        >
+                            <Brain className="w-3 h-3" />
+                            <span className="truncate">{currentModelName}</span>
+                        </button>
+                    )
+                }
+                configButton={
+                    <button
+                        onClick={() => onOpenConfig?.()}
+                        title={configDrawerOpen ? '收起配置' : '展开配置'}
+                        className={`p-1.5 rounded transition-colors ${
+                            configDrawerOpen
+                                ? 'bg-primary text-white'
+                                : 'bg-white border border-border-default text-text-secondary hover:bg-bg-tertiary'
+                        }`}
+                    >
+                        <Settings className="w-4 h-4" />
+                    </button>
+                }
+                stopButton={
+                    loading ? (
+                        <button
+                            onClick={handleStop}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-white border border-border-default text-text-primary rounded hover:bg-bg-tertiary transition-colors"
+                        >
+                            <Square className="w-3 h-3" />
+                            Stop
+                        </button>
+                    ) : null
+                }
+            />
         </div>
     );
 };

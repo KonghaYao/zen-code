@@ -4,7 +4,10 @@
     "type": "module",
     "scripts": {
         "dev": "bun run src/server.ts",
-        "build": "bun build src/server.ts --outdir ./dist --target bun --format esm --minify",
+        "build": "node scripts/build.js --minify",
+        "build:linux": "node scripts/build.js --target bun-linux-x64-modern --minify --output ./dist/zen-swarm-linux-x64",
+        "build:darwin": "node scripts/build.js --target bun-darwin-arm64 --minify --output ./dist/zen-swarm-darwin-arm64",
+        "build:windows": "node scripts/build.js --target bun-windows-x64 --minify --output ./dist/zen-swarm-windows-x64.exe",
         "test": "bun test"
     },
     "dependencies": {
