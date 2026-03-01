@@ -14,7 +14,7 @@ import { useChat } from '@langgraph-js/sdk/react';
 import type { Thread } from '@langgraph-js/sdk';
 import { formatDate } from '../utils/chatHelpers.js';
 import { useWorkspaceStore } from '../stores/workspace.js';
-import { PlusIcon } from 'lucide-react';
+import { PlusIcon, SettingsIcon, Trash2Icon } from 'lucide-react';
 
 // 定义历史记录线程类型，包含可选的 title 字段
 type HistoryThread = Thread<{ messages: any[] }> & {
@@ -90,7 +90,7 @@ const NewChatButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
         className="ml-1 w-5 h-5 flex items-center justify-center text-text-muted hover:text-primary hover:bg-primary-light rounded transition-colors"
         title="New chat in this workspace"
     >
-        <PlusIcon></PlusIcon>
+        <PlusIcon size={12} />
     </button>
 );
 
@@ -104,7 +104,7 @@ const ManageWorkspaceButton: React.FC<{ onClick: () => void }> = ({ onClick }) =
         className="ml-1 w-5 h-5 flex items-center justify-center text-text-muted hover:text-primary hover:bg-primary-light rounded transition-colors"
         title="Manage workspace"
     >
-        <PlusIcon></PlusIcon>
+        <SettingsIcon size={12} />
     </button>
 );
 
@@ -113,18 +113,38 @@ const HistoryItem: React.FC<{
     thread: HistoryThread;
     isCurrent: boolean;
     onClick: () => void;
-}> = ({ thread, isCurrent, onClick }) => {
+    onDelete: () => void;
+}> = ({ thread, isCurrent, onClick, onDelete }) => {
+    const [hovered, setHovered] = useState(false);
+
     return (
-        <button
-            onClick={onClick}
+        <div
             className={`
-                w-full text-left px-2 py-1.5 rounded transition-colors duration-150 text-xs
+                relative w-full flex items-center rounded transition-colors duration-150
                 ${isCurrent ? 'bg-primary-light text-primary-dark' : 'hover:bg-bg-tertiary text-text-secondary'}
             `}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
         >
-            <div className="text-xs truncate">{(thread as any).title || thread.thread_id.slice(0, 12)}</div>
-            <div className="text-[10px] text-text-muted mt-0.5">{formatDate(thread.updated_at)}</div>
-        </button>
+            <button onClick={onClick} className="flex-1 min-w-0 text-left px-2 py-1.5 text-xs">
+                <div className="flex items-center gap-1 min-w-0">
+                    <span className="truncate flex-1">{(thread as any).title || thread.thread_id.slice(0, 12)}</span>
+                    <span className="text-[10px] text-text-muted flex-shrink-0">{formatDate(thread.updated_at)}</span>
+                </div>
+            </button>
+            {hovered && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete();
+                    }}
+                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-text-muted hover:text-red-500 transition-colors mr-1"
+                    title="Delete chat"
+                >
+                    <Trash2Icon size={12} />
+                </button>
+            )}
+        </div>
     );
 };
 
@@ -133,7 +153,7 @@ const HistoryItem: React.FC<{
 // ========================================
 
 export function HistoryGroupedSidebar({ onManageWorkspace, onAddWorkspace }: HistoryGroupedSidebarProps) {
-    const { historyList = [], currentChatId, toHistoryChat, createNewChat } = useChat();
+    const { historyList = [], currentChatId, toHistoryChat, createNewChat, deleteHistoryChat } = useChat();
     const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspaceStore();
 
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
@@ -292,6 +312,7 @@ export function HistoryGroupedSidebar({ onManageWorkspace, onAddWorkspace }: His
                                                     thread={thread}
                                                     isCurrent={isCurrent}
                                                     onClick={() => handleSelectThread(thread)}
+                                                    onDelete={() => deleteHistoryChat(thread)}
                                                 />
                                             );
                                         })}
