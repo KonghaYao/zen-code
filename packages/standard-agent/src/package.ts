@@ -82,7 +82,7 @@ export class AgentPackage {
         this.tools.registerSchema({
             id: data.id,
             name: data.model_name,
-            description: `Model: ${data.model_provider}/${data.model_name}`,
+            description: `Model: ${data.provider_id}/${data.model_name}`,
         });
     }
 
@@ -146,7 +146,7 @@ export class AgentPackage {
             pkg.tools.registerSchema({
                 id: m.id,
                 name: m.model_name,
-                description: `Model: ${m.model_provider}/${m.model_name}`,
+                description: `Model: ${m.provider_id}/${m.model_name}`,
             });
         });
 

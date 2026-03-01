@@ -303,8 +303,9 @@ export class AgentRepository {
     private rowToModel(row: ModelRow): z.infer<typeof ModelSchema> {
         return {
             id: row.id,
+            name: row.name ?? undefined,
+            provider_id: row.provider_id,
             model_name: row.model_name,
-            model_provider: row.model_provider,
             stream_usage: Boolean(row.stream_usage),
             enable_thinking: Boolean(row.enable_thinking),
             temperature: row.temperature,

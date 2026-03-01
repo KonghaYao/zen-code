@@ -10,7 +10,33 @@ import { encryptApiKey, decryptApiKey, maskApiKey } from './encryption.js';
 // Types
 // ========================================
 
-export type ProviderType = 'openai' | 'anthropic';
+export type ProviderType = 'openai' | 'anthropic' | 'gemini' | 'deepseek' | 'moonshot' | 'zhipu' | 'custom';
+
+/**
+ * Default Base URL mapping for each provider type
+ */
+export const DEFAULT_BASE_URLS: Record<ProviderType, string> = {
+    openai: 'https://api.openai.com/v1',
+    anthropic: 'https://api.anthropic.com',
+    gemini: 'https://generativelanguage.googleapis.com',
+    deepseek: 'https://api.deepseek.com/v1',
+    moonshot: 'https://api.moonshot.cn/v1',
+    zhipu: 'https://open.bigmodel.cn/api/paas/v4',
+    custom: '', // User must provide
+};
+
+/**
+ * Display names for each provider type
+ */
+export const PROVIDER_DISPLAY_NAMES: Record<ProviderType, string> = {
+    openai: 'OpenAI',
+    anthropic: 'Anthropic',
+    gemini: 'Google Gemini',
+    deepseek: 'DeepSeek',
+    moonshot: 'Moonshot (月之暗面)',
+    zhipu: 'ZhiPu (智谱)',
+    custom: 'Custom Provider',
+};
 
 export interface Provider {
     id: string;
@@ -71,12 +97,20 @@ export class ProviderStorage {
     }
 
     private createTables(): void {
-        // 创建 providers 表
+        // 创建 providers 表（扩展 type 枚举）
         this.db.run(`
             CREATE TABLE IF NOT EXISTS providers (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL UNIQUE,
-                type TEXT NOT NULL CHECK(type IN ('openai', 'anthropic')),
+                type TEXT NOT NULL CHECK(type IN (
+                    'openai', 
+                    'anthropic', 
+                    'gemini', 
+                    'deepseek', 
+                    'moonshot',
+                    'zhipu',
+                    'custom'
+                )),
                 api_key_encrypted TEXT NOT NULL,
                 api_key_iv TEXT NOT NULL,
                 api_key_auth_tag TEXT NOT NULL,

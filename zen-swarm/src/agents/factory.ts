@@ -8,6 +8,9 @@ import { AgentPackage } from '@langgraph-js/standard-agent';
 import { SwarmState } from '../state.js';
 import { initChatModel } from '../utils/initChatModel.js';
 import { humanInTheLoopMiddleware, anthropicPromptCachingMiddleware } from '@langgraph-js/standard-agent';
+import { providerStorage } from '../config/loader.js';
+import type { ProviderType } from '../services/provider/storage.js';
+
 /**
  * 创建 Swarm Agent
  */
@@ -19,30 +22,62 @@ export async function createSwarmAgent(
 ): Promise<any> {
     const isSubAgent = !!options?.parent_id;
 
-    // 加载 agent 配置
+    // 1. 加载 Agent 配置
     const agentConfig = await pkg.getAgent(agentId);
     if (!agentConfig) {
         throw new Error(`Agent not found: ${agentId}`);
     }
 
-    // 加载提示词（包含当前版本内容）
+    // 2. 加载 Model 配置
+    const modelConfig = await pkg.getModel(agentConfig.modelId);
+    if (!modelConfig) {
+        throw new Error(`Model not found: ${agentConfig.modelId}`);
+    }
+
+    // 3. 加载 Provider 配置（通过 provider_id 外键）
+    const providerId = modelConfig.provider_id;
+    if (!providerId) {
+        throw new Error(
+            `Model "${modelConfig.name || modelConfig.id}" has no provider assigned. ` +
+                `Please assign a provider in the Model settings.`,
+        );
+    }
+
+    const provider = await providerStorage.getById(providerId);
+    if (!provider) {
+        throw new Error(
+            `Provider not found for model "${modelConfig.name || modelConfig.id}". ` +
+                `Please configure the provider first.`,
+        );
+    }
+
+    // 4. 获取解密后的 API Key
+    const decryptedApiKey = await providerStorage.getDecryptedApiKey(providerId);
+    if (!decryptedApiKey) {
+        throw new Error(
+            `Provider "${provider.name}" has no API Key configured. ` +
+                `Please add your API Key in the Provider settings.`,
+        );
+    }
+
+    // 5. 加载提示词（包含当前版本内容）
     const promptConfig = await pkg.getPromptWithContent(agentConfig.systemPromptId);
     if (!promptConfig) {
         throw new Error(`Prompt not found: ${agentConfig.name}`);
     }
 
-    const modelConfig = await pkg.getModel(agentConfig.modelId);
-    if (!modelConfig) {
-        throw new Error('');
-    }
-
-    // 初始化模型
+    // 6. 初始化模型（使用关联的 Provider 配置）
     const model = await initChatModel(modelConfig.model_name, {
-        modelProvider: modelConfig.model_provider,
+        modelProvider: provider.type as ProviderType,
         temperature: modelConfig.temperature,
         streamUsage: true,
         enableThinking: modelConfig.enable_thinking,
+        apiKey: decryptedApiKey,
+        baseURL: provider.baseUrl,
         metadata: {
+            agent_id: agentId,
+            model_id: modelConfig.id,
+            provider_id: provider.id,
             parent_id: options?.parent_id,
         },
     });
@@ -114,7 +149,7 @@ export async function createSwarmAgent(
     );
 
     // 3. Anthropic prompt caching（仅 Anthropic）
-    if (modelConfig.model_provider === 'anthropic') {
+    if (provider.type === 'anthropic') {
         middleware.push(anthropicPromptCachingMiddleware());
     }
 

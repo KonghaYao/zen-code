@@ -6,12 +6,13 @@
 import { z } from 'zod';
 import { router, publicProcedure, handleNotFound, handleBadRequest, handleConflict } from './trpc.js';
 import type { ProviderStorage, ProviderType } from '../services/provider/index.js';
+import { DEFAULT_BASE_URLS, PROVIDER_DISPLAY_NAMES } from '../services/provider/storage.js';
 
 // ========================================
 // Schemas
 // ========================================
 
-export const ProviderTypeSchema = z.enum(['openai', 'anthropic']);
+export const ProviderTypeSchema = z.enum(['openai', 'anthropic', 'gemini', 'deepseek', 'moonshot', 'zhipu', 'custom']);
 
 export const ProviderInputSchema = z.object({
     name: z.string().min(1, '名称不能为空').max(50, '名称不能超过 50 字符'),
@@ -39,15 +40,6 @@ export const ProviderValidateSchema = z.object({
     apiKey: z.string().min(10, 'API Key 长度不足'),
     baseUrl: z.string().url('请输入有效的 URL').optional(),
 });
-
-// ========================================
-// Default Base URLs
-// ========================================
-
-export const DEFAULT_BASE_URLS: Record<ProviderType, string> = {
-    openai: 'https://api.openai.com/v1',
-    anthropic: 'https://api.anthropic.com',
-};
 
 // ========================================
 // Router Factory
@@ -118,9 +110,19 @@ export function createProviderRouter(providerStorage: ProviderStorage) {
             }
         }),
 
-        // 删除提供商
-        delete: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+        // 删除提供商（检查是否有关联 Model）
+        delete: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
             try {
+                // 检查是否有关联的 Model
+                const models = await ctx.agentPackage.storage.getAllModels();
+                const linkedModels = models.filter((m) => m.provider_id === input.id);
+
+                if (linkedModels.length > 0) {
+                    throw new Error(
+                        `无法删除：有 ${linkedModels.length} 个模型正在使用此 Provider（${linkedModels.map((m) => m.name || m.model_name).join(', ')}）`,
+                    );
+                }
+
                 await providerStorage.delete(input.id);
                 return { success: true, id: input.id };
             } catch (error) {
@@ -144,9 +146,24 @@ export function createProviderRouter(providerStorage: ProviderStorage) {
             }
         }),
 
+        // 获取 Provider 下的所有 Models
+        getModels: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+            const models = await ctx.agentPackage.storage.getAllModels();
+            return models.filter((m) => m.provider_id === input.id);
+        }),
+
         // 获取默认 Base URL
         getDefaultBaseUrl: publicProcedure.input(z.object({ type: ProviderTypeSchema })).query(({ input }) => {
             return DEFAULT_BASE_URLS[input.type];
+        }),
+
+        // 获取所有 Provider 类型的信息
+        getProviderTypes: publicProcedure.query(() => {
+            return Object.entries(PROVIDER_DISPLAY_NAMES).map(([type, displayName]) => ({
+                type,
+                displayName,
+                defaultBaseUrl: DEFAULT_BASE_URLS[type as ProviderType],
+            }));
         }),
 
         // 验证 API Key 格式

@@ -419,7 +419,12 @@ export function ConfigView() {
                 );
             case 'models':
                 return (
-                    <ModelForm model={editingItem as Model | null} onSave={handleSave} onCancel={handleModalClose} />
+                    <ModelForm
+                        model={editingItem as Model | null}
+                        providers={providers}
+                        onSave={handleSave}
+                        onCancel={handleModalClose}
+                    />
                 );
             case 'prompts':
                 return (

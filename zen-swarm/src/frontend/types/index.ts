@@ -6,12 +6,29 @@
 export type { PanelType } from './chat.js';
 
 // ========================================
+// Provider Types
+// ========================================
+export type ProviderType = 'openai' | 'anthropic' | 'gemini' | 'deepseek' | 'moonshot' | 'zhipu' | 'custom';
+
+export interface Provider {
+    id: string;
+    name: string;
+    type: ProviderType;
+    apiKey: string; // Masked
+    baseUrl: string;
+    isActive: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+// ========================================
 // Model Types
 // ========================================
 export interface Model {
     id: string;
+    name?: string;
+    provider_id: string;
     model_name: string;
-    model_provider: string;
     stream_usage: boolean;
     enable_thinking: boolean;
     temperature: number;
@@ -19,12 +36,14 @@ export interface Model {
     top_p: number;
     frequency_penalty: number;
     presence_penalty: number;
+    provider?: Provider | null;
 }
 
 export type ModelInput = {
     id: string;
+    name?: string;
+    provider_id: string;
     model_name: string;
-    model_provider: string;
     stream_usage?: boolean;
     enable_thinking?: boolean;
     temperature?: number;
@@ -34,11 +53,11 @@ export type ModelInput = {
     presence_penalty?: number;
 };
 
-export type UpdateModelInput = Omit<ModelInput, 'id'> & {
+export type UpdateModelInput = {
     id: string;
-    // 所有字段都是可选的，除了 id
+    name?: string;
+    provider_id?: string;
     model_name?: string;
-    model_provider?: string;
     stream_usage?: boolean;
     enable_thinking?: boolean;
     temperature?: number;

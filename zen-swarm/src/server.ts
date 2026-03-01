@@ -18,21 +18,28 @@ import {
     smDatabase,
     providerStorage,
 } from './config/loader.js';
+import { initDefaultData, checkProviderModelStatus } from './scripts/init-default-data.js';
 import dashboard from './index.html';
 import { handleTerminalMessage, handleTerminalClose, handleTerminalOpen } from './api/terminalWebSocket.js';
 
-// 1. 注册 graph（自动提供 HTTP API 和流式支持）
+// 1. 初始化默认数据（如果需要）
+await initDefaultData();
+
+// 2. 检查 Provider 和 Model 状态
+await checkProviderModelStatus();
+
+// 3. 注册 graph（自动提供 HTTP API 和流式支持）
 console.log('Registering swarm graph...');
 registerGraph('swarm', swarmGraph);
 console.log('Swarm graph registered successfully');
 
-// 2. 创建 Hono 应用
+// 4. 创建 Hono 应用
 const app = new Hono();
 
 // 日志中间件
 app.use(logger());
 
-// 3. API 路由（优先处理）
+// 5. API 路由（优先处理）
 console.log('Mounting LangGraph routes at /api/langgraph');
 app.route('/api/langgraph', LGApp);
 
@@ -58,10 +65,10 @@ app.get('/health', (c) => {
     });
 });
 
-// 5. WebSocket 路由 - 终端服务（在 Hono 处理之前）
+// 6. WebSocket 路由 - 终端服务（在 Hono 处理之前）
 // 注意：不要在 Hono 中注册 /ws/terminal 路由
 
-// 6. 启动服务器
+// 7. 启动服务器
 const port = 8124;
 console.log(`🐝 Zen Swarm Server running on http://127.0.0.1:${port}/ui`);
 console.log(`   Health: http://127.0.0.1:${port}/health`);

@@ -5,10 +5,11 @@
  * - 使用 useModal 统一状态管理（规则：rerender-derived-state）
  * - 使用 ConfirmModal 替代 confirm()（规则：rerender-move-effect-to-event）
  * - 支持 macOS 风格红绿灯按钮
+ * - Provider 选择器（从 Provider 列表中选择）
  */
 
 import { useState } from 'react';
-import type { Model } from '../../../types/index.js';
+import type { Model, Provider } from '../../../types/index.js';
 import { trpc } from '../../../api.js';
 import { ModelCard } from './ModelCard.js';
 import { ModelForm } from './ModelForm.js';
@@ -26,6 +27,7 @@ export function ModelsPanel({ onClose }: ModelsPanelProps) {
     const modal = useModal<Model>();
 
     const { data: models = [], isLoading, error, refetch } = trpc.models.list.useQuery();
+    const { data: providers = [] } = trpc.providers.list.useQuery();
 
     const createMutation = trpc.models.create.useMutation({
         onSuccess: () => {
@@ -121,7 +123,12 @@ export function ModelsPanel({ onClose }: ModelsPanelProps) {
             </div>
 
             <Modal open={modal.isOpen} onClose={modal.close} title={modal.getTitle('Model')}>
-                <ModelForm model={modal.editingItem} onSave={handleSave} onCancel={modal.close} />
+                <ModelForm
+                    model={modal.editingItem}
+                    providers={providers as Provider[]}
+                    onSave={handleSave}
+                    onCancel={modal.close}
+                />
             </Modal>
 
             {/* 非阻塞式删除确认对话框（规则：rerender-move-effect-to-event） */}

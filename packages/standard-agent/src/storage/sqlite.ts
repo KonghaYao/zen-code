@@ -21,6 +21,7 @@ import { z } from 'zod';
 import {
     BaseStorage,
     ModelRow,
+    ModelWithProviderRow,
     PromptRow,
     PromptVersionRow,
     PromptWithVersion,
@@ -65,17 +66,18 @@ export class BunSqliteStorage extends BaseStorage {
     // ========================================
     async initialize(): Promise<void> {
         this.createTables();
-        this.createIndexes();
         this.runMigrations();
+        this.createIndexes();
     }
 
     private createTables(): void {
         this.db.run(`
-            -- Models table
+            -- Models table (with provider_id foreign key)
             CREATE TABLE IF NOT EXISTS models (
                 id TEXT PRIMARY KEY,
+                name TEXT,
+                provider_id TEXT NOT NULL,
                 model_name TEXT NOT NULL,
-                model_provider TEXT NOT NULL,
                 stream_usage INTEGER NOT NULL DEFAULT 0,
                 enable_thinking INTEGER NOT NULL DEFAULT 0,
                 temperature REAL NOT NULL DEFAULT 0.7,
@@ -172,10 +174,69 @@ export class BunSqliteStorage extends BaseStorage {
             CREATE INDEX IF NOT EXISTS idx_prompt_versions ON prompt_versions(prompt_id, version DESC);
             CREATE INDEX IF NOT EXISTS idx_agents_model_id ON agents(model_id);
             CREATE INDEX IF NOT EXISTS idx_agents_system_prompt_id ON agents(system_prompt_id);
+            CREATE INDEX IF NOT EXISTS idx_models_provider_id ON models(provider_id);
         `);
     }
 
     private runMigrations(): void {
+        // 每次单独查询，避免 ALTER TABLE 后使用 stale 缓存导致后续迁移失败
+        const getModelsColumns = () =>
+            (this.db.prepare('PRAGMA table_info(models)').all() as { name: string }[]).map((col) => col.name);
+
+        // 检查 models 表是否存在旧的 model_provider 列（旧版结构）
+        // 旧结构: model_provider NOT NULL（约束冲突），需要重建表迁移到新结构
+        if (getModelsColumns().includes('model_provider')) {
+            this.db.run('PRAGMA foreign_keys = OFF');
+            this.db.run('DROP TABLE IF EXISTS models_migration_new');
+            this.db.run(`
+                CREATE TABLE models_migration_new (
+                    id TEXT PRIMARY KEY,
+                    name TEXT,
+                    provider_id TEXT NOT NULL DEFAULT '',
+                    model_name TEXT NOT NULL,
+                    stream_usage INTEGER NOT NULL DEFAULT 0,
+                    enable_thinking INTEGER NOT NULL DEFAULT 0,
+                    temperature REAL NOT NULL DEFAULT 0.7,
+                    max_tokens INTEGER NOT NULL DEFAULT 4096,
+                    top_p REAL NOT NULL DEFAULT 1.0,
+                    frequency_penalty REAL NOT NULL DEFAULT 0.0,
+                    presence_penalty REAL NOT NULL DEFAULT 0.0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            `);
+            // 迁移旧数据：provider_id 已通过 ALTER 添加，直接复制
+            this.db.run(`
+                INSERT INTO models_migration_new
+                    (id, name, provider_id, model_name, stream_usage, enable_thinking,
+                     temperature, max_tokens, top_p, frequency_penalty, presence_penalty,
+                     created_at, updated_at)
+                SELECT
+                    id,
+                    name,
+                    COALESCE(NULLIF(provider_id, ''), '') as provider_id,
+                    model_name,
+                    stream_usage, enable_thinking,
+                    temperature, max_tokens, top_p, frequency_penalty, presence_penalty,
+                    created_at, updated_at
+                FROM models
+            `);
+            this.db.run('DROP TABLE models');
+            this.db.run('ALTER TABLE models_migration_new RENAME TO models');
+            this.db.run('PRAGMA foreign_keys = ON');
+            return;
+        }
+
+        // 检查 models 表是否有 provider_id 列
+        if (!getModelsColumns().includes('provider_id')) {
+            this.db.run("ALTER TABLE models ADD COLUMN provider_id TEXT NOT NULL DEFAULT ''");
+        }
+
+        // 检查 models 表是否有 name 列（重新查询，确保拿到最新列信息）
+        if (!getModelsColumns().includes('name')) {
+            this.db.run('ALTER TABLE models ADD COLUMN name TEXT');
+        }
+
         // 检查 prompts 表是否有 current_version 列
         const tableInfo = this.db.prepare('PRAGMA table_info(prompts)').all() as { name: string }[];
         const hasCurrentVersion = tableInfo.some((col) => col.name === 'current_version');
@@ -282,16 +343,17 @@ export class BunSqliteStorage extends BaseStorage {
     // ========================================
     insertModel(data: z.infer<typeof ModelSchema>): Promise<void> {
         const stmt = this.db.prepare(`
-            INSERT INTO models (id, model_name, model_provider, stream_usage, enable_thinking,
+            INSERT INTO models (id, name, provider_id, model_name, stream_usage, enable_thinking,
                               temperature, max_tokens, top_p, frequency_penalty, presence_penalty,
                               created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         stmt.run(
             data.id,
+            data.name ?? null,
+            data.provider_id,
             data.model_name,
-            data.model_provider,
             this.boolToInt(data.stream_usage),
             this.boolToInt(data.enable_thinking),
             data.temperature,
@@ -321,15 +383,16 @@ export class BunSqliteStorage extends BaseStorage {
     updateModel(data: z.infer<typeof ModelSchema>): Promise<void> {
         const stmt = this.db.prepare(`
             UPDATE models
-            SET model_name = ?, model_provider = ?, stream_usage = ?, enable_thinking = ?,
+            SET name = ?, provider_id = ?, model_name = ?, stream_usage = ?, enable_thinking = ?,
                 temperature = ?, max_tokens = ?, top_p = ?, frequency_penalty = ?, presence_penalty = ?,
                 updated_at = ?
             WHERE id = ?
         `);
 
         const result = stmt.run(
+            data.name ?? null,
+            data.provider_id,
             data.model_name,
-            data.model_provider,
             this.boolToInt(data.stream_usage),
             this.boolToInt(data.enable_thinking),
             data.temperature,
@@ -346,6 +409,36 @@ export class BunSqliteStorage extends BaseStorage {
         }
 
         return Promise.resolve();
+    }
+
+    /**
+     * Get model with provider information via JOIN
+     */
+    getModelWithProvider(id: string): Promise<ModelWithProviderRow | undefined> {
+        const stmt = this.db.prepare(`
+            SELECT m.*, p.id as provider_id, p.name as provider_name, p.type as provider_type,
+                   p.base_url as provider_base_url, p.is_active as provider_is_active
+            FROM models m
+            LEFT JOIN providers p ON m.provider_id = p.id
+            WHERE m.id = ?
+        `);
+        const row = stmt.get(id) as ModelWithProviderRow | undefined;
+        return Promise.resolve(row);
+    }
+
+    /**
+     * Get all models with provider information
+     */
+    getAllModelsWithProviders(): Promise<ModelWithProviderRow[]> {
+        const stmt = this.db.prepare(`
+            SELECT m.*, p.id as provider_id, p.name as provider_name, p.type as provider_type,
+                   p.base_url as provider_base_url, p.is_active as provider_is_active
+            FROM models m
+            LEFT JOIN providers p ON m.provider_id = p.id
+            ORDER BY m.created_at DESC
+        `);
+        const rows = stmt.all() as ModelWithProviderRow[];
+        return Promise.resolve(rows);
     }
 
     deleteModel(id: string): Promise<void> {

@@ -147,7 +147,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     configDrawerOpen,
 }) => {
     const chatStore = useChat();
-    const { userInput, setUserInput, loading, renderMessages, sendMessage, stopGeneration } = chatStore;
+    const { userInput, setUserInput, loading, renderMessages, sendMessage, stopGeneration, inChatError } = chatStore;
 
     const activeAgentName = currentAgentName;
     const [isUserNearBottom, setIsUserNearBottom] = useState(true);
@@ -241,6 +241,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                                 );
                             }
                         })}
+                        {inChatError && <div>{JSON.stringify(inChatError)}</div>}
                         <div ref={messagesEndRef} />
                     </div>
                 )}
@@ -302,6 +303,3 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         </div>
     );
 };
-
-// 导出别名，用于向后兼容
-export const ChatPanelContent = ChatPanel;

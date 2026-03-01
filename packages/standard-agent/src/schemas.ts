@@ -1,10 +1,18 @@
 import z from 'zod';
 
+// ============ Provider Types ============
+/**
+ * Supported provider types
+ */
+export const ProviderTypeSchema = z.enum(['openai', 'anthropic', 'gemini', 'deepseek', 'moonshot', 'zhipu', 'custom']);
+export type ProviderType = z.infer<typeof ProviderTypeSchema>;
+
 // ============ Schemas ============
 export const ModelSchema = z.object({
     id: z.string(),
-    model_name: z.string(),
-    model_provider: z.string(),
+    name: z.string().optional().describe('Display name for the model'),
+    provider_id: z.string().describe('Foreign key reference to provider'),
+    model_name: z.string().describe('Actual model ID to use (e.g., gpt-4o, claude-3-5-sonnet)'),
     stream_usage: z.boolean().default(false),
     enable_thinking: z.boolean().default(false),
     temperature: z.number().default(0.7),

@@ -35,8 +35,9 @@ import {
 
 export interface ModelRow {
     id: string;
+    name: string | null;
+    provider_id: string;
     model_name: string;
-    model_provider: string;
     stream_usage: number;
     enable_thinking: number;
     temperature: number;
@@ -46,6 +47,17 @@ export interface ModelRow {
     presence_penalty: number;
     created_at: string;
     updated_at: string;
+}
+
+/**
+ * Model with provider information (JOIN result)
+ */
+export interface ModelWithProviderRow extends ModelRow {
+    provider_id: string;
+    provider_name: string;
+    provider_type: string;
+    provider_base_url: string;
+    provider_is_active: number;
 }
 
 export interface PromptRow {
