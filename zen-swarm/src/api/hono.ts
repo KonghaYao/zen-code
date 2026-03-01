@@ -12,6 +12,7 @@ import type { CronStorage } from '../cron/storage.js';
 import type { CronScheduler } from '../cron/scheduler.js';
 import type { StateMachineManager } from '../middlewares/sm/StateMachineManager.js';
 import type { SMDatabase } from '../middlewares/sm/database.js';
+import type { ProviderStorage } from '../services/provider/index.js';
 import { appRouter, createMergedRouter } from './index.js';
 
 // ========================================
@@ -24,11 +25,12 @@ export function createTRPCHonoRoute(
     cronScheduler: CronScheduler,
     stateMachineManager?: StateMachineManager,
     smDatabase?: SMDatabase,
+    providerStorage?: ProviderStorage,
 ) {
     const app = new Hono();
 
-    // 创建包含 SM Router 的合并路由
-    const router = createMergedRouter(stateMachineManager, smDatabase);
+    // 创建包含 SM Router 和 Provider Router 的合并路由
+    const router = createMergedRouter(stateMachineManager, smDatabase, providerStorage);
 
     // 处理所有 tRPC 请求（POST/GET）
     app.all('/*', async (c) => {

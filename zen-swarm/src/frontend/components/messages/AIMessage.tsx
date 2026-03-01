@@ -6,11 +6,17 @@
  * - 改进类型安全，移除 @ts-ignore
  * - 简化内容类型处理逻辑
  * - 提取内联样式到外部（规则：rendering-hoist-jsx）
+ * - 集成 Streamdown 实现 Markdown/Code/Math/Mermaid 渲染
  */
 
 import React, { useState, useMemo } from 'react';
 import type { RenderMessage } from '@langgraph-js/sdk';
 import { getThinkingContent, getTextContent } from '@langgraph-js/sdk';
+import { Streamdown } from 'streamdown';
+import { code } from '@streamdown/code';
+import { mermaid } from '@streamdown/mermaid';
+import { cjk } from '@streamdown/cjk';
+import 'streamdown/styles.css';
 
 interface AIMessageProps {
     message: RenderMessage;
@@ -98,8 +104,10 @@ export const AIMessage: React.FC<AIMessageProps> = ({ message, messageNumber, mo
             ) : null}
 
             {/* 消息内容 */}
-            <div className="bg-bg-secondary border border-border-subtle p-4 rounded-lg text-text-primary prose prose-sm max-w-none">
-                {displayContent}
+            <div className="bg-bg-secondary border border-border-subtle p-6 rounded-lg text-text-primary max-w-none">
+                <Streamdown animated={true} plugins={{ code, mermaid, cjk }}>
+                    {displayContent}
+                </Streamdown>
             </div>
         </div>
     );

@@ -7,6 +7,7 @@
 import type { TableColumn, ActionItem } from '../../components/ui/Table.js';
 import type { Agent, Model, Prompt, MCPServer, Tool, Middleware } from '../../types/index.js';
 import { StatusBadge } from '../../components/index.js';
+import { Zap } from 'lucide-react';
 
 // ========================================
 // Agents 表格配置
@@ -151,6 +152,94 @@ export const promptsActions: ActionItem<Prompt>[] = [
         danger: true,
         onClick: (record) => {
             console.log('Delete prompt:', record.id);
+        },
+    },
+];
+
+// ========================================
+// Providers 表格配置
+// ========================================
+
+export interface ProviderTableRow {
+    id: string;
+    name: string;
+    type: 'openai' | 'anthropic';
+    apiKey: string;
+    baseUrl: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export const providersColumns: TableColumn<ProviderTableRow>[] = [
+    {
+        key: 'name',
+        title: 'Name',
+        width: '25%',
+        render: (value, record) => (
+            <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center text-lg">🔑</div>
+                <div className="flex flex-col">
+                    <span className="font-medium">{value}</span>
+                    {record.isActive && (
+                        <span className="inline-flex items-center gap-1 text-xs text-blue-600">
+                            <Zap className="w-3 h-3" />
+                            Active
+                        </span>
+                    )}
+                </div>
+            </div>
+        ),
+    },
+    {
+        key: 'type',
+        title: 'Type',
+        width: '15%',
+        render: (value) => {
+            const colors: Record<string, string> = {
+                openai: 'bg-emerald-100 text-emerald-800',
+                anthropic: 'bg-orange-100 text-orange-800',
+            };
+            return (
+                <span
+                    className={`px-2 py-0.5 text-xs font-medium rounded ${colors[value] || 'bg-gray-100 text-gray-800'}`}
+                >
+                    {value === 'openai' ? 'OpenAI' : 'Anthropic'}
+                </span>
+            );
+        },
+    },
+    {
+        key: 'apiKey',
+        title: 'API Key',
+        width: '25%',
+        render: (value) => <span className="font-mono text-xs text-text-muted">{value}</span>,
+    },
+    {
+        key: 'baseUrl',
+        title: 'Base URL',
+        render: (value) => (
+            <span className="text-xs text-text-muted truncate block max-w-xs" title={value}>
+                {value}
+            </span>
+        ),
+    },
+];
+
+export const providersActions: ActionItem<ProviderTableRow>[] = [
+    {
+        key: 'edit',
+        label: 'Edit',
+        onClick: (record) => {
+            console.log('Edit provider:', record.id);
+        },
+    },
+    {
+        key: 'delete',
+        label: 'Delete',
+        danger: true,
+        onClick: (record) => {
+            console.log('Delete provider:', record.id);
         },
     },
 ];
@@ -332,6 +421,11 @@ export const tableConfigs: Record<string, TableConfig> = {
         columns: promptsColumns,
         actions: promptsActions,
         emptyMessage: 'No prompts yet. Create your first prompt!',
+    },
+    providers: {
+        columns: providersColumns,
+        actions: providersActions,
+        emptyMessage: 'No providers configured yet. Add your API keys!',
     },
     skills: {
         columns: skillsColumns,

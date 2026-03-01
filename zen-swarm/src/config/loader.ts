@@ -14,6 +14,7 @@ import { CronStorage } from '../cron/storage.js';
 import { CronScheduler } from '../cron/scheduler.js';
 import { CronExecutor } from '../cron/executor.js';
 import { SMDatabase, StateMachineManager } from '../middlewares/sm/index.js';
+import { ProviderStorage } from '../services/provider/index.js';
 
 // 共享数据库实例
 const sharedDb = new Database('./data/index.db', { create: true });
@@ -35,6 +36,20 @@ setMcpConfigStorage(mcpStorage);
 const smDatabase = new SMDatabase({ db: sharedDb });
 const stateMachineManager = new StateMachineManager({ database: smDatabase });
 await stateMachineManager.initialize();
+
+// ========================================
+// Provider 系统
+// ========================================
+
+// Provider 存储实例
+const providerStorage = new ProviderStorage('./data/index.db');
+await providerStorage.initialize();
+
+// 从环境变量迁移（如果需要）
+const migratedCount = await providerStorage.migrateFromEnvVars();
+if (migratedCount > 0) {
+    console.log(`Migrated ${migratedCount} provider(s) from environment variables`);
+}
 
 // ========================================
 // Cron 系统
@@ -77,4 +92,4 @@ await createMiddlewareRegistry(agentPackage, {
 await createToolRegistry(agentPackage);
 
 // 导出存储实例供外部使用
-export { agentStorage, mcpStorage, sharedDb, smDatabase, stateMachineManager };
+export { agentStorage, mcpStorage, sharedDb, smDatabase, stateMachineManager, providerStorage };

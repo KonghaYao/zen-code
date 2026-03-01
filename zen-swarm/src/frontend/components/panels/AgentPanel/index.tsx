@@ -93,12 +93,10 @@ export function AgentPanel({ onClose }: AgentPanelProps) {
         }
     };
 
-    const isMutating = createMutation.isPending || updateMutation.isPending;
-
     return (
         <div className="flex flex-col h-full">
             {/* macOS Style Header with Traffic Lights */}
-            <header className="flex-shrink-0 bg-transparent px-4 py-3 flex items-center justify-between border-b border-border-subtle">
+            <header className="shrink-0 bg-transparent px-4 py-3 flex items-center justify-between border-b border-border-subtle">
                 <div className="flex items-center gap-3">
                     <TrafficLights onClose={onClose} />
                     <h2 className="text-xl font-semibold text-text-primary ml-2">
@@ -143,7 +141,7 @@ export function AgentPanel({ onClose }: AgentPanelProps) {
                 )}
             </div>
 
-            <Modal open={modal.isOpen} onClose={modal.close} title={modal.getTitle('Agent')}>
+            <Modal open={modal.isOpen} onClose={modal.close} title={modal.getTitle('Agent')} size="lg">
                 <AgentForm
                     agent={modal.editingItem}
                     models={models}

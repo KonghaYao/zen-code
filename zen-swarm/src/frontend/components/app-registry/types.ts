@@ -8,7 +8,7 @@ import type { ComponentType, ReactNode } from 'react';
 /**
  * 应用 ID 类型
  */
-export type AppId = 'chat' | 'dashboard' | 'config' | 'finder' | 'sm' | 'cron' | 'monitor' | 'terminal';
+export type AppId = 'chat' | 'config' | 'finder' | 'sm' | 'cron' | 'monitor' | 'terminal';
 
 /**
  * 通知状态
@@ -31,6 +31,13 @@ export interface AppRegistryItem {
     id: AppId;
     name: string;
     icon: string | ReactNode;
+    /** Dock 图标渐变色 [from, to]（当没有 fullIcon 时使用） */
+    iconColor: [string, string];
+    /**
+     * 完整自定义 Dock 图标（SVG 组件），优先级高于 icon + iconColor。
+     * 用于需要手工精绘的图标。
+     */
+    fullIcon?: ReactNode;
     description: string;
     viewComponent: ComponentType;
     defaultOpen?: boolean;

@@ -108,7 +108,6 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
             // Hide autocompletes on submit
             skillAutocomplete.hide();
             agentAutocomplete.hide();
-
             // 命令优先处理
             if (isCommandInput) {
                 onSubmit(submitValue);

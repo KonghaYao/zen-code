@@ -1,10 +1,16 @@
 /**
- * AgentForm 组件 - 创建/编辑表单
+ * AgentForm 组件 - macOS 原生风格
+ *
+ * 设计特点：
+ * - 流式分组布局（基本信息 / 配置 / 能力）
+ * - 卡片点击选择工具和中间件
+ * - 优雅的分组标题和分隔
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Agent, Model, Prompt, Tool, Middleware } from '../../../types/index.js';
 import { Select } from '../../ui/Select.js';
+import { Check, Settings2, Wrench, FileText } from 'lucide-react';
 
 interface AgentFormProps {
     agent: Agent | null;
@@ -16,37 +22,31 @@ interface AgentFormProps {
     onCancel: () => void;
 }
 
+// 初始表单状态
+const createInitialFormData = (agent: Agent | null) => ({
+    id: agent?.id ?? '',
+    name: agent?.name ?? '',
+    description: agent?.description ?? '',
+    system_prompt: agent?.system_prompt ?? '',
+    model: agent?.model ?? '',
+    tools: { ...(agent?.tools || {}) } as Record<string, boolean>,
+    middleware: { ...(agent?.middlewares || {}) } as Record<string, boolean>,
+});
+
 export function AgentForm(props: AgentFormProps) {
-    const [formData, setFormData] = useState({
-        id: '',
-        name: '',
-        description: '',
-        system_prompt: '',
-        model: '',
-        tools: {} as Record<string, boolean>,
-        middleware: {} as Record<string, boolean>,
-    });
+    const [formData, setFormData] = useState(() => createInitialFormData(props.agent));
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
     const { models, prompts, tools, middlewares } = props;
     const optionsLoaded = models.length > 0;
 
-    // Initialize form data when agent prop changes
+    // 初始化表单数据
     useEffect(() => {
         if (props.agent) {
-            console.log('Editing agent:', props.agent);
-            setFormData({
-                id: props.agent.id,
-                name: props.agent.name,
-                description: props.agent.description || '',
-                system_prompt: props.agent.system_prompt || '',
-                model: props.agent.model || '',
-                tools: { ...(props.agent.tools || {}) },
-                middleware: { ...(props.agent.middlewares || {}) },
-            });
+            setFormData(createInitialFormData(props.agent));
         } else {
-            // Reset form for create mode
             setFormData({
                 id: '',
                 name: '',
@@ -59,7 +59,7 @@ export function AgentForm(props: AgentFormProps) {
         }
     }, [props.agent]);
 
-    // Initialize default tools/middlewares when options are loaded and in create mode
+    // 初始化默认选中所有工具和中间件（创建模式）
     useEffect(() => {
         if (!props.agent && optionsLoaded) {
             setFormData((prev) => ({
@@ -70,11 +70,33 @@ export function AgentForm(props: AgentFormProps) {
         }
     }, [optionsLoaded, tools, middlewares, props.agent]);
 
+    // 计算选中数量
+    const selectedToolsCount = useMemo(
+        () => Object.keys(formData.tools).filter((k) => formData.tools[k]).length,
+        [formData.tools],
+    );
+    const selectedMiddlewaresCount = useMemo(
+        () => Object.keys(formData.middleware).filter((k) => formData.middleware[k]).length,
+        [formData.middleware],
+    );
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setSaving(true);
         setError(null);
 
+        // 验证
+        const errors: Record<string, string> = {};
+        if (!formData.id.trim()) errors.id = 'ID 不能为空';
+        if (!formData.name.trim()) errors.name = '名称不能为空';
+        if (!formData.model) errors.model = '请选择模型';
+        if (!formData.system_prompt) errors.system_prompt = '请选择系统提示词';
+
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors);
+            return;
+        }
+
+        setSaving(true);
         try {
             await props.onSave(formData);
         } catch (err: any) {
@@ -85,187 +107,294 @@ export function AgentForm(props: AgentFormProps) {
     };
 
     const toggleTool = (toolId: string) => {
-        setFormData((prev) => {
-            const newTools = { ...prev.tools };
-            if (newTools[toolId]) {
-                delete newTools[toolId];
-            } else {
-                newTools[toolId] = true;
-            }
-            return { ...prev, tools: newTools };
-        });
+        setFormData((prev) => ({
+            ...prev,
+            tools: { ...prev.tools, [toolId]: !prev.tools[toolId] },
+        }));
     };
 
     const toggleMiddleware = (midId: string) => {
-        setFormData((prev) => {
-            const newMiddleware = { ...prev.middleware };
-            if (newMiddleware[midId]) {
-                delete newMiddleware[midId];
-            } else {
-                newMiddleware[midId] = true;
-            }
-            return { ...prev, middleware: newMiddleware };
-        });
+        setFormData((prev) => ({
+            ...prev,
+            middleware: { ...prev.middleware, [midId]: !prev.middleware[midId] },
+        }));
     };
 
-    // Check if model ID exists in options
-    const isValidModel = models.some((m) => m.id === formData.model);
-
-    // Check if prompt ID exists in options
-    const isValidPrompt = prompts.some((p) => p.id === formData.system_prompt);
+    const updateField = (field: string, value: any) => {
+        setFormData((prev) => ({ ...prev, [field]: value }));
+        if (validationErrors[field]) {
+            setValidationErrors((prev) => ({ ...prev, [field]: '' }));
+        }
+    };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+            {/* 错误提示 */}
             {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-sm">{error}</div>
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm animate-fade-in">
+                    {error}
+                </div>
             )}
 
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ID</label>
-                <input
-                    type="text"
-                    value={formData.id}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, id: e.target.value }))}
-                    disabled={!!props.agent}
-                    required
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                    placeholder="e.g., agent-coder"
-                />
-            </div>
+            {/* 流式内容区 */}
+            <div className="flex-1 overflow-y-auto min-h-0 space-y-8 pr-1">
+                {/* ========== 基本信息 ========== */}
+                <Section title="基本信息" icon={<FileText className="w-4 h-4" />}>
+                    <div className="space-y-4">
+                        <FormField label="Agent ID" required error={validationErrors.id}>
+                            <input
+                                type="text"
+                                value={formData.id}
+                                onChange={(e) => updateField('id', e.target.value)}
+                                disabled={!!props.agent}
+                                placeholder="例如: code-assistant"
+                                className="form-input-macos"
+                            />
+                            <p className="mt-1.5 text-xs text-neutral-400">唯一标识符，创建后不可修改</p>
+                        </FormField>
 
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                    required
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., Code Assistant"
-                />
-            </div>
+                        <FormField label="显示名称" required error={validationErrors.name}>
+                            <input
+                                type="text"
+                                value={formData.name}
+                                onChange={(e) => updateField('name', e.target.value)}
+                                placeholder="例如: 代码助手"
+                                className="form-input-macos"
+                            />
+                        </FormField>
 
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                    rows={2}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Describe what this agent does"
-                />
-            </div>
-
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
-                <Select
-                    value={formData.model}
-                    onChange={(value) => setFormData((prev) => ({ ...prev, model: value }))}
-                    options={[
-                        { value: '', label: 'Select a model...' },
-                        ...models.map((m) => ({ value: m.id, label: `${m.model_name} (${m.id})` })),
-                    ]}
-                    loading={!optionsLoaded}
-                    loadingText="Loading models..."
-                    placeholder="Select a model..."
-                />
-                {formData.model && !isValidModel && (
-                    <p className="text-amber-600 text-xs mt-1">Selected model not found in options</p>
-                )}
-            </div>
-
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">System Prompt</label>
-                <Select
-                    value={formData.system_prompt}
-                    onChange={(value) => setFormData((prev) => ({ ...prev, system_prompt: value }))}
-                    options={[
-                        { value: '', label: 'Select a prompt...' },
-                        ...prompts.map((p) => ({ value: p.id, label: `${p.name} (${p.id})` })),
-                    ]}
-                    loading={!optionsLoaded}
-                    loadingText="Loading prompts..."
-                    placeholder="Select a prompt..."
-                />
-                {formData.system_prompt && !isValidPrompt && (
-                    <p className="text-amber-600 text-xs mt-1">Selected prompt not found in options</p>
-                )}
-            </div>
-
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tools</label>
-                {!optionsLoaded || !tools ? (
-                    <div className="max-h-48 overflow-y-auto bg-gray-50 rounded-lg p-3 text-gray-400">
-                        Loading tools...
+                        <FormField label="描述">
+                            <textarea
+                                value={formData.description}
+                                onChange={(e) => updateField('description', e.target.value)}
+                                placeholder="描述这个 Agent 的功能..."
+                                rows={2}
+                                className="form-input-macos resize-none"
+                            />
+                        </FormField>
                     </div>
-                ) : (
-                    <div className="space-y-2 max-h-48 overflow-y-auto bg-gray-50 rounded-lg p-3">
-                        {tools.length === 0 ? (
-                            <p className="text-gray-500 text-sm">No tools available</p>
-                        ) : (
-                            tools.map((tool) => (
-                                <label key={tool.id} className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={!!formData.tools[tool.id]}
-                                        onChange={() => toggleTool(tool.id)}
-                                        className="w-4 h-4 border-gray-300 rounded"
-                                    />
-                                    <span className="text-sm">
-                                        {tool.name} <span className="text-gray-400">({tool.id})</span>
-                                    </span>
-                                </label>
-                            ))
-                        )}
-                    </div>
-                )}
-            </div>
+                </Section>
 
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Middlewares</label>
-                {!optionsLoaded ? (
-                    <div className="max-h-48 overflow-y-auto bg-gray-50 rounded-lg p-3 text-gray-400">
-                        Loading middlewares...
-                    </div>
-                ) : (
-                    <div className="space-y-2 max-h-48 overflow-y-auto bg-gray-50 rounded-lg p-3">
-                        {middlewares.length === 0 ? (
-                            <p className="text-gray-500 text-sm">No middlewares available</p>
-                        ) : (
-                            middlewares.map((mid) => (
-                                <label key={mid.id} className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={!!formData.middleware[mid.id]}
-                                        onChange={() => toggleMiddleware(mid.id)}
-                                        className="w-4 h-4 border-gray-300 rounded"
-                                    />
-                                    <span className="text-sm">
-                                        {mid.name} <span className="text-gray-400">({mid.id})</span>
-                                    </span>
-                                </label>
-                            ))
-                        )}
-                    </div>
-                )}
-            </div>
+                {/* ========== 配置 ========== */}
+                <Section title="配置" icon={<Settings2 className="w-4 h-4" />}>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField label="模型" required error={validationErrors.model}>
+                            <Select
+                                value={formData.model}
+                                onChange={(value) => updateField('model', value)}
+                                options={[
+                                    { value: '', label: '选择模型...' },
+                                    ...models.map((m) => ({ value: m.id, label: `${m.model_name} (${m.id})` })),
+                                ]}
+                                loading={!optionsLoaded}
+                                loadingText="加载中..."
+                                placeholder="选择模型"
+                            />
+                        </FormField>
 
-            <div className="flex justify-end gap-3 pt-4">
-                <button
-                    type="button"
-                    onClick={props.onCancel}
-                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                        <FormField label="系统提示词" required error={validationErrors.system_prompt}>
+                            <Select
+                                value={formData.system_prompt}
+                                onChange={(value) => updateField('system_prompt', value)}
+                                options={[
+                                    { value: '', label: '选择提示词...' },
+                                    ...prompts.map((p) => ({ value: p.id, label: `${p.name} (${p.id})` })),
+                                ]}
+                                loading={!optionsLoaded}
+                                loadingText="加载中..."
+                                placeholder="选择提示词"
+                            />
+                        </FormField>
+                    </div>
+                </Section>
+
+                {/* ========== 能力 ========== */}
+                <Section
+                    title="能力"
+                    icon={<Wrench className="w-4 h-4" />}
+                    badge={`${selectedToolsCount + selectedMiddlewaresCount} 项已启用`}
                 >
-                    Cancel
-                </button>
-                <button
-                    type="submit"
-                    disabled={saving || !optionsLoaded}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:bg-blue-300"
-                >
-                    {saving ? 'Saving...' : 'Save'}
-                </button>
+                    {/* 工具选择 */}
+                    <div className="mb-5">
+                        <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-sm font-medium text-neutral-700">工具</h4>
+                            <span className="text-xs text-neutral-400 tabular-nums">
+                                {selectedToolsCount} / {tools.length}
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            {tools.map((tool) => (
+                                <CapabilityCard
+                                    key={tool.id}
+                                    id={tool.id}
+                                    name={tool.name}
+                                    description={tool.description}
+                                    selected={!!formData.tools[tool.id]}
+                                    onClick={() => toggleTool(tool.id)}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 中间件选择 */}
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-sm font-medium text-neutral-700">中间件</h4>
+                            <span className="text-xs text-neutral-400 tabular-nums">
+                                {selectedMiddlewaresCount} / {middlewares.length}
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            {middlewares.map((mid) => (
+                                <CapabilityCard
+                                    key={mid.id}
+                                    id={mid.id}
+                                    name={mid.name}
+                                    description={mid.description}
+                                    selected={!!formData.middleware[mid.id]}
+                                    onClick={() => toggleMiddleware(mid.id)}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </Section>
+            </div>
+
+            {/* 底部按钮栏 */}
+            <div className="flex items-center justify-between pt-5 mt-6 border-t border-neutral-100">
+                <div className="text-xs text-neutral-400">{props.agent ? '编辑 Agent' : '创建新 Agent'}</div>
+                <div className="flex gap-3">
+                    <button
+                        type="button"
+                        onClick={props.onCancel}
+                        className="btn-ghost px-4 py-2 text-sm font-medium rounded-lg"
+                    >
+                        取消
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={saving || !optionsLoaded}
+                        className="btn-primary px-5 py-2 text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {saving ? (
+                            <span className="flex items-center gap-2">
+                                <span className="loading-spinner w-4 h-4" />
+                                保存中...
+                            </span>
+                        ) : props.agent ? (
+                            '保存修改'
+                        ) : (
+                            '创建 Agent'
+                        )}
+                    </button>
+                </div>
             </div>
         </form>
     );
 }
+
+/**
+ * 分组区域组件
+ */
+interface SectionProps {
+    title: string;
+    icon: React.ReactNode;
+    badge?: string;
+    children: React.ReactNode;
+}
+
+function Section({ title, icon, badge, children }: SectionProps) {
+    return (
+        <section>
+            {/* 分组标题 */}
+            <div className="flex items-center gap-2 mb-4">
+                <div className="w-6 h-6 flex items-center justify-center rounded-md bg-neutral-100 text-neutral-500">
+                    {icon}
+                </div>
+                <h3 className="text-sm font-semibold text-neutral-800">{title}</h3>
+                {badge && (
+                    <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-600 rounded-full">
+                        {badge}
+                    </span>
+                )}
+            </div>
+            {/* 分组内容 */}
+            <div className="pl-8">{children}</div>
+        </section>
+    );
+}
+
+/**
+ * 表单字段组件
+ */
+interface FormFieldProps {
+    label: string;
+    required?: boolean;
+    error?: string;
+    children: React.ReactNode;
+}
+
+function FormField({ label, required, error, children }: FormFieldProps) {
+    return (
+        <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                {label}
+                {required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            {children}
+            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        </div>
+    );
+}
+
+/**
+ * 能力选择卡片组件
+ */
+interface CapabilityCardProps {
+    id: string;
+    name: string;
+    description?: string;
+    selected: boolean;
+    onClick: () => void;
+}
+
+function CapabilityCard({ id, name, description, selected, onClick }: CapabilityCardProps) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`
+                relative flex flex-col items-start p-3 rounded-lg border text-left
+                transition-all duration-150 ease-out
+                ${
+                    selected
+                        ? 'border-blue-400 bg-blue-50/80 shadow-sm'
+                        : 'border-neutral-200/80 bg-white hover:border-neutral-300 hover:bg-neutral-50'
+                }
+            `}
+        >
+            {/* 选中指示器 */}
+            <div
+                className={`
+                    absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center
+                    transition-all duration-150
+                    ${selected ? 'bg-blue-500 text-white scale-100' : 'bg-neutral-100 text-transparent scale-90'}
+                `}
+            >
+                <Check className="w-3 h-3" />
+            </div>
+
+            <span className={`text-sm font-medium pr-6 ${selected ? 'text-blue-900' : 'text-neutral-800'}`}>
+                {name}
+            </span>
+            <span className={`text-xs ${selected ? 'text-blue-500' : 'text-neutral-400'}`}>{id}</span>
+            {description && (
+                <p className={`text-xs mt-1.5 line-clamp-2 ${selected ? 'text-blue-600/80' : 'text-neutral-500'}`}>
+                    {description}
+                </p>
+            )}
+        </button>
+    );
+}
+
+export default AgentForm;

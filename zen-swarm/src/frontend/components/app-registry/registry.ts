@@ -6,9 +6,8 @@
 import type { AppRegistryItem, AppId } from './types.js';
 import React from 'react';
 
-// 直接导入视图组件（不支持懒加载，因为没有 default export）
+// Direct view imports
 import { ChatView } from '../../views/ChatView.js';
-import { DashboardView } from '../../views/DashboardView.js';
 import { ConfigView } from '../../views/ConfigView.js';
 // import { WorkspaceView } from '../../views/WorkspaceView.js'; // 已废弃
 import { FinderView } from '../../views/Finder/index.js';
@@ -20,15 +19,22 @@ import { TerminalView } from '../../components/terminal/TerminalView.js';
 // Lucide icons from Icons.tsx
 import {
     MessageSquare,
-    BarChart3,
     Settings,
     FolderOpen,
-    Folder,
     Clock,
     GitBranch,
     Activity,
     Terminal as TerminalIcon,
 } from '../../components/ui/Icons.js';
+
+// Custom hand-crafted dock icons
+import { ChatDockIcon } from '../dock/icons/ChatDockIcon.js';
+import { ConfigDockIcon } from '../dock/icons/ConfigDockIcon.js';
+import { FinderDockIcon } from '../dock/icons/FinderDockIcon.js';
+import { MonitorDockIcon } from '../dock/icons/MonitorDockIcon.js';
+import { SMDockIcon } from '../dock/icons/SMDockIcon.js';
+import { CronDockIcon } from '../dock/icons/CronDockIcon.js';
+import { TerminalDockIcon } from '../dock/icons/TerminalDockIcon.js';
 
 /**
  * 应用注册表
@@ -39,6 +45,8 @@ export const appRegistry: AppRegistryItem[] = [
         id: 'chat',
         name: 'Chat',
         icon: React.createElement(MessageSquare, { size: 24 }),
+        iconColor: ['#4F8EF5', '#7B5CF6'],
+        fullIcon: React.createElement(ChatDockIcon, { className: 'w-full h-full' }),
         description: 'AI 聊天助手',
         viewComponent: ChatView,
         defaultOpen: true,
@@ -46,75 +54,69 @@ export const appRegistry: AppRegistryItem[] = [
         contextMenuActions: ['open', 'help'],
     },
     {
-        id: 'dashboard',
-        name: 'Dashboard',
-        icon: React.createElement(BarChart3, { size: 24 }),
-        description: '概览仪表盘',
-        viewComponent: DashboardView,
-        keyboardShortcut: 'Cmd+2',
-        contextMenuActions: ['open', 'help'],
-    },
-    {
         id: 'config',
         name: 'Config',
         icon: React.createElement(Settings, { size: 24 }),
+        iconColor: ['#6B7280', '#1F2937'],
+        fullIcon: React.createElement(ConfigDockIcon, { className: 'w-full h-full' }),
         description: 'AI 配置与资源管理',
         viewComponent: ConfigView,
-        keyboardShortcut: 'Cmd+3',
+        keyboardShortcut: 'Cmd+2',
         contextMenuActions: ['open', 'help'],
     },
     {
         id: 'finder',
         name: 'Finder',
         icon: React.createElement(FolderOpen, { size: 24 }),
+        iconColor: ['#4A9AF5', '#2DD4BF'],
+        fullIcon: React.createElement(FinderDockIcon, { className: 'w-full h-full' }),
         description: 'macOS 风格文件管理器',
         viewComponent: FinderView,
-        keyboardShortcut: 'Cmd+4',
+        keyboardShortcut: 'Cmd+3',
         contextMenuActions: ['open', 'help'],
     },
-    // {
-    //     id: 'workspaces',
-    //     name: 'Workspace',
-    //     icon: React.createElement(Folder, { size: 24 }),
-    //     description: 'VSCode 风格工作空间',
-    //     viewComponent: WorkspaceView,
-    //     keyboardShortcut: 'Cmd+5',
-    //     contextMenuActions: ['open', 'help'],
-    // },
     {
         id: 'monitor',
         name: 'Monitor',
         icon: React.createElement(Activity, { size: 24 }),
+        iconColor: ['#FF6B6B', '#F97316'],
+        fullIcon: React.createElement(MonitorDockIcon, { className: 'w-full h-full' }),
         description: '进程监控面板',
         viewComponent: MonitorView,
-        keyboardShortcut: 'Cmd+5',
+        keyboardShortcut: 'Cmd+4',
         contextMenuActions: ['open', 'help'],
     },
     {
         id: 'sm',
         name: 'State Machine',
         icon: React.createElement(GitBranch, { size: 24 }),
+        iconColor: ['#C084FC', '#7C3AED'],
+        fullIcon: React.createElement(SMDockIcon, { className: 'w-full h-full' }),
         description: '状态机管理与可视化',
         viewComponent: SMView,
-        keyboardShortcut: 'Cmd+6',
+        keyboardShortcut: 'Cmd+5',
         contextMenuActions: ['open', 'help'],
     },
     {
         id: 'cron',
         name: 'Cron',
         icon: React.createElement(Clock, { size: 24 }),
+        iconColor: ['#34D399', '#059669'],
+        fullIcon: React.createElement(CronDockIcon, { className: 'w-full h-full' }),
         description: '定时任务管理',
         viewComponent: CronView,
-        keyboardShortcut: 'Cmd+7',
+        keyboardShortcut: 'Cmd+6',
         contextMenuActions: ['open', 'help'],
     },
     {
         id: 'terminal',
         name: 'Terminal',
         icon: React.createElement(TerminalIcon, { size: 24 }),
+        iconColor: ['#374151', '#111827'],
+        fullIcon: React.createElement(TerminalDockIcon, { className: 'w-full h-full' }),
         description: 'Web 终端',
         viewComponent: TerminalView,
-        keyboardShortcut: 'Cmd+8',
+        keyboardShortcut: 'Cmd+7',
         contextMenuActions: ['open', 'help'],
     },
 ];

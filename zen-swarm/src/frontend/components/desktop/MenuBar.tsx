@@ -4,7 +4,7 @@
  * 显示实时系统信息：电池、网络、内存等
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { useSystemStatus } from '../../hooks/useSystemStatus.js';
 import { Battery, Wifi, HardDrive, Search, Settings, Apple, WifiOff } from '../ui/Icons.js';
@@ -12,7 +12,7 @@ import { Battery, Wifi, HardDrive, Search, Settings, Apple, WifiOff } from '../u
 interface MenuBarProps {
     WifiOff?: boolean;
     appName?: string;
-    appIcon?: string;
+    appIcon?: React.ReactNode;
 }
 
 function formatTime(date: Date): string {
@@ -91,16 +91,6 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
         const { online, type, effectiveType } = systemStatus.network;
         const networkType = type || (online ? 'wifi' : 'offline');
 
-        const getNetworkSignal = () => {
-            if (!online) return 0;
-            if (effectiveType === '4g') return 4;
-            if (effectiveType === '3g') return 3;
-            if (effectiveType === '2g' || effectiveType === 'slow-2g') return 1;
-            return 3; // 默认
-        };
-
-        const signalBars = getNetworkSignal();
-
         return (
             <button
                 className="h-full px-1.5 flex items-center rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-default"
@@ -140,14 +130,16 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
     return (
         <motion.header
             className="
-                fixed top-0 left-0 right-0 z-[1000]
+                fixed top-0 left-0 right-0 z-1000
                 h-7 flex items-center justify-between
                 px-3
                 text-white
-                dark:bg-neutral-900/85
-                backdrop-blur-xl
+                bg-black/30
+                dark:bg-neutral-900/75
+                backdrop-blur-2xl
                 select-none
             "
+            style={{ borderBottom: '0.5px solid rgba(255,255,255,0.12)' }}
             initial={{ y: -30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
@@ -164,7 +156,24 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
 
                 {/* 应用名称 */}
                 <span className="h-full px-2.5 flex items-center gap-1.5 text-[13px] font-medium">
-                    <span className="text-sm">{appIcon}</span>
+                    {appIcon && (
+                        <span
+                            className="flex items-center opacity-80"
+                            style={{ width: 14, height: 14, overflow: 'hidden' }}
+                        >
+                            <span
+                                style={{
+                                    transform: 'scale(0.58)',
+                                    transformOrigin: 'top left',
+                                    display: 'block',
+                                    width: 24,
+                                    height: 24,
+                                }}
+                            >
+                                {appIcon}
+                            </span>
+                        </span>
+                    )}
                     <span className={menuItems[0].isBold ? 'font-semibold' : ''}>{menuItems[0].label}</span>
                 </span>
 

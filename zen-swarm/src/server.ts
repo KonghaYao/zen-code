@@ -10,7 +10,14 @@ import { logger } from 'hono/logger';
 import { serve } from 'bun';
 import { swarmGraph } from './graphBuilder.js';
 import { createTRPCHonoRoute } from './api/hono.js';
-import { agentPackage, cronStorage, cronScheduler, stateMachineManager, smDatabase } from './config/loader.js';
+import {
+    agentPackage,
+    cronStorage,
+    cronScheduler,
+    stateMachineManager,
+    smDatabase,
+    providerStorage,
+} from './config/loader.js';
 import dashboard from './index.html';
 import { handleTerminalMessage, handleTerminalClose, handleTerminalOpen } from './api/terminalWebSocket.js';
 
@@ -29,7 +36,14 @@ app.use(logger());
 console.log('Mounting LangGraph routes at /api/langgraph');
 app.route('/api/langgraph', LGApp);
 
-const trpcRoute = createTRPCHonoRoute(agentPackage, cronStorage, cronScheduler, stateMachineManager, smDatabase);
+const trpcRoute = createTRPCHonoRoute(
+    agentPackage,
+    cronStorage,
+    cronScheduler,
+    stateMachineManager,
+    smDatabase,
+    providerStorage,
+);
 app.route('/api/trpc', trpcRoute);
 
 app.get('/health', (c) => {
@@ -64,7 +78,7 @@ serve({
         const url = new URL(req.url);
         if (url.pathname === '/ws/terminal') {
             const upgraded = server.upgrade(req, {
-                data: { sessionId: undefined },
+                data: { sessionIds: new Set<string>() },
             });
             if (upgraded) {
                 return undefined; // Bun 会接管 WebSocket

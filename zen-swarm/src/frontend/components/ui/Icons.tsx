@@ -11,6 +11,7 @@ export {
     Wifi,
     Search,
     Settings2 as Settings,
+    Settings2,
     RefreshCw,
     ChevronLeft,
     ChevronRight,
@@ -142,6 +143,7 @@ export {
     Dog,
     PawPrint,
     MessageSquare,
+    Wrench,
     // Additional icons for SM View
     Layers,
     GitBranch,

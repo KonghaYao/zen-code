@@ -122,7 +122,7 @@ export const ChatInput: React.FC = memo(() => {
             );
             notify('Zen Code 完成任务');
         },
-        [commandHandler, setUserInput, executeShellCommand],
+        [commandHandler, setUserInput, executeShellCommand, extraParams, sendMessage],
     );
 
     return (

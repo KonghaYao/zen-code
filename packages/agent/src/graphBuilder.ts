@@ -42,6 +42,7 @@ async function invokeAgent(agentId: string, pkg: AgentPackage, state: CodeStateT
     });
     return {
         switch_command: '',
+        // @ts-ignore
         task_store: response.task_store,
         messages: response.messages,
     };

@@ -14,7 +14,6 @@ import type { AppId } from '../components/app-registry/types.js';
 
 // 导入视图组件
 import { ChatView } from '../views/ChatView.js';
-import { DashboardView } from '../views/DashboardView.js';
 import { ConfigView } from '../views/ConfigView.js';
 import { CronView } from '../views/CronView.js';
 import { AppWindow } from '../components/desktop/index.js';
@@ -42,7 +41,7 @@ export function DockLayout() {
         }
 
         // 只返回有效的应用 ID，否则默认为 chat
-        if (['chat', 'dashboard', 'config', 'finder', 'sm', 'monitor', 'cron', 'terminal'].includes(path)) {
+        if (['chat', 'config', 'finder', 'sm', 'monitor', 'cron', 'terminal'].includes(path)) {
             return path as AppId;
         }
         // 如果路径为空或无效，默认为 chat
@@ -113,7 +112,7 @@ export function DockLayout() {
             <DesktopWallpaper />
 
             {/* 顶部状态栏 */}
-            <MenuBar appName={currentApp?.name ?? 'Zen Swarm'} appIcon={String(currentApp?.icon ?? '🐝')} />
+            <MenuBar appName={currentApp?.name ?? 'Zen Swarm'} appIcon={currentApp?.icon} />
 
             {/* 桌面主内容区域 */}
             <main className="flex-1 flex flex-col min-h-0 overflow-hidden mt-7 mb-20">

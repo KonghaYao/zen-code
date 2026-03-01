@@ -16,19 +16,28 @@ import { usePromptsStore } from '../stores/index.js';
 import { useToolsStore } from '../stores/index.js';
 import { useMiddlewaresStore } from '../stores/index.js';
 import { useMcpStore } from '../stores/index.js';
+import {
+    useProviders,
+    useCreateProvider,
+    useUpdateProvider,
+    useDeleteProvider,
+    useSetActiveProvider,
+} from '../hooks/useProviders.js';
+import type { Provider, ProviderUpdateInput } from '../hooks/useProviders.js';
 import { DataTable } from '../components/ui/index.js';
 import { StatusBadge } from '../components/index.js';
 import { AgentForm } from '../components/panels/AgentPanel/AgentForm.js';
 import { ModelForm } from '../components/panels/ModelsPanel/ModelForm.js';
 import { PromptForm } from '../components/panels/PromptsPanel/PromptForm.js';
 import { MCPServerForm } from '../components/panels/MCPPanel/MCPServerForm.js';
+import { ProviderForm } from '../components/provider-panel/ProviderForm.js';
 import { Modal } from '../components/Modal.js';
 import { ConfirmModal } from '../components/ui/ConfirmModal.js';
 import type { Agent, Model, Prompt, MCPServer } from '../types/index.js';
 import { tableConfigs } from './config/table-configs.js';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
-type ConfigTab = 'agents' | 'models' | 'prompts' | 'skills' | 'mcp' | 'tools' | 'middlewares';
+type ConfigTab = 'agents' | 'models' | 'prompts' | 'providers' | 'skills' | 'mcp' | 'tools' | 'middlewares';
 
 interface TabConfig {
     id: ConfigTab;
@@ -68,6 +77,15 @@ const TABS: TabConfig[] = [
         category: 'ai',
         editable: true,
         actionLabel: '+ Create Prompt',
+    },
+    {
+        id: 'providers',
+        label: 'Providers',
+        icon: '🔑',
+        description: 'AI provider API keys and endpoints',
+        category: 'ai',
+        editable: true,
+        actionLabel: '+ Add Provider',
     },
     // 资源管理
     {
@@ -117,7 +135,7 @@ export function ConfigView() {
 
     // Modal states
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [editingItem, setEditingItem] = useState<Agent | Model | Prompt | MCPServer | null>(null);
+    const [editingItem, setEditingItem] = useState<Agent | Model | Prompt | MCPServer | Provider | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -128,6 +146,13 @@ export function ConfigView() {
     const { tools, toolsLoading, loadTools } = useToolsStore();
     const { middlewares, middlewaresLoading, loadMiddlewares } = useMiddlewaresStore();
     const { mcpServers, mcpLoading, loadMcpServers, createMcpServer, updateMcpServer, deleteMcpServer } = useMcpStore();
+
+    // Providers hooks
+    const { data: providers = [], isLoading: providersLoading } = useProviders();
+    const createProviderMutation = useCreateProvider();
+    const updateProviderMutation = useUpdateProvider();
+    const deleteProviderMutation = useDeleteProvider();
+    const setActiveProviderMutation = useSetActiveProvider();
 
     // Load flags
     const hasLoadedAgents = useRef(false);
@@ -195,6 +220,8 @@ export function ConfigView() {
                 return { dataSource: models, loading: modelsLoading };
             case 'prompts':
                 return { dataSource: prompts, loading: promptsLoading };
+            case 'providers':
+                return { dataSource: providers, loading: providersLoading };
             case 'skills':
                 return { dataSource: [], loading: false };
             case 'mcp':
@@ -212,6 +239,8 @@ export function ConfigView() {
         modelsLoading,
         prompts,
         promptsLoading,
+        providers,
+        providersLoading,
         mcpServers,
         mcpLoading,
         tools,
@@ -233,6 +262,8 @@ export function ConfigView() {
                     return models.length;
                 case 'prompts':
                     return prompts.length;
+                case 'providers':
+                    return providers.length;
                 case 'skills':
                     return 0;
                 case 'mcp':
@@ -243,7 +274,15 @@ export function ConfigView() {
                     return middlewares.length;
             }
         },
-        [agents.length, models.length, prompts.length, mcpServers.length, tools.length, middlewares.length],
+        [
+            agents.length,
+            models.length,
+            prompts.length,
+            providers.length,
+            mcpServers.length,
+            tools.length,
+            middlewares.length,
+        ],
     );
 
     const getActionLabel = () => {
@@ -259,7 +298,7 @@ export function ConfigView() {
         }
     }, [activeTab]);
 
-    const handleEditClick = useCallback((item: Agent | Model | Prompt | MCPServer) => {
+    const handleEditClick = useCallback((item: Agent | Model | Prompt | MCPServer | Provider) => {
         setEditingItem(item);
         setShowCreateModal(true);
     }, []);
@@ -269,7 +308,7 @@ export function ConfigView() {
         setShowDeleteModal(true);
     }, []);
 
-    const handleDeleteConfirm = useCallback(() => {
+    const handleDeleteConfirm = useCallback(async () => {
         if (!deletingId) return;
 
         switch (activeTab) {
@@ -285,10 +324,13 @@ export function ConfigView() {
             case 'mcp':
                 deleteMcpServer(deletingId);
                 break;
+            case 'providers':
+                await deleteProviderMutation.mutateAsync(deletingId);
+                break;
         }
         setShowDeleteModal(false);
         setDeletingId(null);
-    }, [activeTab, deletingId, deleteAgent, deleteModel, deletePrompt, deleteMcpServer]);
+    }, [activeTab, deletingId, deleteAgent, deleteModel, deletePrompt, deleteMcpServer, deleteProviderMutation]);
 
     const handleModalClose = useCallback(() => {
         setShowCreateModal(false);
@@ -326,6 +368,21 @@ export function ConfigView() {
                         await createMcpServer(formData);
                     }
                     break;
+                case 'providers':
+                    if (editingItem) {
+                        const updateData: ProviderUpdateInput = {
+                            id: editingItem.id,
+                            name: formData.name,
+                            type: formData.type,
+                            baseUrl: formData.baseUrl,
+                            isActive: formData.isActive,
+                            ...(formData.apiKey ? { apiKey: formData.apiKey } : {}),
+                        };
+                        await updateProviderMutation.mutateAsync(updateData);
+                    } else {
+                        await createProviderMutation.mutateAsync(formData);
+                    }
+                    break;
             }
             handleModalClose();
         },
@@ -340,6 +397,8 @@ export function ConfigView() {
             updatePrompt,
             createMcpServer,
             updateMcpServer,
+            createProviderMutation,
+            updateProviderMutation,
             handleModalClose,
         ],
     );
@@ -377,6 +436,15 @@ export function ConfigView() {
                         server={editingItem as MCPServer | null}
                         onSave={handleSave}
                         onCancel={handleModalClose}
+                    />
+                );
+            case 'providers':
+                return (
+                    <ProviderForm
+                        provider={editingItem as Provider | null}
+                        onSubmit={handleSave}
+                        onCancel={handleModalClose}
+                        isSaving={createProviderMutation.isPending || updateProviderMutation.isPending}
                     />
                 );
             default:

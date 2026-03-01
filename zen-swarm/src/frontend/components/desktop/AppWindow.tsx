@@ -24,7 +24,7 @@ interface AppWindowProps {
 }
 
 export function AppWindow({
-    appId,
+    appId: _appId,
     appName,
     isFullScreen = false,
     onClose,
@@ -38,7 +38,11 @@ export function AppWindow({
 
     return (
         <motion.div
-            className={`flex flex-col h-full w-full bg-white dark:bg-neutral-900 overflow-hidden rounded-xl ${isFullScreen ? 'h-full' : ''}`}
+            className={`flex flex-col h-full w-full bg-white/95 dark:bg-neutral-900/95 overflow-hidden rounded-xl backdrop-blur-sm ${isFullScreen ? 'h-full' : ''}`}
+            style={{
+                boxShadow:
+                    '0 20px 60px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.2), inset 0 0.5px 0 rgba(255,255,255,0.6)',
+            }}
             initial={{ opacity: 0, scale: 0.98, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: 10 }}
@@ -46,7 +50,13 @@ export function AppWindow({
         >
             {/* macOS Style Title Bar with Traffic Lights */}
             {showTrafficLights && showTitleBar && (
-                <header className="flex-shrink-0 bg-bg-tertiary px-4 py-3 flex items-center border-b border-border-subtle rounded-t-xl">
+                <header
+                    className="shrink-0 px-4 py-2.5 flex items-center rounded-t-xl"
+                    style={{
+                        background: 'rgba(246,246,248,0.92)',
+                        borderBottom: '0.5px solid rgba(0,0,0,0.1)',
+                    }}
+                >
                     <TrafficLights onClose={handleClose} />
                     <span className="ml-4 text-sm font-medium text-text-secondary select-none">{appName}</span>
                 </header>
