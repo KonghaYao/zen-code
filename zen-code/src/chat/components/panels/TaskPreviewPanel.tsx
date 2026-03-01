@@ -167,7 +167,7 @@ const TaskPreviewPanel: React.FC<TaskPreviewPanelProps> = ({ task, onClose, onEx
                     {task.children.map((child, idx) => {
                         const childStatus = child.status ? STATUS_CONFIG[child.status] : STATUS_CONFIG.pickup;
                         return (
-                            <Box key={child.id}>
+                            <Box key={`child-task-${idx}-${child.id || idx}`}>
                                 <Text color={childStatus.color}>
                                     {childStatus.emoji} {idx + 1}. {child.title}
                                 </Text>

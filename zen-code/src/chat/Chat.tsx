@@ -25,14 +25,22 @@ const ChatLayout: React.FC = () => {
     return (
         <Box flexDirection="column" width="100%">
             <Box flexGrow={1} flexDirection="row">
-                <ErrorBoundary name="ChatMain" fallback={<Text color="yellow">Chat view unavailable</Text>}>
+                <ErrorBoundary
+                    key="chat-main-view"
+                    name="ChatMain"
+                    fallback={<Text color="yellow">Chat view unavailable</Text>}
+                >
                     {activeView === 'chat' ? <ChatMain /> : null}
                 </ErrorBoundary>
-                <ErrorBoundary name="PanelView" fallback={<Text color="yellow">Panel unavailable</Text>}>
+                <ErrorBoundary
+                    key="panel-view"
+                    name="PanelView"
+                    fallback={<Text color="yellow">Panel unavailable</Text>}
+                >
                     {activeView !== 'chat' ? <LazyChatViewManager /> : null}
                 </ErrorBoundary>
             </Box>
-            <ErrorBoundary name="StatusBar" fallback={null}>
+            <ErrorBoundary key="status-bar" name="StatusBar" fallback={null}>
                 <StatusBar />
             </ErrorBoundary>
         </Box>
@@ -60,7 +68,7 @@ const Chat: React.FC = () => {
  */
 const ChatWrapper: React.FC = () => {
     return (
-        <ErrorBoundary name="AppRoot">
+        <ErrorBoundary key="app-root" name="AppRoot">
             <ChatProvider
                 apiUrl="http://127.0.0.1:8123"
                 defaultAgent="code"
@@ -70,6 +78,14 @@ const ChatWrapper: React.FC = () => {
                 showGraph={false}
                 onInitError={(error, currentAgent) => {
                     console.error(error, currentAgent);
+                    // 记录初始化错误到错误日志
+                    import('./services/ErrorInterceptor')
+                        .then(({ logAgentError }) => {
+                            logAgentError('ChatProvider', error as Error);
+                        })
+                        .catch(() => {
+                            // 忽略错误
+                        });
                 }}
                 fetch={LangGraphFetch as any}
                 autoRestoreLastSession
@@ -80,13 +96,13 @@ const ChatWrapper: React.FC = () => {
                     },
                 }}
             >
-                <ErrorBoundary name="TanStackQueryProvider">
+                <ErrorBoundary key="tanstack-query-provider" name="TanStackQueryProvider">
                     <TanStackQueryProvider>
-                        <ErrorBoundary name="SettingsProvider">
+                        <ErrorBoundary key="settings-provider" name="SettingsProvider">
                             <SettingsProvider get_allowed_models={get_allowed_models}>
-                                <ErrorBoundary name="ApprovalProvider">
+                                <ErrorBoundary key="approval-provider" name="ApprovalProvider">
                                     <ApprovalProvider>
-                                        <ErrorBoundary name="InteractionProvider">
+                                        <ErrorBoundary key="interaction-provider" name="InteractionProvider">
                                             <InteractionProvider>
                                                 <Chat />
                                             </InteractionProvider>

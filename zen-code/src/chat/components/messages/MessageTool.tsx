@@ -174,6 +174,31 @@ const MessageTool: React.FC<MessageToolProps> = ({ message, messageNumber }) => 
     let borderColor = getToolColor(message.name || '');
     borderColor = message.status === 'error' ? 'red' : 'yellow';
 
+    // 记录工具错误到错误日志
+    React.useEffect(() => {
+        if (message.status === 'error' && message.name) {
+            import('../../services/ErrorInterceptor')
+                .then(({ logToolError, logTerminalError, logAgentError }) => {
+                    const content = getMessageContent(message.content);
+                    const errorMsg = typeof content === 'string' ? content : JSON.stringify(content);
+
+                    // 根据工具名称确定记录方法
+                    if (message.name === 'terminal') {
+                        const command = inputRepaired?.command || 'unknown';
+                        logTerminalError(command, errorMsg);
+                    } else if (message.name.startsWith('Agent:')) {
+                        logAgentError(message.name, errorMsg);
+                    } else {
+                        logToolError(message.name, errorMsg);
+                    }
+                })
+                .catch((err) => {
+                    // 忽略错误记录失败的错误，避免循环
+                    console.warn('Failed to log error:', err);
+                });
+        }
+    }, [message.status, message.name, message.content, inputRepaired?.command]);
+
     return (
         <ErrorBoundary>
             <Box flexDirection="column">

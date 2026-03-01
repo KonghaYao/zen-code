@@ -220,8 +220,12 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
         <Box flexDirection="column">
             {/* Tab 头 */}
             <Box gap={1} paddingX={1} paddingY={1}>
-                {providerTabs.map((tab) => (
-                    <Text key={tab.id} bold={tab.id === activeTab} color={tab.id === activeTab ? 'cyan' : 'gray'}>
+                {providerTabs.map((tab, index) => (
+                    <Text
+                        key={`provider-tab-${index}-${tab.id}`}
+                        bold={tab.id === activeTab}
+                        color={tab.id === activeTab ? 'cyan' : 'gray'}
+                    >
                         {tab.icon} {tab.label}
                         {tab.id === activeTab && ' [当前]'}
                         {tab.id === activeTab && !hasApiKey && ' (未配置 API Key)'}

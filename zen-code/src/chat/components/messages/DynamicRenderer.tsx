@@ -25,7 +25,7 @@ export const DynamicRenderer = <T,>({
         () => {
             if (shouldShowRef.current) {
                 // 清理屏幕以更新数据
-                console.clear();
+                // console.clear();
                 setVisible(true);
                 shouldShowRef.current = false;
             }

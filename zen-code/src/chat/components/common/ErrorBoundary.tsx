@@ -35,6 +35,15 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         console.error(`Component Stack:`, errorInfo.componentStack);
         console.error(`========================================\n`);
 
+        // 记录到错误日志
+        import('../../services/ErrorInterceptor')
+            .then(({ logAgentError }) => {
+                logAgentError(name, error);
+            })
+            .catch((err) => {
+                console.warn('Failed to log React error:', err);
+            });
+
         // Update state with error info for rendering
         this.setState({ errorInfo });
     }

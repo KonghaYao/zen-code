@@ -24,6 +24,7 @@ export interface ChatPanelContextValue {
     switchToTask: () => void;
     switchToMcp: () => void;
     switchToProcess: () => void;
+    switchToErrors: () => void;
     closePanel: () => void;
     handleExecuteTask: (task: TaskNode) => void;
     hasPendingInteractions: boolean;

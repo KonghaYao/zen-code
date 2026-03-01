@@ -29,6 +29,9 @@ import { memoryCommands } from './memoryClearCommand';
 // NEW: Import GC command
 import { gcCommand } from './gcCommand';
 
+// NEW: Import Error panel command
+import { errorPanelCommand } from './errorCommand';
+
 // 注册内置命令
 [
     ...builtinCommands,
@@ -42,6 +45,7 @@ import { gcCommand } from './gcCommand';
     mcpPanelCommand,
     settingsCommand,
     gcCommand,
+    errorPanelCommand,
 ].forEach((command) => {
     commandRegistry.register(command);
 });

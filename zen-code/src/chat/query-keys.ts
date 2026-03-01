@@ -73,6 +73,13 @@ export const queryKeys = {
         all: ['mcp'] as const,
         config: () => ['mcp', 'config'] as const,
     },
+
+    // ========== Errors ==========
+    errors: {
+        all: ['errors'] as const,
+        list: () => ['errors', 'list'] as const,
+        stats: () => ['errors', 'stats'] as const,
+    },
 } as const;
 
 /**

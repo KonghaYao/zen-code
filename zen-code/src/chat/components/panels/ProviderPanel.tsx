@@ -210,7 +210,7 @@ const ProviderPanel: React.FC<ProviderPanelProps> = ({ onClose }) => {
                     const statusColor = hasApiKey ? 'green' : 'yellow';
 
                     return (
-                        <Box key={provider.id} marginBottom={0} gap={1}>
+                        <Box key={`provider-${index}-${provider.id}`} marginBottom={0} gap={1}>
                             <Text color={index === selectedIndex ? 'cyan' : 'gray'} bold={index === selectedIndex}>
                                 {index === selectedIndex ? '>' : ' '}
                             </Text>
