@@ -211,16 +211,8 @@ export function HistoryGroupedSidebar({ onManageWorkspace, onAddWorkspace }: His
         // 切换到目标 workspace
         const workspace = workspaces.find((w) => w.rootPath === rootPath);
         if (workspace) {
-            // 先切换到目标 workspace
-            // await setCurrentWorkspace(workspace.id);
-
-            // 等待 ChatProvider 重新渲染（因为 historyFilter 会改变）
-            // 使用 setTimeout 确保 React 完成状态更新和 historyFilter 更新
-            // await new Promise((resolve) => setTimeout(resolve, 200));
-
-            // 创建新 chat，指定 metadata 为目标 workspace 的 path
             createNewChat({
-                metadata: { path: rootPath },
+                path: rootPath,
             });
         }
     };

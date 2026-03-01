@@ -94,16 +94,7 @@ const MiniInput: React.FC<MiniInputProps> = ({ value, onChange, onSubmit, loadin
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({ modelName, onClose, rootPath }) => {
     const chatStore = useChat();
-    const {
-        userInput,
-        setUserInput,
-        loading,
-        renderMessages,
-        sendMessage,
-        stopGeneration,
-        createNewChat,
-        currentAgent,
-    } = chatStore;
+    const { userInput, setUserInput, loading, renderMessages, sendMessage, stopGeneration, currentAgent } = chatStore;
 
     const [selectedAgentId, setSelectedAgentId] = useState<string>(currentAgent || '');
     const [isUserNearBottom, setIsUserNearBottom] = useState(true);

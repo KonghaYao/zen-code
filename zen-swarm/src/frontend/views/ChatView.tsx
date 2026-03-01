@@ -15,7 +15,7 @@ import { ChatPanel } from '../components/ChatPanel.js';
 import { WorkspaceManageDialog } from '../components/workspace-dialogs/index.js';
 import { useCurrentWorkspace, useWorkspaces, useWorkspaceStore } from '../stores/workspace.js';
 
-export function ChatView() {
+export function ChatViewInternal() {
     const currentWorkspace = useCurrentWorkspace();
     const workspaces = useWorkspaces();
     const { loadWorkspaces, getWorkspaceByPath } = useWorkspaceStore();
@@ -87,41 +87,21 @@ export function ChatView() {
 
     return (
         <>
-            <ChatProvider
-                apiUrl="http://127.0.0.1:8124/api/langgraph"
-                defaultAgent="swarm"
-                defaultHeaders={{}}
-                withCredentials={false}
-                showHistory={false}
-                showGraph={false}
-                onInitError={(error, currentAgent) => {
-                    console.error('Chat init error:', error, currentAgent);
-                }}
-                autoRestoreLastSession
-                historyFilter={{
-                    metadata: { path: currentWorkspace.rootPath },
-                    status: null,
-                    sortBy: 'updated_at',
-                    sortOrder: 'desc',
-                }}
-                key={currentWorkspace.id} // key 确保在 workspace 切换时重新初始化
-            >
-                <div className="flex flex-col h-full bg-white">
-                    {/* 主内容区域 */}
-                    <div className="flex-1 flex min-h-0 overflow-hidden">
-                        {/* History Sidebar */}
-                        <HistoryGroupedSidebar
-                            onManageWorkspace={handleManageWorkspace}
-                            onAddWorkspace={handleAddWorkspace}
-                        />
+            <div className="flex flex-col h-full bg-white">
+                {/* 主内容区域 */}
+                <div className="flex-1 flex min-h-0 overflow-hidden">
+                    {/* History Sidebar */}
+                    <HistoryGroupedSidebar
+                        onManageWorkspace={handleManageWorkspace}
+                        onAddWorkspace={handleAddWorkspace}
+                    />
 
-                        {/* Chat Panel */}
-                        <div className="flex-1 min-w-0">
-                            <ChatPanel modelName="AI" rootPath={currentWorkspace.rootPath} />
-                        </div>
+                    {/* Chat Panel */}
+                    <div className="flex-1 min-w-0">
+                        <ChatPanel modelName="AI" rootPath={currentWorkspace.rootPath} />
                     </div>
                 </div>
-            </ChatProvider>
+            </div>
 
             {/* 管理对话框 */}
             <WorkspaceManageDialog
@@ -130,5 +110,24 @@ export function ChatView() {
                 initialWorkspaceId={selectedWorkspaceId}
             />
         </>
+    );
+}
+
+export function ChatView() {
+    return (
+        <ChatProvider
+            apiUrl="http://127.0.0.1:8124/api/langgraph"
+            defaultAgent="swarm"
+            defaultHeaders={{}}
+            withCredentials={false}
+            showHistory={false}
+            showGraph={false}
+            onInitError={(error, currentAgent) => {
+                console.error('Chat init error:', error, currentAgent);
+            }}
+            autoRestoreLastSession
+        >
+            <ChatViewInternal></ChatViewInternal>
+        </ChatProvider>
     );
 }
