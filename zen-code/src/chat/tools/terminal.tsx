@@ -133,7 +133,8 @@ const ApprovalContentComponent: React.FC<{
 
 const TerminalHeader = ({ tool }: { tool: ToolRenderData<Record<string, never>, any> }) => {
     const input = tool.getInputRepaired();
-    const command = input?.command || '';
+    // 防御：command 在流式阶段可能是 undefined 或非字符串
+    const command = typeof input?.command === 'string' ? input.command : String(input?.command ?? '');
     // 截取命令的前50个字符，避免太长
     const displayCommand = command.length > 50 ? command.substring(0, 50) + '...' : command;
     return (

@@ -35,12 +35,18 @@ export const execute_mcp_tool = createUITool({
         const input = tool.getInputRepaired();
         const output = tool.output as string;
 
-        let parsedData = null;
+        // 防御：output 可能非字符串
+        const outputStr = typeof output === 'string' ? output : '';
+
+        let parsedData: { results?: unknown[] } | null = null;
         try {
-            parsedData = JSON.parse(output);
+            parsedData = JSON.parse(outputStr);
         } catch (e) {
             // Failed to parse, just show raw output
         }
+
+        // 防御：commands 在流式阶段可能是 undefined 或非数组
+        const commands = Array.isArray(input?.commands) ? input.commands : [];
 
         return (
             <Box flexDirection="column">
@@ -51,33 +57,44 @@ export const execute_mcp_tool = createUITool({
                 </Box>
 
                 {/* 显示命令列表 */}
-                {input?.commands && input.commands.length > 0 && (
+                {commands.length > 0 && (
                     <Box flexDirection="column" marginTop={1}>
                         <Text color="gray" dimColor>
-                            执行 {input.commands.length} 个 MCP 工具:
+                            执行 {commands.length} 个 MCP 工具:
                         </Text>
-                        {input.commands.map((cmd: any, index: number) => (
-                            <Box key={index} marginLeft={2}>
-                                <Text color="yellow">{index + 1}.</Text>
-                                <Text color="cyan">{cmd.name}</Text>
-                            </Box>
-                        ))}
+                        {commands.map((cmd: unknown, index: number) => {
+                            // 防御：cmd 可能是非对象或 name 非字符串
+                            const name =
+                                cmd && typeof cmd === 'object' && typeof (cmd as any).name === 'string'
+                                    ? (cmd as any).name
+                                    : String((cmd as any)?.name ?? '');
+                            return (
+                                <Box key={index} marginLeft={2}>
+                                    <Text color="yellow">{index + 1}.</Text>
+                                    <Text color="cyan">{name}</Text>
+                                </Box>
+                            );
+                        })}
                     </Box>
                 )}
 
-                {/* 显示结果摘要 */}
-                {parsedData?.results && (
+                {/* 显示结果摘要 —— 防御：results 可能非数组 */}
+                {Array.isArray(parsedData?.results) && (
                     <Box flexDirection="column" marginTop={1}>
-                        {parsedData.results.map((r: any, index: number) => (
+                        {(parsedData!.results as any[]).map((r: any, index: number) => (
                             <Box key={index} marginLeft={2}>
-                                {r.error ? <Text color="red">✗ {r.tool}</Text> : <Text color="green">✓ {r.tool}</Text>}
+                                {r?.error ? (
+                                    <Text color="red">✗ {typeof r.tool === 'string' ? r.tool : ''}</Text>
+                                ) : (
+                                    <Text color="green">✓ {typeof r.tool === 'string' ? r.tool : ''}</Text>
+                                )}
                             </Box>
                         ))}
                     </Box>
                 )}
 
                 {/* 显示详细输出 */}
-                {output && <LimitedOutput content={output} maxLines={10} borderColor="gray" />}
+                {outputStr && <LimitedOutput content={outputStr} maxLines={10} borderColor="gray" />}
             </Box>
         );
     },

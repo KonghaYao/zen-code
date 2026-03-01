@@ -2,27 +2,40 @@ import { createUITool, ToolManager } from '@langgraph-js/sdk';
 import { Box, Text } from 'ink';
 import { todoWriteSchema } from '@codegraph/agent/src/tools/task_tools/todo_tool';
 
+type TodoStatus = 'pending' | 'in_progress' | 'completed';
+
 interface TodoItem {
     id: string;
     content: string;
-    status: 'pending' | 'in_progress' | 'completed';
+    status: TodoStatus;
 }
 
-interface TodoWriteInput {
-    todos: TodoItem[];
-}
+const VALID_STATUSES: TodoStatus[] = ['pending', 'in_progress', 'completed'];
 
-const STATUS_COLORS = {
+const STATUS_COLORS: Record<TodoStatus, string> = {
     pending: 'gray',
     in_progress: 'yellow',
     completed: 'green',
 };
 
-const STATUS_SYMBOLS = {
+const STATUS_SYMBOLS: Record<TodoStatus, string> = {
     pending: '○',
     in_progress: '◐',
     completed: '✓',
 };
+
+/**
+ * 将任意值规范化为合法的 TodoItem，防御流式阶段字段缺失或类型错误
+ */
+function normalizeTodo(raw: unknown, index: number): TodoItem {
+    const obj = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+    const id = typeof obj.id === 'string' ? obj.id : String(index);
+    const content = typeof obj.content === 'string' ? obj.content : String(obj.content ?? '');
+    const status: TodoStatus = VALID_STATUSES.includes(obj.status as TodoStatus)
+        ? (obj.status as TodoStatus)
+        : 'pending';
+    return { id, content, status };
+}
 
 export const todo_tool = createUITool({
     name: 'todo_write',
@@ -30,9 +43,13 @@ export const todo_tool = createUITool({
     parameters: todoWriteSchema.shape,
     handler: ToolManager.waitForUIDone,
     render(tool) {
-        const input = tool.getInputRepaired() as TodoWriteInput;
-        // Validate input
-        if (!input || !input.todos || !Array.isArray(input.todos)) {
+        const input = tool.getInputRepaired();
+
+        // 防御：input 本身或 todos 可能是 undefined / 非数组（流式阶段对象逐步构建）
+        const rawTodos = input && Array.isArray(input.todos) ? input.todos : [];
+        const todos: TodoItem[] = rawTodos.map(normalizeTodo);
+
+        if (!input) {
             return (
                 <Box flexDirection="column" borderStyle="round" borderColor="red">
                     <Text color="red">Error: Invalid todo data structure</Text>
@@ -40,7 +57,6 @@ export const todo_tool = createUITool({
             );
         }
 
-        const todos = input.todos;
         // Render todo list
         const renderTodoList = () => {
             if (todos.length === 0) {

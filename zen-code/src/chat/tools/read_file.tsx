@@ -16,15 +16,20 @@ export const read_file = createUITool({
 
         if (!output) return <></>;
 
-        const lines = output.split('\n');
+        // 防御：output 在流式阶段可能非字符串
+        const outputStr = typeof output === 'string' ? output : String(output ?? '');
+        const lines = outputStr.split('\n');
         const totalLines = lines.length;
+
+        // 防御：file_path 在流式阶段可能是 undefined 或非字符串
+        const filePath = typeof input?.file_path === 'string' ? input.file_path : String(input?.file_path ?? '');
 
         return (
             <Box flexDirection="column" paddingX={1}>
                 <Box>
                     <Text color="blue">Read </Text>
                     <Text dimColor>(</Text>
-                    <Link path={input.file_path} rainbow />
+                    <Link path={filePath} rainbow />
                     <Text dimColor>)</Text>
                     <Text color="gray" dimColor>
                         {' '}

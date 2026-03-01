@@ -23,12 +23,21 @@ export const replace_in_file = createUITool({
         const input = tool.getInputRepaired() as ReplaceInFileInput;
         const output = tool.output;
 
-        const hasDiff = input.old_string && input.new_string && input.old_string !== input.new_string;
+        // 防御：流式阶段各字段可能是 undefined 或非字符串
+        const filePath = typeof input?.file_path === 'string' ? input.file_path : String(input?.file_path ?? '');
+        const oldString = typeof input?.old_string === 'string' ? input.old_string : '';
+        const newString = typeof input?.new_string === 'string' ? input.new_string : '';
+
+        // 防御：两个字符串均存在且不相等才进行 diff
+        const hasDiff = oldString.length > 0 && newString.length > 0 && oldString !== newString;
+
+        // 防御：output 可能非字符串
+        const outputStr = typeof output === 'string' ? output : '';
 
         let removedCount = 0;
         let addedCount = 0;
         if (hasDiff) {
-            const fullDiff = generateOptimizedDiff(input.old_string, input.new_string, { maxLines: undefined });
+            const fullDiff = generateOptimizedDiff(oldString, newString, { maxLines: undefined });
             for (const line of fullDiff) {
                 if (line.type === 'removed') removedCount++;
                 if (line.type === 'added') addedCount++;
@@ -40,7 +49,7 @@ export const replace_in_file = createUITool({
                 <Box>
                     <Text color="yellow">Edit </Text>
                     <Text dimColor>(</Text>
-                    <Link path={input.file_path} rainbow />
+                    <Link path={filePath} rainbow />
                     <Text dimColor>)</Text>
                     {hasDiff && (
                         <>
@@ -53,13 +62,13 @@ export const replace_in_file = createUITool({
                     )}
                 </Box>
 
-                {output && output.startsWith('Error:') && (
+                {outputStr && outputStr.startsWith('Error:') && (
                     <Box marginTop={0} marginLeft={1} marginBottom={1}>
-                        <Text color="red">{output}</Text>
+                        <Text color="red">{outputStr}</Text>
                     </Box>
                 )}
 
-                {!output && (
+                {!outputStr && (
                     <Box marginTop={0}>
                         <Text color="gray">Press Enter to confirm, Ctrl+C to cancel</Text>
                     </Box>

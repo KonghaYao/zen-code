@@ -24,12 +24,25 @@ export const load_mcp_tools = createUITool({
     render(tool) {
         const output = tool.output as string;
 
-        let parsedData = null;
+        // 防御：output 可能非字符串
+        const outputStr = typeof output === 'string' ? output : '';
+
+        let parsedData: {
+            status?: { servers?: unknown[]; toolCount?: unknown };
+            tools?: unknown[];
+        } | null = null;
         try {
-            parsedData = JSON.parse(output);
+            parsedData = JSON.parse(outputStr);
         } catch (e) {
             // Failed to parse, just show raw output
         }
+
+        // 防御：tools / servers 可能非数组，toolCount 可能非数字
+        const tools = Array.isArray(parsedData?.tools) ? (parsedData!.tools as any[]) : [];
+        const servers = Array.isArray(parsedData?.status?.servers)
+            ? ((parsedData!.status!.servers as unknown[]).filter((s) => typeof s === 'string') as string[])
+            : [];
+        const toolCount = typeof parsedData?.status?.toolCount === 'number' ? parsedData!.status!.toolCount : undefined;
 
         return (
             <Box flexDirection="column">
@@ -43,41 +56,46 @@ export const load_mcp_tools = createUITool({
                 {parsedData?.status && (
                     <Box flexDirection="column" marginTop={1}>
                         <Text color="green">✓ MCP 已连接</Text>
-                        {parsedData.status.servers && parsedData.status.servers.length > 0 && (
+                        {servers.length > 0 && (
                             <Box marginLeft={2}>
-                                <Text color="gray">服务器: {parsedData.status.servers.join(', ')}</Text>
+                                <Text color="gray">服务器: {servers.join(', ')}</Text>
                             </Box>
                         )}
-                        {parsedData.status.toolCount !== undefined && (
+                        {toolCount !== undefined && (
                             <Box marginLeft={2}>
-                                <Text color="gray">工具数量: {parsedData.status.toolCount}</Text>
+                                <Text color="gray">工具数量: {toolCount}</Text>
                             </Box>
                         )}
                     </Box>
                 )}
 
                 {/* 显示工具列表 */}
-                {parsedData?.tools && parsedData.tools.length > 0 && (
+                {tools.length > 0 && (
                     <Box flexDirection="column" marginTop={1}>
                         <Text color="gray" dimColor>
-                            可用工具 ({parsedData.tools.length}):
+                            可用工具 ({tools.length}):
                         </Text>
-                        {parsedData.tools.slice(0, 5).map((t: any, index: number) => (
-                            <Box key={index} marginLeft={2}>
-                                <Text color="cyan">{t.name}</Text>
-                                {t.description && (
-                                    <Text color="gray" dimColor>
-                                        {' '}
-                                        - {t.description.slice(0, 50)}
-                                        {t.description.length > 50 ? '...' : ''}
-                                    </Text>
-                                )}
-                            </Box>
-                        ))}
-                        {parsedData.tools.length > 5 && (
+                        {tools.slice(0, 5).map((t: any, index: number) => {
+                            // 防御：t.name / t.description 可能非字符串
+                            const name = typeof t?.name === 'string' ? t.name : String(t?.name ?? '');
+                            const desc = typeof t?.description === 'string' ? t.description : '';
+                            return (
+                                <Box key={index} marginLeft={2}>
+                                    <Text color="cyan">{name}</Text>
+                                    {desc && (
+                                        <Text color="gray" dimColor>
+                                            {' '}
+                                            - {desc.slice(0, 50)}
+                                            {desc.length > 50 ? '...' : ''}
+                                        </Text>
+                                    )}
+                                </Box>
+                            );
+                        })}
+                        {tools.length > 5 && (
                             <Box marginLeft={2}>
                                 <Text color="gray" dimColor>
-                                    ... 还有 {parsedData.tools.length - 5} 个工具
+                                    ... 还有 {tools.length - 5} 个工具
                                 </Text>
                             </Box>
                         )}
@@ -85,7 +103,7 @@ export const load_mcp_tools = createUITool({
                 )}
 
                 {/* 显示输出结果 */}
-                {output && <LimitedOutput content={output} maxLines={10} borderColor="gray" />}
+                {outputStr && <LimitedOutput content={outputStr} maxLines={10} borderColor="gray" />}
             </Box>
         );
     },

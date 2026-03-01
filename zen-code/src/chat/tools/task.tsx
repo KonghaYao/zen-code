@@ -31,12 +31,15 @@ export type TaskParams = z.infer<typeof TaskSchema>;
 const TaskHeader: React.FC<{ tool: ToolRenderData<Record<string, never>, TaskParams> }> = ({ tool }) => {
     const input = tool.getInputRepaired();
 
+    // 防御：subagent_id 在流式阶段可能是 undefined 或非字符串
+    const subagentId = typeof input?.subagent_id === 'string' ? input.subagent_id : String(input?.subagent_id ?? '');
+
     return (
         <Box paddingX={1} flexDirection="column">
             <Box>
                 <Text color="yellow">Task </Text>
                 <Text dimColor>(</Text>
-                <Text color="cyan">{input.subagent_id}</Text>
+                <Text color="cyan">{subagentId}</Text>
                 <Text dimColor>)</Text>
             </Box>
         </Box>
@@ -49,9 +52,6 @@ const TaskHeader: React.FC<{ tool: ToolRenderData<Record<string, never>, TaskPar
 const TaskComponent: React.FC<{
     tool: ToolRenderData<Record<string, never>, TaskParams>;
 }> = ({ tool }) => {
-    const input = tool.getInputRepaired();
-    const output = tool.output as string;
-
     return (
         <Box flexDirection="column">
             {/* 头部信息 */}

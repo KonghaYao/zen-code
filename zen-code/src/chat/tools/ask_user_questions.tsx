@@ -45,27 +45,36 @@ const QuestionInteractionComponent: React.FC<{
     // 1. 工具中断时创建交互
     useEffect(() => {
         if (tool.state === 'interrupted' && !interactionId && !hasProcessedRef.current) {
-            // 转换选项格式
-            const options =
-                input.options?.map((option: any, idx: number) => ({
-                    label: option.label,
-                    value: option.label,
-                })) || [];
+            // 转换选项格式 —— 防御：options 可能是 undefined / 对象 / 非数组
+            const rawOptions = Array.isArray(input.options) ? input.options : [];
+            const options = rawOptions.map((option: any) => {
+                const label =
+                    option && typeof option === 'object' && typeof option.label === 'string'
+                        ? option.label
+                        : String(option ?? '');
+                return { label, value: label };
+            });
+
+            // 防御：type 可能是任意字符串
+            const isSingleSelect = input.type === 'single_select';
 
             // 构建选择内容
             const content: SelectionContent = {
                 type: 'selection',
                 options,
-                singleSelect: input.type === 'single_select',
-                allowCustomInput: input.allow_custom_input ?? true,
-                placeholder: input.placeholder,
+                singleSelect: isSingleSelect,
+                allowCustomInput: typeof input.allow_custom_input === 'boolean' ? input.allow_custom_input : true,
+                placeholder: typeof input.placeholder === 'string' ? input.placeholder : undefined,
             };
 
             // 添加交互
             const interaction = addInteraction(content, {
                 tool,
                 metadata: {
-                    title: input.description || '请选择一个选项',
+                    title:
+                        typeof input.description === 'string' && input.description
+                            ? input.description
+                            : '请选择一个选项',
                     groupKey: 'user-input',
                 },
             });

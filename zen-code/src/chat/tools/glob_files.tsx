@@ -19,12 +19,15 @@ export const glob_files = createUITool({
         const files = output.split('\n').filter(Boolean);
         const count = files.length;
 
+        // 防御：pattern 在流式输入阶段可能是 undefined 或非字符串
+        const pattern = typeof input?.pattern === 'string' ? input.pattern : String(input?.pattern ?? '');
+
         return (
             <Box flexDirection="column" paddingX={1}>
                 <Text>
                     <Text color="cyan">Glob </Text>
                     <Text dimColor>(</Text>
-                    <Link path={input.pattern} rainbow />
+                    <Link path={pattern} rainbow />
                     <Text dimColor>)</Text>
                     <Text color="gray" dimColor>
                         {' '}

@@ -16,6 +16,14 @@ export const folder_operations = createUITool({
 
         if (!output) return <></>;
 
+        // 防御：output 在流式阶段可能非字符串
+        const outputStr = typeof output === 'string' ? output : String(output ?? '');
+
+        // 防御：operation / folder_path 在流式阶段可能是 undefined 或非字符串
+        const operation = typeof input?.operation === 'string' ? input.operation : String(input?.operation ?? '');
+        const folderPath =
+            typeof input?.folder_path === 'string' ? input.folder_path : String(input?.folder_path ?? '');
+
         // Color mapping for different operations
         const operationColors: Record<string, string> = {
             create: 'green',
@@ -25,10 +33,10 @@ export const folder_operations = createUITool({
         };
 
         // Determine operation color (default to cyan)
-        const operationColor = operationColors[input?.operation as any] || 'cyan';
+        const operationColor = operationColors[operation] ?? 'cyan';
 
         // Parse output for better formatting
-        const lines = output.split('\n');
+        const lines = outputStr.split('\n');
         const formattedOutput = lines.map((line, idx) => {
             // Highlight file sizes and dates in list output
             if (line.match(/\d+ \w+|[\d-]+ [\d:]+/)) {
@@ -73,10 +81,10 @@ export const folder_operations = createUITool({
             <Box flexDirection="column" paddingX={1}>
                 <Box>
                     <Text bold color={operationColor}>
-                        {input.operation}Folder
+                        {operation}Folder
                     </Text>
                     <Text dimColor> (</Text>
-                    <Link path={input.folder_path} rainbow />
+                    <Link path={folderPath} rainbow />
                     <Text dimColor>)</Text>
                 </Box>
                 {/* <Box flexDirection="column">
