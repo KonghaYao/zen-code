@@ -14,7 +14,7 @@ import type { RenderMessage } from '@langgraph-js/sdk';
 import { getThinkingContent, getTextContent } from '@langgraph-js/sdk';
 import { Streamdown } from 'streamdown';
 import { code } from '@streamdown/code';
-import { mermaid } from '@streamdown/mermaid';
+// import { mermaid } from '@streamdown/mermaid';
 import { cjk } from '@streamdown/cjk';
 import 'streamdown/styles.css';
 
@@ -105,7 +105,7 @@ export const AIMessage: React.FC<AIMessageProps> = ({ message, messageNumber, mo
 
             {/* 消息内容 */}
             <div className="bg-bg-secondary border border-border-subtle p-6 rounded-lg text-text-primary max-w-none">
-                <Streamdown animated={true} plugins={{ code, mermaid, cjk }}>
+                <Streamdown animated={true} plugins={{ code, cjk }}>
                     {displayContent}
                 </Streamdown>
             </div>
