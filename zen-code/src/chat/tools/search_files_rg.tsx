@@ -18,13 +18,13 @@ export const search_files_rg = createUITool({
         const count = lines.length;
 
         // 优先从新格式的结构化参数中提取
-        let pattern = input.pattern!;
-        let path = input.path!;
+        let pattern: string | undefined = input.pattern!;
+        let path: string | undefined = input.path!;
 
         // 如果没有结构化参数，则从 args 数组中解析（兼容旧格式）
-        if (!pattern) {
-            const args = input.args || [];
-            const nonOptionArgs = args.filter((arg: string) => !arg.startsWith('-'));
+        if (!pattern && input.args) {
+            const args: string[] = input.args || [];
+            const nonOptionArgs = args?.filter?.((arg: string) => !arg.startsWith('-')) || [];
             if (nonOptionArgs.length > 0) {
                 path = nonOptionArgs[nonOptionArgs.length - 1];
                 if (nonOptionArgs.length > 1) {
