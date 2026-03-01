@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Text } from 'ink';
 import { ChatProvider } from '@langgraph-js/sdk/react';
 import { TanStackQueryProvider } from './QueryClientProvider';
 import { ApprovalProvider } from '@codegraph/union-client';
 import { LangGraphFetch } from '@codegraph/agent/src/export';
 import { InteractionProvider } from './interaction/context';
-import { SettingsProvider } from './context/SettingsContext';
+import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { get_allowed_models } from '@codegraph/agent/src/utils/get_allowed_models';
 import { ChatController } from './components/layout/ChatController';
 import { ChatMain } from './components/layout/ChatMain';
@@ -63,43 +63,79 @@ const Chat: React.FC = () => {
 };
 
 /**
+ * Internal component that wraps ChatProvider with SettingsProvider
+ * This allows us to access settings for defaultHeaders configuration
+ */
+const ChatProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { config } = useSettings();
+
+    // Build defaultHeaders with provider API information
+    const defaultHeaders = useMemo(() => {
+        const headers: Record<string, string> = {};
+
+        if (config) {
+            // Find the current provider from providers array
+            const currentProvider = config.providers?.find((p: any) => p.id === config.provider_id);
+
+            if (currentProvider) {
+                // Add API key and base URL as headers if available
+                if (currentProvider.apiKey) {
+                    headers['x-api-key'] = currentProvider.apiKey;
+                }
+                if (currentProvider.baseUrl) {
+                    headers['x-base-url'] = currentProvider.baseUrl;
+                }
+            }
+        }
+
+        return headers;
+    }, [config]);
+
+    return (
+        <ChatProvider
+            apiUrl="http://127.0.0.1:8123"
+            defaultAgent="code"
+            defaultHeaders={defaultHeaders}
+            withCredentials={false}
+            showHistory={false}
+            showGraph={false}
+            onInitError={(error, currentAgent) => {
+                console.error(error, currentAgent);
+                // 记录初始化错误到错误日志
+                import('./services/ErrorInterceptor')
+                    .then(({ logAgentError }) => {
+                        logAgentError('ChatProvider', error as Error);
+                    })
+                    .catch(() => {
+                        // 忽略错误
+                    });
+            }}
+            fetch={LangGraphFetch as any}
+            autoRestoreLastSession
+            /** @ts-ignore */
+            historyFilter={{
+                metadata: {
+                    path: process.cwd(),
+                },
+            }}
+        >
+            {children}
+        </ChatProvider>
+    );
+};
+
+/**
  * Wrapper with all required providers.
  * Top-level ErrorBoundary catches any errors from providers themselves.
  */
 const ChatWrapper: React.FC = () => {
     return (
         <ErrorBoundary key="app-root" name="AppRoot">
-            <ChatProvider
-                apiUrl="http://127.0.0.1:8123"
-                defaultAgent="code"
-                defaultHeaders={{}}
-                withCredentials={false}
-                showHistory={false}
-                showGraph={false}
-                onInitError={(error, currentAgent) => {
-                    console.error(error, currentAgent);
-                    // 记录初始化错误到错误日志
-                    import('./services/ErrorInterceptor')
-                        .then(({ logAgentError }) => {
-                            logAgentError('ChatProvider', error as Error);
-                        })
-                        .catch(() => {
-                            // 忽略错误
-                        });
-                }}
-                fetch={LangGraphFetch as any}
-                autoRestoreLastSession
-                /** @ts-ignore */
-                historyFilter={{
-                    metadata: {
-                        path: process.cwd(),
-                    },
-                }}
-            >
-                <ErrorBoundary key="tanstack-query-provider" name="TanStackQueryProvider">
-                    <TanStackQueryProvider>
-                        <ErrorBoundary key="settings-provider" name="SettingsProvider">
-                            <SettingsProvider get_allowed_models={get_allowed_models}>
+            <ErrorBoundary key="tanstack-query-provider" name="TanStackQueryProvider">
+                <TanStackQueryProvider>
+                    <ErrorBoundary key="settings-provider" name="SettingsProvider">
+                        <SettingsProvider get_allowed_models={get_allowed_models}>
+                            <ChatProviderWrapper>
                                 <ErrorBoundary key="approval-provider" name="ApprovalProvider">
                                     <ApprovalProvider>
                                         <ErrorBoundary key="interaction-provider" name="InteractionProvider">
@@ -109,11 +145,11 @@ const ChatWrapper: React.FC = () => {
                                         </ErrorBoundary>
                                     </ApprovalProvider>
                                 </ErrorBoundary>
-                            </SettingsProvider>
-                        </ErrorBoundary>
-                    </TanStackQueryProvider>
-                </ErrorBoundary>
-            </ChatProvider>
+                            </ChatProviderWrapper>
+                        </SettingsProvider>
+                    </ErrorBoundary>
+                </TanStackQueryProvider>
+            </ErrorBoundary>
         </ErrorBoundary>
     );
 };

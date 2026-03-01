@@ -137,18 +137,23 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
     // 修复：使用 useCallback 保持 onSelect 引用稳定
     const handleSelectModel = useCallback(
         async (model: any) => {
+            // 获取当前 provider 的 type
+            const currentProvider = providerTabs.find((t) => t.id === activeTab);
+            const providerType = currentProvider?.config.type || 'openai';
+
             await updateConfig({
                 provider_id: activeTab,
+                provider_type: providerType, // ✅ 同时更新 provider_type
                 model_id: model.id,
             });
             onClose();
         },
-        [updateConfig, activeTab, onClose],
+        [updateConfig, activeTab, onClose, providerTabs],
     );
 
     // 修复：使用 useCallback 保持 handleSwitchTab 引用稳定
     const handleSwitchTab = useCallback(
-        (direction: 'left' | 'right') => {
+        async (direction: 'left' | 'right') => {
             if (providerTabs.length <= 1) return;
 
             const currentIndex = providerTabs.findIndex((t) => t.id === activeTab);
@@ -156,9 +161,17 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
                 direction === 'left'
                     ? (currentIndex - 1 + providerTabs.length) % providerTabs.length
                     : (currentIndex + 1) % providerTabs.length;
-            setActiveTab(providerTabs[nextIndex].id);
+
+            const nextTab = providerTabs[nextIndex];
+            setActiveTab(nextTab.id);
+
+            // ✅ 同步更新 provider_id 和 provider_type 到配置
+            await updateConfig({
+                provider_id: nextTab.id,
+                provider_type: nextTab.config.type,
+            });
         },
-        [activeTab, providerTabs],
+        [activeTab, providerTabs, updateConfig],
     );
 
     // 修复：使用 useMemo 缓存 panelConfig，最小化依赖项

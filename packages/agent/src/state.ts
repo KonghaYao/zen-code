@@ -7,12 +7,13 @@ import { AgentState, createDefaultAnnotation, createState } from '@langgraph-js/
 import { z } from 'zod';
 import { MessagesAnnotation } from '@langchain/langgraph';
 import { SubAgentAnnotation, SubAgentStateSchema } from '@langgraph-js/standard-agent';
+import type { ProviderConfig } from '@codegraph/config';
 
 /**
  * Code Agent 状态
  */
 export const CodeState = AgentState.extend(SubAgentStateSchema.shape).extend({
-    provider_id: z.string().default('openai'),
+    provider_id: z.string().default('default'),
     provider_type: z.string().default('openai'),
     model_id: z.string().default('qwen-plus'),
     agent_name: z.string().default('Code Agent'),
@@ -25,7 +26,7 @@ export const CodeState = AgentState.extend(SubAgentStateSchema.shape).extend({
 });
 
 export const CodeAnnotation = createState(SubAgentAnnotation, MessagesAnnotation).build({
-    provider_id: createDefaultAnnotation(() => 'openai'),
+    provider_id: createDefaultAnnotation(() => 'default'),
     provider_type: createDefaultAnnotation(() => 'openai'),
     model_id: createDefaultAnnotation(() => 'qwen-plus'),
     agent_name: createDefaultAnnotation(() => 'Code Agent'),

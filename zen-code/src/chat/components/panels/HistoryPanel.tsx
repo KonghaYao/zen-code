@@ -60,6 +60,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
             const statusInfo = getStatusInfo(thread.status);
             const isCurrent = thread.thread_id === currentChatId;
             const updatedTime = formatTime(new Date(thread.updated_at));
+            const title = thread.title || thread.thread_id.slice(-8);
 
             // 计算标记符号
             const cursorSymbol = isSelected ? '>' : ' ';
@@ -85,7 +86,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
                 <Box key={thread.thread_id}>
                     <Text bold={style.bold} color={style.color}>
                         {cursorSymbol}
-                        {currentSymbol} {index + 1}. {thread.thread_id.slice(-8)}
+                        {currentSymbol} {index + 1}. {title}
                     </Text>
                     <Box flexGrow={1} />
                     <Text dimColor>{updatedTime}</Text>
@@ -145,8 +146,8 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose }) => {
 
             // 搜索配置
             searchable: true,
-            searchFields: ['thread_id'],
-            searchPlaceholder: '搜索对话 ID...',
+            searchFields: ['title', 'thread_id'],
+            searchPlaceholder: '搜索对话标题...',
 
             // 过滤配置 - 暂不实现
             filterable: false,

@@ -66,7 +66,7 @@ export async function createStandardAgentV2(
 
     // Initialize model
     const model = await initChatModel(state.model_id, {
-        modelProvider: state.provider_id,
+        modelProvider: state.provider_type,
         streamUsage: true,
         enableThinking: state.enable_thinking,
         metadata: {

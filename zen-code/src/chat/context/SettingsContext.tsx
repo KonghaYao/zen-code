@@ -93,6 +93,7 @@ const SettingsProviderInternal = ({
     const extraParams = useMemo(() => {
         return {
             provider_id: config?.provider_id || 'openai',
+            provider_type: config?.provider_type || 'openai',
             model_id: config?.model_id || AVAILABLE_MODELS[0]?.id || 'default',
             mcp_config: config?.mcp_config,
             enable_thinking: config?.enable_thinking ?? true,
@@ -101,10 +102,12 @@ const SettingsProviderInternal = ({
         };
     }, [
         config?.provider_id,
+        config?.provider_type,
         config?.model_id,
         config?.mcp_config,
         config?.enable_thinking,
         config?.switch_command,
+        config?.providers,
         AVAILABLE_MODELS,
     ]);
 
