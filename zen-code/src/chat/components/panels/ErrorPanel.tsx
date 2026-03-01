@@ -1,14 +1,13 @@
 /**
  * Error Panel - 错误面板
- * 展示错误和警告列表，支持删除和清空操作
- *
- * 使用 TanStack Query 管理错误列表状态
+ * 显示错误存储文件的位置和基本信息
  */
 
-import React, { useCallback, useRef } from 'react';
-import { Box, Text, Spacer } from 'ink';
-import { UniversalPanel, SelectItem, type PanelConfig } from 'ink-pro';
+import React, { useCallback } from 'react';
+import { Box, Text } from 'ink';
+import { useInput } from 'ink-pro';
 import { useErrors, useDeleteError, useClearErrors, type ErrorEntry } from '../../hooks/useErrors';
+import { join } from 'node:path';
 
 interface ErrorPanelProps {
     onClose: () => void;
@@ -57,174 +56,127 @@ function formatTimestamp(isoString: string): string {
 /**
  * 截断消息以适应显示
  */
-function truncateMessage(message: string, maxLength = 60): string {
+function truncateMessage(message: string, maxLength = 80): string {
     if (message.length <= maxLength) return message;
     return message.slice(0, maxLength - 3) + '...';
 }
 
+/**
+ * 错误面板组件
+ */
 const ErrorPanel: React.FC<ErrorPanelProps> = ({ onClose }) => {
     // 使用 TanStack Query 获取错误列表
-    const { data: allErrors = [] } = useErrors({ limit: 100 });
+    const { data: errors = [], isLoading } = useErrors({ limit: 50 });
     const deleteError = useDeleteError();
     const clearErrors = useClearErrors();
 
-    // 使用 ref 存储回调，避免依赖循环
-    const deleteErrorRef = useRef(deleteError);
-    const clearErrorsRef = useRef(clearErrors);
-
-    React.useEffect(() => {
-        deleteErrorRef.current = deleteError;
-    }, [deleteError]);
-
-    React.useEffect(() => {
-        clearErrorsRef.current = clearErrors;
-    }, [clearErrors]);
-
-    // 删除单个错误
-    const handleDeleteError = useCallback(async (error: ErrorEntry) => {
-        await deleteErrorRef.current.mutateAsync(error.id);
-    }, []);
-
     // 清空所有错误
     const handleClearAll = useCallback(async () => {
-        await clearErrorsRef.current.mutateAsync();
-    }, []);
+        await clearErrors.mutateAsync();
+    }, [clearErrors]);
 
-    // 渲染函数
-    const renderItem = useCallback((error: ErrorEntry, index: number, isSelected: boolean) => {
-        const levelInfo = LEVEL_CONFIG[error.level];
-        const sourceInfo = SOURCE_CONFIG[error.source] || SOURCE_CONFIG.Unknown;
-        const timestamp = formatTimestamp(error.timestamp);
-        const displayMessage = truncateMessage(error.message);
-
-        return (
-            <SelectItem key={`error-${error.id}`} isSelected={isSelected}>
-                <Box flexDirection="column">
-                    <Box>
-                        <Text color={levelInfo.color}>
-                            {levelInfo.emoji} {index + 1}. {displayMessage}
-                        </Text>
-                        <Spacer />
-                        <Text dimColor>
-                            {sourceInfo.emoji} {timestamp}
-                        </Text>
-                    </Box>
-                    {error.file && (
-                        <Box marginLeft={3}>
-                            <Text dimColor color="gray">
-                                📄 {error.file}
-                                {error.line && `:${error.line}`}
-                            </Text>
-                        </Box>
-                    )}
-                </Box>
-            </SelectItem>
-        );
-    }, []);
-
-    // 状态信息渲染函数
-    const statusInfo = useCallback((filteredErrors: ErrorEntry[]) => {
-        const errorCount = filteredErrors.filter((e) => e.level === 'error').length;
-        const warningCount = filteredErrors.filter((e) => e.level === 'warning').length;
-
-        return (
-            <Text color="gray">
-                <Text color="red">❌ {errorCount}</Text>
-                {' | '}
-                <Text color="yellow">⚠️ {warningCount}</Text>
-                {' | '}
-                <Text dimColor>Backspace 删除 | Ctrl+L 清空全部</Text>
-            </Text>
-        );
-    }, []);
-
-    // 使用 useMemo 缓存 panelConfig
-    const panelConfig: PanelConfig<ErrorEntry> = React.useMemo(
-        () => ({
-            id: 'errors',
-            title: '错误日志',
-            icon: '📋',
-            dataSource: async () => allErrors,
-            // 搜索配置
-            searchable: true,
-            searchFields: ['message', 'file'],
-            searchPlaceholder: '搜索错误...',
-            // 过滤配置
-            filterable: true,
-            filters: [
-                {
-                    id: 'all',
-                    label: '全部',
-                    predicate: () => true,
-                },
-                {
-                    id: 'error',
-                    label: '错误',
-                    predicate: (error: ErrorEntry) => error.level === 'error',
-                },
-                {
-                    id: 'warning',
-                    label: '警告',
-                    predicate: (error: ErrorEntry) => error.level === 'warning',
-                },
-                {
-                    id: 'Agent',
-                    label: 'Agent',
-                    predicate: (error: ErrorEntry) => error.source === 'Agent',
-                },
-                {
-                    id: 'Tool',
-                    label: 'Tool',
-                    predicate: (error: ErrorEntry) => error.source === 'Tool',
-                },
-                {
-                    id: 'Terminal',
-                    label: 'Terminal',
-                    predicate: (error: ErrorEntry) => error.source === 'Terminal',
-                },
-                {
-                    id: 'System',
-                    label: 'System',
-                    predicate: (error: ErrorEntry) => error.source === 'System',
-                },
-            ],
-            defaultFilter: 'all',
-            // 渲染配置
-            itemHeight: 2, // 2行：消息 + 文件位置
-            visibleCount: 15,
-            renderItem: renderItem,
-            onDelete: handleDeleteError,
-            showCount: true,
-            statusInfo: statusInfo,
-            // 自定义快捷键：Ctrl+L 清空所有
-            keyMap: {
-                'ctrl+l': async () => {
-                    await handleClearAll();
-                },
-            },
-        }),
-        [allErrors, renderItem, statusInfo, handleDeleteError, handleClearAll],
+    // 键盘事件处理
+    useInput(
+        (input, key) => {
+            // ESC 关闭面板
+            if (key.escape) {
+                onClose();
+            }
+            // Ctrl+L 清空所有错误
+            if (key.ctrl && input === 'l') {
+                handleClearAll();
+            }
+        },
+        { isActive: true },
     );
 
-    if (allErrors.length === 0) {
-        return (
-            <Box flexDirection="column" paddingX={2} paddingY={1}>
-                <Box marginBottom={1}>
-                    <Text bold color="cyan">
-                        📋 错误日志
-                    </Text>
-                </Box>
-                <Box>
-                    <Text dimColor>暂无错误记录</Text>
-                </Box>
-                <Box marginTop={1}>
-                    <Text dimColor>按 ESC 返回</Text>
+    // 错误存储文件路径
+    const errorFilePath = join(process.cwd(), '.zen-code', 'errors.json');
+
+    // 计算统计信息
+    const stats = React.useMemo(() => {
+        const errorCount = errors.filter((e) => e.level === 'error').length;
+        const warningCount = errors.filter((e) => e.level === 'warning').length;
+        return { errorCount, warningCount };
+    }, [errors]);
+
+    return (
+        <Box flexDirection="column" paddingX={1} paddingY={1}>
+            {/* 标题栏 */}
+            <Box marginBottom={1}>
+                <Text bold color="cyan">
+                    📋 错误日志
+                </Text>
+                <Box marginLeft={2}>
+                    <Text color="red">❌ {stats.errorCount}</Text>
+                    <Text> </Text>
+                    <Text color="yellow">⚠️ {stats.warningCount}</Text>
+                    <Text dimColor>| Total: {errors.length}</Text>
                 </Box>
             </Box>
-        );
-    }
 
-    return <UniversalPanel config={panelConfig} onClose={onClose} />;
+            {/* 加载状态 */}
+            {isLoading && (
+                <Box marginBottom={1}>
+                    <Text dimColor>加载中...</Text>
+                </Box>
+            )}
+
+            {/* 错误列表 */}
+            {!isLoading && errors.length > 0 && (
+                <Box flexDirection="column">
+                    {errors.slice(0, 20).map((error, index) => {
+                        const levelInfo = LEVEL_CONFIG[error.level];
+                        const sourceInfo = SOURCE_CONFIG[error.source] || SOURCE_CONFIG.Unknown;
+                        const timestamp = formatTimestamp(error.timestamp);
+                        const displayMessage = truncateMessage(error.message);
+
+                        return (
+                            <Box key={error.id} flexDirection="column" marginBottom={1}>
+                                <Box>
+                                    <Text color={levelInfo.color}>
+                                        {levelInfo.emoji} {displayMessage}
+                                    </Text>
+                                </Box>
+                                <Box marginLeft={2}>
+                                    <Text dimColor>
+                                        {sourceInfo.emoji} {sourceInfo.label} | {timestamp}
+                                    </Text>
+                                    {error.file && (
+                                        <Text dimColor color="gray">
+                                            {' '}
+                                            | 📄 {error.file}
+                                            {error.line && `:${error.line}`}
+                                        </Text>
+                                    )}
+                                </Box>
+                            </Box>
+                        );
+                    })}
+                </Box>
+            )}
+
+            {/* 空状态 */}
+            {!isLoading && errors.length === 0 && (
+                <Box flexDirection="column" marginBottom={1}>
+                    <Box marginBottom={1}>
+                        <Text dimColor>暂无错误记录</Text>
+                    </Box>
+                    <Box marginBottom={1}>
+                        <Text dimColor>错误将自动收集到：</Text>
+                    </Box>
+                    <Box marginBottom={1}>
+                        <Text color="yellow">{errorFilePath}</Text>
+                    </Box>
+                </Box>
+            )}
+
+            {/* 操作提示 */}
+            <Box marginTop={1}>
+                <Text dimColor>按 ESC 返回 | Ctrl+L 清空所有</Text>
+            </Box>
+        </Box>
+    );
 };
 
 export default ErrorPanel;

@@ -30,6 +30,8 @@ interface CommandHandlerProps {
     switchToTask?: () => void;
     switchToMcp?: () => void;
     switchToProcess?: () => void;
+    /** 切换到错误日志面板 */
+    switchToErrors?: () => void;
     /** 关闭面板返回聊天 */
     closePanel?: () => void;
     startRalphLoop: (text: string) => void;
@@ -66,6 +68,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
         switchToModelProvider,
         switchToMcp,
         switchToProcess,
+        switchToErrors,
     } = props;
 
     // 从 useChat 获取所有需要的状态和函数
@@ -134,6 +137,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
                     switchToTask,
                     switchToMcp,
                     switchToProcess,
+                    switchToErrors,
                     closePanel,
                     startRalphLoop: props.startRalphLoop,
                 };
@@ -189,6 +193,7 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
             switchToTask,
             switchToMcp,
             switchToProcess,
+            switchToErrors,
             closePanel,
             props.startRalphLoop,
         ],
