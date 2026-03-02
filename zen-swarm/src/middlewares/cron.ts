@@ -25,6 +25,13 @@ const TaskSchema = z.object({
         .describe('Cron expression (5 fields: minute hour day-of-month month day-of-week)'),
     prompt: z.string().min(1).describe('Prompt to execute'),
     agent_id: z.string().min(1).describe('Agent ID to use'),
+    initial_state: z
+        .record(z.string(), z.unknown())
+        .optional()
+        .default({})
+        .describe(
+            'Initial state parameters for the LangGraph run. Must include: cwd (workspace path). Recommended: model_id (model to use), provider_type (e.g. "openai" | "anthropic"). Optional: agent_id (overrides task agent_id). Example: { cwd: "/workspace", model_id: "model-uuid", provider_type: "openai" }',
+        ),
     enabled: z.boolean().optional().default(true).describe('Enabled state'),
     max_retries: z.number().min(0).max(10).optional().default(0).describe('Max retry count'),
     variables: z.record(z.string(), z.string()).optional().describe('Variables (key-value object, NOT JSON string)'),
@@ -100,6 +107,11 @@ The \`task\` parameter MUST be a JavaScript object, NOT a JSON string. Do NOT us
     "cron_expression": "0 9 * * *",
     "prompt": "Generate a summary report of yesterday's activities",
     "agent_id": "agents/default",
+    "initial_state": {
+      "cwd": "/workspace/my-project",
+      "model_id": "model-uuid",
+      "provider_type": "openai"
+    },
     "enabled": true,
     "max_retries": 3,
     "variables": {}
@@ -215,6 +227,7 @@ function createCronTool(storage: CronStorage, scheduler: CronScheduler) {
                                     description: t.description,
                                     cron_expression: t.cron_expression,
                                     agent_id: t.agent_id,
+                                    initial_state: t.initial_state,
                                     enabled: t.enabled,
                                     max_retries: t.max_retries,
                                     created_at: t.created_at,

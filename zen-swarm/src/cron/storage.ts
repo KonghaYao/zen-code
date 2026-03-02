@@ -37,6 +37,7 @@ export class CronStorage {
                 cron_expression TEXT NOT NULL,
                 prompt TEXT NOT NULL,
                 agent_id TEXT NOT NULL,
+                initial_state TEXT NOT NULL DEFAULT '{}',
                 enabled INTEGER DEFAULT 1,
                 max_retries INTEGER DEFAULT 0,
                 variables TEXT DEFAULT '{}',
@@ -67,6 +68,21 @@ export class CronStorage {
         this.db.run(`CREATE INDEX IF NOT EXISTS idx_cron_logs_task_id ON cron_logs(cron_task_id);`);
         this.db.run(`CREATE INDEX IF NOT EXISTS idx_cron_logs_status ON cron_logs(status);`);
         this.db.run(`CREATE INDEX IF NOT EXISTS idx_cron_logs_created_at ON cron_logs(created_at);`);
+
+        // 迁移：在所有建表完成后执行，保证表一定存在
+        this.migrateIfNeeded();
+    }
+
+    /**
+     * 迁移：为已有表添加缺少的列（兼容旧数据库）
+     */
+    private migrateIfNeeded(): void {
+        const tableInfo = this.db.prepare('PRAGMA table_info(cron_tasks)').all() as Array<{ name: string }>;
+        const hasInitialState = tableInfo.some((col) => col.name === 'initial_state');
+        if (!hasInitialState) {
+            this.db.run("ALTER TABLE cron_tasks ADD COLUMN initial_state TEXT NOT NULL DEFAULT '{}'");
+            console.log('[Cron] Migrated: added initial_state column to cron_tasks');
+        }
     }
 
     // ========================================
@@ -101,8 +117,8 @@ export class CronStorage {
         }
 
         const stmt = this.db.prepare(`
-            INSERT INTO cron_tasks (id, name, description, cron_expression, prompt, agent_id, enabled, max_retries, variables, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO cron_tasks (id, name, description, cron_expression, prompt, agent_id, initial_state, enabled, max_retries, variables, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         const now = this.now();
@@ -113,6 +129,7 @@ export class CronStorage {
             task.cron_expression,
             task.prompt,
             task.agent_id,
+            JSON.stringify(task.initial_state ?? {}),
             this.boolToInt(task.enabled ?? true),
             task.max_retries ?? 0,
             JSON.stringify(task.variables ?? {}),
@@ -129,7 +146,7 @@ export class CronStorage {
 
         const stmt = this.db.prepare(`
             UPDATE cron_tasks
-            SET name = ?, description = ?, cron_expression = ?, prompt = ?, agent_id = ?, enabled = ?, max_retries = ?, variables = ?, updated_at = ?
+            SET name = ?, description = ?, cron_expression = ?, prompt = ?, agent_id = ?, initial_state = ?, enabled = ?, max_retries = ?, variables = ?, updated_at = ?
             WHERE id = ?
         `);
 
@@ -139,6 +156,7 @@ export class CronStorage {
             task.cron_expression ?? existing.cron_expression,
             task.prompt ?? existing.prompt,
             task.agent_id ?? existing.agent_id,
+            JSON.stringify(task.initial_state ?? existing.initial_state),
             this.boolToInt(task.enabled ?? existing.enabled),
             task.max_retries ?? existing.max_retries,
             JSON.stringify(task.variables ?? existing.variables),
@@ -250,6 +268,7 @@ export class CronStorage {
             cron_expression: row.cron_expression,
             prompt: row.prompt,
             agent_id: row.agent_id,
+            initial_state: JSON.parse(row.initial_state || '{}'),
             enabled: row.enabled === 1,
             max_retries: row.max_retries,
             variables: JSON.parse(row.variables || '{}'),

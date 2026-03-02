@@ -27,15 +27,26 @@ export function CronTaskForm(props: CronTaskFormProps) {
         cron_expression: '0 9 * * *',
         prompt: '',
         agent_id: '',
+        initial_state: {},
         enabled: true,
         max_retries: 0,
         variables: {},
     });
 
+    // 本地 workspace 选择状态（用于 UI 控件，实际数据存在 initial_state.cwd）
+    const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('');
+
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     // 获取 agents 列表
     const { data: agents } = trpc.agents.list.useQuery();
+
+    // 获取 models 列表
+    const { data: models } = trpc.models.list.useQuery();
+
+    // 获取 workspaces 列表
+    const { data: workspacesData } = trpc.workspaces.getAll.useQuery();
+    const workspaces = workspacesData?.workspaces ?? [];
 
     // 初始化表单数据（编辑模式）
     useEffect(() => {
@@ -47,6 +58,7 @@ export function CronTaskForm(props: CronTaskFormProps) {
                 cron_expression: task.cron_expression,
                 prompt: task.prompt,
                 agent_id: task.agent_id,
+                initial_state: task.initial_state || {},
                 enabled: task.enabled,
                 max_retries: task.max_retries,
                 variables: task.variables || {},
@@ -59,6 +71,17 @@ export function CronTaskForm(props: CronTaskFormProps) {
             }));
         }
     }, [task]);
+
+    // 编辑模式：从 initial_state.cwd 反推已选 workspace
+    // 仅在 workspaces 首次加载完成后执行一次，避免 refetch 后重置用户的选择
+    useEffect(() => {
+        if (selectedWorkspaceId) return; // 已经有选中项，不再反推
+        const cwd = task?.initial_state?.cwd;
+        if (cwd && workspaces.length > 0) {
+            const ws = workspaces.find((w) => w.rootPath === cwd);
+            if (ws) setSelectedWorkspaceId(ws.id);
+        }
+    }, [task?.initial_state?.cwd, workspaces]);
 
     // Mutations
     const createMutation = trpc.cron.createTask.useMutation({
@@ -92,6 +115,59 @@ export function CronTaskForm(props: CronTaskFormProps) {
         }
     };
 
+    // Agent 变化时同步到 initial_state
+    const handleAgentChange = (agentId: string) => {
+        setFormData((prev) => ({
+            ...prev,
+            agent_id: agentId,
+            initial_state: {
+                ...prev.initial_state,
+                agent_id: agentId,
+            },
+        }));
+        if (errors.agent_id) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next.agent_id;
+                return next;
+            });
+        }
+    };
+
+    // Model 变化时同步到 initial_state
+    const handleModelChange = (modelId: string) => {
+        setFormData((prev) => {
+            // 清空时从对象中删除 key，而非设为 undefined（避免残留 key 引起误解）
+            const { model_id: _removed, ...restState } = prev.initial_state ?? {};
+            return {
+                ...prev,
+                initial_state: modelId ? { ...restState, model_id: modelId } : restState,
+            };
+        });
+    };
+
+    // Workspace 变化时同步 cwd 到 initial_state
+    const handleWorkspaceChange = (workspaceId: string) => {
+        setSelectedWorkspaceId(workspaceId);
+        const ws = workspaces.find((w) => w.id === workspaceId);
+        if (ws) {
+            setFormData((prev) => ({
+                ...prev,
+                initial_state: {
+                    ...prev.initial_state,
+                    cwd: ws.rootPath,
+                },
+            }));
+        }
+        if (errors.workspace) {
+            setErrors((prev) => {
+                const next = { ...prev };
+                delete next.workspace;
+                return next;
+            });
+        }
+    };
+
     // 验证表单
     const validate = (): boolean => {
         const newErrors: Record<string, string> = {};
@@ -114,6 +190,11 @@ export function CronTaskForm(props: CronTaskFormProps) {
             newErrors.agent_id = 'Agent is required';
         }
 
+        // 校验 workspace（通过 initial_state.cwd 判断）
+        if (!formData.initial_state?.cwd) {
+            newErrors.workspace = 'Workspace is required';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -132,6 +213,7 @@ export function CronTaskForm(props: CronTaskFormProps) {
                 cron_expression: formData.cron_expression,
                 prompt: formData.prompt,
                 agent_id: formData.agent_id,
+                initial_state: formData.initial_state,
                 enabled: formData.enabled,
                 max_retries: formData.max_retries,
                 variables: formData.variables || {},
@@ -186,26 +268,71 @@ export function CronTaskForm(props: CronTaskFormProps) {
                 />
             </div>
 
-            {/* Agent */}
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Agent <span className="text-red-500">*</span>
-                </label>
-                <select
-                    value={formData.agent_id}
-                    onChange={(e) => updateField('agent_id', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg ${
-                        errors.agent_id ? 'border-red-300' : 'border-gray-300'
-                    } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                >
-                    <option value="">Select an agent...</option>
-                    {agents?.map((agent) => (
-                        <option key={agent.id} value={agent.id}>
-                            {agent.name} ({agent.id})
-                        </option>
-                    ))}
-                </select>
-                {errors.agent_id && <p className="mt-1 text-sm text-red-600">{errors.agent_id}</p>}
+            {/* Agent + Model + Workspace 并排 */}
+            <div className="grid grid-cols-3 gap-4">
+                {/* Agent */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Agent <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                        value={formData.agent_id}
+                        onChange={(e) => handleAgentChange(e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-lg ${
+                            errors.agent_id ? 'border-red-300' : 'border-gray-300'
+                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    >
+                        <option value="">Select an agent...</option>
+                        {agents?.map((agent) => (
+                            <option key={agent.id} value={agent.id}>
+                                {agent.name} ({agent.id})
+                            </option>
+                        ))}
+                    </select>
+                    {errors.agent_id && <p className="mt-1 text-sm text-red-600">{errors.agent_id}</p>}
+                </div>
+
+                {/* Model */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Model
+                        <span className="ml-1 text-xs text-gray-400 font-normal">(optional, uses agent default)</span>
+                    </label>
+                    <select
+                        value={(formData.initial_state?.model_id as string | undefined) ?? ''}
+                        onChange={(e) => handleModelChange(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">Agent default</option>
+                        {models?.map((model) => (
+                            <option key={model.id} value={model.id}>
+                                {model.name || model.model_name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Workspace */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Workspace <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                        value={selectedWorkspaceId}
+                        onChange={(e) => handleWorkspaceChange(e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-lg ${
+                            errors.workspace ? 'border-red-300' : 'border-gray-300'
+                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    >
+                        <option value="">Select a workspace...</option>
+                        {workspaces.map((ws) => (
+                            <option key={ws.id} value={ws.id}>
+                                {ws.name} ({ws.rootPath})
+                            </option>
+                        ))}
+                    </select>
+                    {errors.workspace && <p className="mt-1 text-sm text-red-600">{errors.workspace}</p>}
+                </div>
             </div>
 
             {/* Prompt */}

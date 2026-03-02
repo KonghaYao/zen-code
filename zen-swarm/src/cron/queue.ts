@@ -51,11 +51,31 @@ export class ExecutionQueue {
     }
 
     /**
+     * 将任务插入队列头部（用于放回被误出队的项，保持 FIFO 顺序）
+     * @param item 原始排队项
+     */
+    enqueueFirst(item: QueuedExecution): void {
+        this.queue.unshift(item);
+    }
+
+    /**
      * 获取下一个等待执行的任务
      * @returns 队列中的下一个任务，如果队列为空则返回 null
      */
     dequeue(): QueuedExecution | null {
         return this.queue.shift() ?? null;
+    }
+
+    /**
+     * 从队列中取出指定 taskId 的第一个排队项
+     * @param taskId 任务 ID
+     * @returns 找到的排队项，如果不存在则返回 null
+     */
+    dequeueByTaskId(taskId: string): QueuedExecution | null {
+        const index = this.queue.findIndex((item) => item.taskId === taskId);
+        if (index === -1) return null;
+        const [item] = this.queue.splice(index, 1);
+        return item;
     }
 
     /**

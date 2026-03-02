@@ -14,8 +14,8 @@ import { z } from 'zod';
 export const SwarmStateSchema = AgentState.extend(SubAgentStateSchema.shape).extend({
     // Agent 配置
     agent_id: z.string().default('default'),
-    model_id: z.string().default('gpt-4o-mini'),
-    provider_type: z.string().default('openai'),
+    model_id: z.string().default(''),
+    provider_type: z.string().default(''),
     cwd: z.string().default(process.cwd()),
 });
 
@@ -25,8 +25,8 @@ export const SwarmStateSchema = AgentState.extend(SubAgentStateSchema.shape).ext
 export const SwarmState = createState(SubAgentAnnotation, MessagesAnnotation).build({
     // Agent 配置
     agent_id: createDefaultAnnotation(() => 'default'),
-    model_id: createDefaultAnnotation(() => 'gpt-4o-mini'),
-    provider_type: createDefaultAnnotation(() => 'openai'),
+    model_id: createDefaultAnnotation(() => ''),
+    provider_type: createDefaultAnnotation(() => ''),
     cwd: createDefaultAnnotation(() => process.cwd()),
 });
 

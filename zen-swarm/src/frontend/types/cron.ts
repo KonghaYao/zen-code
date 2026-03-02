@@ -13,6 +13,7 @@ export interface CronTask {
     cron_expression: string;
     prompt: string;
     agent_id: string;
+    initial_state: Record<string, unknown>; // 完整 state 参数（包含 cwd、model_id 等）
     enabled: boolean;
     max_retries: number;
     variables: Record<string, string>;
@@ -27,6 +28,7 @@ export interface CronTaskInput {
     cron_expression: string;
     prompt: string;
     agent_id: string;
+    initial_state?: Record<string, unknown>; // 可选，默认 {}
     enabled?: boolean;
     max_retries?: number;
     variables?: Record<string, string>;
@@ -39,6 +41,7 @@ export interface UpdateCronTaskInput {
     cron_expression?: string;
     prompt?: string;
     agent_id?: string;
+    initial_state?: Record<string, unknown>; // 可选
     enabled?: boolean;
     max_retries?: number;
     variables?: Record<string, string>;

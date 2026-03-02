@@ -83,9 +83,18 @@ export class CronScheduler {
             return;
         }
 
-        // 创建调度任务
-        const job = cron.schedule(task.cron_expression, () => {
-            this.onTrigger(task);
+        // 创建调度任务：触发时从 storage 重新加载最新 task，避免闭包捕获旧快照
+        const job = cron.schedule(task.cron_expression, async () => {
+            const latestTask = await this.storage.getTask(task.id);
+            if (!latestTask) {
+                console.warn(`[Cron] Task "${task.id}" no longer exists, skipping`);
+                return;
+            }
+            if (!latestTask.enabled) {
+                console.log(`[Cron] Task "${latestTask.name}" was disabled, skipping`);
+                return;
+            }
+            this.onTrigger(latestTask);
         });
 
         this.scheduledJobs.set(task.id, job);
@@ -225,21 +234,39 @@ export class CronScheduler {
      * @param completedTaskId 刚完成的任务 ID
      */
     private async processQueue(completedTaskId: string): Promise<void> {
-        // 直接从队列取出，避免检查和取出的时间差
-        const next = this.queue.dequeue();
+        // 优先处理刚完成 task 自身的排队项
+        const next = this.queue.dequeueByTaskId(completedTaskId);
 
-        if (next && next.taskId === completedTaskId) {
+        if (next) {
             console.log(`[Cron] Processing queued execution for task "${completedTaskId}"`);
 
             // 更新日志状态
             await this.storage.updateLog(next.logId, { status: 'running' });
             this.queue.markRunning(next.taskId, next.logId);
 
-            // 获取任务配置并执行
+            // 获取最新任务配置并执行
             const task = await this.storage.getTask(next.taskId);
             if (task) {
                 await this.executeWithRetry(task, next.logId);
             }
+            return;
+        }
+
+        // 该 task 无排队项时，驱动队列中其他可立即执行的任务（防止不同 task 排队项永久阻塞）
+        const anyNext = this.queue.dequeue();
+        if (anyNext && this.queue.canExecute(anyNext.taskId)) {
+            console.log(`[Cron] Processing queued execution for task "${anyNext.taskId}"`);
+
+            await this.storage.updateLog(anyNext.logId, { status: 'running' });
+            this.queue.markRunning(anyNext.taskId, anyNext.logId);
+
+            const task = await this.storage.getTask(anyNext.taskId);
+            if (task) {
+                await this.executeWithRetry(task, anyNext.logId);
+            }
+        } else if (anyNext) {
+            // 取出后发现仍在运行中，放回队列头部保持 FIFO 顺序
+            this.queue.enqueueFirst(anyNext);
         }
     }
 

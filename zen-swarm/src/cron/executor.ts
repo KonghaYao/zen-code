@@ -3,7 +3,7 @@
  * 调用 LangGraph API 执行任务
  */
 
-import type { CronTask, CronLogStatus } from './types.js';
+import type { CronTask } from './types.js';
 import type { CronStorage } from './storage.js';
 import { replaceVariables } from './variable-replacer.js';
 
@@ -37,19 +37,51 @@ export class CronExecutor {
      */
     async execute(task: CronTask, logId: string): Promise<ExecutorResult> {
         try {
+            // 校验必填字段
+            // agent_id: initial_state 中的值优先，fallback 到 task.agent_id
+            const agentId = (task.initial_state?.agent_id as string | undefined) ?? task.agent_id;
+            const cwd = task.initial_state?.cwd as string | undefined;
+            const modelId = task.initial_state?.model_id as string | undefined;
+
+            if (!agentId) {
+                await this.storage.updateLog(logId, {
+                    status: 'failed',
+                    error_message: 'Task is missing agent_id, skipping execution',
+                    finished_at: new Date().toISOString(),
+                });
+                return { success: false, error: 'Missing agent_id' };
+            }
+
+            if (!cwd) {
+                await this.storage.updateLog(logId, {
+                    status: 'failed',
+                    error_message: 'Task is missing cwd (workspace path) in initial_state, skipping execution',
+                    finished_at: new Date().toISOString(),
+                });
+                return { success: false, error: 'Missing cwd' };
+            }
+
+            if (!modelId) {
+                // model_id 未指定时使用 agent 默认模型，打印警告
+                console.warn(
+                    `[Cron] Task "${task.name}" has no model_id in initial_state, ` +
+                        `falling back to agent's default model`,
+                );
+            }
+
             // 1. 替换变量
             const prompt = replaceVariables(task.prompt, task.variables);
             console.log(`[Cron] Executing task "${task.name}" with prompt: ${prompt.substring(0, 100)}...`);
 
             // 2. 创建 LangGraph Thread
-            const thread = await this.createThread(task.agent_id);
+            const thread = await this.createThread({ cwd });
             console.log(`[Cron] Created thread: ${thread.thread_id}`);
 
             // 3. 更新日志中的 thread_id
             await this.storage.updateLog(logId, { thread_id: thread.thread_id });
 
-            // 4. 执行 Agent
-            await this.runAgent(thread.thread_id, task.agent_id, prompt);
+            // 4. 执行 Agent（合并 initial_state）
+            await this.runAgent(thread.thread_id, agentId, prompt, task.initial_state);
 
             // 5. 更新日志状态为成功
             await this.storage.updateLog(logId, {
@@ -81,16 +113,17 @@ export class CronExecutor {
 
     /**
      * 创建 LangGraph Thread
-     * @param agentId Agent ID
      * @returns Thread 信息
      */
-    private async createThread(agentId: string): Promise<{ thread_id: string }> {
+    private async createThread(props: { cwd: string }): Promise<{ thread_id: string }> {
         const response = await fetch(`${this.apiBaseUrl}/api/langgraph/threads`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                assistant_id: agentId,
+                // 始终使用 'swarm' graph，agentId 是应用层概念，通过 input.agent_id 传递
+                assistant_id: 'swarm',
                 metadata: {
+                    path: props.cwd,
                     source: 'cron',
                     created_at: new Date().toISOString(),
                 },
@@ -110,26 +143,27 @@ export class CronExecutor {
      * @param threadId Thread ID
      * @param agentId Agent ID
      * @param prompt 用户输入
+     * @param initialState 初始 state 参数（包含 cwd、model_id、provider_type 等）
      */
-    private async runAgent(threadId: string, agentId: string, prompt: string): Promise<void> {
+    private async runAgent(
+        threadId: string,
+        agentId: string,
+        prompt: string,
+        initialState: Record<string, unknown> = {},
+    ): Promise<void> {
+        const resolvedAgentId = (initialState.agent_id as string | undefined) ?? agentId;
+
         const response = await fetch(`${this.apiBaseUrl}/api/langgraph/threads/${threadId}/runs`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 assistant_id: 'swarm',
                 input: {
-                    messages: [
-                        {
-                            role: 'user',
-                            content: prompt,
-                        },
-                    ],
-                    agent_id: agentId,
-                },
-                config: {
-                    configurable: {
-                        agent_id: agentId,
-                    },
+                    // 先展开 initial_state（cwd、model_id、provider_type 等）
+                    ...initialState,
+                    // messages 和 agent_id 始终以此处构造的为准，不允许被 initialState 覆盖
+                    messages: [{ type: 'human', content: prompt }],
+                    agent_id: resolvedAgentId,
                 },
             }),
         });

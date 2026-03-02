@@ -29,9 +29,17 @@ export async function createSwarmAgent(
     }
 
     // 2. 加载 Model 配置
-    const modelConfig = await pkg.getModel(agentConfig.modelId);
+    // state.model_id 优先级高于 agentConfig 中配置的 modelId，允许调用方动态指定模型
+    const effectiveModelId = state.model_id || agentConfig.modelId;
+    if (!effectiveModelId) {
+        throw new Error(
+            `Agent "${agentId}" has no model configured and no model_id was provided in state. ` +
+                `Please assign a default model to this agent in the settings.`,
+        );
+    }
+    const modelConfig = await pkg.getModel(effectiveModelId);
     if (!modelConfig) {
-        throw new Error(`Model not found: ${agentConfig.modelId}`);
+        throw new Error(`Model not found: ${effectiveModelId}`);
     }
 
     // 3. 加载 Provider 配置（通过 provider_id 外键）
