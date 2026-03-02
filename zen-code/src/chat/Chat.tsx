@@ -67,35 +67,11 @@ const Chat: React.FC = () => {
  * This allows us to access settings for defaultHeaders configuration
  */
 const ChatProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { config } = useSettings();
-
-    // Build defaultHeaders with provider API information
-    const defaultHeaders = useMemo(() => {
-        const headers: Record<string, string> = {};
-
-        if (config) {
-            // Find the current provider from providers array
-            const currentProvider = config.providers?.find((p: any) => p.id === config.provider_id);
-
-            if (currentProvider) {
-                // Add API key and base URL as headers if available
-                if (currentProvider.apiKey) {
-                    headers['x-api-key'] = currentProvider.apiKey;
-                }
-                if (currentProvider.baseUrl) {
-                    headers['x-base-url'] = currentProvider.baseUrl;
-                }
-            }
-        }
-
-        return headers;
-    }, [config]);
-
     return (
         <ChatProvider
             apiUrl="http://127.0.0.1:8123"
             defaultAgent="code"
-            defaultHeaders={defaultHeaders}
+            defaultHeaders={{}}
             withCredentials={false}
             showHistory={false}
             showGraph={false}
