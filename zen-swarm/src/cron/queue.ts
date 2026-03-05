@@ -38,6 +38,35 @@ export class ExecutionQueue {
     }
 
     /**
+     * 原子地取出并标记指定 taskId 为运行中（combined dequeue + markRunning）
+     * 若任务已在运行中则返回 null，不修改队列
+     */
+    tryDequeueAndMarkRunning(taskId: string): QueuedExecution | null {
+        if (this.running.has(taskId)) return null;
+        const index = this.queue.findIndex((item) => item.taskId === taskId);
+        if (index === -1) return null;
+        const [item] = this.queue.splice(index, 1);
+        this.running.set(item.taskId, item.logId);
+        return item;
+    }
+
+    /**
+     * 原子地从队列中取出第一个当前不在运行中的任务并标记运行
+     * 替代 dequeue() + canExecute() + enqueueFirst() 三步模式
+     */
+    tryDequeueAnyAndMarkRunning(): QueuedExecution | null {
+        for (let i = 0; i < this.queue.length; i++) {
+            const item = this.queue[i];
+            if (!this.running.has(item.taskId)) {
+                this.queue.splice(i, 1);
+                this.running.set(item.taskId, item.logId);
+                return item;
+            }
+        }
+        return null;
+    }
+
+    /**
      * 将任务加入队列
      * @param taskId 任务 ID
      * @param logId 日志 ID

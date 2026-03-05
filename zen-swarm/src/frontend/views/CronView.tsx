@@ -45,7 +45,16 @@ export function CronView() {
     // Queries
     const tasksQuery = trpc.cron.listTasks.useQuery();
     const agentsQuery = trpc.agents.list.useQuery();
-    const recentLogsQuery = trpc.cron.getRecentLogs.useQuery({ limit: 20 });
+    const recentLogsQuery = trpc.cron.getRecentLogs.useQuery(
+        { limit: 20 },
+        {
+            // 有 running/queued 日志时 2s 刷新，否则 10s
+            refetchInterval: (query) => {
+                const hasActive = query.state.data?.some((log) => log.status === 'running' || log.status === 'queued');
+                return hasActive ? 2000 : 10000;
+            },
+        },
+    );
     const queueStatusQuery = trpc.cron.getQueueStatus.useQuery(undefined, {
         refetchInterval: 5000, // 每 5 秒刷新
     });

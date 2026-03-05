@@ -21,10 +21,10 @@ import type { SMDatabase } from '../middlewares/sm/database.js';
 import type { ProviderStorage } from '../services/provider/index.js';
 
 // ========================================
-// 基础 Router（不含 SM）
+// 基础路由定义（单一来源）
 // ========================================
 
-export const appRouter = router({
+const baseRoutes = {
     models: modelsRouter,
     prompts: promptsRouter,
     tools: toolsRouter,
@@ -36,7 +36,13 @@ export const appRouter = router({
     files: filesRouter,
     workspaces: workspacesRouter,
     monitor: monitorRouter,
-});
+};
+
+// ========================================
+// 基础 Router（不含 SM）
+// ========================================
+
+export const appRouter = router(baseRoutes);
 
 // ========================================
 // 合并 Router 工厂（包含 SM 和 Provider）
@@ -47,26 +53,12 @@ export function createMergedRouter(
     smDatabase?: SMDatabase,
     providerStorage?: ProviderStorage,
 ) {
-    const baseRouter = {
-        models: modelsRouter,
-        prompts: promptsRouter,
-        tools: toolsRouter,
-        middlewares: middlewaresRouter,
-        agents: agentsRouter,
-        mcp: mcpRouter,
-        skills: skillsRouter,
-        cron: cronRouter,
-        files: filesRouter,
-        workspaces: workspacesRouter,
-        monitor: monitorRouter,
-    };
-
     // 有 SM 和 Provider
     if (stateMachineManager && smDatabase && providerStorage) {
         const smRouter = createSMRouter(stateMachineManager, smDatabase);
         const providerRouter = createProviderRouter(providerStorage);
         return router({
-            ...baseRouter,
+            ...baseRoutes,
             sm: smRouter,
             providers: providerRouter,
         });
@@ -76,7 +68,7 @@ export function createMergedRouter(
     if (stateMachineManager && smDatabase) {
         const smRouter = createSMRouter(stateMachineManager, smDatabase);
         return router({
-            ...baseRouter,
+            ...baseRoutes,
             sm: smRouter,
         });
     }
@@ -85,7 +77,7 @@ export function createMergedRouter(
     if (providerStorage) {
         const providerRouter = createProviderRouter(providerStorage);
         return router({
-            ...baseRouter,
+            ...baseRoutes,
             providers: providerRouter,
         });
     }

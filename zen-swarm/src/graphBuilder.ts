@@ -7,7 +7,7 @@ import { Runtime } from 'langchain';
 import { SwarmState, SwarmStateType } from './state.js';
 import { START, StateGraph } from '@langchain/langgraph';
 import { agentPackage } from './config/loader.js';
-import { createSwarmAgent, getAvailableAgentIds } from './agents/factory.js';
+import { createSwarmAgent } from './agents/factory.js';
 
 /**
  * Swarm 节点 - 执行 agent
@@ -15,14 +15,7 @@ import { createSwarmAgent, getAvailableAgentIds } from './agents/factory.js';
 async function swarmNode(state: SwarmStateType, runtime: Runtime) {
     const { agent_id = 'agents/default' } = state;
 
-    // 获取可用的 agents
-    const availableAgents = await getAvailableAgentIds(agentPackage);
-
-    if (!availableAgents.includes(agent_id)) {
-        throw new Error(`Unknown agent: ${agent_id}. Available: ${availableAgents.join(', ')}`);
-    }
-
-    // 创建 agent
+    // 创建 agent（factory 内部会验证 agent_id 是否存在）
     const agent = await createSwarmAgent(agent_id, agentPackage, state);
 
     // 执行 agent

@@ -21,7 +21,7 @@ const WS_URL = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.h
 let globalWs: WebSocket | null = null;
 let reconnectTimeout: number | null = null;
 let reconnectAttempts = 0;
-const maxReconnectAttempts = 5;
+const maxReconnectAttempts = 30; // 最多重连 30 次（约 30 分钟）
 
 // 全局输出回调集合（按 sessionId 分组）
 const outputCallbacksBySession = new Map<string, Set<(data: string) => void>>();
@@ -190,10 +190,10 @@ function connectGlobal() {
         ws.onclose = () => {
             storeSetWsStatus?.('disconnected');
 
-            // 自动重连
+            // 指数退避重连，最大延迟 30 秒
             if (reconnectAttempts < maxReconnectAttempts) {
                 reconnectAttempts++;
-                const delay = Math.min(1000 * reconnectAttempts, 5000);
+                const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 30_000);
                 reconnectTimeout = window.setTimeout(connectGlobal, delay);
             }
         };

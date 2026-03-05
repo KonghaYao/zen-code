@@ -154,6 +154,9 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
                         // 保存到 localStorage
                         localStorage.setItem('workspace:last-id', id);
+
+                        // 异步更新最近访问时间（fire-and-forget，不影响 UI 切换速度）
+                        apiClient.workspaces.touch.mutate({ id }).catch(() => {});
                     } catch (error) {
                         const message = error instanceof Error ? error.message : 'Failed to set workspace';
                         set({
@@ -217,12 +220,10 @@ export const useWorkspaceStore = create<WorkspaceState>()(
                 // ========================================
 
                 createWorkspace: async (input: CreateWorkspaceInput) => {
-                    console.log('[createWorkspace] Input:', input);
                     set({ isRefreshing: true, error: null });
 
                     try {
                         const result = await apiClient.workspaces.create.mutate(input);
-                        console.log('[createWorkspace] Result:', result);
                         const newWorkspace = result.workspace;
 
                         set((state) => {
@@ -243,7 +244,6 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
                         return newWorkspace;
                     } catch (error) {
-                        console.error('[createWorkspace] Error:', error);
                         const message = error instanceof Error ? error.message : 'Failed to create workspace';
                         set({
                             error: message,

@@ -200,7 +200,7 @@ export function ChatViewInternal() {
 export function ChatView() {
     return (
         <ChatProvider
-            apiUrl="http://127.0.0.1:8124/api/langgraph"
+            apiUrl={new URL('/api/langgraph', location.href).toString()}
             defaultAgent="swarm"
             defaultHeaders={{}}
             withCredentials={false}

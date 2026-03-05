@@ -55,20 +55,10 @@ const DEFAULT_SIDEBAR_SECTIONS: SidebarSection[] = [
         collapsible: true,
         collapsed: false,
         items: [
-            { id: 'airdrop', name: 'AirDrop', path: 'airdrop://', icon: '📡', type: 'folder' },
-            { id: 'recents', name: 'Recents', path: 'recents://', icon: '🕐', type: 'folder' },
-            { id: 'applications', name: 'Applications', path: '/Applications', icon: '📱', type: 'folder' },
             { id: 'desktop', name: 'Desktop', path: '~/Desktop', icon: '🖥️', type: 'folder' },
             { id: 'documents', name: 'Documents', path: '~/Documents', icon: '📄', type: 'folder' },
             { id: 'downloads', name: 'Downloads', path: '~/Downloads', icon: '📥', type: 'folder' },
         ],
-    },
-    {
-        id: 'icloud',
-        title: 'iCloud',
-        collapsible: true,
-        collapsed: false,
-        items: [{ id: 'icloud-drive', name: 'iCloud Drive', path: 'icloud://', icon: '☁️', type: 'folder' }],
     },
     {
         id: 'locations',

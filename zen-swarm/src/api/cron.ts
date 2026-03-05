@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import cron from 'node-cron';
 import { router, publicProcedure, handleNotFound } from './trpc.js';
 
 // ========================================
@@ -14,7 +15,10 @@ const CronTaskInputSchema = z.object({
     id: z.string().min(1),
     name: z.string().min(1),
     description: z.string().optional(),
-    cron_expression: z.string().min(5, 'Cron expression must have at least 5 fields'),
+    cron_expression: z
+        .string()
+        .min(5, 'Cron expression must have at least 5 fields')
+        .refine((val) => cron.validate(val), { message: 'Invalid cron expression' }),
     prompt: z.string().min(1, 'Prompt is required'),
     agent_id: z.string().min(1, 'Agent ID is required'),
     initial_state: z.record(z.string(), z.unknown()).optional().default({}),
@@ -27,7 +31,11 @@ const UpdateCronTaskSchema = z.object({
     id: z.string().min(1),
     name: z.string().min(1).optional(),
     description: z.string().optional(),
-    cron_expression: z.string().min(5, 'Cron expression must have at least 5 fields').optional(),
+    cron_expression: z
+        .string()
+        .min(5, 'Cron expression must have at least 5 fields')
+        .refine((val) => cron.validate(val), { message: 'Invalid cron expression' })
+        .optional(),
     prompt: z.string().min(1, 'Prompt is required').optional(),
     agent_id: z.string().min(1, 'Agent ID is required').optional(),
     initial_state: z.record(z.string(), z.unknown()).optional(),

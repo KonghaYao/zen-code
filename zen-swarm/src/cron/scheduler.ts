@@ -32,6 +32,19 @@ export class CronScheduler {
         }
 
         console.log('[Cron] Starting scheduler...');
+
+        // 重置上次运行时遗留的 running/queued/pending 日志
+        const resetCount = await this.storage.resetStuckLogs('Server restart: execution interrupted');
+        if (resetCount > 0) {
+            console.log(`[Cron] Reset ${resetCount} stuck log(s) from previous run`);
+        }
+
+        // 清理每个任务超出保留数量的旧日志
+        const pruneCount = await this.storage.pruneLogsPerTask(100);
+        if (pruneCount > 0) {
+            console.log(`[Cron] Pruned ${pruneCount} old log(s)`);
+        }
+
         this.isRunning = true;
 
         // 加载所有启用的任务
@@ -187,7 +200,7 @@ export class CronScheduler {
                         status: 'running',
                         retry_count: retryCount,
                     });
-                    await this.sleep(1000 * Math.pow(2, retryCount)); // 指数退避
+                    await this.sleep(Math.min(1000 * Math.pow(2, retryCount), 30_000)); // 指数退避，最大 30s
                     continue;
                 }
 
@@ -234,17 +247,12 @@ export class CronScheduler {
      * @param completedTaskId 刚完成的任务 ID
      */
     private async processQueue(completedTaskId: string): Promise<void> {
-        // 优先处理刚完成 task 自身的排队项
-        const next = this.queue.dequeueByTaskId(completedTaskId);
+        // 优先处理刚完成 task 自身的排队项（原子 dequeue + markRunning）
+        const next = this.queue.tryDequeueAndMarkRunning(completedTaskId);
 
         if (next) {
             console.log(`[Cron] Processing queued execution for task "${completedTaskId}"`);
-
-            // 更新日志状态
             await this.storage.updateLog(next.logId, { status: 'running' });
-            this.queue.markRunning(next.taskId, next.logId);
-
-            // 获取最新任务配置并执行
             const task = await this.storage.getTask(next.taskId);
             if (task) {
                 await this.executeWithRetry(task, next.logId);
@@ -253,20 +261,14 @@ export class CronScheduler {
         }
 
         // 该 task 无排队项时，驱动队列中其他可立即执行的任务（防止不同 task 排队项永久阻塞）
-        const anyNext = this.queue.dequeue();
-        if (anyNext && this.queue.canExecute(anyNext.taskId)) {
+        const anyNext = this.queue.tryDequeueAnyAndMarkRunning();
+        if (anyNext) {
             console.log(`[Cron] Processing queued execution for task "${anyNext.taskId}"`);
-
             await this.storage.updateLog(anyNext.logId, { status: 'running' });
-            this.queue.markRunning(anyNext.taskId, anyNext.logId);
-
             const task = await this.storage.getTask(anyNext.taskId);
             if (task) {
                 await this.executeWithRetry(task, anyNext.logId);
             }
-        } else if (anyNext) {
-            // 取出后发现仍在运行中，放回队列头部保持 FIFO 顺序
-            this.queue.enqueueFirst(anyNext);
         }
     }
 

@@ -16,11 +16,18 @@ import type {
 
 export class CronStorage {
     private db: Database;
+    private _ownsDb: boolean;
 
-    constructor(dbPath: string = './data/index.db') {
-        this.db = new Database(dbPath, { create: true });
-        this.db.run('PRAGMA foreign_keys = ON');
-        this.db.run('PRAGMA journal_mode = WAL'); // 提高并发性能
+    constructor(db: Database | string = './data/index.db') {
+        if (typeof db === 'string') {
+            this.db = new Database(db, { create: true });
+            this.db.run('PRAGMA foreign_keys = ON');
+            this.db.run('PRAGMA journal_mode = WAL'); // 提高并发性能
+            this._ownsDb = true;
+        } else {
+            this.db = db;
+            this._ownsDb = false;
+        }
     }
 
     async initialize(): Promise<void> {
@@ -256,6 +263,42 @@ export class CronStorage {
         return result.changes;
     }
 
+    /**
+     * 重置服务器重启前遗留的 running/queued/pending 日志为 failed
+     * 在调度器启动时调用，防止日志永久卡在运行中状态
+     */
+    async resetStuckLogs(reason: string): Promise<number> {
+        const stmt = this.db.prepare(`
+            UPDATE cron_logs
+            SET status = 'failed',
+                error_message = ?,
+                finished_at = ?
+            WHERE status IN ('running', 'queued', 'pending')
+        `);
+        const result = stmt.run(reason, new Date().toISOString());
+        return result.changes;
+    }
+
+    /**
+     * 按任务裁剪旧日志，每个任务只保留最近 keep 条
+     * 在调度器启动时调用，防止日志无限增长
+     */
+    async pruneLogsPerTask(keep: number = 100): Promise<number> {
+        const stmt = this.db.prepare(`
+            DELETE FROM cron_logs
+            WHERE id IN (
+                SELECT cl.id FROM cron_logs cl
+                WHERE (
+                    SELECT COUNT(*) FROM cron_logs cl2
+                    WHERE cl2.cron_task_id = cl.cron_task_id
+                    AND cl2.created_at >= cl.created_at
+                ) > ?
+            )
+        `);
+        const result = stmt.run(keep);
+        return result.changes;
+    }
+
     // ========================================
     // Utility Methods
     // ========================================
@@ -301,6 +344,8 @@ export class CronStorage {
     }
 
     close(): void {
-        this.db.close();
+        if (this._ownsDb) {
+            this.db.close();
+        }
     }
 }

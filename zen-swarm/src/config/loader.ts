@@ -15,18 +15,20 @@ import { CronScheduler } from '../cron/scheduler.js';
 import { CronExecutor } from '../cron/executor.js';
 import { SMDatabase, StateMachineManager } from '../middlewares/sm/index.js';
 import { ProviderStorage } from '../services/provider/index.js';
+import { SERVER_PORT } from './constants.js';
 
 // 共享数据库实例
 const sharedDb = new Database('./data/index.db', { create: true });
 sharedDb.run('PRAGMA foreign_keys = ON');
 sharedDb.run('PRAGMA journal_mode = WAL');
+sharedDb.run('PRAGMA busy_timeout = 5000');
 
 // Agent 存储实例
-const agentStorage = new BunSqliteStorage('./data/index.db');
+const agentStorage = new BunSqliteStorage(sharedDb);
 await agentStorage.initialize();
 
 // MCP 存储实例
-const mcpStorage = new ZenSwarmMcpStorage('./data/index.db');
+const mcpStorage = new ZenSwarmMcpStorage(sharedDb);
 await mcpStorage.initialize();
 
 // 设置 MCP config provider
@@ -42,7 +44,7 @@ await stateMachineManager.initialize();
 // ========================================
 
 // Provider 存储实例
-const providerStorage = new ProviderStorage('./data/index.db');
+const providerStorage = new ProviderStorage(sharedDb);
 await providerStorage.initialize();
 
 // 从环境变量迁移（如果需要）
@@ -55,16 +57,13 @@ if (migratedCount > 0) {
 // Cron 系统
 // ========================================
 
-// 获取服务器端口（默认 8124）
-const port = process.env.PORT ? parseInt(process.env.PORT) : 8124;
-
 // Cron 存储实例
-export const cronStorage = new CronStorage('./data/index.db');
+export const cronStorage = new CronStorage(sharedDb);
 await cronStorage.initialize();
 
 // Cron 执行器
 export const cronExecutor = new CronExecutor(cronStorage, {
-    apiBaseUrl: process.env.LANGGRAPH_API_URL || `http://127.0.0.1:${port}`,
+    apiBaseUrl: process.env.LANGGRAPH_API_URL || `http://127.0.0.1:${SERVER_PORT}`,
     maxExecutionTime: 10 * 60 * 1000, // 10 分钟
 });
 

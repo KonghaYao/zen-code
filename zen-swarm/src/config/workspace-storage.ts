@@ -49,10 +49,17 @@ export interface UpdateWorkspaceInput {
 
 export class WorkspaceStorage {
     private db: Database;
+    private _ownsDb: boolean;
 
-    constructor(dbPath: string = './data/index.db') {
-        this.db = new Database(dbPath, { create: true });
-        this.db.run('PRAGMA foreign_keys = ON');
+    constructor(db: Database | string = './data/index.db') {
+        if (typeof db === 'string') {
+            this.db = new Database(db, { create: true });
+            this.db.run('PRAGMA foreign_keys = ON');
+            this._ownsDb = true;
+        } else {
+            this.db = db;
+            this._ownsDb = false;
+        }
     }
 
     async initialize(): Promise<void> {
@@ -88,10 +95,10 @@ export class WorkspaceStorage {
     // ========================================
 
     async getAllWorkspaces(): Promise<Workspace[]> {
-        // 按创建时间排序，顺序固定，不会因为访问而改变
+        // 按最近访问时间排序（COALESCE fallback 到创建时间），最近访问的在前
         const stmt = this.db.prepare(`
             SELECT * FROM workspaces
-            ORDER BY created_at DESC
+            ORDER BY COALESCE(last_accessed_at, created_at) DESC
         `);
         const rows = stmt.all() as WorkspaceRow[];
         return rows.map((row) => this.rowToWorkspace(row));
@@ -141,7 +148,7 @@ export class WorkspaceStorage {
             input.rootPath,
             input.description ?? null,
             now,
-            null, // last_accessed_at is no longer used
+            now, // last_accessed_at 初始化为创建时间
             now,
         );
 
@@ -198,21 +205,25 @@ export class WorkspaceStorage {
     }
 
     async validatePath(path: string): Promise<{ valid: boolean; error?: string }> {
-        console.log('[validatePath] Checking path:', path);
         const fs = await import('fs/promises');
         try {
             const stat = await fs.stat(path);
-            console.log('[validatePath] Path stats:', { isDirectory: stat.isDirectory(), isFile: stat.isFile() });
-
             if (!stat.isDirectory()) {
                 return { valid: false, error: 'Path is not a directory' };
             }
-            console.log('[validatePath] Path is valid directory');
             return { valid: true };
         } catch (error: any) {
-            console.error('[validatePath] Error:', error);
             return { valid: false, error: 'Path does not exist or is not accessible' };
         }
+    }
+
+    /**
+     * 更新 workspace 最近访问时间
+     * 在用户切换到该 workspace 时调用
+     */
+    async touchWorkspace(id: string): Promise<void> {
+        const stmt = this.db.prepare('UPDATE workspaces SET last_accessed_at = ? WHERE id = ?');
+        stmt.run(this.now(), id);
     }
 
     // ========================================
@@ -236,6 +247,8 @@ export class WorkspaceStorage {
     }
 
     close(): void {
-        this.db.close();
+        if (this._ownsDb) {
+            this.db.close();
+        }
     }
 }

@@ -19,6 +19,7 @@ import {
     providerStorage,
 } from './config/loader.js';
 import { initDefaultData, checkProviderModelStatus } from './scripts/init-default-data.js';
+import { SERVER_PORT } from './config/constants.js';
 import dashboard from './index.html';
 import { handleTerminalMessage, handleTerminalClose, handleTerminalOpen } from './api/terminalWebSocket.js';
 
@@ -69,7 +70,7 @@ app.get('/health', (c) => {
 // 注意：不要在 Hono 中注册 /ws/terminal 路由
 
 // 7. 启动服务器
-const port = 8124;
+const port = SERVER_PORT;
 console.log(`🐝 Zen Swarm Server running on http://127.0.0.1:${port}/ui`);
 console.log(`   Health: http://127.0.0.1:${port}/health`);
 console.log(`   LangGraph API: http://127.0.0.1:${port}/api/langgraph`);
@@ -116,3 +117,14 @@ serve({
 });
 
 openBrowser(`http://127.0.0.1:${port}/ui`);
+
+// 优雅关闭
+async function gracefulShutdown(signal: string): Promise<void> {
+    console.log(`\n[Server] Received ${signal}, shutting down gracefully...`);
+    await cronScheduler.stop();
+    console.log('[Server] Shutdown complete');
+    process.exit(0);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

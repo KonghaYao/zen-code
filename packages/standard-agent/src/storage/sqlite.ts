@@ -38,12 +38,20 @@ import { join } from 'path';
 export class BunSqliteStorage extends BaseStorage {
     protected db: Database;
     private dbPath: string;
+    private _ownsDb: boolean;
 
-    constructor(dbPath?: string) {
+    constructor(db?: Database | string) {
         super();
-        this.dbPath = dbPath || BunSqliteStorage.getDefaultPath();
-        this.db = new Database(this.dbPath, { create: true });
-        this.db.run('PRAGMA foreign_keys = ON');
+        if (db instanceof Database) {
+            this.db = db;
+            this.dbPath = '';
+            this._ownsDb = false;
+        } else {
+            this.dbPath = db || BunSqliteStorage.getDefaultPath();
+            this.db = new Database(this.dbPath, { create: true });
+            this.db.run('PRAGMA foreign_keys = ON');
+            this._ownsDb = true;
+        }
     }
 
     /**
@@ -327,7 +335,10 @@ export class BunSqliteStorage extends BaseStorage {
     }
 
     close(): Promise<void> {
-        return Promise.resolve(this.db.close());
+        if (this._ownsDb) {
+            return Promise.resolve(this.db.close());
+        }
+        return Promise.resolve();
     }
 
     // ========================================

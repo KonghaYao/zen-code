@@ -10,6 +10,7 @@
 import { z } from 'zod';
 import { router, publicProcedure, handleBadRequest, handleNotFound } from './trpc.js';
 import { WorkspaceStorage } from '../config/workspace-storage.js';
+import { sharedDb } from '../config/loader.js';
 
 // ========================================
 // 配置
@@ -21,7 +22,7 @@ let initializationPromise: Promise<void> | null = null;
 
 async function getStorage(): Promise<WorkspaceStorage> {
     if (!workspaceStorage) {
-        workspaceStorage = new WorkspaceStorage('./data/index.db');
+        workspaceStorage = new WorkspaceStorage(sharedDb);
         initializationPromise = workspaceStorage.initialize();
     }
 
@@ -135,6 +136,15 @@ export const workspacesRouter = router({
 
         return { id: input.id, success: true };
     }),
+
+    // 更新 Workspace 最近访问时间（切换 workspace 时调用）
+    touch: publicProcedure
+        .input(z.object({ id: z.string().min(1, 'Workspace ID is required') }))
+        .mutation(async ({ input }) => {
+            const storage = await getStorage();
+            await storage.touchWorkspace(input.id);
+            return { id: input.id, success: true };
+        }),
 
     // 验证路径
     validatePath: publicProcedure.input(ValidatePathInputSchema).query(async ({ input }) => {

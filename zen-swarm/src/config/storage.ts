@@ -31,10 +31,17 @@ export interface McpConfigData {
  */
 export class ZenSwarmMcpStorage {
     private db: Database;
+    private _ownsDb: boolean;
 
-    constructor(dbPath: string = './data/index.db') {
-        this.db = new Database(dbPath, { create: true });
-        this.db.run('PRAGMA foreign_keys = ON');
+    constructor(db: Database | string = './data/index.db') {
+        if (typeof db === 'string') {
+            this.db = new Database(db, { create: true });
+            this.db.run('PRAGMA foreign_keys = ON');
+            this._ownsDb = true;
+        } else {
+            this.db = db;
+            this._ownsDb = false;
+        }
     }
 
     async initialize(): Promise<void> {
@@ -171,6 +178,8 @@ export class ZenSwarmMcpStorage {
     }
 
     close(): void {
-        this.db.close();
+        if (this._ownsDb) {
+            this.db.close();
+        }
     }
 }
