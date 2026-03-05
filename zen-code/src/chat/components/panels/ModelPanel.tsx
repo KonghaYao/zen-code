@@ -6,7 +6,7 @@
 
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { Box, Text } from 'ink';
-import { UniversalPanel } from 'ink-pro';
+import { UniversalPanel, MultiLineTextInput } from 'ink-pro';
 import { SelectItem } from 'ink-pro';
 import { PanelConfig } from 'ink-pro';
 import { useSettings } from '../../context/SettingsContext';
@@ -43,6 +43,40 @@ interface ProviderTab {
     icon: string;
     config: ProviderConfig;
 }
+
+interface ModelFallbackInputProps {
+    defaultValue: string;
+    onSubmit: (modelId: string) => void;
+}
+
+/**
+ * 模型名称手动输入框
+ * 在接口报错或模型列表为空时替换整个列表区域显示
+ */
+const ModelFallbackInput: React.FC<ModelFallbackInputProps> = ({ defaultValue, onSubmit }) => {
+    const [value, setValue] = useState(defaultValue);
+
+    const handleSubmit = useCallback(
+        (val: string) => {
+            if (!val.trim()) return;
+            onSubmit(val.trim());
+        },
+        [onSubmit],
+    );
+
+    return (
+        <Box paddingX={2} paddingY={1} flexDirection="column" gap={1}>
+            <Text color="gray">请输入模型名称（Enter 确认）：</Text>
+            <MultiLineTextInput
+                value={value}
+                onChange={setValue}
+                onSubmit={handleSubmit}
+                maxVisibleLines={1}
+                placeholder="例如：gpt-4o"
+            />
+        </Box>
+    );
+};
 
 interface ModelPanelProps {
     onClose: () => void;
@@ -132,6 +166,15 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
             return model.id === extraParams.provider_id + '-' + model.id;
         },
         [extraParams.provider_id],
+    );
+
+    // 手动输入模型名称（接口报错或列表为空时使用）
+    const handleManualModel = useCallback(
+        async (modelId: string) => {
+            await updateConfig({ model_id: modelId });
+            onClose();
+        },
+        [updateConfig, onClose],
     );
 
     // 修复：使用 useCallback 保持 onSelect 引用稳定
@@ -250,10 +293,8 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
                 <Box paddingX={2} paddingY={1}>
                     <Text color="gray">加载模型列表中...</Text>
                 </Box>
-            ) : error ? (
-                <Box paddingX={2} paddingY={1}>
-                    <Text color="red">加载失败: {error.message}</Text>
-                </Box>
+            ) : error || models.length === 0 ? (
+                <ModelFallbackInput defaultValue={config?.model_id || ''} onSubmit={handleManualModel} />
             ) : !hasApiKey ? (
                 <Box paddingX={2} paddingY={1}>
                     <Text color="yellow">请先配置 API Key</Text>
