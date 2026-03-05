@@ -2,7 +2,7 @@
  * MCPMiddleware 测试 - 基础测试（无 mock）
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createMCPMiddleware, MCPConfig } from '../../middlewares/mcp';
 
 describe('MCPMiddleware (standard-agent)', () => {
@@ -91,7 +91,7 @@ describe('MCPMiddleware (standard-agent)', () => {
         });
     });
 
-    describe('wrapModelCall', () => {
+    describe('wrapModelCall（默认模式）', () => {
         let middleware: ReturnType<typeof createMCPMiddleware>;
 
         beforeEach(() => {
@@ -163,6 +163,51 @@ describe('MCPMiddleware (standard-agent)', () => {
                     systemPrompt: expect.stringContaining('execute_mcp_tool'),
                 }),
             );
+        });
+    });
+
+    describe('directInject 模式', () => {
+        it('directInject: false（默认）时 tools 返回 load_mcp_tools + execute_mcp_tool', () => {
+            const configProvider = vi.fn().mockResolvedValue(null);
+            const middleware = createMCPMiddleware({ configProvider });
+
+            expect(middleware.tools).toHaveLength(2);
+            expect(middleware.tools.map((t) => t.name)).toEqual(['load_mcp_tools', 'execute_mcp_tool']);
+        });
+
+        it('directInject: true 时，初始化前 tools 返回空数组（cacheTools 尚未加载）', () => {
+            const configProvider = vi.fn().mockResolvedValue(null);
+            const middleware = createMCPMiddleware({ configProvider, directInject: true });
+
+            expect(middleware.tools).toHaveLength(0);
+        });
+
+        it('directInject: false 时 wrapModelCall 应注入 MCP 说明', async () => {
+            const configProvider = vi.fn().mockResolvedValue(null);
+            const middleware = createMCPMiddleware({ configProvider, directInject: false });
+            const handler = vi.fn().mockResolvedValue({});
+
+            await middleware.wrapModelCall({ systemPrompt: 'base' }, handler);
+
+            expect(handler).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    systemPrompt: expect.stringContaining('load_mcp_tools'),
+                }),
+            );
+        });
+
+        it('directInject: true 时 wrapModelCall 应直接透传 request，不注入 MCP 说明', async () => {
+            const configProvider = vi.fn().mockResolvedValue(null);
+            const middleware = createMCPMiddleware({ configProvider, directInject: true });
+            const handler = vi.fn().mockResolvedValue({});
+            const request = { systemPrompt: 'original' };
+
+            await middleware.wrapModelCall(request, handler);
+
+            expect(handler).toHaveBeenCalledWith(request);
+            const call = handler.mock.calls[0][0];
+            expect(call.systemPrompt).toBe('original');
+            expect(call.systemPrompt).not.toContain('load_mcp_tools');
         });
     });
 });

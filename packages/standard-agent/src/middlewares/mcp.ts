@@ -92,6 +92,17 @@ export interface MCPMiddlewareOptions {
         ttl?: number; // Tool cache TTL in seconds (default: 300)
         reconnectDelay?: number; // Reconnect delay in milliseconds (default: 5000)
     };
+
+    /**
+     * Whether to inject MCP tools directly into agent tools array.
+     *
+     * - false (default): Wrap MCP tools as `load_mcp_tools` + `execute_mcp_tool` commands
+     * - true: Expose actual MCP tools directly as agent tools (bypasses CommandSystem)
+     *
+     * Use `true` for lightweight agents or environments without CommandSystem (e.g. zen-swarm).
+     * On initialization failure, silently returns an empty tools array.
+     */
+    directInject?: boolean;
 }
 
 /**
@@ -159,6 +170,7 @@ export class MCPMiddleware implements AgentMiddleware {
     private mcpClient: MultiServerMCPClient | null = null;
     private cacheTools: any[] = [];
     private configProvider: () => Promise<MCPConfig | null | undefined>;
+    private directInject: boolean;
 
     private lastRefresh: number | null = null;
     private serverStatuses: Map<string, MCPServerStatus> = new Map();
@@ -176,6 +188,7 @@ export class MCPMiddleware implements AgentMiddleware {
      */
     constructor(options: MCPMiddlewareOptions) {
         this.configProvider = options.configProvider;
+        this.directInject = options.directInject ?? false;
 
         // Auto-initialize
         this.initialize().catch((error) => {
@@ -421,8 +434,14 @@ Important:
 
     /**
      * Get middleware tools
+     *
+     * - directInject: false → returns [load_mcp_tools, execute_mcp_tool]
+     * - directInject: true  → returns actual MCP tools (cached; empty if not yet loaded)
      */
     get tools(): StructuredTool[] {
+        if (this.directInject) {
+            return this.cacheTools as StructuredTool[];
+        }
         return [this.loadMcpToolsTool, this.executeMcpToolTool];
     }
 
@@ -430,6 +449,12 @@ Important:
      * Wrap model call to inject system prompt
      */
     async wrapModelCall(request: any, handler: any): Promise<AIMessage> {
+        // directInject mode: MCP tools are already in the agent tools array,
+        // no need to explain the two-step load/execute flow.
+        if (this.directInject) {
+            return await handler(request);
+        }
+
         const systemPromptAddon = `
 ## MCP Tools
 
