@@ -16,17 +16,6 @@ import { SMView } from '../../views/SM/index.js';
 import { MonitorView } from '../../views/MonitorView.js';
 import { TerminalView } from '../../components/terminal/TerminalView.js';
 
-// Lucide icons from Icons.tsx
-import {
-    MessageSquare,
-    Settings,
-    FolderOpen,
-    Clock,
-    GitBranch,
-    Activity,
-    Terminal as TerminalIcon,
-} from '../../components/ui/Icons.js';
-
 // Custom hand-crafted dock icons
 import { ChatDockIcon } from '../dock/icons/ChatDockIcon.js';
 import { ConfigDockIcon } from '../dock/icons/ConfigDockIcon.js';
@@ -44,8 +33,6 @@ export const appRegistry: AppRegistryItem[] = [
     {
         id: 'chat',
         name: 'Chat',
-        icon: React.createElement(MessageSquare, { size: 24 }),
-        iconColor: ['#4F8EF5', '#7B5CF6'],
         fullIcon: React.createElement(ChatDockIcon, { className: 'w-full h-full' }),
         description: 'AI 聊天助手',
         viewComponent: ChatView,
@@ -56,8 +43,6 @@ export const appRegistry: AppRegistryItem[] = [
     {
         id: 'config',
         name: 'Config',
-        icon: React.createElement(Settings, { size: 24 }),
-        iconColor: ['#6B7280', '#1F2937'],
         fullIcon: React.createElement(ConfigDockIcon, { className: 'w-full h-full' }),
         description: 'AI 配置与资源管理',
         viewComponent: ConfigView,
@@ -67,8 +52,6 @@ export const appRegistry: AppRegistryItem[] = [
     {
         id: 'finder',
         name: 'Finder',
-        icon: React.createElement(FolderOpen, { size: 24 }),
-        iconColor: ['#4A9AF5', '#2DD4BF'],
         fullIcon: React.createElement(FinderDockIcon, { className: 'w-full h-full' }),
         description: 'macOS 风格文件管理器',
         viewComponent: FinderView,
@@ -78,8 +61,6 @@ export const appRegistry: AppRegistryItem[] = [
     {
         id: 'monitor',
         name: 'Monitor',
-        icon: React.createElement(Activity, { size: 24 }),
-        iconColor: ['#FF6B6B', '#F97316'],
         fullIcon: React.createElement(MonitorDockIcon, { className: 'w-full h-full' }),
         description: '进程监控面板',
         viewComponent: MonitorView,
@@ -89,8 +70,6 @@ export const appRegistry: AppRegistryItem[] = [
     {
         id: 'sm',
         name: 'State Machine',
-        icon: React.createElement(GitBranch, { size: 24 }),
-        iconColor: ['#C084FC', '#7C3AED'],
         fullIcon: React.createElement(SMDockIcon, { className: 'w-full h-full' }),
         description: '状态机管理与可视化',
         viewComponent: SMView,
@@ -100,8 +79,6 @@ export const appRegistry: AppRegistryItem[] = [
     {
         id: 'cron',
         name: 'Cron',
-        icon: React.createElement(Clock, { size: 24 }),
-        iconColor: ['#34D399', '#059669'],
         fullIcon: React.createElement(CronDockIcon, { className: 'w-full h-full' }),
         description: '定时任务管理',
         viewComponent: CronView,
@@ -111,8 +88,6 @@ export const appRegistry: AppRegistryItem[] = [
     {
         id: 'terminal',
         name: 'Terminal',
-        icon: React.createElement(TerminalIcon, { size: 24 }),
-        iconColor: ['#374151', '#111827'],
         fullIcon: React.createElement(TerminalDockIcon, { className: 'w-full h-full' }),
         description: 'Web 终端',
         viewComponent: TerminalView,

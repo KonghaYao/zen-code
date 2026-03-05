@@ -89,7 +89,7 @@ export function DockLayout() {
                 <AppWindow
                     appId={activeApp!}
                     appName={currentApp.name}
-                    appIcon={currentApp.icon}
+                    appIcon={currentApp.fullIcon}
                     onClose={handleClose}
                     showTrafficLights={true}
                 >
@@ -104,7 +104,7 @@ export function DockLayout() {
                     <AppWindow
                         appId={activeApp!}
                         appName={currentApp.name}
-                        appIcon={currentApp.icon}
+                        appIcon={currentApp.fullIcon}
                         onClose={handleClose}
                         showTrafficLights={true}
                     >
@@ -129,7 +129,7 @@ export function DockLayout() {
             )}
 
             {/* 顶部状态栏 */}
-            <MenuBar appName={currentApp?.name ?? 'Zen Swarm'} appIcon={currentApp?.icon} />
+            <MenuBar appName={currentApp?.name ?? 'Zen Swarm'} appIcon={currentApp?.fullIcon} />
 
             {/* 桌面主内容区域 */}
             <main className="flex-1 flex flex-col min-h-0 overflow-hidden mt-7 mb-20">

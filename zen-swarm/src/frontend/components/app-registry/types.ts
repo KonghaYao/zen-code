@@ -30,14 +30,8 @@ export type ContextAction = 'open' | 'close' | 'notifications' | 'settings' | 'h
 export interface AppRegistryItem {
     id: AppId;
     name: string;
-    icon: string | ReactNode;
-    /** Dock 图标渐变色 [from, to]（当没有 fullIcon 时使用） */
-    iconColor: [string, string];
-    /**
-     * 完整自定义 Dock 图标（SVG 组件），优先级高于 icon + iconColor。
-     * 用于需要手工精绘的图标。
-     */
-    fullIcon?: ReactNode;
+    /** 完整自定义 Dock 图标（SVG 组件） */
+    fullIcon: ReactNode;
     description: string;
     viewComponent: ComponentType;
     defaultOpen?: boolean;

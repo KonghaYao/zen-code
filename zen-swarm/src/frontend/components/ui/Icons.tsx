@@ -7,7 +7,6 @@ export {
     MoreVertical,
     ChevronDown,
     X,
-    Battery,
     Wifi,
     Search,
     Settings2 as Settings,

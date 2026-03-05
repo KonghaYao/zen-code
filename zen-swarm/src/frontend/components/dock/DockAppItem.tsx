@@ -1,19 +1,14 @@
 /**
  * DockAppItem 组件
- * macOS 风格 Dock 图标。
- * - fullIcon: 完整自定义 SVG 图标（优先）
- * - icon + iconColor: 通用 squircle + Lucide 图标（fallback）
+ * macOS 风格 Dock 图标，使用精绘 SVG fullIcon。
  */
 
 import type { ReactNode } from 'react';
 import type { AppId, NotificationState } from '../app-registry/index.js';
-import { DockIcon } from './DockIcon.js';
 
 interface DockAppItemProps {
     appId: AppId;
-    icon: string | ReactNode;
-    iconColor: [string, string];
-    fullIcon?: ReactNode;
+    fullIcon: ReactNode;
     label: string;
     isActive: boolean;
     notification?: NotificationState;
@@ -23,8 +18,6 @@ interface DockAppItemProps {
 
 export function DockAppItem({
     appId,
-    icon,
-    iconColor,
     fullIcon,
     label,
     isActive,
@@ -50,11 +43,7 @@ export function DockAppItem({
                 aria-label={label}
                 aria-current={isActive ? 'page' : undefined}
             >
-                {fullIcon ? (
-                    <div className="dock-full-icon">{fullIcon}</div>
-                ) : (
-                    <DockIcon icon={icon} iconColor={iconColor} />
-                )}
+                <div className="dock-full-icon">{fullIcon}</div>
             </button>
 
             {/* Tooltip */}

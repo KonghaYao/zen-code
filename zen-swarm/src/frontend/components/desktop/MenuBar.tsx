@@ -1,13 +1,32 @@
 /**
  * MenuBar 组件
  * macOS 风格顶部状态栏，使用 Tailwind CSS
- * 显示实时系统信息：电池、网络、内存等
+ * 显示实时系统信息：网络、内存等
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { useSystemStatus } from '../../hooks/useSystemStatus.js';
-import { Battery, Wifi, HardDrive, Search, Settings, Apple, WifiOff } from '../ui/Icons.js';
+import { Wifi, HardDrive, Search, Settings, WifiOff } from '../ui/Icons.js';
+
+/**
+ * Zen Swarm 品牌标志 — Z 字形
+ */
+function ZenSwarmLogo() {
+    return (
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" style={{ opacity: 0.92 }}>
+            {/* Z 字：顶横、斜撇、底横，圆头笔触 */}
+            <polyline
+                points="3,3.5 13,3.5 3,12.5 13,12.5"
+                fill="none"
+                stroke="white"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
+    );
+}
 
 interface MenuBarProps {
     WifiOff?: boolean;
@@ -56,39 +75,6 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
         ],
         [appName],
     );
-
-    // 电池状态显示
-    const renderBattery = () => {
-        const battery = systemStatus.battery;
-        if (!battery) return null;
-
-        const percentage = Math.round(battery.level * 100);
-        const isCharging = battery.charging;
-
-        // 根据电量决定电池图标颜色
-        const getBatteryColor = () => {
-            if (isCharging) return 'text-green-500';
-            if (percentage <= 20) return 'text-red-500';
-            if (percentage <= 50) return 'text-yellow-500';
-            return 'text-white opacity-80';
-        };
-
-        return (
-            <button
-                className="h-full px-1.5 flex items-center gap-1 rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
-                aria-label={`电池 ${percentage}%${isCharging ? ' 正在充电' : ''}`}
-                title={`电池: ${percentage}%${isCharging ? ' (充电中)' : ''}`}
-            >
-                <Battery width={20} height={20} className={getBatteryColor()} />
-                {isCharging && (
-                    <span className="text-xs" aria-hidden="true">
-                        ⚡
-                    </span>
-                )}
-                {percentage < 100 && <span className="text-[11px] font-medium opacity-90">{percentage}%</span>}
-            </button>
-        );
-    };
 
     // 网络状态显示
     const renderNetwork = () => {
@@ -150,32 +136,22 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
         >
             {/* 左侧菜单 */}
             <div className="flex items-center h-full gap-0.5">
-                {/* Apple Logo */}
+                {/* Zen Swarm 系统标志 */}
                 <button
                     className="h-full px-3 flex items-center rounded hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
-                    aria-label="Apple Menu"
+                    aria-label="Zen Swarm Menu"
                 >
-                    <Apple width={16} height={16} className="opacity-90" aria-hidden="true" />
+                    <ZenSwarmLogo />
                 </button>
 
                 {/* 应用名称 */}
                 <span className="h-full px-2.5 flex items-center gap-1.5 text-[13px] font-medium">
                     {appIcon && (
                         <span
-                            className="flex items-center opacity-80"
-                            style={{ width: 14, height: 14, overflow: 'hidden' }}
+                            className="flex-shrink-0 rounded-[4px] overflow-hidden opacity-90"
+                            style={{ width: 16, height: 16 }}
                         >
-                            <span
-                                style={{
-                                    transform: 'scale(0.58)',
-                                    transformOrigin: 'top left',
-                                    display: 'block',
-                                    width: 24,
-                                    height: 24,
-                                }}
-                            >
-                                {appIcon}
-                            </span>
+                            {appIcon}
                         </span>
                     )}
                     <span className={menuItems[0].isBold ? 'font-semibold' : ''}>{menuItems[0].label}</span>
@@ -194,9 +170,6 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
 
             {/* 右侧状态 */}
             <div className="flex items-center h-full gap-0.5">
-                {/* 电池状态 */}
-                {renderBattery()}
-
                 {/* 网络状态 */}
                 {renderNetwork()}
 

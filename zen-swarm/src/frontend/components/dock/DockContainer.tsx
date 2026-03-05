@@ -162,8 +162,6 @@ export function DockContainer({ activeApp, onAppChange, notifications = {} }: Do
                     <DockAppItem
                         key={app.id}
                         appId={app.id}
-                        icon={app.icon}
-                        iconColor={app.iconColor}
                         fullIcon={app.fullIcon}
                         label={app.name}
                         isActive={activeApp === app.id}
