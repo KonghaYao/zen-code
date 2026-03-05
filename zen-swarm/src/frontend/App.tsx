@@ -10,6 +10,7 @@
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { DockLayout } from './layouts/DockLayout.js';
 import { SetupWizard } from './views/SetupWizard/index.js';
+import { Unauthorized } from './views/Unauthorized.js';
 
 export function App() {
     return (
@@ -17,6 +18,8 @@ export function App() {
             <Routes>
                 {/* 新用户初始化向导路由（优先匹配） */}
                 <Route path="/setup" element={<SetupWizard />} />
+                {/* 401 未授权错误页 */}
+                <Route path="/unauthorized" element={<Unauthorized />} />
                 {/* 主要应用路由 - 使用 DockLayout 布局 */}
                 <Route path="*" element={<DockLayout />} />
             </Routes>

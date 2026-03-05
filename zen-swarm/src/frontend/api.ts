@@ -5,6 +5,7 @@
 import { createTRPCReact } from '@trpc/react-query';
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import type { FullAppRouter } from '../api/index.js';
+import { getAuthHeaders } from './utils/auth.js';
 
 // 创建 tRPC React hook
 export const trpc = createTRPCReact<FullAppRouter>();
@@ -15,6 +16,9 @@ export const apiClient = createTRPCClient<FullAppRouter>({
     links: [
         httpBatchLink({
             url: '/api/trpc',
+            headers() {
+                return getAuthHeaders();
+            },
         }),
     ],
 });

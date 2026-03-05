@@ -14,8 +14,14 @@ import type {
     TerminalSessionState,
 } from '../components/terminal/types.js';
 import type { TerminalSessionInfo } from '../../services/terminal/types.js';
+import { getToken } from '../utils/auth.js';
 
-const WS_URL = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/terminal`;
+function getWsUrl(): string {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const token = getToken();
+    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+    return `${protocol}//${location.host}/ws/terminal${tokenParam}`;
+}
 
 // 全局 WebSocket 单例
 let globalWs: WebSocket | null = null;
@@ -168,7 +174,7 @@ function connectGlobal() {
     storeSetWsError?.(null);
 
     try {
-        const ws = new WebSocket(WS_URL);
+        const ws = new WebSocket(getWsUrl());
         globalWs = ws;
 
         ws.onopen = () => {
