@@ -9,6 +9,7 @@ import { Box, Text } from 'ink';
 import { UniversalPanel, MultiLineTextInput } from 'ink-pro';
 import { SelectItem } from 'ink-pro';
 import { PanelConfig } from 'ink-pro';
+import type { Key } from 'ink-pro';
 import { useSettings } from '../../context/SettingsContext';
 import { useModels } from '../../hooks/useModels';
 import type { ProviderConfig } from '@codegraph/config';
@@ -47,13 +48,14 @@ interface ProviderTab {
 interface ModelFallbackInputProps {
     defaultValue: string;
     onSubmit: (modelId: string) => void;
+    onSwitchProvider?: (direction: 'left' | 'right') => void;
 }
 
 /**
  * 模型名称手动输入框
  * 在接口报错或模型列表为空时替换整个列表区域显示
  */
-const ModelFallbackInput: React.FC<ModelFallbackInputProps> = ({ defaultValue, onSubmit }) => {
+const ModelFallbackInput: React.FC<ModelFallbackInputProps> = ({ defaultValue, onSubmit, onSwitchProvider }) => {
     const [value, setValue] = useState(defaultValue);
 
     const handleSubmit = useCallback(
@@ -64,6 +66,27 @@ const ModelFallbackInput: React.FC<ModelFallbackInputProps> = ({ defaultValue, o
         [onSubmit],
     );
 
+    // 处理热键穿透：Tab 和左右箭头键用于切换 provider
+    const handleHotKey = useCallback(
+        (_value: string, key: Key) => {
+            // Tab 键或左右箭头键切换 provider
+            if (key.tab) {
+                onSwitchProvider?.(key.shift ? 'left' : 'right');
+                return false; // 不处理，让事件穿透
+            }
+            if (key.leftArrow) {
+                onSwitchProvider?.('left');
+                return false;
+            }
+            if (key.rightArrow) {
+                onSwitchProvider?.('right');
+                return false;
+            }
+            return true; // 其他键正常处理
+        },
+        [onSwitchProvider],
+    );
+
     return (
         <Box paddingX={2} paddingY={1} flexDirection="column" gap={1}>
             <Text color="gray">请输入模型名称（Enter 确认）：</Text>
@@ -71,6 +94,7 @@ const ModelFallbackInput: React.FC<ModelFallbackInputProps> = ({ defaultValue, o
                 value={value}
                 onChange={setValue}
                 onSubmit={handleSubmit}
+                onHotKey={handleHotKey}
                 maxVisibleLines={1}
                 placeholder="例如：gpt-4o"
             />
@@ -294,7 +318,11 @@ const ModelPanel: React.FC<ModelPanelProps> = ({ onClose }) => {
                     <Text color="gray">加载模型列表中...</Text>
                 </Box>
             ) : error || models.length === 0 ? (
-                <ModelFallbackInput defaultValue={config?.model_id || ''} onSubmit={handleManualModel} />
+                <ModelFallbackInput
+                    defaultValue={config?.model_id || ''}
+                    onSubmit={handleManualModel}
+                    onSwitchProvider={handleSwitchTab}
+                />
             ) : !hasApiKey ? (
                 <Box paddingX={2} paddingY={1}>
                     <Text color="yellow">请先配置 API Key</Text>
