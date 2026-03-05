@@ -4,6 +4,9 @@
  */
 
 import Database from 'bun:sqlite';
+import { mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { AgentPackage } from '@langgraph-js/standard-agent';
 import { BunSqliteStorage } from '@langgraph-js/standard-agent/src/storage/sqlite.js';
 import { ZenSwarmMcpStorage } from './storage.js';
@@ -17,8 +20,13 @@ import { SMDatabase, StateMachineManager } from '../middlewares/sm/index.js';
 import { ProviderStorage } from '../services/provider/index.js';
 import { SERVER_PORT } from './constants.js';
 
+// 确保数据库目录存在，默认存放至 ~/.zen-swarm/
+const dbDir = join(homedir(), '.zen-swarm');
+mkdirSync(dbDir, { recursive: true });
+const dbPath = join(dbDir, 'data.db');
+
 // 共享数据库实例
-const sharedDb = new Database('./data/index.db', { create: true });
+const sharedDb = new Database(dbPath, { create: true });
 sharedDb.run('PRAGMA foreign_keys = ON');
 sharedDb.run('PRAGMA journal_mode = WAL');
 sharedDb.run('PRAGMA busy_timeout = 5000');

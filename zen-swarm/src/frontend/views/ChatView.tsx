@@ -18,6 +18,7 @@ import { ConfigDrawer, type ConfigDrawerSection } from '../components/ConfigDraw
 import { WorkspaceManageDialog } from '../components/workspace-dialogs/index.js';
 import { useCurrentWorkspace, useWorkspaces, useWorkspaceStore } from '../stores/workspace.js';
 import { useAgentsStore, useModelsStore } from '../stores/index.js';
+import { getAuthHeaders } from '../utils/auth.js';
 
 export function ChatViewInternal() {
     const currentWorkspace = useCurrentWorkspace();
@@ -202,7 +203,7 @@ export function ChatView() {
         <ChatProvider
             apiUrl={new URL('/api/langgraph', location.href).toString()}
             defaultAgent="swarm"
-            defaultHeaders={{}}
+            defaultHeaders={getAuthHeaders()}
             withCredentials={false}
             showHistory={false}
             showGraph={false}
