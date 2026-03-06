@@ -24,7 +24,7 @@ import { SERVER_PORT } from './constants.js';
 const dbDir = join(homedir(), '.zen-swarm');
 mkdirSync(dbDir, { recursive: true });
 const dbPath = join(dbDir, 'data.db');
-
+process.env.SQLITE_DATABASE_URI = dbPath;
 // 共享数据库实例
 const sharedDb = new Database(dbPath, { create: true });
 sharedDb.run('PRAGMA foreign_keys = ON');
