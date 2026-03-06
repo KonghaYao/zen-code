@@ -12,6 +12,7 @@
 
 import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import { apiClient } from '../../api.js';
 import { useFinderStore, sortItems } from '../../stores/finder.js';
 import type { FinderFileItem, FinderViewMode } from '../../types/finder.js';
@@ -571,6 +572,7 @@ export const FinderView: React.FC = () => {
                 viewMode={viewOptions.viewMode}
                 showHiddenFiles={viewOptions.showHiddenFiles}
                 loading={loading}
+                sidebarCollapsed={sidebarCollapsed}
                 onNavigateBack={navigateBack}
                 onNavigateForward={navigateForward}
                 onNavigateUp={navigateUp}
@@ -579,44 +581,38 @@ export const FinderView: React.FC = () => {
                 onToggleHiddenFiles={toggleHiddenFiles}
                 onNewFolder={() => openDialog('new-folder', currentPath)}
                 onNewFile={() => openDialog('new-file', currentPath)}
+                onToggleSidebar={toggleSidebar}
             />
 
             {/* Main Content */}
             <div className="flex flex-1 overflow-hidden">
-                {/* Sidebar Toggle Button (when collapsed) */}
-                {sidebarCollapsed && (
-                    <div
-                        className="flex items-center justify-center w-8 bg-bg-secondary border-r border-border-subtle cursor-pointer hover:bg-bg-tertiary transition-colors"
-                        onClick={toggleSidebar}
-                        title="Show Sidebar"
-                    >
-                        <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4 6h16M4 12h16M4 18h16"
+                {/* Sidebar with Motion animation */}
+                <AnimatePresence initial={false}>
+                    {!sidebarCollapsed && (
+                        <motion.div
+                            initial={{ width: 0, opacity: 0 }}
+                            animate={{ width: sidebarWidth, opacity: 1 }}
+                            exit={{ width: 0, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
+                            style={{ overflow: 'hidden', flexShrink: 0 }}
+                        >
+                            <FinderSidebar
+                                width={sidebarWidth}
+                                currentPath={currentPath}
+                                onNavigate={handleNavigate}
+                                onToggle={toggleSidebar}
+                                onContextMenu={handleContextMenu}
                             />
-                        </svg>
-                    </div>
-                )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-                {/* Sidebar */}
+                {/* Resize Handle (only when sidebar visible) */}
                 {!sidebarCollapsed && (
-                    <>
-                        <FinderSidebar
-                            width={sidebarWidth}
-                            currentPath={currentPath}
-                            onNavigate={handleNavigate}
-                            onToggle={toggleSidebar}
-                            onContextMenu={handleContextMenu}
-                        />
-                        {/* Resize Handle */}
-                        <div
-                            className="w-1 cursor-col-resize bg-transparent hover:bg-primary hover:opacity-50 transition-colors"
-                            onMouseDown={handleSidebarResizeStart}
-                        />
-                    </>
+                    <div
+                        className="w-1 cursor-col-resize bg-transparent hover:bg-primary hover:opacity-50 transition-colors"
+                        onMouseDown={handleSidebarResizeStart}
+                    />
                 )}
 
                 {/* Content Area */}

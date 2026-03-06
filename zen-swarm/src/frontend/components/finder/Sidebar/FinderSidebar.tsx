@@ -1,28 +1,22 @@
 /**
- * FinderSidebar - macOS 风格侧边栏
+ * FinderSidebar - macOS 风格侧边栏（重设计）
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { SidebarSection, SidebarItem } from '../../../types/finder.js';
-import { useFinderStore } from '../../../stores/finder.js';
 import { apiClient } from '../../../api.js';
-import { MoreVertical, ChevronDown, RefreshCw, ChevronLeft, Home, Loader2 } from '../../ui/Icons.js';
+import { Home, FileText, Bot, Folder, MoreHorizontal } from '../../ui/Icons.js';
 
 // ========================================
-// Types
+// Icon Map
 // ========================================
 
-interface FinderSidebarProps {
-    width: number;
-    currentPath: string;
-    onNavigate: (path: string) => void;
-    onToggle: () => void;
-    onContextMenu?: (
-        e: React.MouseEvent,
-        item?: SidebarItem,
-        explicitType?: 'file' | 'directory' | 'multiple' | 'empty-space',
-    ) => void;
-}
+const SIDEBAR_ICON_MAP: Record<string, React.ComponentType<any>> = {
+    root: Home,
+    specs: FileText,
+    config: Bot,
+    folder: Folder,
+};
 
 // ========================================
 // Default Sidebar Sections (static)
@@ -30,18 +24,12 @@ interface FinderSidebarProps {
 
 const STATIC_SECTIONS: SidebarSection[] = [
     {
-        id: 'locations',
-        title: 'Project',
+        id: 'favorites',
+        title: 'Favorites',
         collapsible: false,
         collapsed: false,
-        items: [{ id: 'root', name: 'Project Root', path: '/', icon: '🏠', type: 'folder' }],
-    },
-    {
-        id: 'config',
-        title: 'Configuration',
-        collapsible: true,
-        collapsed: false,
         items: [
+            { id: 'root', name: 'Project Root', path: '/', icon: '🏠', type: 'folder' },
             { id: 'specs', name: 'Specs', path: '/specs', icon: '📋', type: 'folder' },
             { id: 'config', name: '.claude', path: '/.claude', icon: '🤖', type: 'folder' },
         ],
@@ -60,49 +48,61 @@ interface SidebarItemRowProps {
 }
 
 const SidebarItemRow: React.FC<SidebarItemRowProps> = ({ item, isActive, onNavigate, onContextMenu }) => {
-    const [showMenu, setShowMenu] = useState(false);
-    const menuButtonRef = useRef<HTMLButtonElement>(null);
+    const IconComponent = SIDEBAR_ICON_MAP[item.id] || SIDEBAR_ICON_MAP['folder'];
+    const menuBtnRef = useRef<HTMLButtonElement>(null);
 
-    const handleMenuClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const handleMenuClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (menuButtonRef.current) {
-            const rect = menuButtonRef.current.getBoundingClientRect();
-            // 创建新的事件对象传递坐标
-            const customEvent = {
-                clientX: rect.left,
-                clientY: rect.bottom + 2,
-                preventDefault: () => {},
-                stopPropagation: () => {},
-                nativeEvent: e.nativeEvent,
-            } as React.MouseEvent;
-
-            onContextMenu(customEvent, item);
+        if (menuBtnRef.current) {
+            const rect = menuBtnRef.current.getBoundingClientRect();
+            onContextMenu(
+                {
+                    clientX: rect.left,
+                    clientY: rect.bottom + 4,
+                    preventDefault: () => {},
+                    stopPropagation: () => {},
+                } as unknown as React.MouseEvent,
+                item,
+            );
         }
     };
 
     return (
         <div
-            className={`flex items-center gap-2 px-3 py-1.5 mx-2 rounded-md cursor-pointer transition-colors group ${
-                isActive ? 'bg-primary text-white' : 'text-text-secondary hover:bg-bg-tertiary'
+            className={`group flex items-center gap-1.5 mx-1.5 h-[26px] pl-2 pr-1 rounded-[6px] cursor-pointer select-none ${
+                isActive ? 'bg-[rgba(0,98,255,0.85)]' : 'bg-transparent'
             }`}
             onClick={() => onNavigate(item.path)}
         >
-            <span className="text-base">{item.icon}</span>
-            <span className="text-sm truncate flex-1">{item.name}</span>
+            <IconComponent
+                className={`shrink-0 [stroke-width:1.75] ${isActive ? 'text-white/95' : 'text-[rgba(0,112,255,0.85)]'}`}
+                style={{ width: 14, height: 14 }}
+            />
+            <span
+                className={`truncate flex-1 text-[13px] tracking-[-0.01em] ${
+                    isActive ? 'text-white font-medium' : 'text-black/85 font-normal'
+                }`}
+            >
+                {item.name}
+            </span>
             {item.badge && (
-                <span className={`px-1.5 py-0.5 text-xs rounded-full ${isActive ? 'bg-white/20' : 'bg-bg-tertiary'}`}>
+                <span
+                    className={`shrink-0 px-1 rounded-full text-[10px] group-hover:hidden ${
+                        isActive ? 'bg-white/25 text-white' : 'bg-black/[0.08] text-[rgba(60,60,67,0.65)]'
+                    }`}
+                >
                     {item.badge}
                 </span>
             )}
             <button
-                ref={menuButtonRef}
+                ref={menuBtnRef}
                 onClick={handleMenuClick}
-                className={`p-0.5 rounded hover:bg-black/10 transition-opacity opacity-0 group-hover:opacity-100 ${
-                    isActive ? 'hover:bg-white/20' : 'hover:bg-black/10'
+                className={`opacity-0 group-hover:opacity-100 flex items-center justify-center w-[18px] h-[18px] rounded p-0 border-none cursor-pointer transition-opacity shrink-0 min-h-[unset] ${
+                    isActive ? 'bg-white/20 text-white/90' : 'bg-black/[0.07] text-[rgba(60,60,67,0.7)]'
                 }`}
                 title="More options"
             >
-                <MoreVertical className="w-4 h-4" />
+                <MoreHorizontal style={{ width: 11, height: 11 }} />
             </button>
         </div>
     );
@@ -116,201 +116,115 @@ interface SidebarSectionViewProps {
     section: SidebarSection;
     currentPath: string;
     onNavigate: (path: string) => void;
-    onToggle: () => void;
     onContextMenu: (e: React.MouseEvent, item: SidebarItem) => void;
 }
 
-const SidebarSectionView: React.FC<SidebarSectionViewProps> = ({
-    section,
-    currentPath,
-    onNavigate,
-    onToggle,
-    onContextMenu,
-}) => {
+const SidebarSectionView: React.FC<SidebarSectionViewProps> = ({ section, currentPath, onNavigate, onContextMenu }) => {
     return (
-        <div className="py-2">
-            {/* Section Header */}
-            <div
-                className={`flex items-center gap-1 px-4 py-1 text-xs font-semibold uppercase tracking-wider ${
-                    section.collapsible ? 'cursor-pointer hover:text-text-primary' : ''
-                } text-text-muted`}
-                onClick={section.collapsible ? onToggle : undefined}
-            >
-                {section.collapsible && (
-                    <ChevronDown className={`w-3 h-3 transition-transform ${section.collapsed ? '-rotate-90' : ''}`} />
-                )}
-                <span>{section.title}</span>
+        <div className="py-1">
+            {/* Section Label */}
+            <div className="px-3 pt-4 pb-1 uppercase select-none text-[10px] font-semibold tracking-[0.06em] text-[rgba(60,60,67,0.6)]">
+                {section.title}
             </div>
 
             {/* Section Items */}
-            {!section.collapsed && (
-                <div className="mt-1">
-                    {section.items.map((item) => (
-                        <SidebarItemRow
-                            key={item.id}
-                            item={item}
-                            isActive={item.path === currentPath}
-                            onNavigate={onNavigate}
-                            onContextMenu={onContextMenu}
-                        />
-                    ))}
-                </div>
-            )}
+            <div className="flex flex-col gap-0.5">
+                {section.items.map((item) => (
+                    <SidebarItemRow
+                        key={item.id}
+                        item={item}
+                        isActive={item.path === currentPath}
+                        onNavigate={onNavigate}
+                        onContextMenu={onContextMenu}
+                    />
+                ))}
+            </div>
         </div>
     );
 };
 
 // ========================================
+// Props
+// ========================================
+
+interface FinderSidebarProps {
+    width: number;
+    currentPath: string;
+    onNavigate: (path: string) => void;
+    onToggle: () => void;
+    onContextMenu?: (
+        e: React.MouseEvent,
+        item?: SidebarItem,
+        explicitType?: 'file' | 'directory' | 'multiple' | 'empty-space',
+    ) => void;
+}
+
+// ========================================
 // Main Component
 // ========================================
 
-export const FinderSidebar: React.FC<FinderSidebarProps> = ({
-    width,
-    currentPath,
-    onNavigate,
-    onToggle,
-    onContextMenu,
-}) => {
+export const FinderSidebar: React.FC<FinderSidebarProps> = ({ width, currentPath, onNavigate, onContextMenu }) => {
     const [sections, setSections] = useState<SidebarSection[]>(STATIC_SECTIONS);
     const [loadingFolders, setLoadingFolders] = useState(false);
 
-    // Load top-level folders dynamically
+    const loadFolders = useCallback(async () => {
+        setLoadingFolders(true);
+        try {
+            const result = await apiClient.files.list.query({
+                path: '/',
+                showHidden: false,
+                sortBy: 'name',
+                sortOrder: 'asc',
+            });
+
+            const folderItems: SidebarItem[] = result.items
+                .filter((item: any) => item.type === 'directory')
+                .map((item: any) => ({
+                    id: item.name,
+                    name: item.name,
+                    path: item.path,
+                    icon: item.icon || '📁',
+                    type: 'folder' as const,
+                }));
+
+            const locationsSection: SidebarSection = {
+                id: 'locations',
+                title: 'Locations',
+                collapsible: false,
+                collapsed: false,
+                items: folderItems,
+            };
+
+            setSections([STATIC_SECTIONS[0], locationsSection]);
+        } catch (error) {
+            console.error('Failed to load folders:', error);
+        } finally {
+            setLoadingFolders(false);
+        }
+    }, []);
+
     useEffect(() => {
-        const loadFolders = async () => {
-            setLoadingFolders(true);
-            try {
-                const result = await apiClient.files.list.query({
-                    path: '/',
-                    showHidden: false,
-                    sortBy: 'name',
-                    sortOrder: 'asc',
-                });
-
-                // Filter only directories and create sidebar items
-                const folderItems: SidebarItem[] = result.items
-                    .filter((item: any) => item.type === 'directory')
-                    .map((item: any) => ({
-                        id: item.name,
-                        name: item.name,
-                        path: item.path,
-                        icon: item.icon || '📁',
-                        type: 'folder' as const,
-                    }));
-
-                // Create dynamic folders section
-                const foldersSection: SidebarSection = {
-                    id: 'folders',
-                    title: 'Folders',
-                    collapsible: true,
-                    collapsed: false,
-                    items: folderItems,
-                };
-
-                // Insert after locations section, before config
-                setSections((prev) => {
-                    const withoutFolders = prev.filter((s) => s.id !== 'folders');
-                    return [
-                        withoutFolders[0], // locations
-                        foldersSection,
-                        ...withoutFolders.slice(1), // config
-                    ];
-                });
-            } catch (error) {
-                console.error('Failed to load folders:', error);
-            } finally {
-                setLoadingFolders(false);
-            }
-        };
-
         loadFolders();
     }, []);
 
-    const handleToggleSection = useCallback((sectionId: string) => {
-        setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, collapsed: !s.collapsed } : s)));
-    }, []);
-
-    // Loading indicator component
-    const LoadingSpinner = () => (
-        <div className="px-4 py-2 flex items-center gap-2 text-text-muted">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-xs">Loading folders...</span>
-        </div>
-    );
-
     return (
         <div
-            className="flex flex-col h-full bg-bg-secondary border-r border-border-subtle overflow-hidden"
-            style={{ width }}
+            className="finder-sidebar flex flex-col h-full overflow-hidden bg-[rgba(246,246,246,0.85)] backdrop-blur-xl saturate-180 border-r border-r-[rgba(0,0,0,0.12)]"
+            style={{
+                width,
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                borderRight: '0.5px solid rgba(0, 0, 0, 0.12)',
+            }}
         >
-            {/* Header with close button */}
-            <div className="flex items-center justify-between px-2 py-1 border-b border-border-subtle">
-                <span className="text-xs font-semibold text-text-muted px-2">PROJECT</span>
-                <div className="flex items-center gap-1">
-                    <button
-                        onClick={() => {
-                            // Trigger reload of folders
-                            setLoadingFolders(true);
-                            const loadFolders = async () => {
-                                try {
-                                    const result = await apiClient.files.list.query({
-                                        path: '/',
-                                        showHidden: false,
-                                        sortBy: 'name',
-                                        sortOrder: 'asc',
-                                    });
-                                    const folderItems: SidebarItem[] = result.items
-                                        .filter((item: any) => item.type === 'directory')
-                                        .map((item: any) => ({
-                                            id: item.name,
-                                            name: item.name,
-                                            path: item.path,
-                                            icon: item.icon || '📁',
-                                            type: 'folder' as const,
-                                        }));
-                                    const foldersSection: SidebarSection = {
-                                        id: 'folders',
-                                        title: 'Folders',
-                                        collapsible: true,
-                                        collapsed: false,
-                                        items: folderItems,
-                                    };
-                                    setSections((prev) => {
-                                        const withoutFolders = prev.filter((s) => s.id !== 'folders');
-                                        return [withoutFolders[0], foldersSection, ...withoutFolders.slice(1)];
-                                    });
-                                } catch (error) {
-                                    console.error('Failed to reload folders:', error);
-                                } finally {
-                                    setLoadingFolders(false);
-                                }
-                            };
-                            loadFolders();
-                        }}
-                        className="p-1 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary"
-                        title="Refresh Folders"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${loadingFolders ? 'animate-spin' : ''}`} />
-                    </button>
-                    <button
-                        onClick={onToggle}
-                        className="p-1 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary"
-                        title="Hide Sidebar"
-                    >
-                        <ChevronLeft className="w-4 h-4" />
-                    </button>
-                </div>
-            </div>
-
             {/* Scrollable content */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden py-1">
-                {/* Default Sections */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden pb-2">
                 {sections.map((section) => (
                     <SidebarSectionView
                         key={section.id}
                         section={section}
                         currentPath={currentPath}
                         onNavigate={onNavigate}
-                        onToggle={() => handleToggleSection(section.id)}
                         onContextMenu={onContextMenu || (() => {})}
                     />
                 ))}

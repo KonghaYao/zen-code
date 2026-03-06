@@ -1,5 +1,5 @@
 /**
- * FinderToolbar - macOS 风格工具栏
+ * FinderToolbar - macOS 风格工具栏（重设计）
  */
 
 import React from 'react';
@@ -8,17 +8,16 @@ import {
     LayoutGrid,
     List,
     Columns,
-    Gallery,
     ChevronLeft,
     ChevronRight,
-    ChevronUp,
     Home,
     FolderOpen,
-    File,
+    FilePlus,
     Eye,
     EyeOff,
-    FilePlus,
 } from '../../ui/Icons.js';
+import { useFinderStore } from '../../../stores/finder.js';
+import { PanelLeftOpen } from 'lucide-react';
 
 // ========================================
 // Types
@@ -29,6 +28,7 @@ interface FinderToolbarProps {
     viewMode: FinderViewMode;
     showHiddenFiles: boolean;
     loading: boolean;
+    sidebarCollapsed: boolean;
     onNavigateBack: () => void;
     onNavigateForward: () => void;
     onNavigateUp: () => void;
@@ -37,31 +37,33 @@ interface FinderToolbarProps {
     onToggleHiddenFiles: () => void;
     onNewFolder: () => void;
     onNewFile: () => void;
+    onToggleSidebar: () => void;
 }
 
 // ========================================
-// View Mode Icons
+// View Mode Segmented Control
 // ========================================
 
-const ViewModeIcon: React.FC<{ mode: FinderViewMode; active: boolean; onClick: () => void }> = ({
+const ViewModeButton: React.FC<{ mode: FinderViewMode; active: boolean; onClick: () => void }> = ({
     mode,
     active,
     onClick,
 }) => {
-    const icons: Record<FinderViewMode, React.ReactNode> = {
-        icons: <LayoutGrid className="w-4 h-4" />,
-        list: <List className="w-4 h-4" />,
-        columns: <Columns className="w-4 h-4" />,
-        gallery: <ImageIcon className="w-4 h-4" />,
+    const icons: Record<string, React.ReactNode> = {
+        icons: <LayoutGrid style={{ width: 14, height: 14 }} />,
+        list: <List style={{ width: 14, height: 14 }} />,
+        columns: <Columns style={{ width: 14, height: 14 }} />,
     };
 
     return (
         <button
             onClick={onClick}
-            className={`p-1.5 rounded transition-colors ${
-                active ? 'bg-primary text-white' : 'text-text-muted hover:bg-bg-tertiary hover:text-text-primary'
-            }`}
             title={mode.charAt(0).toUpperCase() + mode.slice(1) + ' View'}
+            className={`flex items-center justify-center py-[3px] px-[7px] rounded-[5px] border-none cursor-pointer transition-all duration-[0.12s] ease-out min-h-[unset] ${
+                active
+                    ? 'bg-white/90 shadow-[0_1px_3px_rgba(0,0,0,0.2)] text-black/85'
+                    : 'bg-transparent text-[rgba(60,60,67,0.65)] hover:bg-black/[0.06]'
+            }`}
         >
             {icons[mode]}
         </button>
@@ -82,24 +84,24 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ path, onNavigate }) => {
 
     if (segments.length === 0) {
         return (
-            <div className="flex items-center gap-1 text-sm">
+            <div className="flex items-center gap-0.5">
                 <button
                     onClick={() => onNavigate('/')}
-                    className="px-2 py-1 rounded hover:bg-bg-tertiary text-text-primary font-medium"
+                    className="flex items-center py-[2px] px-[6px] rounded-[4px] border-none cursor-pointer bg-transparent text-black/85 font-medium text-[13px] tracking-[-0.01em] min-h-[unset] hover:bg-black/[0.06]"
                 >
-                    <Home className="w-4 h-4" />
+                    <Home style={{ width: 14, height: 14 }} />
                 </button>
             </div>
         );
     }
 
     return (
-        <div className="flex items-center gap-1 text-sm overflow-x-auto">
+        <div className="flex items-center gap-0.5 overflow-x-auto">
             <button
                 onClick={() => onNavigate('/')}
-                className="px-2 py-1 rounded hover:bg-bg-tertiary text-text-secondary shrink-0"
+                className="flex items-center shrink-0 py-[2px] px-[6px] rounded-[4px] border-none cursor-pointer bg-transparent text-[rgba(60,60,67,0.65)] text-[13px] tracking-[-0.01em] min-h-[unset] hover:bg-black/[0.06]"
             >
-                <Home className="w-4 h-4" />
+                <Home style={{ width: 13, height: 13 }} />
             </button>
             {segments.map((segment, index) => {
                 const segmentPath = '/' + segments.slice(0, index + 1).join('/');
@@ -107,15 +109,18 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ path, onNavigate }) => {
 
                 return (
                     <React.Fragment key={segmentPath}>
-                        <ChevronRight className="w-3 h-3 text-text-muted shrink-0" />
+                        <ChevronRight
+                            className="shrink-0 text-[rgba(60,60,67,0.35)]"
+                            style={{ width: 12, height: 12 }}
+                        />
                         <button
                             onClick={() => onNavigate(segmentPath)}
-                            className={`px-2 py-1 rounded truncate max-w-[150px] ${
-                                isLast
-                                    ? 'bg-primary-light text-primary font-medium'
-                                    : 'hover:bg-bg-tertiary text-text-secondary'
-                            }`}
                             title={segment}
+                            className={`py-[2px] px-[6px] rounded-[4px] border-none cursor-pointer bg-transparent text-[13px] tracking-[-0.01em] max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap min-h-[unset] ${
+                                isLast
+                                    ? 'text-black/85 font-medium'
+                                    : 'text-[rgba(60,60,67,0.65)] font-normal hover:bg-black/[0.06]'
+                            }`}
                         >
                             {segment}
                         </button>
@@ -135,47 +140,65 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
     viewMode,
     showHiddenFiles,
     loading,
+    sidebarCollapsed,
     onNavigateBack,
     onNavigateForward,
-    onNavigateUp,
-    onNavigateHome,
     onViewModeChange,
     onToggleHiddenFiles,
     onNewFolder,
     onNewFile,
+    onToggleSidebar,
 }) => {
     const navigation = useFinderStore((s) => s.navigation);
     const setCurrentPath = useFinderStore((s) => s.setCurrentPath);
 
+    const canGoBack = !!(navigation.historyIndex && navigation.historyIndex > 0);
+    const canGoForward = !!(navigation.forwardHistory && navigation.forwardHistory.length > 0);
+
     return (
-        <div className="flex items-center justify-between px-4 py-2 bg-bg-secondary border-b border-border-subtle">
-            {/* Left: Navigation + Breadcrumb */}
-            <div className="flex items-center gap-3">
-                {/* Navigation Buttons */}
-                <div className="flex items-center gap-1">
+        <div
+            className="flex items-center justify-between px-3 min-h-[40px] bg-[rgba(246,246,246,0.9)] border-b border-b-[rgba(0,0,0,0.12)]"
+            style={{
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                borderBottom: '0.5px solid rgba(0, 0, 0, 0.12)',
+            }}
+        >
+            {/* Left: Sidebar toggle + Navigation + Breadcrumb */}
+            <div className="flex items-center gap-2">
+                {/* Sidebar toggle (shown when collapsed) */}
+                {sidebarCollapsed && (
+                    <button
+                        onClick={onToggleSidebar}
+                        title="Show Sidebar"
+                        className="flex items-center p-1 rounded-[5px] border-none cursor-pointer bg-transparent text-[rgba(60,60,67,0.65)] min-h-[unset] hover:bg-black/[0.06]"
+                    >
+                        <PanelLeftOpen style={{ width: 15, height: 15 }} />
+                    </button>
+                )}
+
+                {/* Back/Forward Pill */}
+                <div className="flex items-center overflow-hidden rounded-[7px] bg-black/[0.07]">
                     <button
                         onClick={onNavigateBack}
-                        disabled={!navigation.historyIndex || navigation.historyIndex <= 0}
-                        className="p-1.5 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        disabled={!canGoBack}
                         title="Back"
+                        className={`flex items-center py-[3px] px-[7px] border-none bg-transparent min-h-[unset] ${
+                            canGoBack ? 'cursor-pointer text-black/75' : 'cursor-not-allowed text-black/20'
+                        }`}
                     >
-                        <ChevronLeft className="w-4 h-4" />
+                        <ChevronLeft style={{ width: 15, height: 15 }} />
                     </button>
+                    <div className="w-px h-3.5 bg-black/[0.12]" />
                     <button
                         onClick={onNavigateForward}
-                        disabled={!navigation.forwardHistory || navigation.forwardHistory.length === 0}
-                        className="p-1.5 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        disabled={!canGoForward}
                         title="Forward"
+                        className={`flex items-center py-[3px] px-[7px] border-none bg-transparent min-h-[unset] ${
+                            canGoForward ? 'cursor-pointer text-black/75' : 'cursor-not-allowed text-black/20'
+                        }`}
                     >
-                        <ChevronRight className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={onNavigateUp}
-                        disabled={currentPath === '/'}
-                        className="p-1.5 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                        title="Enclosing Folder"
-                    >
-                        <ChevronUp className="w-4 h-4" />
+                        <ChevronRight style={{ width: 15, height: 15 }} />
                     </button>
                 </div>
 
@@ -183,12 +206,12 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
                 <Breadcrumb path={currentPath} onNavigate={setCurrentPath} />
             </div>
 
-            {/* Right: View Options + Actions */}
+            {/* Right: View Mode + Actions */}
             <div className="flex items-center gap-2">
-                {/* View Mode Selector */}
-                <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-bg-tertiary">
+                {/* View Mode Segmented Control */}
+                <div className="flex items-center p-[2px] rounded-[8px] bg-black/[0.07]">
                     {(['icons', 'list', 'columns'] as FinderViewMode[]).map((mode) => (
-                        <ViewModeIcon
+                        <ViewModeButton
                             key={mode}
                             mode={mode}
                             active={viewMode === mode}
@@ -198,44 +221,43 @@ export const FinderToolbar: React.FC<FinderToolbarProps> = ({
                 </div>
 
                 {/* Divider */}
-                <div className="w-px h-6 bg-border-subtle" />
+                <div className="w-px h-5 bg-black/10" />
 
                 {/* Actions */}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
                     <button
                         onClick={onNewFolder}
-                        className="p-1.5 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary transition-colors"
                         title="New Folder (⌘N)"
+                        className="flex items-center p-1 rounded-[5px] border-none cursor-pointer bg-transparent text-[rgba(60,60,67,0.65)] min-h-[unset] hover:bg-black/[0.06]"
                     >
-                        <FolderOpen className="w-4 h-4" />
+                        <FolderOpen style={{ width: 15, height: 15 }} />
                     </button>
                     <button
                         onClick={onNewFile}
-                        className="p-1.5 rounded text-text-muted hover:bg-bg-tertiary hover:text-text-primary transition-colors"
                         title="New File (⌘⇧N)"
+                        className="flex items-center p-1 rounded-[5px] border-none cursor-pointer bg-transparent text-[rgba(60,60,67,0.65)] min-h-[unset] hover:bg-black/[0.06]"
                     >
-                        <FilePlus className="w-4 h-4" />
+                        <FilePlus style={{ width: 15, height: 15 }} />
                     </button>
-
-                    {/* Show Hidden Toggle */}
                     <button
                         onClick={onToggleHiddenFiles}
-                        className={`p-1.5 rounded transition-colors ${
-                            showHiddenFiles
-                                ? 'bg-primary-light text-primary'
-                                : 'text-text-muted hover:bg-bg-tertiary hover:text-text-primary'
-                        }`}
                         title={`${showHiddenFiles ? 'Hide' : 'Show'} Hidden Files`}
+                        className={`flex items-center p-1 rounded-[5px] border-none cursor-pointer min-h-[unset] ${
+                            showHiddenFiles
+                                ? 'bg-[rgba(0,98,255,0.12)] text-[rgba(0,98,255,0.85)]'
+                                : 'bg-transparent text-[rgba(60,60,67,0.65)] hover:bg-black/[0.06]'
+                        }`}
                     >
-                        {showHiddenFiles ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                        {showHiddenFiles ? (
+                            <Eye style={{ width: 15, height: 15 }} />
+                        ) : (
+                            <EyeOff style={{ width: 15, height: 15 }} />
+                        )}
                     </button>
                 </div>
             </div>
         </div>
     );
 };
-
-import { useFinderStore } from '../../../stores/finder.js';
-import { ImageIcon } from 'lucide-react';
 
 export default FinderToolbar;

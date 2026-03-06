@@ -1,12 +1,44 @@
 /**
- * FinderListView - 列表视图
- * macOS 风格的列表显示，支持多列排序
+ * FinderListView - 列表视图（macOS 重设计）
  */
 
 import React, { useRef, useCallback, useState } from 'react';
 import type { FinderFileItem, ViewOptions, SelectionState, SortBy, ListColumn } from '../../../types/finder.js';
 import { useFinderStore, formatFileSize, formatDate, getFileKind } from '../../../stores/finder.js';
-import { Loader2, ChevronUp, Eye } from '../../ui/Icons.js';
+import { ChevronUp, FolderOpen, MoreHorizontal } from '../../ui/Icons.js';
+import { Folder, File, FileText, Code, Image, Database, Settings, Package } from 'lucide-react';
+
+// ========================================
+// File Icon Resolver
+// ========================================
+
+function getFileIconComponent(isDirectory: boolean, extension?: string): React.ComponentType<any> {
+    if (isDirectory) return Folder;
+    const ext = extension?.toLowerCase();
+    const map: Record<string, React.ComponentType<any>> = {
+        '.md': FileText,
+        '.txt': FileText,
+        '.ts': Code,
+        '.tsx': Code,
+        '.js': Code,
+        '.jsx': Code,
+        '.py': Code,
+        '.go': Code,
+        '.rs': Code,
+        '.json': Database,
+        '.yaml': Settings,
+        '.yml': Settings,
+        '.toml': Settings,
+        '.png': Image,
+        '.jpg': Image,
+        '.jpeg': Image,
+        '.svg': Image,
+        '.zip': Package,
+        '.tar': Package,
+        '.gz': Package,
+    };
+    return map[ext || ''] || File;
+}
 
 // ========================================
 // Types
@@ -80,27 +112,32 @@ const ColumnHeader: React.FC<ColumnHeaderProps> = ({ column, sortBy, sortOrder, 
 
     return (
         <div
-            className={`relative flex items-center gap-1 px-3 py-2 select-none ${
-                column.sortable ? 'cursor-pointer hover:bg-bg-tertiary' : ''
-            } ${isActive ? 'text-primary' : 'text-text-muted'}`}
+            className={`relative flex items-center gap-1 px-3 h-[28px] select-none ${
+                column.sortable ? 'cursor-pointer' : 'cursor-default'
+            }`}
             style={{ width: column.width }}
             onClick={() => column.sortable && onSort(column.id)}
         >
-            <span className="text-xs font-medium truncate">{column.label}</span>
+            <span
+                className={`text-[12px] font-normal overflow-hidden text-ellipsis whitespace-nowrap ${
+                    isActive ? 'text-[rgba(0,98,255,0.85)]' : 'text-[rgba(60,60,67,0.65)]'
+                }`}
+            >
+                {column.label}
+            </span>
 
-            {/* Sort indicator */}
             {isActive && (
-                <ChevronUp className={`w-3 h-3 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+                <ChevronUp
+                    className={`shrink-0 text-[rgba(0,98,255,0.85)] transition-transform duration-150 ease-out ${
+                        sortOrder === 'desc' ? 'rotate-180' : ''
+                    }`}
+                    style={{ width: 11, height: 11 }}
+                />
             )}
 
             {/* Resize handle */}
-            <div
-                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary group"
-                onMouseDown={handleMouseDown}
-            >
-                <div
-                    className={`h-full w-px ${isResizing ? 'bg-primary' : 'bg-border-subtle group-hover:bg-primary'}`}
-                />
+            <div className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize" onMouseDown={handleMouseDown}>
+                <div className={`h-full w-px ${isResizing ? 'bg-[rgba(0,98,255,0.6)]' : 'bg-[rgba(60,60,67,0.12)]'}`} />
             </div>
         </div>
     );
@@ -120,67 +157,110 @@ interface RowProps {
 }
 
 const Row: React.FC<RowProps> = ({ item, columns, isSelected, onSelect, onDoubleClick, onContextMenu }) => {
+    const isDir = item.type === 'directory';
+    const IconComp = getFileIconComponent(isDir, item.extension);
+    const menuBtnRef = useRef<HTMLButtonElement>(null);
+
+    const handleMenuClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (menuBtnRef.current) {
+            const rect = menuBtnRef.current.getBoundingClientRect();
+            onContextMenu(
+                {
+                    clientX: rect.left,
+                    clientY: rect.bottom + 4,
+                    preventDefault: () => {},
+                    stopPropagation: () => {},
+                } as unknown as React.MouseEvent,
+                item,
+            );
+        }
+    };
+
     return (
         <div
-            className={`flex items-center border-b border-border-subtle cursor-pointer transition-colors group ${
-                isSelected ? 'bg-primary bg-opacity-10' : 'hover:bg-bg-secondary'
+            className={`group flex items-center h-6 cursor-pointer transition-[background] duration-100 ease-out ${
+                isSelected ? 'bg-[rgba(0,98,255,0.12)]' : 'bg-transparent'
             }`}
             onClick={(e) => onSelect(item, e)}
             onDoubleClick={() => onDoubleClick(item)}
-            onContextMenu={(e) => onContextMenu(e, item)}
         >
             {columns
                 .filter((c) => c.visible)
                 .map((column) => (
                     <div
                         key={column.id}
-                        className={`px-3 py-2 text-sm truncate ${isSelected ? 'text-primary' : 'text-text-primary'}`}
+                        className="px-3 truncate flex items-center h-full text-[13px] tracking-[-0.01em]"
                         style={{ width: column.width }}
                     >
                         {column.id === 'name' && (
-                            <div className="flex items-center gap-2">
-                                <span className="text-base">{item.icon}</span>
-                                <span className={`truncate ${isSelected ? 'font-medium' : ''}`}>{item.name}</span>
-                                {item.isHidden && <span className="text-xs text-text-muted">(hidden)</span>}
+                            <div className="flex items-center gap-1.5 w-full overflow-hidden">
+                                {/* Mini icon box */}
+                                <div
+                                    className={`flex items-center justify-center shrink-0 w-4 h-4 rounded-[3px] ${
+                                        isDir
+                                            ? 'bg-[linear-gradient(145deg,#4da3ff_0%,#006eff_100%)]'
+                                            : 'bg-[linear-gradient(145deg,#f5f5f7_0%,#e8e8ed_100%)]'
+                                    }`}
+                                >
+                                    <IconComp
+                                        className={`[stroke-width:2] ${
+                                            isDir ? 'text-white/95' : 'text-[rgba(100,100,110,0.8)]'
+                                        }`}
+                                        style={{ width: 9, height: 9 }}
+                                    />
+                                </div>
+                                <span
+                                    className={`overflow-hidden text-ellipsis whitespace-nowrap ${
+                                        isSelected
+                                            ? 'text-[rgba(0,98,255,0.9)] font-medium'
+                                            : 'text-black/85 font-normal'
+                                    }`}
+                                >
+                                    {item.name}
+                                </span>
+                                {item.isHidden && (
+                                    <span className="text-[11px] text-[rgba(60,60,67,0.5)]">(hidden)</span>
+                                )}
                             </div>
                         )}
                         {column.id === 'size' && (
-                            <span className={isSelected ? '' : 'text-text-secondary'}>
+                            <span className={isSelected ? 'text-[rgba(0,98,255,0.75)]' : 'text-[rgba(60,60,67,0.65)]'}>
                                 {item.type === 'file' ? formatFileSize(item.size) : '--'}
                             </span>
                         )}
                         {column.id === 'kind' && (
-                            <span className={isSelected ? '' : 'text-text-secondary'}>
+                            <span className={isSelected ? 'text-[rgba(0,98,255,0.75)]' : 'text-[rgba(60,60,67,0.65)]'}>
                                 {item.type === 'directory' ? 'Folder' : getFileKind(item.extension)}
                             </span>
                         )}
                         {column.id === 'modifiedAt' && (
-                            <span className={isSelected ? '' : 'text-text-secondary'}>
+                            <span className={isSelected ? 'text-[rgba(0,98,255,0.75)]' : 'text-[rgba(60,60,67,0.65)]'}>
                                 {formatDate(item.modifiedAt)}
                             </span>
                         )}
                         {column.id === 'createdAt' && (
-                            <span className={isSelected ? '' : 'text-text-secondary'}>
+                            <span className={isSelected ? 'text-[rgba(0,98,255,0.75)]' : 'text-[rgba(60,60,67,0.65)]'}>
                                 {formatDate(item.createdAt)}
                             </span>
                         )}
                     </div>
                 ))}
 
-            {/* Quick action buttons */}
-            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 pr-2">
-                {item.type === 'file' && (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            // Download or open
-                        }}
-                        className="p-1 rounded hover:bg-bg-tertiary"
-                        title="Open"
-                    >
-                        <Eye className="w-4 h-4 text-text-muted" />
-                    </button>
-                )}
+            {/* More button */}
+            <div className="ml-auto pr-2 flex items-center shrink-0">
+                <button
+                    ref={menuBtnRef}
+                    onClick={handleMenuClick}
+                    className={`opacity-0 group-hover:opacity-100 flex items-center justify-center w-5 h-5 rounded-[4px] border-none cursor-pointer p-0 min-h-[unset] transition-opacity ${
+                        isSelected
+                            ? 'bg-[rgba(0,98,255,0.15)] text-[rgba(0,98,255,0.8)]'
+                            : 'bg-black/[0.07] text-[rgba(60,60,67,0.7)]'
+                    }`}
+                    title="More options"
+                >
+                    <MoreHorizontal style={{ width: 12, height: 12 }} />
+                </button>
             </div>
         </div>
     );
@@ -202,23 +282,25 @@ export const FinderListView: React.FC<FinderListViewProps> = ({
     const containerRef = useRef<HTMLDivElement>(null);
     const toggleSort = useFinderStore((s) => s.toggleSort);
 
-    // Use view options columns or defaults
     const columns = viewOptions.listColumns.length > 0 ? viewOptions.listColumns : DEFAULT_COLUMNS;
 
-    // Handle column resize
     const handleColumnResize = useCallback((columnId: string, delta: number) => {
-        // Update column width in store (not implemented yet)
         console.log('Resize column:', columnId, delta);
     }, []);
 
-    // Loading state
+    // Loading skeleton
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-full">
-                <div className="flex flex-col items-center gap-4 text-text-muted">
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                    <span>Loading...</span>
-                </div>
+            <div className="flex flex-col">
+                {Array.from({ length: 18 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 px-3 h-6 animate-pulse">
+                        <div className="w-4 h-4 rounded-[3px] bg-black/[0.06] shrink-0" />
+                        <div
+                            className="h-[9px] rounded-[3px] bg-black/[0.06]"
+                            style={{ width: `${40 + (i % 5) * 15}%` }}
+                        />
+                    </div>
+                ))}
             </div>
         );
     }
@@ -227,12 +309,12 @@ export const FinderListView: React.FC<FinderListViewProps> = ({
     if (items.length === 0) {
         return (
             <div className="flex items-center justify-center h-full">
-                <div className="flex flex-col items-center gap-4 text-text-muted">
-                    <span className="text-6xl">📂</span>
-                    <div className="text-center">
-                        <p className="text-lg font-medium">This folder is empty</p>
-                        <p className="text-sm mt-1">Create a new folder or file to get started</p>
-                    </div>
+                <div className="flex flex-col items-center gap-3">
+                    <FolderOpen
+                        className="text-[rgba(60,60,67,0.3)] [stroke-width:1]"
+                        style={{ width: 40, height: 40 }}
+                    />
+                    <p className="text-[15px] text-black/60 tracking-[-0.01em]">This Folder Is Empty</p>
                 </div>
             </div>
         );
@@ -241,7 +323,14 @@ export const FinderListView: React.FC<FinderListViewProps> = ({
     return (
         <div ref={containerRef} className="flex flex-col h-full overflow-auto">
             {/* Header */}
-            <div className="sticky top-0 z-10 flex items-center bg-bg-tertiary border-b border-border-subtle">
+            <div
+                className="sticky top-0 z-10 flex items-center bg-[rgba(246,246,246,0.92)] border-b border-b-[rgba(0,0,0,0.1)]"
+                style={{
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
+                    borderBottom: '0.5px solid rgba(0,0,0,0.1)',
+                }}
+            >
                 {columns
                     .filter((c) => c.visible)
                     .map((column) => (
@@ -269,14 +358,6 @@ export const FinderListView: React.FC<FinderListViewProps> = ({
                         onContextMenu={onContextMenu}
                     />
                 ))}
-            </div>
-
-            {/* Footer with count */}
-            <div className="sticky bottom-0 px-4 py-2 bg-bg-secondary border-t border-border-subtle text-xs text-text-muted">
-                {items.length} item{items.length !== 1 ? 's' : ''}
-                {selection.selectedPaths.size > 0 && (
-                    <span className="ml-4">{selection.selectedPaths.size} selected</span>
-                )}
             </div>
         </div>
     );

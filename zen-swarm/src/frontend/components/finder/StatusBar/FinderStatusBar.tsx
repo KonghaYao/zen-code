@@ -1,11 +1,9 @@
 /**
- * FinderStatusBar - 状态栏
- * macOS Finder 风格的底部状态栏
+ * FinderStatusBar - 状态栏（紧凑化重设计）
  */
 
 import React from 'react';
 import type { FinderFileItem, SelectionState } from '../../../types/finder.js';
-import { Loader2 } from '../../ui/Icons.js';
 
 // ========================================
 // Types
@@ -19,81 +17,32 @@ interface FinderStatusBarProps {
 }
 
 // ========================================
-// Helper Functions
-// ========================================
-
-function formatItemCount(count: number, singular: string, plural?: string): string {
-    return `${count} ${count === 1 ? singular : plural || singular + 's'}`;
-}
-
-function formatTotalSize(items: FinderFileItem[]): string {
-    const totalBytes = items.reduce((sum, item) => sum + (item.type === 'file' ? item.size : 0), 0);
-
-    if (totalBytes === 0) return '0 bytes';
-
-    const units = ['bytes', 'KB', 'MB', 'GB'];
-    let size = totalBytes;
-    let unitIndex = 0;
-
-    while (size >= 1024 && unitIndex < units.length - 1) {
-        size /= 1024;
-        unitIndex++;
-    }
-
-    return `${size.toFixed(unitIndex > 0 ? 1 : 0)} ${units[unitIndex]}`;
-}
-
-// ========================================
 // Main Component
 // ========================================
 
-export const FinderStatusBar: React.FC<FinderStatusBarProps> = ({ currentPath, items, selection, loading }) => {
-    const folderCount = items.filter((item) => item.type === 'directory').length;
-    const fileCount = items.filter((item) => item.type === 'file').length;
+export const FinderStatusBar: React.FC<FinderStatusBarProps> = ({ items, selection, loading }) => {
     const selectedCount = selection.selectedPaths.size;
+    const totalCount = items.length;
 
-    // Calculate selected items info
-    const selectedItems = items.filter((item) => selection.selectedPaths.has(item.path));
-    const selectedFolders = selectedItems.filter((item) => item.type === 'directory').length;
-    const selectedFiles = selectedItems.filter((item) => item.type === 'file').length;
-    const selectedSize = formatTotalSize(selectedItems.filter((item) => item.type === 'file'));
-
-    // Build status text
     let statusText = '';
     if (loading) {
-        statusText = 'Loading...';
+        statusText = 'Loading…';
     } else if (selectedCount > 0) {
-        if (selectedFolders > 0 && selectedFiles > 0) {
-            statusText = `${selectedCount} selected (${selectedFolders} folders, ${selectedFiles} files, ${selectedSize})`;
-        } else if (selectedFolders > 0) {
-            statusText = `${selectedFolders} folder${selectedFolders > 1 ? 's' : ''} selected`;
-        } else {
-            statusText = `${selectedFiles} file${selectedFiles > 1 ? 's' : ''} selected (${selectedSize})`;
-        }
+        statusText = `${selectedCount} selected`;
     } else {
-        const parts: string[] = [];
-        if (folderCount > 0) parts.push(`${folderCount} folder${folderCount > 1 ? 's' : ''}`);
-        if (fileCount > 0) parts.push(`${fileCount} file${fileCount > 1 ? 's' : ''}`);
-        statusText = parts.join(', ') || 'Empty folder';
+        statusText = `${totalCount} item${totalCount !== 1 ? 's' : ''}`;
     }
 
     return (
-        <div className="flex items-center justify-between px-4 py-1.5 bg-bg-secondary border-t border-border-subtle text-xs">
-            {/* Left side: Status text */}
-            <div className="flex items-center gap-2 text-text-secondary">
-                {loading && <Loader2 className="w-3 h-3 animate-spin" />}
-                <span>{statusText}</span>
-            </div>
-
-            {/* Center: Path bar (optional) */}
-            <div className="flex items-center gap-1 text-text-muted">
-                <span className="opacity-50">{currentPath}</span>
-            </div>
-
-            {/* Right side: Available space (placeholder) */}
-            <div className="flex items-center gap-2 text-text-muted">
-                <span>Available: --</span>
-            </div>
+        <div
+            className="flex items-center justify-center h-[22px] text-[11px] tracking-[-0.01em] select-none text-[rgba(60,60,67,0.6)] bg-[rgba(246,246,246,0.85)] border-t border-t-[rgba(0,0,0,0.1)]"
+            style={{
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                borderTop: '0.5px solid rgba(0,0,0,0.1)',
+            }}
+        >
+            <span>{statusText}</span>
         </div>
     );
 };
