@@ -25,6 +25,7 @@
         "test:run": "bun test --run",
         "test:coverage": "bun test --coverage",
         "test:watch": "bun test --watch",
+        "postinstall": "node scripts/patch-kysely.mjs",
         "prepare": "husky",
         "format": "prettier --write .",
         "format:check": "prettier --check ."

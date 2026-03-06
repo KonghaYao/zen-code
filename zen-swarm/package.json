@@ -5,7 +5,7 @@
     "scripts": {
         "dev": "bun run src/server.ts",
         "build": "bun run bun.build.ts",
-        "build:js": "bun build src/server.ts --minify --target bun --outdir ./dist"
+        "build:js": "bun build src/server.ts --target bun --outdir ./dist"
     },
     "dependencies": {
         "@codegraph/config": "workspace:^",
