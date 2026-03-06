@@ -5,7 +5,7 @@
  * - 移动端 (<768px)：MobileHeader + 全屏内容 + MobileTabBar
  */
 
-import { Suspense, useCallback, useMemo, useEffect } from 'react';
+import { Suspense, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { DockContainer } from '../components/dock/index.js';
@@ -29,12 +29,8 @@ export function DockLayout() {
     const isMobile = useIsMobile();
     const { data: providers, isLoading: isProvidersLoading } = useProviders();
 
-    // 检测是否需要初始化：providers 加载完成且为空时跳转到 /setup
-    useEffect(() => {
-        if (!isProvidersLoading && providers && providers.length === 0) {
-            navigate('/setup', { replace: true });
-        }
-    }, [isProvidersLoading, providers, navigate]);
+    // providers 加载完成且为空时，在顶部栏显示初始化按钮，而非强制跳转
+    const showSetupButton = !isProvidersLoading && providers && providers.length === 0;
 
     // 从 URL 派生 activeApp 状态（移除 #/ 前缀）
     const activeApp = useMemo(() => {
@@ -79,7 +75,21 @@ export function DockLayout() {
         return (
             <div className="flex flex-col h-screen w-screen overflow-hidden bg-neutral-50">
                 {/* 移动端顶部 Header */}
-                <MobileHeader title={currentApp?.name ?? 'Zen Swarm'} />
+                <MobileHeader
+                    title={currentApp?.name ?? 'Zen Swarm'}
+                    actions={
+                        showSetupButton
+                            ? [
+                                  {
+                                      id: 'setup',
+                                      icon: <span className="text-base">⚙️</span>,
+                                      label: '初始化配置',
+                                      onClick: () => navigate('/setup'),
+                                  },
+                              ]
+                            : []
+                    }
+                />
 
                 {/* providers 加载中时显示全屏加载 */}
                 {isProvidersLoading && (
@@ -196,7 +206,12 @@ export function DockLayout() {
             )}
 
             {/* 顶部状态栏 */}
-            <MenuBar appName={currentApp?.name ?? 'Zen Swarm'} appIcon={currentApp?.fullIcon} />
+            <MenuBar
+                appName={currentApp?.name ?? 'Zen Swarm'}
+                appIcon={currentApp?.fullIcon}
+                showSetup={showSetupButton}
+                onSetup={() => navigate('/setup')}
+            />
 
             {/* 桌面主内容区域 */}
             <main className="flex-1 flex flex-col min-h-0 overflow-hidden mt-7 mb-20">

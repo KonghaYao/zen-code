@@ -53,6 +53,10 @@ export function SetupWizard() {
         navigate('/chat');
     };
 
+    const handleSkip = () => {
+        navigate('/');
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             {/* 背景壁纸（模糊） */}
@@ -122,7 +126,7 @@ export function SetupWizard() {
 
                     {/* 步骤内容 */}
                     <div className="p-6">
-                        {step === 1 && <StepWelcome onNext={() => setStep(2)} />}
+                        {step === 1 && <StepWelcome onNext={() => setStep(2)} onSkip={handleSkip} />}
                         {step === 2 && <StepProvider onNext={handleProviderCreated} />}
                         {step === 3 && (
                             <StepModels

@@ -32,6 +32,8 @@ interface MenuBarProps {
     WifiOff?: boolean;
     appName?: string;
     appIcon?: React.ReactNode;
+    showSetup?: boolean;
+    onSetup?: () => void;
 }
 
 function formatTime(date: Date): string {
@@ -53,7 +55,7 @@ function formatBytes(bytes: number): string {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 }
 
-export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProps) {
+export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝', showSetup = false, onSetup }: MenuBarProps) {
     const [currentTime, setCurrentTime] = useState(() => formatTime(new Date()));
     const systemStatus = useSystemStatus();
 
@@ -194,6 +196,21 @@ export function MenuBar({ appName = 'Zen Swarm', appIcon = '🐝' }: MenuBarProp
 
                 {/* 分隔线 */}
                 <div className="w-px h-4 bg-neutral-200 dark:bg-neutral-700 mx-1" />
+
+                {/* 初始化按钮（未配置 Provider 时显示） */}
+                {showSetup && (
+                    <>
+                        <button
+                            onClick={onSetup}
+                            className="h-full px-2.5 flex items-center gap-1 text-[12px] font-medium text-yellow-300 hover:text-white rounded hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/60"
+                            aria-label="初始化配置"
+                        >
+                            <span aria-hidden="true">⚙️</span>
+                            初始化
+                        </button>
+                        <div className="w-px h-4 bg-neutral-200 dark:bg-neutral-700 mx-1" />
+                    </>
+                )}
 
                 {/* 时间 */}
                 <span className="px-2 text-[13px] font-medium">{currentTime}</span>

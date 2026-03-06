@@ -6,9 +6,10 @@ import { motion } from 'motion/react';
 
 interface StepWelcomeProps {
     onNext: () => void;
+    onSkip?: () => void;
 }
 
-export function StepWelcome({ onNext }: StepWelcomeProps) {
+export function StepWelcome({ onNext, onSkip }: StepWelcomeProps) {
     return (
         <motion.div
             className="flex flex-col items-center text-center gap-8 py-4"
@@ -55,6 +56,16 @@ export function StepWelcome({ onNext }: StepWelcomeProps) {
             >
                 开始配置
             </button>
+
+            {/* 跳过初始化 */}
+            {onSkip && (
+                <button
+                    onClick={onSkip}
+                    className="text-sm text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                >
+                    跳过，稍后再配置
+                </button>
+            )}
         </motion.div>
     );
 }
