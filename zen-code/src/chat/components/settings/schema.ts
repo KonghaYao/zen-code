@@ -35,6 +35,14 @@ export const SETTINGS_SCHEMA: SettingField[] = [
         help: '启用模型思考',
     },
     {
+        key: 'streaming',
+        label: '流式输出',
+        type: 'toggle',
+        group: '模型',
+        tab: 'General',
+        help: '关闭后等待完整响应再显示（适用于不支持流式的模型）',
+    },
+    {
         key: 'stream_refresh_interval',
         label: '流刷新间隔',
         type: 'number',

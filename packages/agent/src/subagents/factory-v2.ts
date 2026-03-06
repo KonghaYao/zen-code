@@ -69,6 +69,7 @@ export async function createStandardAgentV2(
         modelProvider: state.provider_type,
         streamUsage: true,
         enableThinking: state.enable_thinking,
+        streaming: state.streaming ?? false,
         metadata: {
             // message 通过这个 id 判断是否为子调用
             parent_id: options?.parent_id,

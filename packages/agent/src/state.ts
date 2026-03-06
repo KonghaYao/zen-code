@@ -19,6 +19,8 @@ export const CodeState = AgentState.extend(SubAgentStateSchema.shape).extend({
     agent_name: z.string().default('Code Agent'),
     switch_command: z.string().optional(),
     enable_thinking: z.boolean().default(true),
+    /** 是否启用流式输出（默认 false） */
+    streaming: z.boolean().default(false),
     // sb 的 langchain 在 agent middleware 的 runtime 里面拿不到这些数据
     user_id: z.string().optional(),
     thread_id: z.string().optional(),
@@ -32,6 +34,7 @@ export const CodeAnnotation = createState(SubAgentAnnotation, MessagesAnnotation
     agent_name: createDefaultAnnotation(() => 'Code Agent'),
     switch_command: createDefaultAnnotation(() => null),
     enable_thinking: createDefaultAnnotation(() => true),
+    streaming: createDefaultAnnotation(() => false),
     // sb 的 langchain 在 agent middleware 的 runtime 里面拿不到这些数据
     user_id: createDefaultAnnotation(() => ''),
     thread_id: createDefaultAnnotation(() => ''),

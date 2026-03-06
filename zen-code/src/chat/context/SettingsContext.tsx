@@ -97,6 +97,7 @@ const SettingsProviderInternal = ({
             model_id: config?.model_id || AVAILABLE_MODELS[0]?.id || 'default',
             mcp_config: config?.mcp_config,
             enable_thinking: config?.enable_thinking ?? true,
+            streaming: config?.streaming ?? false,
             switch_command: config?.switch_command || '',
             cwd: process.cwd(), // 添加 cwd 字段，供 filesystem tools 使用
         };
@@ -106,6 +107,7 @@ const SettingsProviderInternal = ({
         config?.model_id,
         config?.mcp_config,
         config?.enable_thinking,
+        config?.streaming,
         config?.switch_command,
         config?.providers,
         AVAILABLE_MODELS,

@@ -51,6 +51,8 @@ export interface AppConfig {
     stream_refresh_interval?: number;
     /** 是否启用思考模式 */
     enable_thinking?: boolean;
+    /** 是否启用流式输出（默认 true，设为 false 则等待完整响应后再显示） */
+    streaming?: boolean;
     /** 切换命令 */
     switch_command?: string;
     /** 紧凑模式 */

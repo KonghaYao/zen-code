@@ -21,6 +21,7 @@ const switchBranch = {
             modelProvider: state.provider_type,
             streamUsage: true,
             enableThinking: state.enable_thinking ?? true,
+            streaming: state.streaming ?? false,
         });
         const summaryContent = await analyzeAndSaveMemories(model, getBufferMessage(state.messages));
         return {

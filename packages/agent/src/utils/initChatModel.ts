@@ -11,6 +11,8 @@ export interface InitChatModelOptions {
     modelProvider?: string;
     streamUsage?: boolean;
     enableThinking?: boolean;
+    /** 是否启用流式输出（默认 true） */
+    streaming?: boolean;
     metadata?: Record<string, unknown>;
     baseURL?: string;
     apiKey?: string;
@@ -18,14 +20,14 @@ export interface InitChatModelOptions {
 }
 
 export const initChatModel = async (modelId: string, options: InitChatModelOptions = {}) => {
-    const { modelProvider, enableThinking = true } = options;
+    const { modelProvider, enableThinking = true, streaming = false } = options;
     const outputVersion = 'v1';
     let model;
     if (modelProvider === 'anthropic') {
         model = new ChatAnthropic({
             model: modelId,
             streamUsage: true,
-            streaming: true,
+            streaming,
             maxRetries: 1,
             maxTokens: 64000,
             thinking: enableThinking
@@ -46,7 +48,7 @@ export const initChatModel = async (modelId: string, options: InitChatModelOptio
             apiKey: options.apiKey,
             baseUrl: options.baseURL || process.env.GOOGLE_BASE_URL,
             maxRetries: 1,
-            streaming: true,
+            streaming,
             streamUsage: true,
             thinkingConfig: {},
             metadata: options.metadata,
@@ -60,6 +62,7 @@ export const initChatModel = async (modelId: string, options: InitChatModelOptio
                 apiKey: options.apiKey,
             },
             streamUsage: true,
+            streaming,
             maxRetries: 1,
             modelKwargs: enableThinking
                 ? {

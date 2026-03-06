@@ -16,7 +16,7 @@ export const initChatModel = async (mainModel: string, options: InitChatModelOpt
         model = new ChatAnthropic({
             model: mainModel,
             streamUsage: true,
-            streaming: true,
+            streaming: false,
             maxRetries: 1,
             maxTokens: 65536,
             thinking: enableThinking
@@ -30,6 +30,7 @@ export const initChatModel = async (mainModel: string, options: InitChatModelOpt
         model = new ChatOpenAI({
             model: mainModel,
             streamUsage: true,
+            streaming: false,
             maxRetries: 1,
             modelKwargs: enableThinking
                 ? {

@@ -68,6 +68,7 @@ export async function runNonInteractive(prompt?: string, useStdin: boolean = fal
             provider_type: config.provider_type || config.provider_id,
             model_id: config.model_id,
             enable_thinking: config.enable_thinking,
+            streaming: config.streaming ?? false,
             cwd: process.cwd(), // 添加 cwd 字段，供 filesystem tools 使用
         };
 
