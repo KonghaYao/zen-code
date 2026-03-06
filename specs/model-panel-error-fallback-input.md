@@ -4,7 +4,9 @@
 
 当 zen-code 的 Model 面板遇到接口错误或模型列表为空时，显示一个文本输入框允许用户手动输入模型名称，默认值使用当前配置的模型名称。
 
-**Status**: 📋 Planned
+**Status**: ✅ Implemented（2026-03-06 验证）
+
+**已实现差异**：`ModelFallbackInput` 还额外支持 `onSwitchProvider` prop 用于 Tab/箭头键切换 provider，超出原规格设计。
 
 ## User Requirements
 

@@ -1,5 +1,7 @@
 # Process Controller Panel - 进程控制器面板
 
+> **状态**: ✅ 已实现（2026-03-06 验证 - ProcessPanel, ProcessOutputPanel, ProcessManagerService 均已实现）
+
 ## 概述
 
 为 zen-code 设计一个进程控制器面板，用于监控和管理 terminal 工具创建的子进程。用户可以查看所有后台进程的状态、资源使用情况，并支持一键关闭和查看实时输出。

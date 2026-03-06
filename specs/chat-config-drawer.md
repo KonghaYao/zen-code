@@ -1,7 +1,7 @@
 # Chat + Config 融合设计：Config Drawer
 
 **日期**: 2026-03-01  
-**状态**: 待实施  
+**状态**: ✅ 已实现（2026-03-06 验证 - ConfigDrawer 组件已完整实现）  
 **目标**: 将 zen-swarm 的 Chat 面板与 Config 面板融合，消除频繁切换的体验割裂感
 
 ---

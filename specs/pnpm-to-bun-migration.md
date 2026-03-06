@@ -4,6 +4,8 @@
 
 将 code-graph 项目从 pnpm workspace 迁移到 bun workspace，统一工具链。
 
+**状态**: ✅ 已完成（bun.lock 存在，pnpm-lock.yaml 已删除）
+
 **Migration Date**: 2026-02-20 **Migration Type**: Aggressive (直接删除 pnpm 配置，全面切换)
 **Motivation**: 统一工具链（bun 内置 test/run/bundle）
 

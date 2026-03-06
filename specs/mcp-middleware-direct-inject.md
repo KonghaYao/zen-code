@@ -1,5 +1,7 @@
 # MCPMiddleware directInject 参数
 
+> **状态**: ✅ 已实现（2026-03-06 验证 - `packages/standard-agent/src/middlewares/mcp.ts` 中已实现）
+
 ## 背景
 
 当前 `MCPMiddleware` 将 MCP 工具包装为两个高阶工具（`load_mcp_tools` +

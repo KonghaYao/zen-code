@@ -1,5 +1,8 @@
 # zen-swarm File Explorer - VSCode 风格三栏布局
 
+> **状态**: ✅ 已实现（2026-03-06 验证 - `zen-swarm/src/frontend/views/Finder/` 和
+> `zen-swarm/src/frontend/components/finder/` 已实现）
+
 ## 一、项目概述
 
 将 zen-swarm 的文件系统改造为类似 VSCode 的三栏布局工具：

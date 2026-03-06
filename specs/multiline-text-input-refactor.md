@@ -1,5 +1,7 @@
 # MultiLineTextInput 重构设计文档
 
+> **状态**: ✅ 已实现（2026-03-06 验证 - `packages/ink-pro/src/components/Input/MultiLineTextInput.tsx` 已完整实现）
+
 ## 问题分析
 
 ### 当前 EnhancedTextInput 的问题
@@ -26,27 +28,27 @@
 
 ```typescript
 interface TextInputState {
-  // 文本内容（按行存储，每行不含换行符）
-  lines: string[];
-  
-  // 光标位置（二维坐标）
-  cursorLine: number;      // 0-based 行号
-  cursorColumn: number;    // 0-based 列号
-  
-  // 虚拟滚动
-  firstVisibleLine: number; // 视口第一行索引
-  maxVisibleLines: number;  // 最大显示行数（从终端高度计算）
-  
-  // 粘贴/选择（可选，暂不实现）
-  selectionStart?: { line: number; column: number };
-  selectionEnd?: { line: number; column: number };
+    // 文本内容（按行存储，每行不含换行符）
+    lines: string[];
+
+    // 光标位置（二维坐标）
+    cursorLine: number; // 0-based 行号
+    cursorColumn: number; // 0-based 列号
+
+    // 虚拟滚动
+    firstVisibleLine: number; // 视口第一行索引
+    maxVisibleLines: number; // 最大显示行数（从终端高度计算）
+
+    // 粘贴/选择（可选，暂不实现）
+    selectionStart?: { line: number; column: number };
+    selectionEnd?: { line: number; column: number };
 }
 
 interface LineProps {
-  content: string;         // 行内容
-  lineNumber: number;      // 行号
-  showCursor: boolean;     // 是否显示光标
-  cursorColumn: number;    // 光标列位置（仅 showCursor=true 时有效）
+    content: string; // 行内容
+    lineNumber: number; // 行号
+    showCursor: boolean; // 是否显示光标
+    cursorColumn: number; // 光标列位置（仅 showCursor=true 时有效）
 }
 ```
 
@@ -82,17 +84,17 @@ function lineColumnToOffset(lines: string[], line: number, column: number): numb
 
 // 虚拟滚动计算
 function calculateVisibleRange(
-  totalLines: number,
-  firstVisibleLine: number,
-  maxVisibleLines: number
+    totalLines: number,
+    firstVisibleLine: number,
+    maxVisibleLines: number,
 ): { start: number; end: number };
 
 // 光标视口同步（确保光标在可视范围内）
 function ensureCursorVisible(
-  cursorLine: number,
-  firstVisibleLine: number,
-  maxVisibleLines: number,
-  totalLines: number
+    cursorLine: number,
+    firstVisibleLine: number,
+    maxVisibleLines: number,
+    totalLines: number,
 ): number; // 返回新的 firstVisibleLine
 ```
 
@@ -101,140 +103,140 @@ function ensureCursorVisible(
 ### 1. 光标移动
 
 #### 左右箭头
+
 ```typescript
 // 左箭头
 if (cursorColumn > 0) {
-  cursorColumn--;
+    cursorColumn--;
 } else if (cursorLine > 0) {
-  // 移动到上一行末尾
-  cursorLine--;
-  cursorColumn = lines[cursorLine].length;
+    // 移动到上一行末尾
+    cursorLine--;
+    cursorColumn = lines[cursorLine].length;
 }
 
 // 右箭头
 if (cursorColumn < lines[cursorLine].length) {
-  cursorColumn++;
+    cursorColumn++;
 } else if (cursorLine < lines.length - 1) {
-  // 移动到下一行开头
-  cursorLine++;
-  cursorColumn = 0;
+    // 移动到下一行开头
+    cursorLine++;
+    cursorColumn = 0;
 }
 ```
 
 #### 上下箭头（新增）
+
 ```typescript
 // 上箭头
 if (cursorLine > 0) {
-  cursorLine--;
-  // 保持列位置，但不超过当前行长度
-  cursorColumn = Math.min(cursorColumn, lines[cursorLine].length);
+    cursorLine--;
+    // 保持列位置，但不超过当前行长度
+    cursorColumn = Math.min(cursorColumn, lines[cursorLine].length);
 }
 
 // 下箭头
 if (cursorLine < lines.length - 1) {
-  cursorLine++;
-  cursorColumn = Math.min(cursorColumn, lines[cursorLine].length);
+    cursorLine++;
+    cursorColumn = Math.min(cursorColumn, lines[cursorLine].length);
 }
 ```
 
 ### 2. 文本编辑
 
 #### 回车（换行）
+
 ```typescript
 function handleEnter(): void {
-  const currentLine = lines[cursorLine];
-  const beforeCursor = currentLine.slice(0, cursorColumn);
-  const afterCursor = currentLine.slice(cursorColumn);
-  
-  // 拆分当前行
-  lines[cursorLine] = beforeCursor;
-  lines.splice(cursorLine + 1, 0, afterCursor);
-  
-  // 移动光标到下一行开头
-  cursorLine++;
-  cursorColumn = 0;
+    const currentLine = lines[cursorLine];
+    const beforeCursor = currentLine.slice(0, cursorColumn);
+    const afterCursor = currentLine.slice(cursorColumn);
+
+    // 拆分当前行
+    lines[cursorLine] = beforeCursor;
+    lines.splice(cursorLine + 1, 0, afterCursor);
+
+    // 移动光标到下一行开头
+    cursorLine++;
+    cursorColumn = 0;
 }
 ```
 
 #### Backspace
+
 ```typescript
 function handleBackspace(): void {
-  if (cursorColumn > 0) {
-    // 行内删除
-    const currentLine = lines[cursorLine];
-    lines[cursorLine] = 
-      currentLine.slice(0, cursorColumn - 1) + 
-      currentLine.slice(cursorColumn);
-    cursorColumn--;
-  } else if (cursorLine > 0) {
-    // 合并到上一行
-    const prevLineLength = lines[cursorLine - 1].length;
-    lines[cursorLine - 1] += lines[cursorLine];
-    lines.splice(cursorLine, 1);
-    cursorLine--;
-    cursorColumn = prevLineLength;
-  }
+    if (cursorColumn > 0) {
+        // 行内删除
+        const currentLine = lines[cursorLine];
+        lines[cursorLine] = currentLine.slice(0, cursorColumn - 1) + currentLine.slice(cursorColumn);
+        cursorColumn--;
+    } else if (cursorLine > 0) {
+        // 合并到上一行
+        const prevLineLength = lines[cursorLine - 1].length;
+        lines[cursorLine - 1] += lines[cursorLine];
+        lines.splice(cursorLine, 1);
+        cursorLine--;
+        cursorColumn = prevLineLength;
+    }
 }
 ```
 
 #### Delete
+
 ```typescript
 function handleDelete(): void {
-  const currentLine = lines[cursorLine];
-  if (cursorColumn < currentLine.length) {
-    // 行内删除
-    lines[cursorLine] = 
-      currentLine.slice(0, cursorColumn) + 
-      currentLine.slice(cursorColumn + 1);
-  } else if (cursorLine < lines.length - 1) {
-    // 合并下一行
-    lines[cursorLine] += lines[cursorLine + 1];
-    lines.splice(cursorLine + 1, 1);
-  }
+    const currentLine = lines[cursorLine];
+    if (cursorColumn < currentLine.length) {
+        // 行内删除
+        lines[cursorLine] = currentLine.slice(0, cursorColumn) + currentLine.slice(cursorColumn + 1);
+    } else if (cursorLine < lines.length - 1) {
+        // 合并下一行
+        lines[cursorLine] += lines[cursorLine + 1];
+        lines.splice(cursorLine + 1, 1);
+    }
 }
 ```
 
 #### 普通字符输入
+
 ```typescript
 function handleInput(input: string): void {
-  const currentLine = lines[cursorLine];
-  lines[cursorLine] = 
-    currentLine.slice(0, cursorColumn) + 
-    input + 
-    currentLine.slice(cursorColumn);
-  cursorColumn += input.length;
+    const currentLine = lines[cursorLine];
+    lines[cursorLine] = currentLine.slice(0, cursorColumn) + input + currentLine.slice(cursorColumn);
+    cursorColumn += input.length;
 }
 ```
 
 #### 粘贴（含换行符）
+
 ```typescript
 function handlePaste(text: string): void {
-  const newLines = splitTextIntoLines(text);
-  
-  if (newLines.length === 1) {
-    // 单行粘贴：直接插入
-    handleInput(text);
-  } else {
-    // 多行粘贴：拆分当前行并插入多行
-    const currentLine = lines[cursorLine];
-    const beforeCursor = currentLine.slice(0, cursorColumn);
-    const afterCursor = currentLine.slice(cursorColumn);
-    
-    // 替换当前行
-    lines[cursorLine] = beforeCursor + newLines[0];
-    
-    // 插入中间行
-    const middleLines = newLines.slice(1, -1);
-    lines.splice(cursorLine + 1, 0, ...middleLines);
-    
-    // 插入最后一行
-    const lastLine = newLines[newLines.length - 1] + afterCursor;
-    lines.splice(cursorLine + middleLines.length + 1, 0, lastLine);
-    
-    // 移动光标
-    cursorLine += newLines.length - 1;
-    cursorColumn = newLines[newLines.length - 1].length;
-  }
+    const newLines = splitTextIntoLines(text);
+
+    if (newLines.length === 1) {
+        // 单行粘贴：直接插入
+        handleInput(text);
+    } else {
+        // 多行粘贴：拆分当前行并插入多行
+        const currentLine = lines[cursorLine];
+        const beforeCursor = currentLine.slice(0, cursorColumn);
+        const afterCursor = currentLine.slice(cursorColumn);
+
+        // 替换当前行
+        lines[cursorLine] = beforeCursor + newLines[0];
+
+        // 插入中间行
+        const middleLines = newLines.slice(1, -1);
+        lines.splice(cursorLine + 1, 0, ...middleLines);
+
+        // 插入最后一行
+        const lastLine = newLines[newLines.length - 1] + afterCursor;
+        lines.splice(cursorLine + middleLines.length + 1, 0, lastLine);
+
+        // 移动光标
+        cursorLine += newLines.length - 1;
+        cursorColumn = newLines[newLines.length - 1].length;
+    }
 }
 ```
 
@@ -242,27 +244,19 @@ function handlePaste(text: string): void {
 
 ```typescript
 // 计算可视范围
-const { start, end } = calculateVisibleRange(
-  lines.length,
-  firstVisibleLine,
-  maxVisibleLines
-);
+const { start, end } = calculateVisibleRange(lines.length, firstVisibleLine, maxVisibleLines);
 
 // 渲染可见行
 const visibleLines = lines.slice(start, end);
 
 // 光标移出视口时自动滚动
-firstVisibleLine = ensureCursorVisible(
-  cursorLine,
-  firstVisibleLine,
-  maxVisibleLines,
-  lines.length
-);
+firstVisibleLine = ensureCursorVisible(cursorLine, firstVisibleLine, maxVisibleLines, lines.length);
 ```
 
 ## 实现计划
 
 ### Phase 1: 核心工具函数
+
 - [ ] `splitTextIntoLines` - 处理 `\n`, `\r`, `\r\n`
 - [ ] `joinLinesIntoText` - 统一使用 `\n`
 - [ ] `offsetToLineColumn` - 字符索引 → 行列
@@ -270,11 +264,13 @@ firstVisibleLine = ensureCursorVisible(
 - [ ] 单元测试
 
 ### Phase 2: 行渲染组件
+
 - [ ] `LineRenderer` 组件（单行渲染 + 光标）
 - [ ] `VirtualScrollContainer` 组件
 - [ ] 基础样式和光标高亮
 
 ### Phase 3: 状态管理和输入处理
+
 - [ ] 重构 `TextInput` 组件使用 `lines` + `{cursorLine, cursorColumn}`
 - [ ] 实现左右箭头（跨行）
 - [ ] 实现上下箭头（跳行）
@@ -282,17 +278,20 @@ firstVisibleLine = ensureCursorVisible(
 - [ ] 实现 Backspace/Delete（合并行）
 
 ### Phase 4: 虚拟滚动
+
 - [ ] `calculateVisibleRange` 函数
 - [ ] `ensureCursorVisible` 函数
 - [ ] 集成到主组件
 
 ### Phase 5: 高级功能
+
 - [ ] 粘贴多行文本
 - [ ] Home/End 键支持
 - [ ] Ctrl+V 粘贴检测
 - [ ] 性能优化（React.memo）
 
 ### Phase 6: 测试和优化
+
 - [ ] 单元测试（工具函数）
 - [ ] 集成测试（组件交互）
 - [ ] 边界情况处理（空行、超长行、大量文本）
@@ -304,37 +303,40 @@ firstVisibleLine = ensureCursorVisible(
 
 ```typescript
 export type Props = {
-  readonly id?: string;
-  readonly placeholder?: string;
-  readonly autoFocus?: boolean;
-  readonly mask?: string; // 暂不支持，可以隐藏或抛出错误
-  readonly showCursor?: boolean;
-  readonly highlightPastedText?: boolean; // 暂不支持
-  readonly value: string;
-  readonly onChange?: (value: string) => void;
-  readonly onHotKey?: (value: string, key: Key) => boolean;
-  readonly onSubmit?: (value: string) => void; // Ctrl+Enter 或 Cmd+Enter 提交
-  readonly disabled?: boolean;
-}
+    readonly id?: string;
+    readonly placeholder?: string;
+    readonly autoFocus?: boolean;
+    readonly mask?: string; // 暂不支持，可以隐藏或抛出错误
+    readonly showCursor?: boolean;
+    readonly highlightPastedText?: boolean; // 暂不支持
+    readonly value: string;
+    readonly onChange?: (value: string) => void;
+    readonly onHotKey?: (value: string, key: Key) => boolean;
+    readonly onSubmit?: (value: string) => void; // Ctrl+Enter 或 Cmd+Enter 提交
+    readonly disabled?: boolean;
+};
 ```
 
 **新增 Props**（可选）：
+
 ```typescript
 export type MultiLineProps = Props & {
-  readonly maxLines?: number; // 最大行数限制
-  readonly maxVisibleLines?: number; // 最大可见行数（自动计算终端高度）
-  readonly enableVirtualScroll?: boolean; // 是否启用虚拟滚动
-}
+    readonly maxLines?: number; // 最大行数限制
+    readonly maxVisibleLines?: number; // 最大可见行数（自动计算终端高度）
+    readonly enableVirtualScroll?: boolean; // 是否启用虚拟滚动
+};
 ```
 
 ## 技术考虑
 
 ### 性能优化
+
 1. **虚拟滚动**：只渲染可见行，避免大量 DOM 节点
 2. **React.memo**：`LineRenderer` 使用 memo 避免不必要的重渲染
 3. **状态批量更新**：使用 `setState` 的函数形式避免竞态条件
 
 ### 边界情况
+
 1. **空文本**：`lines = [""]`
 2. **空行**：`lines = ["", "hello", ""]`
 3. **超长行**：超过终端宽度时由 Ink 自动处理（或截断显示）
@@ -342,6 +344,7 @@ export type MultiLineProps = Props & {
 5. **大量文本**：测试 1000+ 行的性能
 
 ### 兼容性
+
 1. **换行符统一**：内部使用 `\n`，只在 `joinLinesIntoText` 时转换
 2. **外部 API**：`value` 和 `onChange` 仍然使用完整字符串
 3. **光标高亮**：使用 `chalk.inverse` 保持原有样式
@@ -356,30 +359,30 @@ export type MultiLineProps = Props & {
 
 ```typescript
 describe('MultiLineTextInput', () => {
-  describe('工具函数', () => {
-    test('splitTextIntoLines 处理 \\n');
-    test('splitTextIntoLines 处理 \\r\\n');
-    test('offsetToLineColumn 正确计算行列');
-    test('lineColumnToOffset 正确计算索引');
-  });
-  
-  describe('光标移动', () => {
-    test('左右箭头在单行内移动');
-    test('左右箭头跨行移动');
-    test('上下箭头跳行');
-    test('上下箭头保持列位置');
-  });
-  
-  describe('文本编辑', () => {
-    test('回车拆分行');
-    test('Backspace 合并行');
-    test('粘贴多行文本');
-  });
-  
-  describe('虚拟滚动', () => {
-    test('只渲染可见行');
-    test('光标移出视口时自动滚动');
-  });
+    describe('工具函数', () => {
+        test('splitTextIntoLines 处理 \\n');
+        test('splitTextIntoLines 处理 \\r\\n');
+        test('offsetToLineColumn 正确计算行列');
+        test('lineColumnToOffset 正确计算索引');
+    });
+
+    describe('光标移动', () => {
+        test('左右箭头在单行内移动');
+        test('左右箭头跨行移动');
+        test('上下箭头跳行');
+        test('上下箭头保持列位置');
+    });
+
+    describe('文本编辑', () => {
+        test('回车拆分行');
+        test('Backspace 合并行');
+        test('粘贴多行文本');
+    });
+
+    describe('虚拟滚动', () => {
+        test('只渲染可见行');
+        test('光标移出视口时自动滚动');
+    });
 });
 ```
 
@@ -407,11 +410,14 @@ describe('MultiLineTextInput', () => {
 ### ✅ 已完成的功能
 
 #### 核心实现文件
+
 - `tui/src/chat/components/input/MultiLineTextInput.tsx` - 主组件实现
 - `tui/src/chat/components/input/textInputUtils.ts` - 工具函数库
 
 #### Phase 1: 核心工具函数 ✅
+
 实现了所有核心工具函数：
+
 - `splitTextIntoLines()` - 处理 `\n`, `\r`, `\r\n`，统一使用 `\n` 作为内部换行符
 - `joinLinesIntoText()` - 将行数组合并为完整文本
 - `calculateVisibleRange()` - 计算虚拟滚动可视范围
@@ -419,13 +425,16 @@ describe('MultiLineTextInput', () => {
 - `clampCursor()` - 限制光标在有效范围内
 
 #### Phase 2: 行渲染组件 ✅
+
 - `LineRenderer` 组件：使用 `React.memo` 优化性能
 - 支持光标高亮显示（使用 `chalk.inverse`）
 - 正确处理 Unicode 字符宽度（使用 `string-width` 库）
 - 字符级渲染以准确定位光标
 
 #### Phase 3: 状态管理和输入处理 ✅
+
 完整的输入处理逻辑：
+
 - **左右箭头**：支持跨行移动
 - **上下箭头**：支持跳行，保持列位置（不超过行长度）
 - **Home/End 键**：支持 Ctrl+A / Ctrl+E / Cmd+Left / Cmd+Right
@@ -434,62 +443,66 @@ describe('MultiLineTextInput', () => {
 - **普通字符输入**：单字符和字符串输入
 
 #### Phase 4: 虚拟滚动 ✅
+
 - 动态计算最大可见行数（默认 10 行或总行数）
 - 只渲染可见范围内的行
 - 光标移动时自动滚动视口
 
 #### Phase 5: 高级功能 ✅
+
 - **粘贴多行文本**：智能处理单行和多行粘贴
 - **快捷键支持**：
-  - `Ctrl+A` / `Cmd+Left`: 跳到行首
-  - `Ctrl+E` / `Cmd+Right`: 跳到行末
-  - `Ctrl+Up` / `Cmd+Up`: 跳到行首
-  - `Ctrl+Down` / `Cmd+Down`: 跳到行末
+    - `Ctrl+A` / `Cmd+Left`: 跳到行首
+    - `Ctrl+E` / `Cmd+Right`: 跳到行末
+    - `Ctrl+Up` / `Cmd+Up`: 跳到行首
+    - `Ctrl+Down` / `Cmd+Down`: 跳到行末
 - **性能优化**：
-  - `LineRenderer` 使用 `memo` 避免不必要的重渲染
-  - 使用 `useCallback` 和 `useMemo` 优化回调函数和计算结果
+    - `LineRenderer` 使用 `memo` 避免不必要的重渲染
+    - 使用 `useCallback` 和 `useMemo` 优化回调函数和计算结果
 
 #### Phase 6: 测试和优化 ✅
+
 - 边界情况处理：
-  - 空文本：显示 placeholder
-  - 空行：正确渲染和导航
-  - 超长行：由 Ink 自动换行处理
-  - 光标在行首/行末：正确处理跨行移动
+    - 空文本：显示 placeholder
+    - 空行：正确渲染和导航
+    - 超长行：由 Ink 自动换行处理
+    - 光标在行首/行末：正确处理跨行移动
 
 ### 🔄 实现与设计的差异
 
 #### 1. Enter 键行为调整
-**设计**：Enter 换行，Ctrl/Cmd+Enter 提交
-**实现**：Enter 提交，Ctrl/Cmd+Enter 换行
+
+**设计**：Enter 换行，Ctrl/Cmd+Enter 提交 **实现**：Enter 提交，Ctrl/Cmd+Enter 换行
 
 **原因**：与用户习惯和现有 `EnhancedTextInputV2` 行为保持一致
 
 #### 2. 工具函数简化
+
 **设计**：`offsetToLineColumn` 和 `lineColumnToOffset` 用于字符索引和行列坐标转换
 **实现**：直接使用行列坐标，未实现字符索引转换
 
 **原因**：简化实现，当前场景不需要字符索引操作
 
 #### 3. 虚拟滚动实现
-**设计**：独立的 `VirtualScrollContainer` 组件
-**实现**：直接在主组件中实现虚拟滚动逻辑
+
+**设计**：独立的 `VirtualScrollContainer` 组件 **实现**：直接在主组件中实现虚拟滚动逻辑
 
 **原因**：代码结构更简洁，易于维护
 
 #### 4. 性能优化策略
-**设计**：大量使用 React.memo
-**实现**：仅 `LineRenderer` 使用 memo，其他优化通过 useCallback/useMemo
+
+**设计**：大量使用 React.memo **实现**：仅 `LineRenderer` 使用 memo，其他优化通过 useCallback/useMemo
 
 **原因**：平衡性能和代码复杂度
 
 ### 📊 实际性能表现
 
-| 指标 | 表现 |
-|------|------|
-| 渲染行数 | 只渲染可见行（~10行） |
-| 光标移动延迟 | < 50ms |
-| 内存占用 | 与行数线性增长 |
-| 大文本测试 | 1000+ 行流畅 |
+| 指标         | 表现                  |
+| ------------ | --------------------- |
+| 渲染行数     | 只渲染可见行（~10行） |
+| 光标移动延迟 | < 50ms                |
+| 内存占用     | 与行数线性增长        |
+| 大文本测试   | 1000+ 行流畅          |
 
 ### 🎯 使用示例
 
@@ -497,21 +510,21 @@ describe('MultiLineTextInput', () => {
 import { MultiLineTextInput } from './components/input/MultiLineTextInput';
 
 function ChatInput() {
-  const [value, setValue] = useState('');
-  
-  return (
-    <MultiLineTextInput
-      value={value}
-      onChange={setValue}
-      onSubmit={(submittedValue) => {
-        console.log('Submitted:', submittedValue);
-      }}
-      placeholder="输入消息..."
-      autoFocus
-      maxVisibleLines={10}
-      enableVirtualScroll={true}
-    />
-  );
+    const [value, setValue] = useState('');
+
+    return (
+        <MultiLineTextInput
+            value={value}
+            onChange={setValue}
+            onSubmit={(submittedValue) => {
+                console.log('Submitted:', submittedValue);
+            }}
+            placeholder="输入消息..."
+            autoFocus
+            maxVisibleLines={10}
+            enableVirtualScroll={true}
+        />
+    );
 }
 ```
 
@@ -536,34 +549,34 @@ function ChatInput() {
 
 ```typescript
 export type MultiLineProps = {
-  readonly id?: string;                    // 组件唯一标识
-  readonly placeholder?: string;           // 占位符文本
-  readonly autoFocus?: boolean;            // 自动聚焦
-  readonly showCursor?: boolean;           // 显示光标
-  readonly value: string;                  // 当前值
-  readonly onChange?: (value: string) => void;      // 值变化回调
-  readonly onSubmit?: (value: string) => void;      // 提交回调（Enter）
-  readonly onHotKey?: (value: string, key: Key) => boolean;  // 快捷键回调
-  readonly disabled?: boolean;             // 禁用状态
-  readonly maxVisibleLines?: number;       // 最大可见行数
-  readonly enableVirtualScroll?: boolean;  // 启用虚拟滚动
+    readonly id?: string; // 组件唯一标识
+    readonly placeholder?: string; // 占位符文本
+    readonly autoFocus?: boolean; // 自动聚焦
+    readonly showCursor?: boolean; // 显示光标
+    readonly value: string; // 当前值
+    readonly onChange?: (value: string) => void; // 值变化回调
+    readonly onSubmit?: (value: string) => void; // 提交回调（Enter）
+    readonly onHotKey?: (value: string, key: Key) => boolean; // 快捷键回调
+    readonly disabled?: boolean; // 禁用状态
+    readonly maxVisibleLines?: number; // 最大可见行数
+    readonly enableVirtualScroll?: boolean; // 启用虚拟滚动
 };
 ```
 
 #### 快捷键列表
 
-| 快捷键 | 功能 |
-|--------|------|
-| `Enter` | 提交文本 |
-| `Ctrl+Enter` / `Cmd+Enter` | 换行 |
-| `←` / `→` | 左右移动光标（支持跨行） |
-| `↑` / `↓` | 上下移动光标（跳行） |
-| `Ctrl+A` / `Cmd+←` | 跳到行首 |
-| `Ctrl+E` / `Cmd+→` | 跳到行末 |
-| `Backspace` | 删除前一个字符（支持跨行合并） |
-| `Delete` | 删除后一个字符（支持跨行合并） |
-| `Ctrl+C` | 复制（由外部处理） |
-| `Ctrl+V` | 粘贴（自动检测多行） |
+| 快捷键                     | 功能                           |
+| -------------------------- | ------------------------------ |
+| `Enter`                    | 提交文本                       |
+| `Ctrl+Enter` / `Cmd+Enter` | 换行                           |
+| `←` / `→`                  | 左右移动光标（支持跨行）       |
+| `↑` / `↓`                  | 上下移动光标（跳行）           |
+| `Ctrl+A` / `Cmd+←`         | 跳到行首                       |
+| `Ctrl+E` / `Cmd+→`         | 跳到行末                       |
+| `Backspace`                | 删除前一个字符（支持跨行合并） |
+| `Delete`                   | 删除后一个字符（支持跨行合并） |
+| `Ctrl+C`                   | 复制（由外部处理）             |
+| `Ctrl+V`                   | 粘贴（自动检测多行）           |
 
 ### 🔍 技术亮点
 

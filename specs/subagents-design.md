@@ -1,535 +1,203 @@
 # Subagents 设计文档
 
+> **状态**: ✅ 已完成（实现与本文档一致） **最后验证**: 2026-03-06
+
 ## 1. 概述
 
 ### 1.1 目标
 
-设计一个基于 LangGraph `switchBranch` 的 subagents 系统，允许：
+基于 LangGraph `switchBranch` 的 subagents 系统，允许：
 
 - 后端通过分支选择不同的 agent 执行路径
 - 前端通过参数控制使用的 agent
-- 与现有的 SubAgentsMiddleware 插件系统独立运行
+- 与 SubAgentsMiddleware 插件系统独立运行
 
 ### 1.2 与现有系统的区别
 
-| 维度       | 现有 SubAgentsMiddleware       | 新 SwitchBranch Subagents |
-| ---------- | ------------------------------ | ------------------------- |
-| 实现方式   | Tool 调用 + Middleware 注入    | LangGraph switchBranch    |
-| 触发机制   | AI 决定调用 ask_subagents tool | 前端参数控制 + 状态驱动   |
-| 状态管理   | task_store 存储子任务状态      | 共享主状态，分支执行      |
-| 使用场景   | AI 自主委托专门任务            | 用户明确切换 agent 模式   |
-| 上下文隔离 | 完全隔离的子状态               | 共享历史记录              |
+| 维度       | SubAgentsMiddleware            | SwitchBranch Subagents  |
+| ---------- | ------------------------------ | ----------------------- |
+| 实现方式   | Tool 调用 + Middleware 注入    | LangGraph switchBranch  |
+| 触发机制   | AI 决定调用 ask_subagents tool | 前端参数控制 + 状态驱动 |
+| 状态管理   | task_store 存储子任务状态      | 共享主状态，分支执行    |
+| 使用场景   | AI 自主委托专门任务            | 用户明确切换 agent 模式 |
+| 上下文隔离 | 完全隔离的子状态               | 共享历史记录            |
 
 ### 1.3 设计原则
 
 - **状态驱动**：通过 `switch_command` 字段控制分支选择
-- **参数化配置**：前端可传入 agent 类型和参数
-- **最小侵入**：复用现有状态和工具系统
+- **AgentPackage 驱动**：所有 agent 配置由 `AgentPackage` 管理，非硬编码
 - **类型安全**：TypeScript 严格模式，明确 agent 配置 schema
 
 ---
 
 ## 2. 状态设计
 
-使用现有的 `switch_command` 字段控制 agent 切换，无需修改 state schema。
+使用现有的 `switch_command` 字段控制 agent 切换。
 
-可用的 switch_command 值：
+**可用的 switch_command 值**（`packages/agent/src/state.ts`）：
 
-- `summarization` - 现有：对话总结
-- `smart_memory` - 现有：智能记忆
-- `default` - 默认：完整能力 Code Agent（使用 `prompts/coding.ts` 提示词）
-- `finder` - 文件搜索 agent（只读工具）
-- `planner` - 任务规划 agent
-- `reviewer` - 代码审查 agent
+- `''`（空字符串）/ `'default'` - 默认：Jarvis，完整能力代码助手（`agents/default`）
+- `'agents/manager'` - 任务管理员（`agents/manager`）
+- `'smart_memory'` - 智能记忆（内置特殊分支）
 
 ---
 
 ## 3. 后端实现
 
-### 3.1 Agent 配置定义
+### 3.1 Agent 配置系统
+
+**当前架构**（已从硬编码 `AgentConfig` 迁移到 `AgentPackage`）：
+
+```
+packages/agent/src/subagents/
+├── loader.ts          # 加载默认配置到 AgentPackage（MemoryStorage）
+├── tools.ts           # 注册工具到 pkg.tools registry
+├── middlewares.ts     # 注册中间件到 pkg.middlewares registry
+├── config.ts          # loadAgentsList() 从 AgentPackage 读取 FEAgentConfig
+└── factory-v2.ts      # createStandardAgentV2() 工厂函数
+```
+
+**`loader.ts` 中注册的 Agent**（`packages/agent/src/subagents/loader.ts`）：
 
 ```typescript
-// agents/code/subagents/config.ts
-
-export interface AgentConfig {
-    id: string;
-    name: string;
-    description: string;
-    systemPrompt: string | ((state: any) => Promise<string> | string);
-    tools: string[];
+// agents/default - Jarvis 代码实现助手
+await pkg.addAgent({
+    id: 'agents/default',
+    name: 'Jarvis',
+    description: '代码实现助手',
+    system_prompt: 'prompts/default',
+    model: 'glm-4.7',
+    tools: {
+        ask_user_questions: true,
+        todo_write: true,
+    },
     middleware: {
-        agents_md?: boolean;
-        skills?: boolean;
-        memories?: boolean;
-        mcp?: boolean;
-        subagents?: boolean;
-        cache?: boolean;
-    };
-}
+        filesystem: true,
+        terminal: true,
+        agents_md: true,
+        skills: true,
+        memories: true,
+        subagents: true,
+    },
+});
 
-// Agent 配置加载函数
-export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
-    const { getSystemPrompt } = await import('../prompts/coding.js');
-
-    return {
-        default: {
-            id: 'default',
-            name: 'Code Agent',
-            description: '全功能代码助手',
-            systemPrompt: getSystemPrompt, // 使用 prompts/coding.ts 的完整提示词
-            tools: ['all'],
-            middleware: {
-                agents_md: true,
-                skills: true,
-                memories: true,
-                mcp: true,
-                subagents: true,
-                cache: process.env.MODEL_PROVIDER === 'anthropic',
-            },
-        },
-        finder: {
-            id: 'finder',
-            name: 'Finder Agent',
-            description: '文件搜索专家，只读工具',
-            systemPrompt: '你是文件搜索专家，专注于文件查找和只读分析。',
-            tools: ['glob_files', 'search_files_rg', 'read_file'],
-            middleware: {
-                agents_md: true,
-                skills: true,
-                memories: true,
-                mcp: false,
-                subagents: false,
-                cache: false,
-            },
-        },
-        planner: {
-            id: 'planner',
-            name: 'Planner Agent',
-            description: '任务规划专家',
-            systemPrompt: '你是任务规划专家，专注于理解目标、拆解步骤、创建待办清单。不执行代码修改。',
-            tools: ['todo_write', 'ask_user_with_options'],
-            middleware: {
-                agents_md: true,
-                skills: false,
-                memories: false,
-                mcp: false,
-                subagents: false,
-                cache: false,
-            },
-        },
-        reviewer: {
-            id: 'reviewer',
-            name: 'Reviewer Agent',
-            description: '代码审查专家，只读分析',
-            systemPrompt: '你是代码审查专家，关注代码质量、规范、潜在 bug、性能优化建议。不直接修改代码。',
-            tools: ['glob_files', 'search_files_rg', 'read_file'],
-            middleware: {
-                agents_md: true,
-                skills: true,
-                memories: true,
-                mcp: false,
-                subagents: false,
-                cache: false,
-            },
-        },
-    };
-}
-
-// 获取默认 agent ID
-export function getDefaultAgentId(): string {
-    return 'default';
-}
+// agents/manager - 任务管理员
+await pkg.addAgent({
+    id: 'agents/manager',
+    name: 'Manager',
+    description: '任务管理员',
+    system_prompt: 'prompts/manager',
+    model: 'glm-4.7',
+    tools: { ask_user_questions: true, todo_write: true },
+    middleware: {
+        filesystem: true,
+        terminal: true,
+        agents_md: true,
+        skills: true,
+        memories: true,
+        subagents: true,
+    },
+});
 ```
 
-**关键设计决策**：
+**注意**：`config.ts` 的 `loadAgentsList()` 需要传入 `AgentPackage` 实例（非原设计的零参数调用）。
 
-- **默认 agent 在配置中**：所有 agents（包括 default）统一在 `loadAgentsList()` 定义
-- **动态提示词支持**：`systemPrompt` 可以是函数（如 `getSystemPrompt(state)`）
-- **代码直接引用**：通过 `import` 直接加载 `prompts/coding.ts`，避免动态文件路径
-
-### 3.2 标准 Agent 工厂
+### 3.2 Agent 工厂（factory-v2.ts）
 
 ```typescript
-// agents/code/subagents/factory.ts
+// packages/agent/src/subagents/factory-v2.ts
 
-import { initChatModel } from '../initChatModel.js';
-import { createAgent, Runtime } from 'langchain';
-import { CodeState, CodeStateType } from '../state.js';
-import {
-    AgentsMdMiddleware,
-    SkillsMiddleware,
-    MemoriesMiddleware,
-    MCPMiddleware,
-    humanInTheLoopMiddleware,
-    anthropicPromptCachingMiddleware,
-    SubAgentsMiddleware,
-} from '../middlewares/index.js';
-import { bash_tools } from '../tools/bash_tools/index.js';
-import {
-    ask_user_with_options,
-    todo_write_tool,
-    glob_tool,
-    grep_tool,
-    read_tool,
-    write_tool,
-    replace_tool,
-} from '../tools/index.js';
-import { create_finder } from '../subagents/finder.js';
-import { getSystemPrompt } from '../prompts/coding.js';
-import type { AgentConfig } from './config.js';
-
-// 所有可用工具
-const ALL_TOOLS = [
-    ask_user_with_options,
-    todo_write_tool,
-    glob_tool,
-    grep_tool,
-    read_tool,
-    write_tool,
-    replace_tool,
-    ...bash_tools,
-];
-
-// 工具映射
-const TOOL_MAP = new Map(ALL_TOOLS.map((t) => [t.name, t]));
-
-/**
- * 创建标准 Agent，支持配置项开关
- */
-export async function createStandardAgent(config: AgentConfig, state: CodeStateType, runtime: Runtime) {
-    const model = await initChatModel(state.main_model, {
-        modelProvider: process.env.MODEL_PROVIDER || 'openai',
-        streamUsage: true,
-        enableThinking: state.enable_thinking ?? true,
-    });
-
-    // 根据配置筛选工具
-    const tools = config.tools.includes('all')
-        ? ALL_TOOLS
-        : config.tools.map((name) => TOOL_MAP.get(name)).filter(Boolean);
-
-    // 构建中间件链
-    const middleware = [];
-
-    if (config.middleware.subagents) {
-        const subagents = new SubAgentsMiddleware();
-        subagents.addSubAgents('finder', create_finder);
-        middleware.push(subagents);
-    }
-
-    if (config.middleware.agents_md) {
-        middleware.push(new AgentsMdMiddleware());
-    }
-
-    if (config.middleware.skills) {
-        middleware.push(
-            new SkillsMiddleware({
-                projectSkillsDir: './.claude/skills',
-            }),
-        );
-    }
-
-    if (config.middleware.memories) {
-        middleware.push(
-            new MemoriesMiddleware({
-                projectMemoriesDir: './.claude/memories',
-            }),
-        );
-    }
-
-    if (config.middleware.mcp) {
-        middleware.push(await MCPMiddleware(state.mcp_config as any));
-    }
-
-    // HITL 默认启用
-    middleware.push(
-        humanInTheLoopMiddleware({
-            interruptOn: {
-                terminal: { allowedDecisions: ['approve', 'reject', 'edit'] },
-            },
-        }),
-    );
-
-    if (config.middleware.cache && process.env.MODEL_PROVIDER === 'anthropic') {
-        middleware.push(anthropicPromptCachingMiddleware());
-    }
-
-    // 解析 system prompt（支持字符串和函数）
-    const systemPrompt =
-        typeof config.systemPrompt === 'function' ? await config.systemPrompt(state) : config.systemPrompt;
-
-    return createAgent({
-        name: config.name,
-        model,
-        systemPrompt,
-        tools,
-        stateSchema: CodeState,
-        middleware,
-    });
-}
-
-/**
- * 获取所有可用工具名称（用于配置验证）
- */
-export function getAvailableToolNames(): Set<string> {
-    return new Set(TOOL_MAP.keys());
-}
+export async function createStandardAgentV2(
+    agentId: string,
+    pkg: AgentPackage,
+    state: CodeStateType,
+    runtime: Runtime,
+    options?: { parent_id?: string },
+): Promise<ReactAgent>;
 ```
 
-**关键实现细节**：
+**工厂流程**：
 
-- **工具白名单**：通过 `tools` 数组控制 agent 可用工具
-- **中间件开关**：每个中间件独立配置，按需启用
-- **Prompt 函数支持**：判断 `systemPrompt` 类型，函数则调用并传入 `state`
+1. 从 `pkg.getAgent(agentId)` 加载 agent 配置
+2. 从 `pkg.validateAgent(agentId)` 验证配置
+3. 使用 `state.model_id` 和 `state.provider_type` 初始化模型
+4. 从 `pkg.tools` registry 加载工具
+5. 从 `pkg.middlewares` registry 加载中间件
+6. 始终追加 `MCPWithConfigMiddleware`（MCP 工具）
+7. 追加 `humanInTheLoopMiddleware`（YOLO_MODE 控制 terminal 审批）
+8. 追加 `anthropicPromptCachingMiddleware`（Anthropic 时启用）
+9. 加载 `prompts/xxx` 的内容作为系统提示词
 
-### 3.3 Graph 节点实现
+**isSubAgent 逻辑**：
+
+- `options.parent_id` 存在 → 为子代理
+- 子代理跳过 `subagents` 中间件（避免无限递归）
+
+### 3.3 Graph 节点（graphBuilder.ts）
 
 ```typescript
-// agents/code/graph.ts
+// packages/agent/src/graphBuilder.ts
 
-import { Runtime, HumanMessage, SystemMessage } from 'langchain';
-import { CodeAnnotation as CodeState, CodeStateType } from './state.js';
-import { getBufferMessage } from './utils/get_buffer_message.js';
-import { REMOVE_ALL_MESSAGES, START, StateGraph } from '@langchain/langgraph';
-import { AIMessage, RemoveMessage } from '@langchain/core/messages';
-import { initChatModel } from './initChatModel.js';
-import { analyzeAndSaveMemories } from './memories/analyze.js';
-import { loadAgentsList, getDefaultAgentId, type AgentConfig } from './subagents/config.js';
-import { createStandardAgent } from './subagents/factory.js';
+export function createCodeGraph() {
+    return new StateGraph(CodeState)
+        .addNode('graph', async (state, runtime) => {
+            const { switch_command: cmd } = state;
 
-// 缓存 agent 配置
-let agentConfigs: Record<string, AgentConfig> | null = null;
+            // 特殊分支
+            if (cmd === 'smart_memory') return switchBranch.smart_memory(state);
 
-// 特殊分支处理
-const switchBranch = {
-    summarization: async (state: CodeStateType) => {
-        const model = await initChatModel(state.main_model, {
-            modelProvider: process.env.MODEL_PROVIDER || 'openai',
-            streamUsage: true,
-            enableThinking: state.enable_thinking ?? true,
-        });
-        const summaryPrompt = (await import('./middlewares/memory.js')).summary_prompt;
-        const message = await model.invoke([
-            new SystemMessage(summaryPrompt),
-            new HumanMessage(getBufferMessage(state.messages)),
-            new HumanMessage('请总结上面的历史记录'),
-        ]);
-        return {
-            switch_command: '',
-            messages: [new RemoveMessage({ id: REMOVE_ALL_MESSAGES }), message],
-        };
-    },
-    smart_memory: async (state: CodeStateType) => {
-        const model = await initChatModel(state.main_model, {
-            modelProvider: process.env.MODEL_PROVIDER || 'openai',
-            streamUsage: true,
-            enableThinking: state.enable_thinking ?? true,
-        });
-        const summaryContent = await analyzeAndSaveMemories(model, getBufferMessage(state.messages));
-        return {
-            switch_command: '',
-            messages: [new RemoveMessage({ id: REMOVE_ALL_MESSAGES }), new AIMessage(summaryContent)],
-        };
-    },
-} as const;
+            // 从 agentPackage 单例加载
+            const pkg = agentPackage;
+            const availableAgents = await getAvailableAgentIds(pkg);
 
-// 调用 agent 的通用函数
-async function invokeAgent(config: AgentConfig, state: CodeStateType, runtime: Runtime) {
-    const agent = await createStandardAgent(config, state, runtime);
-    const response = await agent.invoke(state, { recursionLimit: 200 });
-    return {
-        switch_command: '',
-        task_store: response.task_store,
-        messages: response.messages,
-    };
+            // 路由逻辑：'default' 或空字符串 → 'agents/default'
+            const agentId = (cmd === 'default' ? 'agents/default' : cmd) || 'agents/default';
+
+            if (!availableAgents.includes(agentId)) {
+                throw new Error(`Unknown agent: ${cmd}. Available: ${availableAgents.join(', ')}`);
+            }
+            return invokeAgent(agentId, pkg, state, runtime);
+        })
+        .addEdge(START, 'graph')
+        .compile();
 }
-
-// 主节点
-export const graph = new StateGraph(CodeState)
-    .addNode('graph', async (state: CodeStateType, runtime: Runtime) => {
-        const { switch_command: cmd } = state;
-
-        // 优先处理特殊分支
-        if (cmd === 'summarization') return switchBranch.summarization(state);
-        if (cmd === 'smart_memory') return switchBranch.smart_memory(state);
-
-        // 加载 agent 配置（带缓存）
-        const configs = agentConfigs || (await loadAgentsList());
-        agentConfigs ??= configs;
-
-        // 确定使用的 agent ID
-        const agentId = cmd || getDefaultAgentId();
-        const config = configs[agentId];
-
-        if (!config) {
-            throw new Error(`Unknown agent: ${agentId}. Available: ${Object.keys(configs).join(', ')}`);
-        }
-
-        return invokeAgent(config, state, runtime);
-    })
-    .addEdge(START, 'graph')
-    .compile();
 ```
 
-**路由逻辑**：
-
-1. 检查特殊命令（`summarization`、`smart_memory`）
-2. 如果有 `switch_command`，使用对应的 agent 配置
-3. 如果 `switch_command` 为空，使用 `getDefaultAgentId()` 返回 `default`
-4. 创建并调用 agent
+**注意**：`summarization` 分支已从 graphBuilder 中移除（原文档有误）。
 
 ---
 
 ## 4. 前端实现
 
-### 4.1 配置持久化
+### 4.1 AgentPanel 组件
+
+**文件**: `zen-code/src/chat/components/panels/AgentPanel.tsx`
 
 ```typescript
-// tui/src/chat/store/index.ts
+// 当前 agent 从 config.switch_command 读取
+const currentAgentId = config?.switch_command || 'default';
 
-export interface AppConfig {
-    main_model: string;
-    model_provider?: string;
-    mcp_config?: MCPConfig;
-    openai_api_key?: string;
-    openai_base_url?: string;
-    anthropic_api_key?: string;
-    anthropic_base_url?: string;
-    stream_refresh_interval?: number;
-    enable_thinking?: boolean;
-    switch_command?: string; // 新增：当前 agent ID
-}
+// 切换时写入 config
+const switchCommand = agentId === 'default' ? '' : agentId;
+await updateConfig({ switch_command: switchCommand });
 ```
 
-### 4.2 Settings Context 扩展
+### 4.2 zen-swarm 端
+
+**文件**: `zen-swarm/src/frontend/views/ChatView.tsx`
+
+zen-swarm 通过 `selectedAgentId` 状态管理当前 agent，在 `sendMessage` 时通过 `extraParams` 传递：
 
 ```typescript
-// tui/src/chat/context/SettingsContext.tsx
-
-const extraParams = useMemo(() => {
-    return {
-        main_model: config?.main_model || AVAILABLE_MODELS[0]?.id,
-        cwd: process.cwd(),
-        mcp_config: config?.mcp_config,
-        enable_thinking: config?.enable_thinking ?? true,
-        switch_command: config?.switch_command || '', // 从 config 读取
-    };
-}, [config, AVAILABLE_MODELS]);
-```
-
-### 4.3 Agent Panel 组件
-
-```typescript
-// tui/src/chat/components/AgentPanel.tsx
-
-interface AgentPanelProps {
-    onClose: () => void;
-}
-
-const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
-    const { isFocused } = useFocus({ autoFocus: true });
-    const { config, updateConfig } = useSettings();
-    const [agents, setAgents] = useState<AgentConfig[]>([]);
-    const [selectedIndex, setSelectedIndex] = useState(0);
-
-    // 当前 agent ID（直接从 config 读取）
-    const currentAgentId = config?.switch_command || 'default';
-
-    // 加载 agents
-    useEffect(() => {
-        loadAgentsList().then((configs) => {
-            const agentList = Object.values(configs);
-            setAgents(agentList);
-
-            // 初始化时选中当前 agent
-            const currentIndex = agentList.findIndex((a) => a.id === currentAgentId);
-            if (currentIndex !== -1) {
-                setSelectedIndex(currentIndex);
-            }
-        });
-    }, [currentAgentId]); // 当 config.switch_command 变化时重新定位
-
-    const handleAgentSwitch = async (agentId: string) => {
-        try {
-            // 空字符串表示重置为默认
-            const switchCommand = agentId === 'default' ? '' : agentId;
-            await updateConfig({ switch_command: switchCommand });
-
-            // 切换成功后自动关闭面板（config 更新后 currentAgentId 会自动变化）
-            setTimeout(() => {
-                onClose();
-            }, 500);
-        } catch (error) {
-            console.error('Agent 切换失败:', error);
-        }
-    };
-
-    // ... 渲染逻辑
-};
-```
-
-**关键特性**：
-
-- **单数据源**：直接从 `config` 读取当前 agent，无需中间状态
-- **自动同步**：`useEffect` 监听 `currentAgentId`，配置更新后 UI 自动响应
-- **持久化**：调用 `updateConfig` 保存到 `~/.code-graph.json`
-
-### 4.4 命令系统重构
-
-```typescript
-// tui/src/chat/commands/agentCommands.ts
-
-/**
- * /agent command - Open agent selection panel
- */
-export const agentCommand: CommandDefinition = {
-    name: 'agent',
-    description: '打开 Agent 选择面板',
-    aliases: ['a'],
-    usage: '/agent',
-    execute: async (_args: string[], context: CommandContext): Promise<CommandResult> => {
-        if (context.switchToAgent) {
-            context.switchToAgent();
-        }
-
-        return {
-            success: true,
-            message: '打开 Agent 面板',
-            shouldClearInput: true,
-        };
+await sendMessage([...], {
+    extraParams: {
+        agent_id: selectedAgentId,
+        cwd: rootPath,
     },
-};
-
-export const agentCommands: CommandDefinition[] = [agentCommand];
+});
 ```
 
-**简化后的命令系统**：
-
-- ✅ 保留: `/agent` 或 `/a` - 打开 Agent 面板
-- ❌ 删除: `/agent-list` (/al)
-- ❌ 删除: `/agent-reset` (/ar)
-- ❌ 删除: `/agent <id>` 切换逻辑
-
-**优势**：
-
-- 统一面板交互模式（与 model/history/knowledge 一致）
-- 减少命令数量，降低学习成本
-- 可视化选择，避免记忆 agent ID
-
-### 4.5 Chat 组件集成
-
-```typescript
-// tui/src/chat/Chat.tsx
-
-const [activeView, setActiveView] = useState<'chat' | 'history' | 'knowledge' | 'model' | 'agent'>('chat');
-
-const switchToAgent = useCallback(() => {
-  setActiveView('agent');
-}, []);
-
-// 渲染
-{activeView === 'agent' && <AgentPanel onClose={closePanel} />}
-```
+**注意**：zen-swarm 使用 `agent_id` 字段（SwarmState），zen-code 使用 `switch_command`（CodeState），两者不同。
 
 ---
 
@@ -537,132 +205,63 @@ const switchToAgent = useCallback(() => {
 
 ### 5.1 配置层次
 
-1. **代码配置** (`subagents/config.ts`)：
-    - 所有 agents 的默认配置
-    - 包括 default agent（使用 `getSystemPrompt` 函数）
+1. **代码配置**（`packages/agent/src/subagents/loader.ts`）：
+    - 内置 agents（`agents/default`、`agents/manager`）
+    - 存储在 MemoryStorage（运行时，非持久化）
 
-2. **用户配置** (`~/.code-graph.json`)：
-    - `switch_command`：当前选中的 agent ID
-    - 持久化，重启后恢复
+2. **用户配置**（`~/.zen-code/settings.json`）：
+    - `switch_command`：当前选中的 agent（zen-code 端）
 
-3. **运行时配置** (`extraParams`)：
-    - 从 `config` 合并后传递给后端
-    - 包括 `switch_command`
+3. **运行时状态**（`CodeState.switch_command`）：
+    - 从前端 extraParams 传入，路由时读取
 
-### 5.2 数据流
+### 5.2 Agent 列表 API
 
-```
-用户操作（AgentPanel）
-  ↓ updateConfig({ switch_command: agentId })
-  ↓ 写入 ~/.code-graph.json
-  ↓ SettingsContext.config.switch_command
-  ↓ extraParams.switch_command
-  ↓ sendMessage 传递给后端
-  ↓ graph.ts 根据 switch_command 路由
-  ↓ createStandardAgent(config)
-  ↓ 执行 agent 任务
+```typescript
+// config.ts
+export async function loadAgentsList(pkg: AgentPackage): Promise<Record<string, FEAgentConfig>>;
+export function getDefaultAgentId(): string; // returns 'default'
+
+// factory-v2.ts
+export async function getAvailableAgentIds(pkg: AgentPackage): Promise<string[]>;
 ```
 
 ---
 
 ## 6. 使用场景
 
-### 6.1 交互示例
+| Agent       | ID               | 工具                           | 中间件                           | 适用场景     |
+| ----------- | ---------------- | ------------------------------ | -------------------------------- | ------------ |
+| **Jarvis**  | `agents/default` | ask_user_questions, todo_write | filesystem, terminal, 全部中间件 | 通用代码助手 |
+| **Manager** | `agents/manager` | ask_user_questions, todo_write | filesystem, terminal, 全部中间件 | 任务管理     |
 
-```bash
-# 用户：打开 agent 面板
-> /a
+**注意**：两个内置 agent 配置相同，差异在系统提示词（`prompts/default` vs `prompts/manager`）。
 
-# 显示面板：
-🤖 Agent选择                           ↑↓:选择 Enter:切换 q:关闭
-┌──────────────────────────────────────────────────────────────┐
-│ ▶ default        - Code Agent - 全功能代码助手              当前│
-│   finder         - Finder Agent - 文件搜索专家，只读工具      │
-│   planner        - Planner Agent - 任务规划专家              │
-│   reviewer       - Reviewer Agent - 代码审查专家，只读分析    │
-└──────────────────────────────────────────────────────────────┘
+---
 
-当前 Agent: Code Agent
+## 7. 文件路径
 
-# 用户按 ↓ 选择 finder，按 Enter 切换
-# 面板关闭，agent 已切换
-
-> 请帮我找到所有的 API 路由定义
-# Finder Agent 使用只读工具执行搜索
-
-# 用户再次打开面板
-> /a
-
-# 面板显示：
-🤖 Agent选择
-┌──────────────────────────────────────────────────────────────┐
-│   default        - Code Agent - 全功能代码助手               │
-│ ▶ finder         - Finder Agent - 文件搜索专家，只读工具  当前│
-│   planner        - Planner Agent - 任务规划专家              │
-│   reviewer       - Reviewer Agent - 代码审查专家，只读分析    │
-└──────────────────────────────────────────────────────────────┘
-
-当前 Agent: Finder Agent
 ```
-
-### 6.2 Agent 特化优势
-
-| Agent        | 工具                | 中间件                    | 适用场景                                 |
-| ------------ | ------------------- | ------------------------- | ---------------------------------------- |
-| **default**  | 全部                | 全部                      | 通用编程任务（使用完整 Zen Code 提示词） |
-| **finder**   | glob/grep/read      | agents_md/skills/memories | 快速只读分析、代码搜索                   |
-| **planner**  | todo_write/ask_user | agents_md                 | 任务规划、需求拆解                       |
-| **reviewer** | glob/grep/read      | agents_md/skills/memories | 代码审查、质量检查                       |
-
----
-
-## 7. 实现总结
-
-### 7.1 后端修改
-
-| 文件                               | 修改内容                                                                                                                       |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `agents/code/subagents/config.ts`  | ✅ 新增 `default` agent 配置（使用 `getSystemPrompt`）<br>✅ `systemPrompt` 支持函数类型<br>✅ 新增 `getDefaultAgentId()` 函数 |
-| `agents/code/subagents/factory.ts` | ✅ 判断 `systemPrompt` 类型，函数则调用<br>✅ 移除动态 import 逻辑                                                             |
-| `agents/code/graph.ts`             | ✅ 移除硬编码 `DEFAULT_AGENT_CONFIG`<br>✅ 使用 `getDefaultAgentId()` 获取默认 agent                                           |
-
-### 7.2 前端修改
-
-| 文件                                       | 修改内容                                                                                  |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| `tui/src/chat/store/index.ts`              | ✅ `AppConfig` 添加 `switch_command` 字段                                                 |
-| `tui/src/chat/context/SettingsContext.tsx` | ✅ `extraParams` 添加 `switch_command`                                                    |
-| `tui/src/chat/components/AgentPanel.tsx`   | ✅ 创建新组件（参考 ModelPanel）<br>✅ 直接从 `config` 读取，移除中间状态                 |
-| `tui/src/chat/Chat.tsx`                    | ✅ 添加 `'agent'` 到 `activeView`<br>✅ 新增 `switchToAgent` 回调<br>✅ 渲染 `AgentPanel` |
-| `tui/src/chat/context/CommandHandler.tsx`  | ✅ 添加 `switchToAgent` 到 props 和 CommandContext                                        |
-| `tui/src/chat/commands/types.ts`           | ✅ `CommandContext` 添加 `switchToAgent`                                                  |
-| `tui/src/chat/commands/agentCommands.ts`   | ✅ 重写为单命令 `/agent` 打开面板                                                         |
-
----
-
-## 8. 开放问题
-
-1. ~~**默认 agent 配置**：是否需要在 `loadAgentsList` 中定义 default agent？~~
-    - ✅ 已解决：default agent 在配置中定义，使用 `getSystemPrompt` 函数
-
-2. **配置热更新**：是否支持运行时重新加载配置？
-    - 建议：初期不支持，需要重启服务
-
-3. **Agent 验证**：如何防止用户创建无效配置？
-    - 建议：`loadAgentsList` 中添加 Zod 验证
-
-4. **面板性能**：Agent 列表加载是否会阻塞 UI？
-    - 建议：已实现异步加载和缓存
+packages/agent/src/
+├── config/
+│   └── index.ts               # agentPackage 单例（top-level await 初始化）
+├── subagents/
+│   ├── loader.ts              # 注册内置 agents/tools/middlewares 到 AgentPackage
+│   ├── tools.ts               # 工具 registry 注册
+│   ├── middlewares.ts         # 中间件 registry 注册
+│   ├── config.ts              # loadAgentsList(), getDefaultAgentId()
+│   └── factory-v2.ts         # createStandardAgentV2(), getAvailableAgentIds()
+├── graphBuilder.ts            # createCodeGraph() - switch_command 路由
+└── state.ts                   # CodeState - switch_command 字段
+```
 
 ---
 
 ## 附录：术语表
 
-- **SwitchBranch**: LangGraph 的条件分支机制，根据状态值路由到不同节点
-- **createStandardAgent**: 统一的 agent 工厂函数，支持配置项开关
-- **loadAgentsList**: 异步加载 agent 配置的函数
-- **getDefaultAgentId**: 返回默认 agent ID 的函数
-- **switch_command**: 状态字段，用于控制分支选择
-- **systemPrompt**: Agent 提示词，支持字符串或函数类型
-- **middleware**: 中间件配置对象，控制各个中间件的启用/禁用
-- **AgentPanel**: TUI 组件，提供可视化 agent 选择界面
+- **AgentPackage**: `@langgraph-js/standard-agent` 提供的配置管理中心
+- **MemoryStorage**: 内存存储，运行时非持久化
+- **switch_command**: CodeState 字段，控制路由到哪个 agent
+- **agent_id**: SwarmState 字段（zen-swarm），与 switch_command 对应但不同
+- **isSubAgent**: `options.parent_id` 存在时为真，跳过 subagents 中间件
+- **MCPWithConfigMiddleware**: 替代原 MCPMiddleware，从配置加载 MCP 服务器

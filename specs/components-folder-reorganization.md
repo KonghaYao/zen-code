@@ -1,5 +1,8 @@
 # Components 文件夹整理方案
 
+> **状态**: ✅ 已完成（2026-03-06 验证 - `zen-code/src/chat/components/` 已按 `input/`, `layout/`, `messages/`,
+> `panels/`, `common/` 等子目录组织）
+
 ## 概述
 
 整理 `zen-code/src/chat/components` 目录结构，将 34 个顶层文件和 9 个子目录按功能重新组织，提高代码可维护性和可读性。

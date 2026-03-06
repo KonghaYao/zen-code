@@ -1,6 +1,29 @@
 # Zen-Swarm Cron 任务系统设计文档 v2
 
 > 基于 cron-system.md 的需求澄清版本，紧贴 zen-swarm 现有架构
+>
+> **状态**: ✅ 已实现 **最后验证**: 2026-03-06
+
+## 当前实现状态（2026-03-06 验证）
+
+| 功能                         | 设计     | 实现状态                              |
+| ---------------------------- | -------- | ------------------------------------- |
+| 基础 CRUD（cron_tasks 表）   | ✅       | ✅ 已实现（`zen-swarm/src/cron/`）    |
+| 执行日志（cron_logs 表）     | ✅       | ✅ 已实现                             |
+| Scheduler + Queue + Executor | ✅       | ✅ 已实现                             |
+| 变量替换 `{{variable}}`      | ✅       | ✅ 已实现（`variable-replacer.ts`）   |
+| `initial_state` 配置         | 扩展设计 | ✅ 已实现（含 SQLite migration）      |
+| processMonitor               | 扩展设计 | ✅ 已实现（`cron/processMonitor.ts`） |
+| tRPC API                     | ✅       | ✅ 已实现（`api/cron.ts`）            |
+
+**与原设计的关键差异**：
+
+- `CronTask` 新增了 `initial_state: Record<string, unknown>` 字段（非原始设计），支持传递
+  `cwd`、`model_id`、`provider_type` 等 LangGraph state 参数
+- `executor.ts` 会验证 `initial_state.cwd` 是否存在，缺失则跳过执行并记录错误
+- 存储使用 `bun:sqlite`（非原设计的 `better-sqlite3`）
+
+---
 
 ## 1. 需求确认
 

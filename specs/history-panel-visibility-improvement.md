@@ -1,5 +1,7 @@
 # History Panel Visibility Improvement
 
+> **状态**: ✅ 已实现（2026-03-06 验证 - `HistoryPanel.tsx` 已实现）
+
 ## 需求背景
 
 用户反馈 zen-code 历史面板的选中状态表示非常不清楚，需要改进视觉反馈以提高可用性。

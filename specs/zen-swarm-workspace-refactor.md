@@ -1,5 +1,7 @@
 # Zen Swarm Workspace 重构设计
 
+> **状态**: ✅ 已实现（2026-03-06 验证）
+
 ## 概述
 
 简化 zen-swarm 的 workspace UI，保留核心 Chat 功能，移除多余界面，优化历史记录展示。

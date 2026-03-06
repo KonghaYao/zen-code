@@ -8,10 +8,13 @@
 
 成功完成了 CommandSystemMiddleware 和 MCPManager 的集成，创建了统一的 MCPMiddleware：
 
-- **新建文件**：`packages/agent/src/middlewares/mcp.ts` - 统一的 MCP 中间件
-- **更新文件**：`factory-v2.ts`、`middlewares/index.ts`、`AGENTS.md`
-- **删除文件**：`commandSystem.ts`、`MCPManager.ts`、相关测试文件
-- **测试通过**：21 个 MCPMiddleware 测试用例全部通过
+- **新建文件**：`packages/standard-agent/src/middlewares/mcp.ts` - 统一的 MCP 中间件（框架层）
+- **新建文件**：`packages/agent/src/middlewares/mcpWithConfig.ts` - 项目层封装（读取 settings.json）
+- **更新文件**：`factory-v2.ts`（使用 MCPWithConfigMiddleware）
+- **删除文件**：`packages/agent/src/middlewares/commandSystem.ts`、`packages/agent/src/mcp/MCPManager.ts`、相关测试文件
+- **测试位置**：`packages/standard-agent/src/__tests__/middlewares/mcp.test.ts`
+
+**注意**：`packages/agent/src/middlewares/mcp.ts` 并不存在，实际位于 `packages/standard-agent`。
 
 ---
 

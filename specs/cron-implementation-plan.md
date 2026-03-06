@@ -1,5 +1,7 @@
 # Zen-Swarm Cron 任务系统实现计划
 
+> **状态**: ✅ 已完成（2026-03-06 验证 - 参见 `cron-system-v2.md`）
+
 ## 概述
 
 为 zen-swarm 添加定时任务功能，支持 Cron 表达式调度、Agent 执行、日志记录。

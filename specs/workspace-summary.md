@@ -1,5 +1,7 @@
 # Workspace 需求总结
 
+> **状态**: ✅ 已实现（2026-03-06 验证，参见 `workspace-design.md`）
+
 ## 用户需求
 
 将 zen-swarm 的 Files 页面改造为 **Workspace** 功能：

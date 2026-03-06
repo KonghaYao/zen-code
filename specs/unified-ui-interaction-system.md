@@ -1,9 +1,7 @@
 # 统一 UI 交互系统设计规范
 
-**版本**: v2.0.0 (Layered Architecture)
-**状态**: 多层可扩展架构
-**创建日期**: 2025-01-21
-**最后更新**: 2025-01-21
+**版本**: v2.0.0 (Layered Architecture) **状态**: ✅ 已实现（2026-03-06 验证 -
+GlobalApprovalPanel 和 interaction 系统均已实现） **创建日期**: 2025-01-21 **最后更新**: 2025-01-21
 
 ---
 
@@ -12,11 +10,13 @@
 **从具体类型到分层可扩展架构**
 
 v1.1.0 的问题：
+
 - ❌ Approve 和 Select 是平行的具体类型，难以复用
 - ❌ 添加新类型需要修改多处代码
 - ❌ 渲染逻辑和数据结构耦合
 
 v2.0.0 的改进：
+
 - ✅ **多层架构** - 基础层 → 面板层 → 类型层
 - ✅ **可插拔渲染器** - 新类型只需注册，无需修改核心
 - ✅ **组合优先** - 通过组合实现复杂交互
@@ -63,36 +63,36 @@ v2.0.0 的改进：
 ```typescript
 // 基础层：定义通用的交互结构
 interface BaseInteraction {
-  id: string;
-  category: InteractionCategory;  // 'panel' | 'inline'
-  state: InteractionState;
-  metadata: InteractionMetadata;
-  tool?: ToolRenderData;
+    id: string;
+    category: InteractionCategory; // 'panel' | 'inline'
+    state: InteractionState;
+    metadata: InteractionMetadata;
+    tool?: ToolRenderData;
 }
 
 // 面板层：审批和选择都是面板类型的扩展
 interface PanelInteraction extends BaseInteraction {
-  category: 'panel';
-  config: PanelConfig;  // 面板配置（标题、描述、图标等）
-  content: InteractionContent;  // 内容（选择器、输入框、审批项等）
+    category: 'panel';
+    config: PanelConfig; // 面板配置（标题、描述、图标等）
+    content: InteractionContent; // 内容（选择器、输入框、审批项等）
 }
 
 // 类型层：具体的交互实现
 type ApprovalInteraction = PanelInteraction & {
-  content: {
-    type: 'approval';
-    toolCall: { name: string; args: any };
-    editableFields?: string[];
-  };
+    content: {
+        type: 'approval';
+        toolCall: { name: string; args: any };
+        editableFields?: string[];
+    };
 };
 
 type SelectionInteraction = PanelInteraction & {
-  content: {
-    type: 'selection';
-    options: Array<{ label: string; value: any }>;
-    singleSelect: boolean;
-    allowCustomInput: boolean;
-  };
+    content: {
+        type: 'selection';
+        options: Array<{ label: string; value: any }>;
+        singleSelect: boolean;
+        allowCustomInput: boolean;
+    };
 };
 ```
 
@@ -107,62 +107,57 @@ type SelectionInteraction = PanelInteraction & {
 ```typescript
 // === 交互类别 ===
 enum InteractionCategory {
-  PANEL = 'panel',      // 面板类型（显示在 UnifiedUIPanel）
-  INLINE = 'inline',    // 内联类型（直接在消息中显示）
-  MODAL = 'modal',      // 模态框类型（未来扩展）
+    PANEL = 'panel', // 面板类型（显示在 UnifiedUIPanel）
+    INLINE = 'inline', // 内联类型（直接在消息中显示）
+    MODAL = 'modal', // 模态框类型（未来扩展）
 }
 
 // === 交互状态 ===
 enum InteractionState {
-  IDLE = 'idle',
-  ACTIVE = 'active',      // 正在交互
-  SUBMITTED = 'submitted',
-  CANCELLED = 'cancelled',
-  EDITED = 'edited',
+    IDLE = 'idle',
+    ACTIVE = 'active', // 正在交互
+    SUBMITTED = 'submitted',
+    CANCELLED = 'cancelled',
+    EDITED = 'edited',
 }
 
 // === 基础交互接口 ===
 interface BaseInteraction {
-  // 唯一标识
-  id: string;
+    // 唯一标识
+    id: string;
 
-  // 类别（决定在哪里显示）
-  category: InteractionCategory;
+    // 类别（决定在哪里显示）
+    category: InteractionCategory;
 
-  // 状态
-  state: InteractionState;
+    // 状态
+    state: InteractionState;
 
-  // 元数据（通用）
-  metadata: {
-    title?: string;
-    description?: string;
-    icon?: string;
-    priority?: 'high' | 'medium' | 'low';
-    groupKey?: string;     // 用于分组
-    messageIndex?: number;
-  };
+    // 元数据（通用）
+    metadata: {
+        title?: string;
+        description?: string;
+        icon?: string;
+        priority?: 'high' | 'medium' | 'low';
+        groupKey?: string; // 用于分组
+        messageIndex?: number;
+    };
 
-  // 关联的工具
-  tool?: ToolRenderData<any, any>;
+    // 关联的工具
+    tool?: ToolRenderData<any, any>;
 
-  // 时间戳
-  createdAt: Date;
-  updatedAt: Date;
+    // 时间戳
+    createdAt: Date;
+    updatedAt: Date;
 
-  // 结果（任意类型，由具体类型定义）
-  result?: any;
+    // 结果（任意类型，由具体类型定义）
+    result?: any;
 
-  // 内部标记
-  resultSent?: boolean;
+    // 内部标记
+    resultSent?: boolean;
 }
 
 // === 交互内容类型 ===
-type InteractionContent =
-  | ApprovalContent
-  | SelectionContent
-  | InputContent
-  | ConfirmContent
-  | CustomContent;
+type InteractionContent = ApprovalContent | SelectionContent | InputContent | ConfirmContent | CustomContent;
 ```
 
 ### 2.2 面板层 - PanelInteraction
@@ -172,88 +167,88 @@ type InteractionContent =
 ```typescript
 // === 面板配置 ===
 interface PanelConfig {
-  // 布局配置
-  layout?: {
-    width?: number;          // 宽度（百分比或像素）
-    border?: boolean;        // 是否显示边框
-    padding?: number;        // 内边距
-  };
+    // 布局配置
+    layout?: {
+        width?: number; // 宽度（百分比或像素）
+        border?: boolean; // 是否显示边框
+        padding?: number; // 内边距
+    };
 
-  // 交互配置
-  interaction?: {
-    autoSubmit?: boolean;    // 是否自动提交
-    allowSkip?: boolean;     // 是否允许跳过
-    showPreview?: boolean;   // 是否显示预览
-  };
+    // 交互配置
+    interaction?: {
+        autoSubmit?: boolean; // 是否自动提交
+        allowSkip?: boolean; // 是否允许跳过
+        showPreview?: boolean; // 是否显示预览
+    };
 
-  // 样式配置
-  style?: {
-    borderColor?: string;    // 边框颜色
-    backgroundColor?: string; // 背景色
-  };
+    // 样式配置
+    style?: {
+        borderColor?: string; // 边框颜色
+        backgroundColor?: string; // 背景色
+    };
 }
 
 // === 面板交互接口 ===
 interface PanelInteraction extends BaseInteraction {
-  category: 'panel';
-  config: PanelConfig;
-  content: InteractionContent;
+    category: 'panel';
+    config: PanelConfig;
+    content: InteractionContent;
 }
 
 // === 内容类型定义 ===
 
 // 1. 审批内容
 interface ApprovalContent {
-  type: 'approval';
-  toolCall: { name: string; args: any };
-  editableFields?: string[];
-  actionLabels?: {
-    approve?: string;
-    edit?: string;
-    reject?: string;
-  };
+    type: 'approval';
+    toolCall: { name: string; args: any };
+    editableFields?: string[];
+    actionLabels?: {
+        approve?: string;
+        edit?: string;
+        reject?: string;
+    };
 }
 
 // 2. 选择内容
 interface SelectionContent {
-  type: 'selection';
-  options: Array<{ label: string; value: any; description?: string }>;
-  singleSelect: boolean;
-  allowCustomInput: boolean;
-  placeholder?: string;
-  maxSelections?: number;  // 多选时的最大选择数
+    type: 'selection';
+    options: Array<{ label: string; value: any; description?: string }>;
+    singleSelect: boolean;
+    allowCustomInput: boolean;
+    placeholder?: string;
+    maxSelections?: number; // 多选时的最大选择数
 }
 
 // 3. 输入内容
 interface InputContent {
-  type: 'input';
-  inputType: 'text' | 'password' | 'number' | 'email';
-  placeholder?: string;
-  defaultValue?: string;
-  multiline?: boolean;
-  maxLength?: number;
-  validation?: {
-    pattern?: RegExp;
-    minLength?: number;
-    custom?: (value: string) => string | undefined;
-  };
+    type: 'input';
+    inputType: 'text' | 'password' | 'number' | 'email';
+    placeholder?: string;
+    defaultValue?: string;
+    multiline?: boolean;
+    maxLength?: number;
+    validation?: {
+        pattern?: RegExp;
+        minLength?: number;
+        custom?: (value: string) => string | undefined;
+    };
 }
 
 // 4. 确认内容
 interface ConfirmContent {
-  type: 'confirm';
-  message: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  danger?: boolean;  // 是否为危险操作（红色按钮）
+    type: 'confirm';
+    message: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    danger?: boolean; // 是否为危险操作（红色按钮）
 }
 
 // 5. 自定义内容（未来扩展）
 interface CustomContent {
-  type: 'custom';
-  customType: string;  // 自定义类型标识
-  render: (content: CustomContent, onSubmit: (result: any) => void) => ReactElement;
-  [key: string]: any;  // 其他自定义属性
+    type: 'custom';
+    customType: string; // 自定义类型标识
+    render: (content: CustomContent, onSubmit: (result: any) => void) => ReactElement;
+    [key: string]: any; // 其他自定义属性
 }
 ```
 
@@ -264,45 +259,41 @@ interface CustomContent {
 ```typescript
 // === 审批交互 ===
 type ApprovalInteraction = PanelInteraction & {
-  content: ApprovalContent;
-  result?: {
-    status: 'approved' | 'edited' | 'rejected';
-    editedArgs?: any;
-    message?: string;
-  };
+    content: ApprovalContent;
+    result?: {
+        status: 'approved' | 'edited' | 'rejected';
+        editedArgs?: any;
+        message?: string;
+    };
 };
 
 // === 选择交互 ===
 type SelectionInteraction = PanelInteraction & {
-  content: SelectionContent;
-  result?: {
-    selected: any[];
-    customInput?: string;
-  };
+    content: SelectionContent;
+    result?: {
+        selected: any[];
+        customInput?: string;
+    };
 };
 
 // === 输入交互 ===
 type InputInteraction = PanelInteraction & {
-  content: InputContent;
-  result?: {
-    value: string;
-  };
+    content: InputContent;
+    result?: {
+        value: string;
+    };
 };
 
 // === 确认交互 ===
 type ConfirmInteraction = PanelInteraction & {
-  content: ConfirmContent;
-  result?: {
-    confirmed: boolean;
-  };
+    content: ConfirmContent;
+    result?: {
+        confirmed: boolean;
+    };
 };
 
 // === 联合类型 ===
-type AnyPanelInteraction =
-  | ApprovalInteraction
-  | SelectionInteraction
-  | InputInteraction
-  | ConfirmInteraction;
+type AnyPanelInteraction = ApprovalInteraction | SelectionInteraction | InputInteraction | ConfirmInteraction;
 
 type AnyInteraction = AnyPanelInteraction | BaseInteraction;
 ```
@@ -318,34 +309,29 @@ type AnyInteraction = AnyPanelInteraction | BaseInteraction;
 ```typescript
 // === 渲染器接口 ===
 interface InteractionRenderer<TContent extends InteractionContent> {
-  // 渲染器类型标识
-  type: TContent['type'];
+    // 渲染器类型标识
+    type: TContent['type'];
 
-  // 渲染函数
-  render: (
-    interaction: PanelInteraction & { content: TContent },
-    onChange: (updates: Partial<PanelInteraction>) => void
-  ) => ReactElement;
+    // 渲染函数
+    render: (
+        interaction: PanelInteraction & { content: TContent },
+        onChange: (updates: Partial<PanelInteraction>) => void,
+    ) => ReactElement;
 
-  // 验证函数（可选）
-  validate?: (content: TContent) => string | undefined;
+    // 验证函数（可选）
+    validate?: (content: TContent) => string | undefined;
 
-  // 默认配置（可选）
-  defaultConfig?: Partial<PanelConfig>;
+    // 默认配置（可选）
+    defaultConfig?: Partial<PanelConfig>;
 }
 
 // === 渲染器注册表 ===
 interface RendererRegistry {
-  register<T extends InteractionContent>(
-    type: T['type'],
-    renderer: InteractionRenderer<T>
-  ): void;
+    register<T extends InteractionContent>(type: T['type'], renderer: InteractionRenderer<T>): void;
 
-  get<T extends InteractionContent>(
-    type: T['type']
-  ): InteractionRenderer<T> | undefined;
+    get<T extends InteractionContent>(type: T['type']): InteractionRenderer<T> | undefined;
 
-  list(): InteractionContent['type'][];
+    list(): InteractionContent['type'][];
 }
 ```
 
@@ -602,40 +588,37 @@ rendererRegistry.register('my-custom-type', {
 
 ```typescript
 interface InteractionContextValue {
-  // 添加交互
-  addInteraction: (
-    content: InteractionContent,
-    options?: {
-      tool?: ToolRenderData<any, any>;
-      metadata?: Partial<InteractionMetadata>;
-      config?: Partial<PanelConfig>;
-    }
-  ) => PanelInteraction;
+    // 添加交互
+    addInteraction: (
+        content: InteractionContent,
+        options?: {
+            tool?: ToolRenderData<any, any>;
+            metadata?: Partial<InteractionMetadata>;
+            config?: Partial<PanelConfig>;
+        },
+    ) => PanelInteraction;
 
-  // 更新交互
-  updateInteraction: (
-    id: string,
-    updates: Partial<PanelInteraction>
-  ) => void;
+    // 更新交互
+    updateInteraction: (id: string, updates: Partial<PanelInteraction>) => void;
 
-  // 移除交互
-  removeInteraction: (id: string) => void;
+    // 移除交互
+    removeInteraction: (id: string) => void;
 
-  // 查询
-  getInteraction: (id: string) => AnyInteraction | undefined;
-  getInteractions: () => AnyInteraction[];
-  getInteractionsByState: (state: InteractionState) => AnyInteraction[];
-  getInteractionsByContent: <T extends InteractionContent['type']>(
-    type: T
-  ) => Array<PanelInteraction & { content: InteractionContent & { type: T } }>;
+    // 查询
+    getInteraction: (id: string) => AnyInteraction | undefined;
+    getInteractions: () => AnyInteraction[];
+    getInteractionsByState: (state: InteractionState) => AnyInteraction[];
+    getInteractionsByContent: <T extends InteractionContent['type']>(
+        type: T,
+    ) => Array<PanelInteraction & { content: InteractionContent & { type: T } }>;
 
-  // 批量操作
-  submitInteractions: () => Promise<void>;
-  clearCompleted: () => void;
+    // 批量操作
+    submitInteractions: () => Promise<void>;
+    clearCompleted: () => void;
 
-  // 状态
-  hasPendingInteractions: boolean;
-  allInteractionsProcessed: boolean;
+    // 状态
+    hasPendingInteractions: boolean;
+    allInteractionsProcessed: boolean;
 }
 ```
 
@@ -902,31 +885,34 @@ export const file_picker_tool = createUITool({
 
 ## 8. v2.0 vs v1.1 对比
 
-| 维度 | v1.1.0 | v2.0.0 | 改进 |
-|------|--------|--------|------|
-| **架构** | 具体类型平行 | 多层分层 | 可扩展 |
-| **添加新类型** | 修改多处 | 注册渲染器 | 插件化 |
-| **代码复用** | 重复代码多 | 组合优先 | DRY |
-| **渲染逻辑** | 耦合在类型中 | 可插拔渲染器 | 解耦 |
-| **扩展性** | 难以扩展 | 轻松扩展 | 未来就绪 |
+| 维度           | v1.1.0       | v2.0.0       | 改进     |
+| -------------- | ------------ | ------------ | -------- |
+| **架构**       | 具体类型平行 | 多层分层     | 可扩展   |
+| **添加新类型** | 修改多处     | 注册渲染器   | 插件化   |
+| **代码复用**   | 重复代码多   | 组合优先     | DRY      |
+| **渲染逻辑**   | 耦合在类型中 | 可插拔渲染器 | 解耦     |
+| **扩展性**     | 难以扩展     | 轻松扩展     | 未来就绪 |
 
 ---
 
 ## 9. 实现路径（v2.0）
 
 ### Sprint 1: 基础层
+
 - [ ] 定义 BaseInteraction 和 InteractionCategory
 - [ ] 定义 InteractionContent 联合类型
 - [ ] 实现 InteractionContext
 - [ ] 单元测试
 
 ### Sprint 2: 面板层
+
 - [ ] 定义 PanelInteraction 和 PanelConfig
 - [ ] 实现内置内容类型（Approval、Selection、Input、Confirm）
 - [ ] 实现渲染器接口和注册表
 - [ ] 集成测试
 
 ### Sprint 3: 渲染器
+
 - [ ] 实现 ApprovalRenderer
 - [ ] 实现 SelectionRenderer
 - [ ] 实现 InputRenderer
@@ -934,12 +920,14 @@ export const file_picker_tool = createUITool({
 - [ ] 渲染器测试
 
 ### Sprint 4: 面板组件
+
 - [ ] 实现 UnifiedUIPanel
 - [ ] 实现 InteractionRendererWrapper
 - [ ] 固定 Tabs 结构
 - [ ] 批量操作
 
 ### Sprint 5: 工具集成和扩展
+
 - [ ] 迁移 ask_user_with_options
 - [ ] 迁移 terminal 工具
 - [ ] 扩展性测试（添加自定义类型）
@@ -949,11 +937,8 @@ export const file_picker_tool = createUITool({
 
 ## 10. 关键优势
 
-✅ **可扩展** - 添加新类型只需注册渲染器
-✅ **可组合** - 通过组合实现复杂交互
-✅ **可维护** - 关注点分离，职责清晰
-✅ **类型安全** - 完整的类型定义
-✅ **向后兼容** - 保留旧 API 适配器
+✅ **可扩展** - 添加新类型只需注册渲染器 ✅ **可组合** - 通过组合实现复杂交互 ✅ **可维护** - 关注点分离，职责清晰 ✅
+**类型安全** - 完整的类型定义 ✅ **向后兼容** - 保留旧 API 适配器
 
 ---
 

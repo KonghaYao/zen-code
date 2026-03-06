@@ -1,5 +1,7 @@
 # macOS 红绿灯设计系统 - zen-swarm
 
+> **状态**: ✅ 已实现（2026-03-06 验证 - `TrafficLights.tsx` 组件和 AppWindow 已实现）
+
 ## 概述
 
 将 zen-swarm 应用的所有 Panel 组件统一为 macOS 风格的红绿灯设计，提供一致的视觉体验和交互模式。

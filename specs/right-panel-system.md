@@ -1,6 +1,9 @@
 # 右侧面板系统
 
 > zen-swarm 文件管理器可替换的右侧 Tab 面板系统，集成 Search 和 Chat 功能
+>
+> **状态**: ✅ 已实现（2026-03-06 验证 - `zen-swarm/src/frontend/components/finder/`
+> 包含 Sidebar、Preview、Inspector 等组件）
 
 ---
 

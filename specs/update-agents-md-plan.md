@@ -1,6 +1,9 @@
 # AGENTS.md 更新规划
 
+> **状态**: ✅ 已完成（2026-03-06 验证 - AGENTS.md 已与当前代码一致，即 `CLAUDE.md`）
+
 ## 目标
+
 确保 AGENTS.md 与当前代码实现完全一致
 
 ## 发现的差异
@@ -10,6 +13,7 @@
 **问题**：文档中的代码示例与 `packages/agent/src/subagents/factory.ts` 实际实现有显著差异
 
 **当前文档**：
+
 ```typescript
 // 示例显示了错误的中间件组合方式
 // CommandSystem 直接添加到 middleware 数组
@@ -20,6 +24,7 @@ middleware.push(commandSystem);
 ```
 
 **实际代码**：
+
 ```typescript
 // 1. CommandSystem 是独立实例，需要先注册工具
 const commandSystem = new CommandSystemMiddleware();
@@ -35,12 +40,13 @@ commandSystem.registerTools(commandTools);
 const interruptOn = { ...ask_user_with_options_config.interruptOn };
 if (process.env.YOLO_MODE !== 'true') {
     Object.assign(interruptOn, {
-        terminal: { allowedDecisions: ['approve', 'reject', 'edit'] }
+        terminal: { allowedDecisions: ['approve', 'reject', 'edit'] },
     });
 }
 ```
 
 **需要更新**：
+
 - 更新完整的代码示例以反映实际实现
 - 修正中间件顺序
 - 更新 HITL 配置方式
@@ -53,13 +59,16 @@ if (process.env.YOLO_MODE !== 'true') {
 **问题**：文档描述与实际实现不符
 
 **当前文档**：
+
 ```markdown
 **Available Agents** (configured in `subagents/config.ts`):
+
 - `default` - Full-featured assistant with all tools and middleware
 - Future: `finder`, `planner`, `reviewer`, `debugger`, etc.
 ```
 
 **实际代码** (`subagents/config.ts`):
+
 ```typescript
 export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
     return {
@@ -81,6 +90,7 @@ export async function loadAgentsList(): Promise<Record<string, AgentConfig>> {
 ```
 
 **SubAgentsMiddleware 实现** (`middlewares/subagents.ts`):
+
 ```typescript
 subAgents = new Map<string, SubAgentCreator>();
 
@@ -93,6 +103,7 @@ private formatSubAgentsList(): string {
 ```
 
 **需要更新**：
+
 - 删除 "Future: finder, planner..." 的误导性描述
 - 明确说明当前只有一个 `default` agent
 - 说明 SubAgentsMiddleware 已实现但未配置任何子代理
@@ -105,11 +116,11 @@ private formatSubAgentsList(): string {
 **问题**：文档中的工具文件组织说明与实际不符
 
 **当前文档**：
+
 ```markdown
 ### Add New Tool
 
-// packages/agent/src/tools/my_tool/index.ts
-export const my_tool = tool(...);
+// packages/agent/src/tools/my_tool/index.ts export const my_tool = tool(...);
 
 // Export from tools/my_tool/index.ts (not tools/index.ts)
 
@@ -117,6 +128,7 @@ export const my_tool = tool(...);
 ```
 
 **实际代码结构**：
+
 ```
 packages/agent/src/tools/
 ├── filesystem_tools/   # read, write, glob, grep, folder, replace
@@ -128,10 +140,17 @@ packages/agent/src/tools/
 ```
 
 **factory.ts 实际导入方式**：
+
 ```typescript
 // 分组导入
-import { glob_tool, grep_tool, read_tool, write_tool, replace_tool, folder_tool }
-    from '../tools/filesystem_tools/index.js';
+import {
+    glob_tool,
+    grep_tool,
+    read_tool,
+    write_tool,
+    replace_tool,
+    folder_tool,
+} from '../tools/filesystem_tools/index.js';
 import { bash_tools } from '../tools/bash_tools/index.js';
 import { todo_write_tool, add_task_tool } from '../tools/task_tools/index.js';
 
@@ -145,11 +164,12 @@ const ALL_TOOLS = [
     write_tool,
     replace_tool,
     folder_tool,
-    ...bash_tools,  // 展开数组
+    ...bash_tools, // 展开数组
 ] as const;
 ```
 
 **需要更新**：
+
 - 修正工具文件组织说明（按功能分组）
 - 更新 "Add New Tool" 步骤以反映实际结构
 - 说明是否需要在 `filesystem_tools/` 添加新工具，还是创建新分组
@@ -161,13 +181,16 @@ const ALL_TOOLS = [
 **问题**：Command System 的实现细节与文档描述有差异
 
 **当前文档**：
+
 ```markdown
 **MCP Integration**:
+
 - MCP tools exposed through CommandSystemMiddleware
 - MCPManager singleton manages connections and tool caching
 ```
 
 **实际实现** (`middlewares/commandSystem.ts`):
+
 ```typescript
 export class CommandSystemMiddleware implements AgentMiddleware {
     private registry: ToolRegistry = {};
@@ -189,9 +212,10 @@ export class CommandSystemMiddleware implements AgentMiddleware {
 ```
 
 **factory.ts 使用方式**：
+
 ```typescript
 const commandSystem = new CommandSystemMiddleware();
-const commandTools = [read_tool, glob_tool];  // 手动指定哪些工具注册到 CommandSystem
+const commandTools = [read_tool, glob_tool]; // 手动指定哪些工具注册到 CommandSystem
 if (config.middleware.mcp) {
     const mcpTools = await MCPManager.getInstance().getAllTools();
     commandTools.push(...mcpTools);
@@ -201,6 +225,7 @@ middleware.push(commandSystem);
 ```
 
 **需要更新**：
+
 - 说明 CommandSystem 不是自动注册所有工具
 - 明确哪些工具被注册到 CommandSystem（read_tool, glob_tool + MCP tools）
 - 更新系统提示词注入机制说明（通过 wrapModelCall）
@@ -212,8 +237,10 @@ middleware.push(commandSystem);
 **问题**：工具列表可能不完整或分类有误
 
 **当前文档**：
+
 ```markdown
 **Categories**:
+
 - `filesystem_tools` - read, write, glob, grep, folder operations
 - `bash_tools` - terminal command execution
 - `memory` - memory storage and retrieval
@@ -221,22 +248,24 @@ middleware.push(commandSystem);
 ```
 
 **实际工具列表** (`factory.ts`):
+
 ```typescript
 const ALL_TOOLS = [
-    ask_user_with_options,     // 交互工具
-    todo_write_tool,           // 任务工具
-    add_task_tool,             // 任务工具
-    glob_tool,                 // 文件系统
-    grep_tool,                 // 文件系统
-    read_tool,                 // 文件系统
-    write_tool,                // 文件系统
-    replace_tool,              // 文件系统
-    folder_tool,               // 文件系统
-    ...bash_tools,             // Bash (bash_tool)
+    ask_user_with_options, // 交互工具
+    todo_write_tool, // 任务工具
+    add_task_tool, // 任务工具
+    glob_tool, // 文件系统
+    grep_tool, // 文件系统
+    read_tool, // 文件系统
+    write_tool, // 文件系统
+    replace_tool, // 文件系统
+    folder_tool, // 文件系统
+    ...bash_tools, // Bash (bash_tool)
 ];
 ```
 
 **需要更新**：
+
 - 添加 `ask_user_with_options` 交互工具类别
 - 确认是否还有其他工具未列出
 - 更新每个类别的具体工具名称
@@ -246,23 +275,23 @@ const ALL_TOOLS = [
 ## 更新方案
 
 ### 方案 1: 全面更新（推荐）
+
 更新所有 5 个发现的差异，确保文档与代码 100% 一致
 
-**优点**：文档完整准确
-**缺点**：改动较大
+**优点**：文档完整准确 **缺点**：改动较大
 
 ### 方案 2: 分阶段更新
+
 1. 先更新关键部分（Middleware System, SubAgent System）
 2. 再更新次要部分（Adding Features, Command System, Tool System）
 
-**优点**：风险更小，容易审核
-**缺点**：需要多次 PR
+**优点**：风险更小，容易审核 **缺点**：需要多次 PR
 
 ### 方案 3: 最小更新
+
 只更新可能导致误解的部分（SubAgent System 状态, Middleware 代码示例）
 
-**优点**：改动最小
-**缺点**：文档仍有小瑕疵
+**优点**：改动最小 **缺点**：文档仍有小瑕疵
 
 ---
 
@@ -281,6 +310,7 @@ const ALL_TOOLS = [
 ## 后续行动
 
 请审核此规划文件，确认：
+
 1. 是否同意发现的 5 个差异点
 2. 选择哪个更新方案（1/2/3）
 3. 是否有其他需要更新的内容

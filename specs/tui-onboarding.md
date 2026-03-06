@@ -1,5 +1,7 @@
 # TUI 安装引导流程 Spec
 
+> **状态**: ✅ 已实现（2026-03-06 验证 - `SetupWizard` 组件已在 `zen-code/src/chat/components/setup/` 实现）
+
 ## 概述
 
 通过 `zen-init` 独立命令触发安装引导流程，收集用户配置后写入 `~/.code-graph.json`，完成后提示用户重启应用。
@@ -28,13 +30,13 @@ zen-init
 
 ### 状态定义
 
-| 状态 | 组件 | 说明 |
-|------|------|------|
-| `welcome` | WelcomeStep | 欢迎页，介绍项目功能 |
-| `provider` | ProviderStep | 选择 AI 提供商 |
+| 状态            | 组件              | 说明                                 |
+| --------------- | ----------------- | ------------------------------------ |
+| `welcome`       | WelcomeStep       | 欢迎页，介绍项目功能                 |
+| `provider`      | ProviderStep      | 选择 AI 提供商                       |
 | `apiAndBaseUrl` | APIAndBaseURLStep | 同时输入 API Key 和 Base URL（可选） |
-| `model` | ModelStep | 选择模型 |
-| `complete` | CompleteStep | 保存配置并退出 |
+| `model`         | ModelStep         | 选择模型                             |
+| `complete`      | CompleteStep      | 保存配置并退出                       |
 
 ---
 
@@ -59,6 +61,7 @@ interface SetupState {
 ```
 
 **职责**:
+
 - 管理引导流程状态
 - 处理步骤切换和验证
 - 收集配置数据
@@ -119,6 +122,7 @@ interface SetupState {
 ```
 
 **功能**:
+
 - 两个输入框同时显示
 - 第一个输入框（API Key）默认获得焦点
 - 方向键 ↑/↓ 在两个输入框间切换
@@ -127,11 +131,12 @@ interface SetupState {
 - 在 API Key 字段按退格键且为空时返回上一步
 
 **验证**:
+
 - OpenAI: `^sk-`
 - Anthropic: `^sk-ant-`
 
-**环境变量设置**:
-验证通过后设置以下环境变量供后续步骤使用：
+**环境变量设置**: 验证通过后设置以下环境变量供后续步骤使用：
+
 - `MODEL_PROVIDER` - 当前选择的提供商
 - `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` - API Key
 - `OPENAI_BASE_URL` / `ANTHROPIC_BASE_URL` - 自定义 Base URL（如果与默认值不同）
@@ -176,6 +181,7 @@ interface SetupState {
 ```
 
 **行为**:
+
 - 调用 `store.updateConfig()` 保存配置
 - 显示成功消息
 - 用户按任意键后 `process.exit(0)`
@@ -259,12 +265,12 @@ main();
 
 ## 错误处理
 
-| 场景 | 处理方式 |
-|------|---------|
-| API Key 无效 | 显示错误，允许重新输入 |
-| 模型列表获取失败 | 显示错误，允许重试或跳过 |
-| 配置保存失败 | 显示错误，提供手动配置指引 |
-| 用户中途退出 | Ctrl+C 直接退出，不保存配置 |
+| 场景             | 处理方式                    |
+| ---------------- | --------------------------- |
+| API Key 无效     | 显示错误，允许重新输入      |
+| 模型列表获取失败 | 显示错误，允许重试或跳过    |
+| 配置保存失败     | 显示错误，提供手动配置指引  |
+| 用户中途退出     | Ctrl+C 直接退出，不保存配置 |
 
 ---
 

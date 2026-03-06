@@ -1,5 +1,7 @@
 # Skill Autocomplete 功能规格文档
 
+> **状态**: ✅ 已实现（2026-03-06 验证 - `SkillAutocompleteUI.tsx` 和 `useSkillAutocomplete.ts` 均已实现）
+
 ## 1. 概述
 
 ### 1.1 目标

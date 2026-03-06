@@ -1,5 +1,8 @@
 # Zen Swarm Token 认证机制设计
 
+> **状态**: ✅ 已实现（2026-03-06 验证）  
+> `zen-swarm/src/auth/tokenAuth.ts` 已完整实现并集成
+
 ## 背景
 
 Zen Swarm 作为本地运行的 Web UI 服务，需要防止同一局域网内的未授权访问。采用内存 Token 校验机制，简单且有效。

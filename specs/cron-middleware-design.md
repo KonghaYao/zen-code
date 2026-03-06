@@ -1,5 +1,7 @@
 # Cron Middleware Design
 
+> **状态**: ✅ 已实现（2026-03-06 验证 - `zen-swarm/src/middlewares/cron.ts` 中已实现 `CronMiddleware`）
+
 ## Overview
 
 Design a cron middleware for zen-swarm that provides agents with the ability to operate cron tasks through a unified

@@ -1,11 +1,15 @@
 # TUI Chat Input 缓冲区功能规格文档
 
+> **状态**: ✅ 已实现（2026-03-06 验证 - `ChatInputBuffer.tsx` 已实现）
+
 ## 1. 功能概述
 
 ### 1.1 目标
+
 为 TUI 的 Chat Input 组件添加缓冲区功能，允许用户在 AI 处理消息时继续编辑和准备下一条消息，提升交互流畅度。
 
 ### 1.2 背景
+
 - 当前实现：AI 响应时输入框被禁用（`disabled={loading}`），用户无法输入
 - 改进目标：引入缓冲区概念，输入框始终可用，用户可预先准备下一条消息
 
@@ -14,6 +18,7 @@
 ### 2.1 核心行为
 
 #### 状态定义
+
 ```
 输入状态机:
 ┌─────────────┐
@@ -37,27 +42,28 @@
 ```
 
 #### 缓冲区操作
+
 1. **AI 响应中（loading=true）**
-   - 用户可正常输入
-   - 按 Enter 不触发 AI，将文本加入缓冲区
-   - 输入框清空，缓冲区内容显示在上方
+    - 用户可正常输入
+    - 按 Enter 不触发 AI，将文本加入缓冲区
+    - 输入框清空，缓冲区内容显示在上方
 
 2. **AI 空闲（loading=false）**
-   - 有缓冲区内容：自动发送缓冲区消息
-   - 无缓冲区内容：Enter 直接触发 AI
+    - 有缓冲区内容：自动发送缓冲区消息
+    - 无缓冲区内容：Enter 直接触发 AI
 
 3. **清空缓冲区**
-   - Esc 清空当前缓冲区
-   - 发送成功后自动清空
+    - Esc 清空当前缓冲区
+    - 发送成功后自动清空
 
 ### 2.2 UI 状态指示
 
-| 状态 | 输入框行为 | Enter 行为 | 视觉提示 |
-|------|-----------|-----------|---------|
-| loading=false, 无缓冲区 | 正常输入 | 直接触发 AI | 💬 绿色 |
-| loading=true, 无缓冲区 | 正常输入 | 加入缓冲区 | ⏳ 灰色 |
-| loading=true, 有缓冲区 | 正常输入 | 覆盖缓冲区 | 📝 黄色提示条 |
-| loading=false, 有缓冲区 | 只读 | 自动触发 AI | 📤 自动发送中 |
+| 状态                    | 输入框行为 | Enter 行为  | 视觉提示      |
+| ----------------------- | ---------- | ----------- | ------------- |
+| loading=false, 无缓冲区 | 正常输入   | 直接触发 AI | 💬 绿色       |
+| loading=true, 无缓冲区  | 正常输入   | 加入缓冲区  | ⏳ 灰色       |
+| loading=true, 有缓冲区  | 正常输入   | 覆盖缓冲区  | 📝 黄色提示条 |
+| loading=false, 有缓冲区 | 只读       | 自动触发 AI | 📤 自动发送中 |
 
 ### 2.3 交互流程
 
@@ -90,24 +96,25 @@
 ```typescript
 // 扩展 Chat Context State（不持久化）
 interface ChatInputBufferState {
-  // 缓冲区内容
-  bufferedMessage: string;
+    // 缓冲区内容
+    bufferedMessage: string;
 
-  // 状态标记
-  bufferStatus: 'idle' | 'buffered' | 'sending';
+    // 状态标记
+    bufferStatus: 'idle' | 'buffered' | 'sending';
 }
 
 // Context 提供
 interface ChatContextType {
-  // ... 现有字段
+    // ... 现有字段
 
-  // 缓冲区状态
-  bufferState: ChatInputBufferState;
-  setBufferState: React.Dispatch<React.SetStateAction<ChatInputBufferState>>;
+    // 缓冲区状态
+    bufferState: ChatInputBufferState;
+    setBufferState: React.Dispatch<React.SetStateAction<ChatInputBufferState>>;
 }
 ```
 
 **设计原则**：
+
 - 使用 React Context 管理状态，不持久化
 - 程序崩溃时缓冲区数据可丢失
 - 简化数据结构，无需队列、配置项
@@ -115,6 +122,7 @@ interface ChatContextType {
 ### 3.2 Context 状态管理
 
 #### 创建 ChatInputBufferContext
+
 ```typescript
 // tui/src/chat/context/ChatInputBufferContext.tsx
 
@@ -187,6 +195,7 @@ const Chat: React.FC = () => {
 ```
 
 #### EnhancedTextInput.tsx
+
 **保持不变**，作为底层组件，无需修改。
 
 新增的 `ChatInputBuffer` 组件通过内部状态管理缓冲区逻辑，不影响 `EnhancedTextInput` 的行为。
@@ -340,6 +349,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ mode }) => {
   );
 };
 ```
+
 ```
 
 ## 4. 边界情况处理
@@ -397,27 +407,30 @@ const ChatInput: React.FC<ChatInputProps> = ({ mode }) => {
 
 ### 使用说明
 ```
+
 Chat Input 缓冲区使用指南:
 
 核心行为：
+
 - AI 响应中（loading）：输入框可用，Enter 将消息加入缓冲区
 - AI 空闲：Enter 直接触发 AI，有缓冲区时自动发送缓冲区内容
 
 操作示例：
-1. AI 响应中，输入 "next question" → Enter
-   └─> 消息进入缓冲区，上方显示黄色提示
 
-2. AI 响应完成
-   └─> 缓冲区消息自动发送
+1. AI 响应中，输入 "next question" → Enter └─> 消息进入缓冲区，上方显示黄色提示
 
-3. 不想发送缓冲区消息？
-   └─> 在 AI 响应完成前按 Esc 清空
+2. AI 响应完成 └─> 缓冲区消息自动发送
+
+3. 不想发送缓冲区消息？└─> 在 AI 响应完成前按 Esc 清空
 
 注意事项：
+
 - 只缓冲一条消息，多次 Enter 会覆盖
 - 命令（/help、/model 等）不受影响，可随时执行
 - 程序崩溃时缓冲区数据丢失
+
 ```
+
 ```
 
 ## 8. 性能考虑

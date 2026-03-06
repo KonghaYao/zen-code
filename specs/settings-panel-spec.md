@@ -1,5 +1,7 @@
 # Settings Panel 设计文档
 
+> **状态**: ✅ 已实现（2026-03-06 验证 - `zen-code/src/chat/components/panels/settings/SettingsPanel.tsx` 已实现）
+
 ## 概述
 
 Settings 面板是一个统一的配置界面，采用 **JSON Schema 驱动**

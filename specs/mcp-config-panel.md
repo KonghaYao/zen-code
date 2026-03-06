@@ -1,5 +1,7 @@
 # MCP Config Panel Specification
 
+> **状态**: ✅ 已实现（2026-03-06 验证 - `McpPanel.tsx` 和 `MCPStatusPanel.tsx` 均已实现）
+
 ## 概述
 
 设计并实现 MCP (Model Context Protocol) 服务器配置面板，用于管理 MCP 服务器连接。

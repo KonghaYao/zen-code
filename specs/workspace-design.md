@@ -1,5 +1,7 @@
 # Workspace 设计文档
 
+> **状态**: ✅ 已实现（2026-03-06 验证 - `zen-swarm/src/api/workspaces.ts` + WorkspaceStorage + 前端 stores 均已实现）
+
 ## 概述
 
 Workspace 是 zen-swarm 中类似 VSCode 概念的项目工作空间管理功能。每个 Workspace 对应一个本地文件夹路径，用户可以创建多个 Workspace 并在它们之间快速切换。

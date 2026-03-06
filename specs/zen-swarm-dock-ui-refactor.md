@@ -1,5 +1,8 @@
 # Zen-Swarm Dock UI 重构架构设计
 
+> **状态**: ✅ 已实现（2026-03-06 验证 - `zen-swarm/src/frontend/components/dock/`
+> 包含 DockContainer、DockAppItem 等组件）
+
 ## 概述
 
 将 zen-swarm 的传统标签页导航重构为 macOS 桌面风格的 Dock 系统，每个 tab 作为 Dock 中的独立 app，提供更直观、更符合现代桌面应用习惯的交互体验。

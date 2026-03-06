@@ -28,31 +28,12 @@
 - 完善的错误处理（客户端未初始化、工具不存在、执行失败）
 - 在错误消息中显示可用工具列表
 
-**测试**: `packages/agent/src/__tests__/mcp/MCPManager.test.ts` (7 个测试用例全部通过)
+**测试**: 已迁移至 `packages/standard-agent/src/__tests__/middlewares/mcp.test.ts`
 
-#### 4.2 重构 CommandSystemMiddleware
+#### 4.2 CommandSystemMiddleware（已废弃）
 
-**文件**: `packages/agent/src/middlewares/commandSystem.ts`
-
-主要变更：
-
-- 移除了 `batch_command` 和 `list_available_commands` 工具
-- 添加了 `load_mcp_tools` 工具（返回工具列表和状态）
-- 添加了 `execute_mcp_tool` 工具（执行 MCP 工具）
-- 移除了 `registerTools` 和 `getRegisteredTools` 方法
-- 更新了系统提示词，专注于 MCP 工具使用
-
-**测试**: `packages/agent/src/__tests__/middlewares/commandSystem.test.ts` (21 个测试用例全部通过)
-
-#### 4.3 更新 factory-v2.ts
-
-**文件**: `packages/agent/src/subagents/factory-v2.ts`
-
-简化了 CommandSystemMiddleware 的初始化：
-
-- 移除了 MCP 工具注册逻辑
-- 移除了 `read_tool` 和 `glob_tool` 的注册
-- 只保留 `new CommandSystemMiddleware()` 的简单调用
+**注意**：此步骤已由 `mcp-middleware-integration.md` 取代。 `packages/agent/src/middlewares/commandSystem.ts`
+已删除，功能合并到 `packages/standard-agent/src/middlewares/mcp.ts`。
 
 ---
 

@@ -1,5 +1,7 @@
 # SubAgents → Skills Migration
 
+> **状态**: ✅ 已完成（2026-03-06 验证 - `.claude/skills/` 目录包含 `architect` 等技能，SubAgent 提示词已迁移）
+
 ## 目标
 
 将现有 SubAgent 的提示词迁移为 Skills 定义，通过 SkillsMiddleware 混入到 Agent 中。
@@ -93,27 +95,29 @@ tags: ['documentation', 'knowledge-management']
 你的使命是**维护一个高效、准确、可检索的记忆系统**，确保项目知识的价值最大化。
 
 **核心能力：**
+
 - 评估知识价值，判断是否值得记录
 - 提取关键信息，结构化组织内容
 - 更新 AGENTS.md 和创建/更新记忆文件
 - 遵循项目约定和格式规范
 
 **工作原则：**
+
 - 只记录非直观、可复用的知识
 - 避免记录显而易见的内容
 - 保持简洁，聚焦问题和解决方案
 - 使用标准化的分类和标签
 - 定期清理和验证现有记忆
 
-**记忆系统：**
-项目使用两套互补的记忆系统：
+**记忆系统：** 项目使用两套互补的记忆系统：
 
 1. **结构化记忆**（持久知识库）：
-   - 位置：`.claude/memories/`
-   - 格式：YAML frontmatter + Markdown
-   - 分类：architecture | bug-fix | workflow | configuration | optimization
+    - 位置：`.claude/memories/`
+    - 格式：YAML frontmatter + Markdown
+    - 分类：architecture | bug-fix | workflow | configuration | optimization
 
 **什么值得记录：**
+
 - ✅ 非直观配置和设置
 - ✅ 踩坑经验和调试过程
 - ✅ 跨文件依赖关系
@@ -122,6 +126,7 @@ tags: ['documentation', 'knowledge-management']
 - ✅ 项目特定的约定和模式
 
 **什么不值得记录：**
+
 - ❌ 显而易见的代码逻辑
 - ❌ 标准库/框架的基础用法
 - ❌ 一次性修改
@@ -129,6 +134,7 @@ tags: ['documentation', 'knowledge-management']
 - ❌ 过于细节的实现细节
 
 **AGENTS.md 更新：**
+
 1. **架构知识**：模块映射、工作流程、约定
 2. **技术栈**：框架、库、工具版本
 3. **开发规范**：编码标准、Git 规范、测试要求
@@ -200,19 +206,23 @@ constructor(options: {
 ## 迁移清单
 
 ### 创建文件
+
 - [ ] `.claude/skills/organizer/SKILL.md`
 - [ ] `.claude/skills/README.md`
 
 ### 修改文件
+
 - [ ] `skills/load.ts` - 添加 `loadSkillContent()` 函数
 - [ ] `middlewares/skills.ts` - 更新默认路径为 `.claude/skills`
 - [ ] `subagents/config.ts` - `organizer.systemPrompt` 改为空
 
 ### 删除文件
+
 - [ ] `prompts/subagents/organizer.ts`
 - [ ] `prompts/subagents/index.ts` - 移除 organizer 导出
 
 ### 验证
+
 - [ ] organizer agent 可正常加载
 - [ ] skill 内容正确注入到系统提示词
 - [ ] 功能无变化（工具、中间件）
@@ -222,15 +232,18 @@ constructor(options: {
 ### 已完成
 
 ✅ **创建 Skill 文件**
+
 - `.claude/skills/organizer/SKILL.md` - 完整的 organizer skill 内容
 - `.claude/skills/README.md` - 使用说明
 
 ✅ **更新代码**
+
 - `skills/load.ts` - 添加 `loadSkillContent()` 函数
 - `middlewares/skills.ts` - 默认路径改为 `.claude/skills`
 - `subagents/config.ts` - `organizer.systemPrompt = ''`
 
 ✅ **清理旧代码**
+
 - 删除 `prompts/subagents/` 目录
 - 删除 `skills/subagents.ts`
 - 删除 `skills/types.ts`
@@ -244,6 +257,7 @@ constructor(options: {
 ```
 
 架构正确：
+
 - SkillsMiddleware 自动扫描 `.claude/skills/`
 - 找到 `organizer/SKILL.md`
 - 加载并注入到 organizer agent 的系统提示词
@@ -251,12 +265,14 @@ constructor(options: {
 ## 总结
 
 **核心价值**：
+
 - ✅ 提示词外部化 - 易于编辑和版本控制
 - ✅ 统一格式 - 与 project skills 使用相同的 SKILL.md 格式
 - ✅ 自动加载 - SkillsMiddleware 无需修改即可支持
 - ✅ 用户可覆盖 - 在 `~/.deepagents/skills/` 创建同名 skill 即可
 
 **迁移范围**：
+
 - 只迁移了 organizer（其他 subagents 已删除）
 - 配置保持不变（tools、middleware）
 - 提示词从硬编码改为文件系统
