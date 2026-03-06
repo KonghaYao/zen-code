@@ -1,74 +1,7 @@
 import { z } from 'zod';
-import { ToolSchema, MiddlewareSchema } from './schemas.js';
-import type { ToolImplementation, MiddlewareImplementation } from './types.js';
+import { MiddlewareSchema } from './schemas.js';
+import type { MiddlewareImplementation } from './types.js';
 import { AgentMiddleware } from 'langchain';
-
-/**
- * Tool Registry - separates schema from implementation
- */
-export class ToolRegistry {
-    private _schemas: Map<string, z.infer<typeof ToolSchema>> = new Map();
-    private _implementations: Map<string, ToolImplementation> = new Map();
-
-    registerSchema(schema: z.infer<typeof ToolSchema>): void {
-        const result = ToolSchema.safeParse(schema);
-        if (!result.success) {
-            throw new Error(`Invalid Tool schema: ${result.error.message}`);
-        }
-        this._schemas.set(result.data.id, result.data);
-    }
-
-    registerImplementation<Params, Result>(impl: ToolImplementation<Params, Result>): void {
-        this._implementations.set(impl.id, impl);
-
-        // Auto-register schema if not present
-        if (!this._schemas.has(impl.id)) {
-            this.registerSchema({
-                id: impl.id,
-                name: impl.name,
-                description: impl.description,
-            });
-        }
-    }
-
-    getSchema(id: string): z.infer<typeof ToolSchema> | undefined {
-        return this._schemas.get(id);
-    }
-
-    getImplementation<Params, Result>(id: string): ToolImplementation<Params, Result> | undefined {
-        return this._implementations.get(id) as ToolImplementation<Params, Result> | undefined;
-    }
-
-    hasImplementation(id: string): boolean {
-        return this._implementations.has(id);
-    }
-
-    listSchemas(): z.infer<typeof ToolSchema>[] {
-        return Array.from(this._schemas.values());
-    }
-
-    listImplementations(): ToolImplementation[] {
-        return Array.from(this._implementations.values());
-    }
-
-    async execute<Params, Result>(id: string, params: unknown, runtime?: unknown): Promise<Result> {
-        const impl = this._implementations.get(id) as ToolImplementation<Params, Result> | undefined;
-        if (!impl) {
-            throw new Error(`Tool implementation not found: ${id}`);
-        }
-
-        // Validate params if schema is provided
-        if (impl.paramsSchema) {
-            const result = impl.paramsSchema.safeParse(params);
-            if (!result.success) {
-                throw new Error(`Invalid params for tool ${id}: ${result.error.message}`);
-            }
-            params = result.data as Params;
-        }
-
-        return await impl.execute(params as Params, runtime);
-    }
-}
 
 /**
  * Middleware Registry - separates schema from implementation

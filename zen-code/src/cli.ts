@@ -1,5 +1,12 @@
 #!/usr/bin/env node
 
+// Patch String.prototype.repeat to clamp invalid arguments to 0
+const _originalRepeat = String.prototype.repeat;
+String.prototype.repeat = function (count) {
+    if (typeof count !== 'number' || !isFinite(count) || count < 0) count = 0;
+    return _originalRepeat.call(this, Math.floor(count));
+};
+
 import { initDatabaseUri } from './utils';
 
 const args = process.argv.slice(2);

@@ -3,7 +3,7 @@ import type { IStorage } from './storage/abstract.js';
 /**
  * Agent Validator
  *
- * Validates agent dependencies (models, prompts, tools, middlewares)
+ * Validates agent dependencies (models, prompts, middlewares)
  */
 export class AgentValidator {
     constructor(private storage: IStorage) {}
@@ -27,14 +27,6 @@ export class AgentValidator {
         const prompt = await this.storage.getPrompt(agent.system_prompt_id);
         if (!prompt) {
             errors.push(`Prompt ${agent.system_prompt_id} not found`);
-        }
-
-        // Check tool references
-        for (const toolId of Object.keys(agent.tools)) {
-            const tool = await this.storage.getTool(toolId);
-            if (!tool) {
-                errors.push(`Tool ${toolId} not found`);
-            }
         }
 
         // Check middleware references

@@ -17,7 +17,7 @@ function createMockAgentPackage(): AgentPackage {
         await pkg.addModel({
             id: 'glm-4.7',
             model_name: 'glm-4.7',
-            model_provider: 'openai',
+            provider_id: 'openai',
             stream_usage: true,
             enable_thinking: true,
             temperature: 0.7,
@@ -27,11 +27,7 @@ function createMockAgentPackage(): AgentPackage {
             presence_penalty: 0,
         });
 
-        await pkg.addPrompt({
-            id: 'prompts/default',
-            name: 'default',
-            content: 'Default system prompt',
-        });
+        await pkg.addPrompt({ id: 'prompts/default', name: 'default' }, 'Default system prompt');
 
         await pkg.addAgent({
             id: 'agents/default',
@@ -39,14 +35,7 @@ function createMockAgentPackage(): AgentPackage {
             description: '代码实现助手',
             system_prompt: 'prompts/default',
             model: 'glm-4.7',
-            tools: {
-                read_file: true,
-                write_file: true,
-            },
-            middleware: {
-                agents_md: true,
-                skills: true,
-            },
+            middlewares: {},
         });
     })();
 

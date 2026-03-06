@@ -35,7 +35,7 @@ const ChatMessages: React.FC = () => {
     const { compactMode } = useSettings();
 
     // Debounce renderMessages updates to 500ms to reduce re-renders during fast updates
-    const [debouncedRenderMessages] = useDebounceValue(renderMessages, 50);
+    const [debouncedRenderMessages] = useDebounceValue(renderMessages, 500);
 
     // Wrap getToolUIRender with useCallback to stabilize reference
     // Type assertion to handle SDK's Object vs ReactNode type mismatch

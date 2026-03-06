@@ -15,8 +15,9 @@ const AgentPackageExportSchema = z.object({
     models: z.array(
         z.object({
             id: z.string(),
+            name: z.string().optional(),
             model_name: z.string(),
-            model_provider: z.string(),
+            provider_id: z.string(),
             stream_usage: z.boolean(),
             enable_thinking: z.boolean(),
             temperature: z.number(),
@@ -34,8 +35,7 @@ const AgentPackageExportSchema = z.object({
             description: z.string(),
             system_prompt: z.string(),
             model: z.string(),
-            tools: z.record(z.string(), z.unknown()),
-            middleware: z.record(z.string(), z.unknown()),
+            middlewares: z.record(z.string(), z.unknown()),
         }),
     ),
 });
@@ -61,8 +61,9 @@ export class AgentSerializer {
         return {
             models: models.map((m) => ({
                 id: m.id,
+                name: m.name ?? undefined,
                 model_name: m.model_name,
-                model_provider: m.model_provider,
+                provider_id: m.provider_id,
                 stream_usage: Boolean(m.stream_usage),
                 enable_thinking: Boolean(m.enable_thinking),
                 temperature: m.temperature,
@@ -83,8 +84,7 @@ export class AgentSerializer {
                 description: a.description,
                 system_prompt: a.system_prompt_id,
                 model: a.model_id,
-                tools: a.tools,
-                middleware: a.middlewares,
+                middlewares: a.middlewares,
             })),
         };
     }

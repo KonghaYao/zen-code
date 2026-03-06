@@ -5,7 +5,6 @@
 import { router } from './trpc.js';
 import { modelsRouter } from './models.js';
 import { promptsRouter } from './prompts.js';
-import { toolsRouter } from './tools.js';
 import { middlewaresRouter } from './middlewares.js';
 import { agentsRouter } from './agents.js';
 import { mcpRouter } from './mcp.js';
@@ -27,7 +26,6 @@ import type { ProviderStorage } from '../services/provider/index.js';
 const baseRoutes = {
     models: modelsRouter,
     prompts: promptsRouter,
-    tools: toolsRouter,
     middlewares: middlewaresRouter,
     agents: agentsRouter,
     mcp: mcpRouter,
@@ -89,7 +87,6 @@ export function createMergedRouter(
 export const apiRoutes = {
     models: modelsRouter,
     prompts: promptsRouter,
-    tools: toolsRouter,
     middlewares: middlewaresRouter,
     agents: agentsRouter,
     mcp: mcpRouter,

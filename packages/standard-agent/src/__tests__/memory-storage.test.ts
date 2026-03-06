@@ -12,7 +12,7 @@ describe('MemoryStorage', () => {
         const mockModel = {
             id: 'model-1',
             model_name: 'gpt-4',
-            model_provider: 'openai',
+            provider_id: 'openai',
             stream_usage: true,
             enable_thinking: false,
             temperature: 0.7,
@@ -57,19 +57,14 @@ describe('MemoryStorage', () => {
 
         it('should prevent deleting referenced model', async () => {
             await storage.insertModel(mockModel);
-            await storage.insertPrompt({
-                id: 'prompt-1',
-                name: 'test-prompt',
-                content: 'test',
-            });
+            await storage.insertPrompt({ id: 'prompt-1', name: 'test-prompt' }, 'test');
             await storage.insertAgent({
                 id: 'agent-1',
                 name: 'test-agent',
                 description: 'test',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: {},
-                middleware: {},
+                middlewares: {},
             });
 
             await expect(storage.deleteModel('model-1')).rejects.toThrow('is referenced by agent');
@@ -137,7 +132,7 @@ describe('MemoryStorage', () => {
             await storage.insertModel({
                 id: 'model-1',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
+                provider_id: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -153,8 +148,7 @@ describe('MemoryStorage', () => {
                 description: 'test',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: {},
-                middleware: {},
+                middlewares: {},
             });
 
             await expect(storage.deletePrompt('prompt-1')).rejects.toThrow('is referenced by agent');
@@ -223,42 +217,6 @@ describe('MemoryStorage', () => {
         });
     });
 
-    describe('Tools', () => {
-        const mockTool = {
-            id: 'tool-1',
-            name: 'read_file',
-            description: 'Read a file',
-        };
-
-        it('should insert a tool', async () => {
-            await storage.insertTool(mockTool);
-            const result = await storage.getTool('tool-1');
-            expect(result).toBeDefined();
-            expect(result?.name).toBe('read_file');
-        });
-
-        it('should get all tools', async () => {
-            await storage.insertTool(mockTool);
-            await storage.insertTool({ ...mockTool, id: 'tool-2', name: 'write_file' });
-            const tools = await storage.getAllTools();
-            expect(tools).toHaveLength(2);
-        });
-
-        it('should update a tool', async () => {
-            await storage.insertTool(mockTool);
-            await storage.updateTool({ ...mockTool, description: 'Updated description' });
-            const result = await storage.getTool('tool-1');
-            expect(result?.description).toBe('Updated description');
-        });
-
-        it('should delete a tool', async () => {
-            await storage.insertTool(mockTool);
-            await storage.deleteTool('tool-1');
-            const result = await storage.getTool('tool-1');
-            expect(result).toBeUndefined();
-        });
-    });
-
     describe('Middlewares', () => {
         const mockMiddleware = {
             id: 'mid-1',
@@ -300,7 +258,7 @@ describe('MemoryStorage', () => {
             await storage.insertModel({
                 id: 'model-1',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
+                provider_id: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -309,16 +267,7 @@ describe('MemoryStorage', () => {
                 frequency_penalty: 0.0,
                 presence_penalty: 0.0,
             });
-            await storage.insertPrompt({
-                id: 'prompt-1',
-                name: 'system',
-                content: 'You are helpful',
-            });
-            await storage.insertTool({
-                id: 'tool-1',
-                name: 'read_file',
-                description: 'Read a file',
-            });
+            await storage.insertPrompt({ id: 'prompt-1', name: 'system' }, 'You are helpful');
             await storage.insertMiddleware({
                 id: 'mid-1',
                 name: 'auth',
@@ -333,14 +282,12 @@ describe('MemoryStorage', () => {
                 description: 'A test agent',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: { 'tool-1': true },
-                middleware: { 'mid-1': false },
+                middlewares: { 'mid-1': false },
             });
 
             const result = await storage.getAgent('agent-1');
             expect(result).toBeDefined();
             expect(result?.name).toBe('Test Agent');
-            expect(result?.tools['tool-1']).toBe(true);
             expect(result?.middlewares['mid-1']).toBe(false);
         });
 
@@ -352,8 +299,7 @@ describe('MemoryStorage', () => {
                     description: 'Test',
                     system_prompt: 'prompt-1',
                     model: 'missing-model',
-                    tools: {},
-                    middleware: {},
+                    middlewares: {},
                 }),
             ).rejects.toThrow('Model missing-model not found');
         });
@@ -366,25 +312,23 @@ describe('MemoryStorage', () => {
                     description: 'Test',
                     system_prompt: 'missing-prompt',
                     model: 'model-1',
-                    tools: {},
-                    middleware: {},
+                    middlewares: {},
                 }),
             ).rejects.toThrow('Prompt missing-prompt not found');
         });
 
-        it('should handle custom tool params', async () => {
+        it('should handle custom middleware params', async () => {
             await storage.insertAgent({
                 id: 'agent-1',
                 name: 'Test',
                 description: 'Test',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: { 'tool-1': { custom: 'param' } },
-                middleware: {},
+                middlewares: { 'mid-1': { custom: 'param' } },
             });
 
             const result = await storage.getAgent('agent-1');
-            expect(result?.tools['tool-1']).toEqual({ custom: 'param' });
+            expect(result?.middlewares['mid-1']).toEqual({ custom: 'param' });
         });
 
         it('should update an agent', async () => {
@@ -394,8 +338,7 @@ describe('MemoryStorage', () => {
                 description: 'Test',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: {},
-                middleware: {},
+                middlewares: {},
             });
 
             await storage.updateAgent({
@@ -404,13 +347,12 @@ describe('MemoryStorage', () => {
                 description: 'Updated desc',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: { 'tool-1': true },
-                middleware: { 'mid-1': true },
+                middlewares: { 'mid-1': true },
             });
 
             const result = await storage.getAgent('agent-1');
             expect(result?.name).toBe('Updated');
-            expect(result?.tools['tool-1']).toBe(true);
+            expect(result?.middlewares['mid-1']).toBe(true);
         });
 
         it('should delete an agent', async () => {
@@ -420,8 +362,7 @@ describe('MemoryStorage', () => {
                 description: 'Test',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: {},
-                middleware: {},
+                middlewares: {},
             });
 
             await storage.deleteAgent('agent-1');
@@ -435,7 +376,7 @@ describe('MemoryStorage', () => {
             await storage.insertModel({
                 id: 'model-1',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
+                provider_id: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -466,7 +407,7 @@ describe('MemoryStorage', () => {
                 await storage.insertModel({
                     id: 'model-1',
                     model_name: 'gpt-4',
-                    model_provider: 'openai',
+                    provider_id: 'openai',
                     stream_usage: true,
                     enable_thinking: false,
                     temperature: 0.7,
@@ -487,7 +428,7 @@ describe('MemoryStorage', () => {
             await storage.insertModel({
                 id: 'model-1',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
+                provider_id: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,

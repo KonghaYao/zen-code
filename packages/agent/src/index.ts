@@ -23,4 +23,4 @@ export { createStandardAgentV2, getAvailableAgentIds } from './subagents/factory
 export * from './subagents/config.js';
 
 // Standard Agent System - re-export from @langgraph-js/standard-agent
-export { AgentPackage, ToolRegistry, MiddlewareRegistry } from '@langgraph-js/standard-agent';
+export { AgentPackage, MiddlewareRegistry } from '@langgraph-js/standard-agent';

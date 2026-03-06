@@ -2,12 +2,13 @@
  * Standard Agent Factory V2
  *
  * Creates specialized agents using AgentPackage configuration system.
- * Supports dynamic tool and middleware loading with full type safety.
+ * Supports dynamic middleware loading with full type safety.
+ * Tools are now managed by individual middlewares.
  */
 
 import { initChatModel } from '../utils/initChatModel.js';
-import { AgentMiddleware, createAgent, DynamicStructuredTool, ReactAgent, Runtime, tool } from 'langchain';
-import { CodeAnnotation, CodeState, CodeStateType } from '../state.js';
+import { AgentMiddleware, createAgent, ReactAgent, Runtime } from 'langchain';
+import { CodeAnnotation, CodeStateType } from '../state.js';
 import { anthropicPromptCachingMiddleware } from '@langgraph-js/standard-agent';
 import { MCPWithConfigMiddleware } from '../middlewares/mcpWithConfig.js';
 import { getEnvInfo } from '../prompts/coding.js';
@@ -61,9 +62,6 @@ export async function createStandardAgentV2(
         throw new Error(`Agent validation failed: ${JSON.stringify(validation.errors)}`);
     }
 
-    // Load model configuration
-    // const modelConfig = await pkg.getModel(state.model_id || agentConfig.modelId);
-
     // Initialize model
     const model = await initChatModel(state.model_id, {
         modelProvider: state.provider_type,
@@ -76,52 +74,24 @@ export async function createStandardAgentV2(
         },
     });
 
-    // Filter tools based on agent configuration
-    const tools: DynamicStructuredTool[] = [];
-    const toolRegistry = pkg.tools;
-
-    for (const [toolId, params] of Object.entries(agentConfig.tools)) {
-        const toolImpl = toolRegistry.getImplementation(toolId);
-        if (!toolImpl) {
-            console.warn(`Tool ${toolId} not found in registry`);
-            continue;
-        }
-        if (!toolImpl.name || !params) {
-            continue;
-        }
-
-        // Directly use the ToolImplementation's execute function
-        // Wrap it to handle ToolMessage return type
-        const langChainTool = tool(
-            async (input, runtime) => {
-                // Call ToolImplementation.execute with validated params
-                const result = await toolImpl.execute(input, runtime);
-                // Handle ToolMessage return type - extract content
-                if (result && typeof result === 'object' && 'content' in result) {
-                    return (result as { content: string }).content;
-                }
-                return result;
-            },
-            {
-                name: toolImpl.name,
-                description: toolImpl.description,
-                schema: toolImpl.paramsSchema,
-            },
-        );
-
-        tools.push(langChainTool as DynamicStructuredTool);
-    }
-
     // Build middleware chain
+    // Tools are now managed by individual middlewares
     const middleware: AgentMiddleware[] = [];
-    for (const [middlewareId, params] of Object.entries(agentConfig.middleware)) {
+    for (const [middlewareId, params] of Object.entries(agentConfig.middlewares)) {
+        // Skip subagents middleware for sub-agents (avoid infinite nesting)
         if (middlewareId === 'subagents' && isSubAgent) continue;
-        const subagentsImpl = pkg.middlewares.getImplementation(middlewareId);
-        if (!params) {
+
+        if (!params || !params.enabled) {
             continue;
         }
 
-        middleware.push(await subagentsImpl!.execute(params.customParams || {}));
+        const middlewareImpl = pkg.middlewares.getImplementation(middlewareId);
+        if (!middlewareImpl) {
+            console.warn(`Middleware ${middlewareId} not found in registry`);
+            continue;
+        }
+
+        middleware.push(await middlewareImpl.execute(params.customParams || {}));
     }
 
     // MCP middleware (always enabled for MCP tool discovery and execution)
@@ -159,12 +129,12 @@ export async function createStandardAgentV2(
     }
 
     const systemPrompt = promptConfig.content + `\n\n${await getEnvInfo(state)}`;
-    // Create agent
+
+    // Create agent - tools are now managed by middlewares
     return createAgent({
         name: isSubAgent ? `subagent_${options.parent_id}` : agentConfig.name,
         model,
         systemPrompt,
-        tools,
         stateSchema: CodeAnnotation,
         middleware,
     }) as any as ReactAgent;

@@ -26,7 +26,7 @@ describe('AgentSerializer', () => {
             await storage.insertModel({
                 id: 'model-1',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
+                provider_id: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -52,11 +52,11 @@ describe('AgentSerializer', () => {
             expect(result.prompts[0].change_note).toBe('Initial version');
         });
 
-        it('should export agents with tools and middlewares', async () => {
+        it('should export agents with middlewares', async () => {
             await storage.insertModel({
                 id: 'model-1',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
+                provider_id: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -66,11 +66,6 @@ describe('AgentSerializer', () => {
                 presence_penalty: 0.0,
             });
             await storage.insertPrompt({ id: 'prompt-1', name: 'system' }, 'test');
-            await storage.insertTool({
-                id: 'tool-1',
-                name: 'read_file',
-                description: 'Read a file',
-            });
             await storage.insertMiddleware({
                 id: 'mid-1',
                 name: 'auth',
@@ -82,22 +77,20 @@ describe('AgentSerializer', () => {
                 description: 'Test agent',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: { 'tool-1': true },
-                middleware: { 'mid-1': { custom: 'param' } },
+                middlewares: { 'mid-1': { custom: 'param' } },
             });
 
             const result = await serializer.toJSON();
             expect(result.agents).toHaveLength(1);
             expect(result.agents[0].name).toBe('Test');
-            expect(result.agents[0].tools['tool-1']).toBe(true);
-            expect(result.agents[0].middleware['mid-1']).toEqual({ custom: 'param' });
+            expect(result.agents[0].middlewares['mid-1']).toEqual({ custom: 'param' });
         });
 
         it('should export complete package', async () => {
             await storage.insertModel({
                 id: 'model-1',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
+                provider_id: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -113,8 +106,7 @@ describe('AgentSerializer', () => {
                 description: 'Test',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: {},
-                middleware: {},
+                middlewares: {},
             });
 
             const result = await serializer.toJSON();
@@ -146,7 +138,7 @@ describe('AgentSerializer', () => {
                     {
                         id: 'model-1',
                         model_name: 'gpt-4',
-                        model_provider: 'openai',
+                        provider_id: 'openai',
                         stream_usage: true,
                         enable_thinking: false,
                         temperature: 0.7,
@@ -186,11 +178,6 @@ describe('AgentSerializer', () => {
         });
 
         it('should import agents with dependencies', async () => {
-            await storage.insertTool({
-                id: 'tool-1',
-                name: 'read_file',
-                description: 'Read',
-            });
             await storage.insertMiddleware({
                 id: 'mid-1',
                 name: 'auth',
@@ -202,7 +189,7 @@ describe('AgentSerializer', () => {
                     {
                         id: 'model-1',
                         model_name: 'gpt-4',
-                        model_provider: 'openai',
+                        provider_id: 'openai',
                         stream_usage: true,
                         enable_thinking: false,
                         temperature: 0.7,
@@ -226,8 +213,7 @@ describe('AgentSerializer', () => {
                         description: 'Test',
                         system_prompt: 'prompt-1',
                         model: 'model-1',
-                        tools: { 'tool-1': true },
-                        middleware: { 'mid-1': false },
+                        middlewares: { 'mid-1': false },
                     },
                 ],
             });
@@ -235,7 +221,7 @@ describe('AgentSerializer', () => {
             const agent = await storage.getAgent('agent-1');
             expect(agent).toBeDefined();
             expect(agent?.name).toBe('Test');
-            expect(agent?.tools['tool-1']).toBe(true);
+            expect(agent?.middlewares['mid-1']).toBe(false);
         });
 
         it('should reject invalid schema', async () => {
@@ -252,7 +238,7 @@ describe('AgentSerializer', () => {
             await storage.insertModel({
                 id: 'model-1',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
+                provider_id: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -269,7 +255,7 @@ describe('AgentSerializer', () => {
                         {
                             id: 'model-1',
                             model_name: 'gpt-3.5',
-                            model_provider: 'openai',
+                            provider_id: 'openai',
                             stream_usage: true,
                             enable_thinking: false,
                             temperature: 0.7,
@@ -295,7 +281,7 @@ describe('AgentSerializer', () => {
             await storage.insertModel({
                 id: 'model-1',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
+                provider_id: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -305,11 +291,6 @@ describe('AgentSerializer', () => {
                 presence_penalty: 0.0,
             });
             await storage.insertPrompt({ id: 'prompt-1', name: 'system' }, 'test', 'v1');
-            await storage.insertTool({
-                id: 'tool-1',
-                name: 'read_file',
-                description: 'Read',
-            });
             await storage.insertMiddleware({
                 id: 'mid-1',
                 name: 'auth',
@@ -321,8 +302,7 @@ describe('AgentSerializer', () => {
                 description: 'Test agent',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: { 'tool-1': true },
-                middleware: { 'mid-1': { custom: 'param' } },
+                middlewares: { 'mid-1': { custom: 'param' } },
             });
 
             // Export
@@ -333,12 +313,7 @@ describe('AgentSerializer', () => {
             storage = new MemoryStorage();
             serializer = new AgentSerializer(storage);
 
-            // Pre-create tools and middlewares (they are not serialized)
-            await storage.insertTool({
-                id: 'tool-1',
-                name: 'read_file',
-                description: 'Read',
-            });
+            // Pre-create middlewares (they are not serialized)
             await storage.insertMiddleware({
                 id: 'mid-1',
                 name: 'auth',

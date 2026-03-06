@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, JSX } from 'react';
 import { useTimeout } from 'usehooks-ts';
-import { Text } from 'ink';
+
+import { clearTerminal } from 'ansi-escapes';
 export interface DynamicRendererProps<T = string> {
     staticKey: T;
     children: () => JSX.Element;
@@ -25,7 +26,7 @@ export const DynamicRenderer = <T,>({
         () => {
             if (shouldShowRef.current) {
                 // 清理屏幕以更新数据
-                console.clear();
+                process.stdout.write(clearTerminal);
                 setVisible(true);
                 shouldShowRef.current = false;
             }

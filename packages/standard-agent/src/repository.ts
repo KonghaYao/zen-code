@@ -1,12 +1,5 @@
 import { z } from 'zod';
-import {
-    ModelSchema,
-    PromptSchema,
-    PromptVersionSchema,
-    ToolSchema,
-    MiddlewareSchema,
-    AgentSchema,
-} from './schemas.js';
+import { ModelSchema, PromptSchema, PromptVersionSchema, MiddlewareSchema, AgentSchema } from './schemas.js';
 import { StandardAgent } from './agent.js';
 import type { IStorage, ModelRow, PromptRow, PromptVersionRow, PromptWithVersion } from './storage/abstract.js';
 
@@ -193,33 +186,6 @@ export class AgentRepository {
     }
 
     // ========================================
-    // Tools
-    // ========================================
-
-    async addTool(data: z.infer<typeof ToolSchema>): Promise<void> {
-        await this.storage.insertTool(data);
-    }
-
-    async getTool(id: string): Promise<z.infer<typeof ToolSchema> | undefined> {
-        const row = await this.storage.getTool(id);
-        if (!row) return undefined;
-        return { id: row.id, name: row.name, description: row.description };
-    }
-
-    async listTools(): Promise<z.infer<typeof ToolSchema>[]> {
-        const rows = await this.storage.getAllTools();
-        return rows.map((r) => ({ id: r.id, name: r.name, description: r.description }));
-    }
-
-    async updateTool(data: z.infer<typeof ToolSchema>): Promise<void> {
-        await this.storage.updateTool(data);
-    }
-
-    async deleteTool(id: string): Promise<void> {
-        await this.storage.deleteTool(id);
-    }
-
-    // ========================================
     // Middlewares
     // ========================================
 
@@ -263,8 +229,7 @@ export class AgentRepository {
             description: row.description,
             system_prompt: row.system_prompt_id,
             model: row.model_id,
-            tools: row.tools,
-            middleware: row.middlewares,
+            middlewares: row.middlewares,
         });
     }
 
@@ -278,8 +243,7 @@ export class AgentRepository {
                     description: r.description,
                     system_prompt: r.system_prompt_id,
                     model: r.model_id,
-                    tools: r.tools,
-                    middleware: r.middlewares,
+                    middlewares: r.middlewares,
                 }),
         );
     }

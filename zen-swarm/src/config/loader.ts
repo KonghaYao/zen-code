@@ -12,7 +12,6 @@ import { BunSqliteStorage } from '@langgraph-js/standard-agent/src/storage/sqlit
 import { ZenSwarmMcpStorage } from './storage.js';
 import { setMcpConfigStorage } from './mcpProvider.js';
 import { createMiddlewareRegistry } from '../middlewares/registry.js';
-import { createToolRegistry } from '../tools/registry.js';
 import { CronStorage } from '../cron/storage.js';
 import { CronScheduler } from '../cron/scheduler.js';
 import { CronExecutor } from '../cron/executor.js';
@@ -88,9 +87,6 @@ await createMiddlewareRegistry(agentPackage, {
     cronStorage,
     cronScheduler,
 });
-
-// 注册工具实现
-await createToolRegistry(agentPackage);
 
 // 导出存储实例供外部使用
 export { agentStorage, mcpStorage, sharedDb, smDatabase, stateMachineManager, providerStorage };

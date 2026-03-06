@@ -37,13 +37,8 @@ export const PromptVersionSchema = z.object({
     change_note: z.string().optional().describe('description of changes in this version'),
 });
 
-export const ToolSchema = z.object({
-    id: z.string().describe('tool id, must be unique, folder/tool/subtool_name'),
-    name: z.string(),
-    description: z.string(),
-});
+// ToolSchema deleted - tools are now managed by middlewares
 
-export const ToolCustomParamsSchema = z.any().describe('tool custom params, must be a valid JSON object');
 export const MiddlewareCustomParamsSchema = z.any().describe('middleware custom params, must be a valid JSON object');
 
 export const MiddlewareSchema = z.object({
@@ -57,8 +52,8 @@ export const AgentSchema = z.object({
     name: z.string(),
     description: z.string(),
     system_prompt: PromptSchema.shape.id,
-    tools: z.record(ToolSchema.shape.id, z.union([z.boolean(), ToolCustomParamsSchema])),
-    middleware: z.record(MiddlewareSchema.shape.id, z.union([z.boolean(), MiddlewareCustomParamsSchema])),
+    // Note: renamed from 'middleware' (singular) to 'middlewares' (plural)
+    middlewares: z.record(MiddlewareSchema.shape.id, z.union([z.boolean(), MiddlewareCustomParamsSchema])),
     model: ModelSchema.shape.id,
 });
 

@@ -16,7 +16,7 @@ describe('AgentRepository', () => {
         const mockModel = {
             id: 'model-1',
             model_name: 'gpt-4',
-            model_provider: 'openai',
+            provider_id: 'openai',
             stream_usage: true,
             enable_thinking: false,
             temperature: 0.7,
@@ -136,42 +136,6 @@ describe('AgentRepository', () => {
         });
     });
 
-    describe('Tools', () => {
-        const mockTool = {
-            id: 'tool-1',
-            name: 'read_file',
-            description: 'Read a file',
-        };
-
-        it('should add and get a tool', async () => {
-            await repository.addTool(mockTool);
-            const result = await repository.getTool('tool-1');
-            expect(result).toBeDefined();
-            expect(result?.name).toBe('read_file');
-        });
-
-        it('should list all tools', async () => {
-            await repository.addTool(mockTool);
-            await repository.addTool({ ...mockTool, id: 'tool-2', name: 'write_file' });
-            const tools = await repository.listTools();
-            expect(tools).toHaveLength(2);
-        });
-
-        it('should update a tool', async () => {
-            await repository.addTool(mockTool);
-            await repository.updateTool({ ...mockTool, description: 'Updated' });
-            const result = await repository.getTool('tool-1');
-            expect(result?.description).toBe('Updated');
-        });
-
-        it('should delete a tool', async () => {
-            await repository.addTool(mockTool);
-            await repository.deleteTool('tool-1');
-            const result = await repository.getTool('tool-1');
-            expect(result).toBeUndefined();
-        });
-    });
-
     describe('Middlewares', () => {
         const mockMiddleware = {
             id: 'mid-1',
@@ -213,7 +177,7 @@ describe('AgentRepository', () => {
             await repository.addModel({
                 id: 'model-1',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
+                provider_id: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -223,11 +187,6 @@ describe('AgentRepository', () => {
                 presence_penalty: 0.0,
             });
             await repository.addPrompt({ id: 'prompt-1', name: 'system' }, 'You are helpful');
-            await repository.addTool({
-                id: 'tool-1',
-                name: 'read_file',
-                description: 'Read a file',
-            });
             await repository.addMiddleware({
                 id: 'mid-1',
                 name: 'auth',
@@ -242,15 +201,13 @@ describe('AgentRepository', () => {
                 description: 'A test agent',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: { 'tool-1': true },
-                middleware: { 'mid-1': false },
+                middlewares: { 'mid-1': false },
             });
 
             const result = await repository.getAgent('agent-1');
             expect(result).toBeDefined();
             expect(result?.name).toBe('Test Agent');
-            expect(result?.tools['tool-1']).toEqual({ enabled: true });
-            expect(result?.middleware['mid-1']).toEqual({ enabled: false });
+            expect(result?.middlewares['mid-1']).toEqual({ enabled: false });
         });
 
         it('should list all agents', async () => {
@@ -260,8 +217,7 @@ describe('AgentRepository', () => {
                 description: 'Test',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: {},
-                middleware: {},
+                middlewares: {},
             });
             await repository.addAgent({
                 id: 'agent-2',
@@ -269,8 +225,7 @@ describe('AgentRepository', () => {
                 description: 'Test',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: {},
-                middleware: {},
+                middlewares: {},
             });
 
             const agents = await repository.listAgents();
@@ -284,8 +239,7 @@ describe('AgentRepository', () => {
                 description: 'Test',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: {},
-                middleware: {},
+                middlewares: {},
             });
 
             await repository.updateAgent({
@@ -294,13 +248,12 @@ describe('AgentRepository', () => {
                 description: 'Updated desc',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: { 'tool-1': true },
-                middleware: { 'mid-1': true },
+                middlewares: { 'mid-1': true },
             });
 
             const result = await repository.getAgent('agent-1');
             expect(result?.name).toBe('Updated');
-            expect(result?.tools['tool-1']).toEqual({ enabled: true });
+            expect(result?.middlewares['mid-1']).toEqual({ enabled: true });
         });
 
         it('should delete an agent', async () => {
@@ -310,8 +263,7 @@ describe('AgentRepository', () => {
                 description: 'Test',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: {},
-                middleware: {},
+                middlewares: {},
             });
 
             await repository.deleteAgent('agent-1');
@@ -326,8 +278,7 @@ describe('AgentRepository', () => {
                 description: 'Test',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: { 'tool-1': true },
-                middleware: { 'mid-1': true },
+                middlewares: { 'mid-1': true },
             });
 
             const result = await repository.getAgentWithDependencies('agent-1');

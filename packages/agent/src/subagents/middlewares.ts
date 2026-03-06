@@ -87,4 +87,28 @@ export async function createMiddlewareRegistry(pkg: AgentPackage) {
     };
     await pkg.addMiddleware(agents_md);
     pkg.middlewares.registerImplementation(agents_md);
+
+    const interactive = {
+        id: 'interactive',
+        name: 'interactive',
+        description: 'User interaction for approval and input',
+        execute: async () => {
+            const { InteractiveMiddleware } = await import('../middlewares/interactive.js');
+            return InteractiveMiddleware;
+        },
+    };
+    await pkg.addMiddleware(interactive);
+    pkg.middlewares.registerImplementation(interactive);
+
+    const task = {
+        id: 'task',
+        name: 'task',
+        description: 'Task management for todo lists',
+        execute: async () => {
+            const { taskMiddleware } = await import('../middlewares/task.js');
+            return taskMiddleware;
+        },
+    };
+    await pkg.addMiddleware(task);
+    pkg.middlewares.registerImplementation(task);
 }

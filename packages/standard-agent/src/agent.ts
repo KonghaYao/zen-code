@@ -2,11 +2,6 @@ import { z } from 'zod';
 import { AgentSchema } from './schemas.js';
 
 // ============ Agent Configuration ============
-export interface ToolConfig {
-    enabled: boolean;
-    customParams?: unknown;
-}
-
 export interface MiddlewareConfig {
     enabled: boolean;
     customParams?: unknown;
@@ -43,30 +38,16 @@ export class StandardAgent {
         return this._data.model;
     }
 
-    get tools(): Record<string, ToolConfig> {
-        const config: Record<string, ToolConfig> = {};
-        for (const [toolId, value] of Object.entries(this._data.tools)) {
-            config[toolId] = typeof value === 'boolean' ? { enabled: value } : { enabled: true, customParams: value };
-        }
-        return config;
-    }
-
-    get middleware(): Record<string, MiddlewareConfig> {
+    get middlewares(): Record<string, MiddlewareConfig> {
         const config: Record<string, MiddlewareConfig> = {};
-        for (const [midId, value] of Object.entries(this._data.middleware)) {
+        for (const [midId, value] of Object.entries(this._data.middlewares)) {
             config[midId] = typeof value === 'boolean' ? { enabled: value } : { enabled: true, customParams: value };
         }
         return config;
     }
 
-    getToolConfig(toolId: string): ToolConfig | undefined {
-        const value = this._data.tools[toolId];
-        if (value === undefined) return undefined;
-        return typeof value === 'boolean' ? { enabled: value } : { enabled: true, customParams: value };
-    }
-
     getMiddlewareConfig(midId: string): MiddlewareConfig | undefined {
-        const value = this._data.middleware[midId];
+        const value = this._data.middlewares[midId];
         if (value === undefined) return undefined;
         return typeof value === 'boolean' ? { enabled: value } : { enabled: true, customParams: value };
     }

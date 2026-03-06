@@ -11,7 +11,6 @@
 
 import { AgentPackage, MemoryStorage, AgentSchema } from '@langgraph-js/standard-agent';
 import { z } from 'zod';
-import { createToolRegistry } from './tools.js';
 import { createMiddlewareRegistry } from './middlewares.js';
 import { CORE_SYSTEM_PROMPT } from '../prompts/coding.js';
 import { architectPrompt } from '../prompts/architect.js';
@@ -30,7 +29,7 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
     await pkg.addModel({
         id: 'glm-4.7',
         model_name: 'glm-4.7',
-        model_provider: process.env.MODEL_PROVIDER || 'openai',
+        provider_id: process.env.MODEL_PROVIDER || 'openai',
         stream_usage: true,
         enable_thinking: true,
         temperature: 0.7,
@@ -41,19 +40,20 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
     });
 
     // Default Prompts
-    await pkg.addPrompt({
-        id: 'prompts/default',
-        name: 'default',
-        content: CORE_SYSTEM_PROMPT,
-    });
-    await pkg.addPrompt({
-        id: 'prompts/manager',
-        name: 'manager',
-        content: architectPrompt,
-    });
-
-    // Register tools into the package
-    await createToolRegistry(pkg);
+    await pkg.addPrompt(
+        {
+            id: 'prompts/default',
+            name: 'default',
+        },
+        CORE_SYSTEM_PROMPT,
+    );
+    await pkg.addPrompt(
+        {
+            id: 'prompts/manager',
+            name: 'manager',
+        },
+        architectPrompt,
+    );
 
     // Register middleware implementations into the package registry
     await createMiddlewareRegistry(pkg);
@@ -65,17 +65,15 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
         description: '代码实现助手',
         system_prompt: 'prompts/default',
         model: 'glm-4.7',
-        tools: {
-            ask_user_questions: true,
-            todo_write: true,
-        },
-        middleware: {
+        middlewares: {
             filesystem: true,
             terminal: true,
             agents_md: true,
             skills: true,
             memories: true,
             subagents: true,
+            interactive: true,
+            task: true,
         },
     });
     // Default SubAgents
@@ -85,17 +83,15 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
         description: '任务管理员',
         system_prompt: 'prompts/manager',
         model: 'glm-4.7',
-        tools: {
-            ask_user_questions: true,
-            todo_write: true,
-        },
-        middleware: {
+        middlewares: {
             filesystem: true,
             terminal: true,
             agents_md: true,
             skills: true,
             memories: true,
             subagents: true,
+            interactive: true,
+            task: true,
         },
     });
 

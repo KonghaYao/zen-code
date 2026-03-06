@@ -19,14 +19,12 @@ import {
     PromptRow,
     PromptVersionRow,
     PromptWithVersion,
-    ToolRow,
     MiddlewareRow,
-    AgentToolRow,
     AgentMiddlewareRow,
     AgentWithRelations,
     AgentRow,
 } from './abstract.js';
-import { ModelSchema, PromptSchema, PromptVersionSchema, ToolSchema, MiddlewareSchema, AgentSchema } from '../index.js';
+import { ModelSchema, PromptSchema, MiddlewareSchema, AgentSchema } from '../index.js';
 
 export class MemoryStorage extends BaseStorage {
     initialize?(): Promise<void> | void {
@@ -36,10 +34,8 @@ export class MemoryStorage extends BaseStorage {
     private prompts: Map<string, PromptRow> = new Map();
     private promptVersions: Map<string, PromptVersionRow[]> = new Map(); // prompt_id -> versions
     private promptsByName: Map<string, PromptRow> = new Map();
-    private tools: Map<string, ToolRow> = new Map();
     private middlewares: Map<string, MiddlewareRow> = new Map();
     private agents: Map<string, AgentRow> = new Map();
-    private agentTools: Map<string, AgentToolRow[]> = new Map(); // agent_id -> tools
     private agentMiddlewares: Map<string, AgentMiddlewareRow[]> = new Map(); // agent_id -> middlewares
 
     constructor() {
@@ -55,10 +51,8 @@ export class MemoryStorage extends BaseStorage {
             this.prompts.clear();
             this.promptVersions.clear();
             this.promptsByName.clear();
-            this.tools.clear();
             this.middlewares.clear();
             this.agents.clear();
-            this.agentTools.clear();
             this.agentMiddlewares.clear();
         });
     }
@@ -73,10 +67,8 @@ export class MemoryStorage extends BaseStorage {
             prompts: new Map(this.prompts),
             promptVersions: new Map(this.promptVersions),
             promptsByName: new Map(this.promptsByName),
-            tools: new Map(this.tools),
             middlewares: new Map(this.middlewares),
             agents: new Map(this.agents),
-            agentTools: new Map(this.agentTools),
             agentMiddlewares: new Map(this.agentMiddlewares),
         };
 
@@ -88,10 +80,8 @@ export class MemoryStorage extends BaseStorage {
             this.prompts = snapshots.prompts;
             this.promptVersions = snapshots.promptVersions;
             this.promptsByName = snapshots.promptsByName;
-            this.tools = snapshots.tools;
             this.middlewares = snapshots.middlewares;
             this.agents = snapshots.agents;
-            this.agentTools = snapshots.agentTools;
             this.agentMiddlewares = snapshots.agentMiddlewares;
             throw error;
         }
@@ -108,8 +98,9 @@ export class MemoryStorage extends BaseStorage {
 
             const row: ModelRow = {
                 id: data.id,
+                name: data.name ?? null,
+                provider_id: data.provider_id,
                 model_name: data.model_name,
-                model_provider: data.model_provider,
                 stream_usage: this.boolToInt(data.stream_usage),
                 enable_thinking: this.boolToInt(data.enable_thinking),
                 temperature: data.temperature,
@@ -142,8 +133,9 @@ export class MemoryStorage extends BaseStorage {
 
             const row: ModelRow = {
                 ...existing,
+                name: data.name ?? null,
+                provider_id: data.provider_id,
                 model_name: data.model_name,
-                model_provider: data.model_provider,
                 stream_usage: this.boolToInt(data.stream_usage),
                 enable_thinking: this.boolToInt(data.enable_thinking),
                 temperature: data.temperature,
@@ -374,61 +366,6 @@ export class MemoryStorage extends BaseStorage {
     }
 
     // ========================================
-    // Tools
-    // ========================================
-    insertTool(data: z.infer<typeof ToolSchema>): Promise<void> {
-        return Promise.resolve().then(() => {
-            if (this.tools.has(data.id)) {
-                throw new Error(`Tool with id ${data.id} already exists`);
-            }
-
-            const row: ToolRow = {
-                id: data.id,
-                name: data.name,
-                description: data.description,
-                created_at: this.now(),
-                updated_at: this.now(),
-                parameters: null,
-            };
-
-            this.tools.set(data.id, row);
-        });
-    }
-
-    getTool(id: string): Promise<ToolRow | undefined> {
-        return Promise.resolve(this.tools.get(id));
-    }
-
-    getAllTools(): Promise<ToolRow[]> {
-        return Promise.resolve(Array.from(this.tools.values()));
-    }
-
-    updateTool(data: z.infer<typeof ToolSchema>): Promise<void> {
-        return Promise.resolve().then(() => {
-            const existing = this.tools.get(data.id);
-            if (!existing) {
-                throw new Error(`Tool with id ${data.id} not found`);
-            }
-
-            const row: ToolRow = {
-                ...existing,
-                name: data.name,
-                description: data.description,
-                updated_at: this.now(),
-            };
-
-            this.tools.set(data.id, row);
-        });
-    }
-
-    deleteTool(id: string): Promise<void> {
-        return Promise.resolve().then(() => {
-            // Do NOT remove from agent_tools - let validator detect orphaned references
-            this.tools.delete(id);
-        });
-    }
-
-    // ========================================
     // Middlewares
     // ========================================
     insertMiddleware(data: z.infer<typeof MiddlewareSchema>): Promise<void> {
@@ -512,24 +449,9 @@ export class MemoryStorage extends BaseStorage {
 
             this.agents.set(data.id, row);
 
-            // Insert tools
-            const tools: AgentToolRow[] = [];
-            for (const [toolId, value] of Object.entries(data.tools)) {
-                if (!this.tools.has(toolId)) {
-                    throw new Error(`Tool ${toolId} not found`);
-                }
-                tools.push({
-                    agent_id: data.id,
-                    tool_id: toolId,
-                    enabled: typeof value === 'boolean' ? this.boolToInt(value) : 1,
-                    custom_params: typeof value === 'boolean' ? null : this.safeStringify(value),
-                });
-            }
-            this.agentTools.set(data.id, tools);
-
             // Insert middlewares
             const middlewares: AgentMiddlewareRow[] = [];
-            for (const [midId, value] of Object.entries(data.middleware)) {
+            for (const [midId, value] of Object.entries(data.middlewares)) {
                 if (!this.middlewares.has(midId)) {
                     throw new Error(`Middleware ${midId} not found`);
                 }
@@ -546,7 +468,6 @@ export class MemoryStorage extends BaseStorage {
 
     async getAgent(id: string): Promise<
         | (AgentRow & {
-              tools: Record<string, boolean | any>;
               middlewares: Record<string, boolean | any>;
           })
         | undefined
@@ -554,51 +475,31 @@ export class MemoryStorage extends BaseStorage {
         const agent = this.agents.get(id);
         if (!agent) return undefined;
 
-        const tools: Record<string, boolean | any> = {};
-        const toolRows = (this.agentTools.get(id) || []).filter((row) => row.enabled === 1);
-        for (const row of toolRows) {
-            if (row.custom_params) {
-                tools[row.tool_id] = this.safeParse(row.custom_params);
-            } else {
-                tools[row.tool_id] = true;
-            }
-        }
-
         const middlewares: Record<string, boolean | any> = {};
-        const middlewareRows = (this.agentMiddlewares.get(id) || []).filter((row) => row.enabled === 1);
+        const middlewareRows = this.agentMiddlewares.get(id) || [];
         for (const row of middlewareRows) {
-            if (row.custom_params) {
+            if (row.enabled === 0) {
+                middlewares[row.middleware_id] = false;
+            } else if (row.custom_params) {
                 middlewares[row.middleware_id] = this.safeParse(row.custom_params);
             } else {
                 middlewares[row.middleware_id] = true;
             }
         }
 
-        return { ...agent, tools, middlewares };
+        return { ...agent, middlewares };
     }
 
     async getAllAgents(): Promise<
         (AgentRow & {
-            tools: Record<string, boolean | any>;
             middlewares: Record<string, boolean | any>;
         })[]
     > {
         const result: (AgentRow & {
-            tools: Record<string, boolean | any>;
             middlewares: Record<string, boolean | any>;
         })[] = [];
 
         for (const agent of this.agents.values()) {
-            const tools: Record<string, boolean | any> = {};
-            const toolRows = this.agentTools.get(agent.id) || [];
-            for (const row of toolRows) {
-                if (row.custom_params) {
-                    tools[row.tool_id] = this.safeParse(row.custom_params);
-                } else {
-                    tools[row.tool_id] = this.intToBool(row.enabled);
-                }
-            }
-
             const middlewares: Record<string, boolean | any> = {};
             const middlewareRows = this.agentMiddlewares.get(agent.id) || [];
             for (const row of middlewareRows) {
@@ -609,7 +510,7 @@ export class MemoryStorage extends BaseStorage {
                 }
             }
 
-            result.push({ ...agent, tools, middlewares });
+            result.push({ ...agent, middlewares });
         }
 
         return result;
@@ -641,24 +542,9 @@ export class MemoryStorage extends BaseStorage {
             };
             this.agents.set(data.id, row);
 
-            // Update tools
-            const tools: AgentToolRow[] = [];
-            for (const [toolId, value] of Object.entries(data.tools)) {
-                if (!this.tools.has(toolId)) {
-                    throw new Error(`Tool ${toolId} not found`);
-                }
-                tools.push({
-                    agent_id: data.id,
-                    tool_id: toolId,
-                    enabled: typeof value === 'boolean' ? this.boolToInt(value) : 1,
-                    custom_params: typeof value === 'boolean' ? null : this.safeStringify(value),
-                });
-            }
-            this.agentTools.set(data.id, tools);
-
             // Update middlewares
             const middlewares: AgentMiddlewareRow[] = [];
-            for (const [midId, value] of Object.entries(data.middleware)) {
+            for (const [midId, value] of Object.entries(data.middlewares)) {
                 if (!this.middlewares.has(midId)) {
                     throw new Error(`Middleware ${midId} not found`);
                 }
@@ -676,7 +562,6 @@ export class MemoryStorage extends BaseStorage {
     deleteAgent(id: string): Promise<void> {
         return Promise.resolve().then(() => {
             this.agents.delete(id);
-            this.agentTools.delete(id);
             this.agentMiddlewares.delete(id);
         });
     }

@@ -19,7 +19,6 @@ describe('AgentPackage', () => {
             expect(pkg.repository).toBeDefined();
             expect(pkg.validator).toBeDefined();
             expect(pkg.serializer).toBeDefined();
-            expect(pkg.tools).toBeDefined();
             expect(pkg.middlewares).toBeDefined();
         });
 
@@ -34,8 +33,9 @@ describe('AgentPackage', () => {
     describe('Model Operations', () => {
         const mockModel = {
             id: 'model-1',
+            name: 'GPT-4',
+            provider_id: 'openai',
             model_name: 'gpt-4',
-            model_provider: 'openai',
             stream_usage: true,
             enable_thinking: false,
             temperature: 0.7,
@@ -50,13 +50,6 @@ describe('AgentPackage', () => {
             const result = await pkg.getModel('model-1');
             expect(result).toBeDefined();
             expect(result?.model_name).toBe('gpt-4');
-        });
-
-        it('should register model in tools registry', async () => {
-            await pkg.addModel(mockModel);
-            const schema = pkg.tools.getSchema('model-1');
-            expect(schema).toBeDefined();
-            expect(schema?.name).toBe('gpt-4');
         });
 
         it('should list all models', async () => {
@@ -96,35 +89,6 @@ describe('AgentPackage', () => {
         });
     });
 
-    describe('Tool Operations', () => {
-        const mockTool = {
-            id: 'tool-1',
-            name: 'read_file',
-            description: 'Read a file',
-        };
-
-        it('should add and get tool', async () => {
-            await pkg.addTool(mockTool);
-            const result = await pkg.getTool('tool-1');
-            expect(result).toBeDefined();
-            expect(result?.name).toBe('read_file');
-        });
-
-        it('should register tool in registry', async () => {
-            await pkg.addTool(mockTool);
-            const schema = pkg.tools.getSchema('tool-1');
-            expect(schema).toBeDefined();
-            expect(schema?.name).toBe('read_file');
-        });
-
-        it('should list all tools', async () => {
-            await pkg.addTool(mockTool);
-            await pkg.addTool({ ...mockTool, id: 'tool-2', name: 'write_file' });
-            const tools = await pkg.listTools();
-            expect(tools).toHaveLength(2);
-        });
-    });
-
     describe('Middleware Operations', () => {
         const mockMiddleware = {
             id: 'mid-1',
@@ -158,8 +122,9 @@ describe('AgentPackage', () => {
         beforeEach(async () => {
             await pkg.addModel({
                 id: 'model-1',
+                name: 'GPT-4',
+                provider_id: 'openai',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -169,11 +134,6 @@ describe('AgentPackage', () => {
                 presence_penalty: 0.0,
             });
             await pkg.addPrompt({ id: 'prompt-1', name: 'system' }, 'You are helpful');
-            await pkg.addTool({
-                id: 'tool-1',
-                name: 'read_file',
-                description: 'Read a file',
-            });
             await pkg.addMiddleware({
                 id: 'mid-1',
                 name: 'auth',
@@ -188,15 +148,13 @@ describe('AgentPackage', () => {
                 description: 'A test agent',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: { 'tool-1': true },
-                middleware: { 'mid-1': false },
+                middlewares: { 'mid-1': false },
             });
 
             const result = await pkg.getAgent('agent-1');
             expect(result).toBeDefined();
             expect(result?.name).toBe('Test Agent');
-            expect(result?.tools['tool-1']).toEqual({ enabled: true });
-            expect(result?.middleware['mid-1']).toEqual({ enabled: false });
+            expect(result?.middlewares['mid-1']).toEqual({ enabled: false });
         });
 
         it('should list all agents', async () => {
@@ -206,8 +164,7 @@ describe('AgentPackage', () => {
                 description: 'Test',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: {},
-                middleware: {},
+                middlewares: {},
             });
             await pkg.addAgent({
                 id: 'agent-2',
@@ -215,8 +172,7 @@ describe('AgentPackage', () => {
                 description: 'Test',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: {},
-                middleware: {},
+                middlewares: {},
             });
 
             const agents = await pkg.listAgents();
@@ -228,8 +184,9 @@ describe('AgentPackage', () => {
         beforeEach(async () => {
             await pkg.addModel({
                 id: 'model-1',
+                name: 'GPT-4',
+                provider_id: 'openai',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -239,11 +196,6 @@ describe('AgentPackage', () => {
                 presence_penalty: 0.0,
             });
             await pkg.addPrompt({ id: 'prompt-1', name: 'system' }, 'test');
-            await pkg.addTool({
-                id: 'tool-1',
-                name: 'read_file',
-                description: 'Read',
-            });
             await pkg.addMiddleware({
                 id: 'mid-1',
                 name: 'auth',
@@ -255,8 +207,7 @@ describe('AgentPackage', () => {
                 description: 'Test',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: { 'tool-1': true },
-                middleware: { 'mid-1': true },
+                middlewares: { 'mid-1': true },
             });
         });
 
@@ -277,8 +228,9 @@ describe('AgentPackage', () => {
         beforeEach(async () => {
             await pkg.addModel({
                 id: 'model-1',
+                name: 'GPT-4',
+                provider_id: 'openai',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -288,11 +240,6 @@ describe('AgentPackage', () => {
                 presence_penalty: 0.0,
             });
             await pkg.addPrompt({ id: 'prompt-1', name: 'system' }, 'test');
-            await pkg.addTool({
-                id: 'tool-1',
-                name: 'read_file',
-                description: 'Read',
-            });
             await pkg.addMiddleware({
                 id: 'mid-1',
                 name: 'auth',
@@ -304,8 +251,7 @@ describe('AgentPackage', () => {
                 description: 'Test',
                 system_prompt: 'prompt-1',
                 model: 'model-1',
-                tools: { 'tool-1': true },
-                middleware: { 'mid-1': true },
+                middlewares: { 'mid-1': true },
             });
         });
 
@@ -321,8 +267,9 @@ describe('AgentPackage', () => {
         it('should create from storage', async () => {
             await storage.insertModel({
                 id: 'model-1',
+                name: 'GPT-4',
+                provider_id: 'openai',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -331,11 +278,6 @@ describe('AgentPackage', () => {
                 frequency_penalty: 0.0,
                 presence_penalty: 0.0,
             });
-            await storage.insertTool({
-                id: 'tool-1',
-                name: 'read_file',
-                description: 'Read',
-            });
             await storage.insertMiddleware({
                 id: 'mid-1',
                 name: 'auth',
@@ -343,9 +285,7 @@ describe('AgentPackage', () => {
             });
 
             const loaded = await AgentPackage.fromStorage(storage);
-            expect(loaded.tools.getSchema('tool-1')).toBeDefined();
             expect(loaded.middlewares.getSchema('mid-1')).toBeDefined();
-            expect(loaded.tools.getSchema('model-1')).toBeDefined();
         });
 
         it('should load from JSON', async () => {
@@ -353,8 +293,9 @@ describe('AgentPackage', () => {
                 models: [
                     {
                         id: 'model-1',
+                        name: 'GPT-4',
+                        provider_id: 'openai',
                         model_name: 'gpt-4',
-                        model_provider: 'openai',
                         stream_usage: true,
                         enable_thinking: false,
                         temperature: 0.7,

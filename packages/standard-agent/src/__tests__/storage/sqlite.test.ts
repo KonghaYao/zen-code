@@ -44,8 +44,9 @@ describe('BunSqliteStorage', () => {
             const modelId = randomId('model');
             const model = {
                 id: modelId,
+                name: 'GPT-4',
+                provider_id: 'openai',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -68,8 +69,9 @@ describe('BunSqliteStorage', () => {
 
             await storage.insertModel({
                 id: randomId('model'),
+                name: 'GPT-4',
+                provider_id: 'openai',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -81,8 +83,9 @@ describe('BunSqliteStorage', () => {
 
             await storage.insertModel({
                 id: randomId('model'),
+                name: 'Claude-3',
+                provider_id: 'anthropic',
                 model_name: 'claude-3',
-                model_provider: 'anthropic',
                 stream_usage: false,
                 enable_thinking: true,
                 temperature: 0.5,
@@ -102,8 +105,9 @@ describe('BunSqliteStorage', () => {
             const modelId = randomId('model');
             const model = {
                 id: modelId,
+                name: 'GPT-4',
+                provider_id: 'openai',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -130,8 +134,9 @@ describe('BunSqliteStorage', () => {
             const modelId = randomId('model');
             const model = {
                 id: modelId,
+                name: 'GPT-4',
+                provider_id: 'openai',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -145,7 +150,7 @@ describe('BunSqliteStorage', () => {
             await storage.deleteModel(modelId);
 
             const retrieved = await storage.getModel(modelId);
-            expect(retrieved).toBeNull();
+            expect(retrieved).toBeUndefined();
         });
 
         it('should prevent deleting model referenced by agent', async () => {
@@ -153,12 +158,14 @@ describe('BunSqliteStorage', () => {
 
             const modelId = randomId('model');
             const promptId = randomId('prompt');
+            const middlewareId = randomId('middleware');
             const agentId = randomId('agent');
 
             await storage.insertModel({
                 id: modelId,
+                name: 'GPT-4',
+                provider_id: 'openai',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -170,14 +177,19 @@ describe('BunSqliteStorage', () => {
 
             await storage.insertPrompt({ id: promptId, name: 'system-prompt' }, 'You are a helpful assistant');
 
+            await storage.insertMiddleware({
+                id: middlewareId,
+                name: 'test-middleware',
+                description: 'Test middleware',
+            });
+
             await storage.insertAgent({
                 id: agentId,
                 name: 'Test Agent',
                 description: 'Test description',
                 system_prompt: promptId,
                 model: modelId,
-                tools: {},
-                middleware: {},
+                middlewares: { [middlewareId]: true },
             });
 
             await expect(storage.deleteModel(modelId)).rejects.toThrow();
@@ -187,18 +199,18 @@ describe('BunSqliteStorage', () => {
             await storage.initialize();
 
             const modelId = randomId('model');
-            // Only provide required fields - schema defaults should be used for optional fields
             const model = {
                 id: modelId,
+                name: 'GPT-4',
+                provider_id: 'openai',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
-                stream_usage: false, // default
-                enable_thinking: false, // default
-                temperature: 0.7, // default
-                max_tokens: 4096, // default
-                top_p: 1.0, // default
-                frequency_penalty: 0.0, // default
-                presence_penalty: 0.0, // default
+                stream_usage: false,
+                enable_thinking: false,
+                temperature: 0.7,
+                max_tokens: 4096,
+                top_p: 1.0,
+                frequency_penalty: 0.0,
+                presence_penalty: 0.0,
             };
 
             await storage.insertModel(model);
@@ -208,44 +220,6 @@ describe('BunSqliteStorage', () => {
             expect(retrieved?.id).toBe(modelId);
             expect(retrieved?.temperature).toBe(0.7);
             expect(retrieved?.max_tokens).toBe(4096);
-        });
-
-        it('should support partial updates for model', async () => {
-            await storage.initialize();
-
-            const modelId = randomId('model');
-            await storage.insertModel({
-                id: modelId,
-                model_name: 'gpt-4',
-                model_provider: 'openai',
-                stream_usage: false,
-                enable_thinking: false,
-                temperature: 0.7,
-                max_tokens: 4096,
-                top_p: 1.0,
-                frequency_penalty: 0.0,
-                presence_penalty: 0.0,
-            });
-
-            // Only update specific fields - others should remain unchanged
-            await storage.updateModel({
-                id: modelId,
-                model_name: 'gpt-4-turbo',
-                temperature: 0.9,
-                // All other fields from existing model
-                model_provider: 'openai',
-                stream_usage: false,
-                enable_thinking: false,
-                max_tokens: 4096,
-                top_p: 1.0,
-                frequency_penalty: 0.0,
-                presence_penalty: 0.0,
-            });
-
-            const retrieved = await storage.getModel(modelId);
-            expect(retrieved?.model_name).toBe('gpt-4-turbo');
-            expect(retrieved?.temperature).toBe(0.9);
-            expect(retrieved?.max_tokens).toBe(4096); // unchanged
         });
     });
 
@@ -350,26 +324,6 @@ describe('BunSqliteStorage', () => {
         });
     });
 
-    describe('Tools', () => {
-        it('should insert and retrieve tool', async () => {
-            await storage.initialize();
-
-            const toolId = randomId('tool');
-            const tool = {
-                id: toolId,
-                name: 'read-file',
-                description: 'Read a file from the filesystem',
-            };
-
-            await storage.insertTool(tool);
-            const retrieved = await storage.getTool(toolId);
-
-            expect(retrieved).toBeDefined();
-            expect(retrieved?.id).toBe(toolId);
-            expect(retrieved?.name).toBe('read-file');
-        });
-    });
-
     describe('Middlewares', () => {
         it('should insert and retrieve middleware', async () => {
             await storage.initialize();
@@ -397,13 +351,13 @@ describe('BunSqliteStorage', () => {
             // Setup dependencies
             const modelId = randomId('model');
             const promptId = randomId('prompt');
-            const toolId = randomId('tool');
             const middlewareId = randomId('middleware');
 
             await storage.insertModel({
                 id: modelId,
+                name: 'GPT-4',
+                provider_id: 'openai',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,
@@ -415,12 +369,6 @@ describe('BunSqliteStorage', () => {
 
             await storage.insertPrompt({ id: promptId, name: 'system-prompt' }, 'You are a helpful assistant');
 
-            await storage.insertTool({
-                id: toolId,
-                name: 'read-file',
-                description: 'Read a file from the filesystem',
-            });
-
             await storage.insertMiddleware({
                 id: middlewareId,
                 name: 'mcp-middleware',
@@ -428,10 +376,9 @@ describe('BunSqliteStorage', () => {
             });
         });
 
-        it('should insert and retrieve agent with tools and middlewares', async () => {
+        it('should insert and retrieve agent with middlewares', async () => {
             const modelId = (await storage.getAllModels())[0].id;
             const promptId = (await storage.getAllPrompts())[0].id;
-            const toolId = (await storage.getAllTools())[0].id;
             const middlewareId = (await storage.getAllMiddlewares())[0].id;
 
             const agentId = randomId('agent');
@@ -441,8 +388,7 @@ describe('BunSqliteStorage', () => {
                 description: 'Test description',
                 system_prompt: promptId,
                 model: modelId,
-                tools: { [toolId]: true },
-                middleware: { [middlewareId]: { priority: 1 } },
+                middlewares: { [middlewareId]: { priority: 1 } },
             };
 
             await storage.insertAgent(agent);
@@ -450,14 +396,12 @@ describe('BunSqliteStorage', () => {
 
             expect(retrieved).toBeDefined();
             expect(retrieved?.id).toBe(agentId);
-            expect(retrieved?.tools[toolId]).toBe(true);
             expect(retrieved?.middlewares[middlewareId]).toEqual({ priority: 1 });
         });
 
         it('should get agent with dependencies', async () => {
             const modelId = (await storage.getAllModels())[0].id;
             const promptId = (await storage.getAllPrompts())[0].id;
-            const toolId = (await storage.getAllTools())[0].id;
             const middlewareId = (await storage.getAllMiddlewares())[0].id;
 
             const agentId = randomId('agent');
@@ -467,8 +411,7 @@ describe('BunSqliteStorage', () => {
                 description: 'Test description',
                 system_prompt: promptId,
                 model: modelId,
-                tools: { [toolId]: true },
-                middleware: { [middlewareId]: true },
+                middlewares: { [middlewareId]: true },
             };
 
             await storage.insertAgent(agent);
@@ -488,8 +431,9 @@ describe('BunSqliteStorage', () => {
             const modelId = randomId('model');
             const model = {
                 id: modelId,
+                name: 'GPT-4',
+                provider_id: 'openai',
                 model_name: 'gpt-4',
-                model_provider: 'openai',
                 stream_usage: true,
                 enable_thinking: false,
                 temperature: 0.7,

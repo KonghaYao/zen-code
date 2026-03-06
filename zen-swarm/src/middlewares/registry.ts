@@ -140,4 +140,20 @@ export async function createMiddlewareRegistry(pkg: AgentPackage, options?: Midd
         await pkg.addMiddleware(cron);
     }
     pkg.middlewares.registerImplementation(cron);
+
+    // Interaction middleware (ask_user_questions, todo_write)
+    const interaction = {
+        id: 'interaction',
+        name: 'interaction',
+        description: 'User interaction tools (ask_user_questions, todo_write)',
+        execute: async () => {
+            const { InteractionMiddleware } = await import('./interaction.js');
+            return new InteractionMiddleware();
+        },
+    };
+    const existingInteraction = await pkg.getMiddleware('interaction');
+    if (!existingInteraction) {
+        await pkg.addMiddleware(interaction);
+    }
+    pkg.middlewares.registerImplementation(interaction);
 }

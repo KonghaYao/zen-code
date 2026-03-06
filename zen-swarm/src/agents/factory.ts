@@ -138,41 +138,11 @@ export async function createSwarmAgent(
         },
     });
 
-    // 构建工具列表
-    const tools = [];
-    for (const [toolId, params] of Object.entries(agentConfig.tools)) {
-        if (!params) continue;
-
-        const toolImpl = pkg.tools.getImplementation(toolId);
-        if (!toolImpl) continue;
-
-        // 将 ToolImplementation 包装为 LangChain tool
-        const { tool } = await import('langchain');
-
-        const langChainTool = tool(
-            async (input, runtime) => {
-                // Pass state to tool execution
-                const result = await toolImpl.execute(input, runtime);
-                if (result && typeof result === 'object' && 'content' in result) {
-                    return result.content;
-                }
-                return result;
-            },
-            {
-                name: toolImpl.name,
-                description: toolImpl.description,
-                schema: toolImpl.paramsSchema,
-            },
-        );
-
-        tools.push(langChainTool);
-    }
-
-    // 构建中间件列表
+    // 构建中间件列表 — tools 现在由各 middleware 自己注入
     const middleware: any[] = [];
 
     // 1. 配置的中间件
-    for (const [middlewareId, params] of Object.entries(agentConfig.middleware)) {
+    for (const [middlewareId, params] of Object.entries(agentConfig.middlewares)) {
         if (middlewareId === 'subagents' && isSubAgent) continue;
         if (!params) continue;
 
@@ -195,13 +165,6 @@ export async function createSwarmAgent(
         },
     };
 
-    // 先不限制命令行使用
-    // if (process.env.YOLO_MODE !== 'true') {
-    //     Object.assign(interruptOn, {
-    //         terminal: { allowedDecisions: ['approve', 'reject', 'edit'] },
-    //     });
-    // }
-
     middleware.push(
         humanInTheLoopMiddleware({
             interruptOn,
@@ -220,7 +183,6 @@ export async function createSwarmAgent(
         name: isSubAgent ? `subagent_${options.parent_id}` : agentConfig.name,
         model,
         systemPrompt: promptConfig.content,
-        tools,
         stateSchema: SwarmState as unknown as Parameters<typeof createAgent>[0]['stateSchema'],
         middleware,
     });

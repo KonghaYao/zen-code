@@ -11,7 +11,7 @@ export interface InitChatModelOptions {
     modelProvider?: string;
     streamUsage?: boolean;
     enableThinking?: boolean;
-    /** 是否启用流式输出（默认 true） */
+    /** 是否启用流式输出（默认 false） */
     streaming?: boolean;
     metadata?: Record<string, unknown>;
     baseURL?: string;

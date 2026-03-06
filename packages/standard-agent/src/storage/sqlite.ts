@@ -25,14 +25,12 @@ import {
     PromptRow,
     PromptVersionRow,
     PromptWithVersion,
-    ToolRow,
     MiddlewareRow,
-    AgentToolRow,
     AgentMiddlewareRow,
     AgentWithRelations,
     AgentRow,
 } from './abstract.js';
-import { ModelSchema, PromptSchema, PromptVersionSchema, ToolSchema, MiddlewareSchema, AgentSchema } from '../index.js';
+import { ModelSchema, PromptSchema, MiddlewareSchema, AgentSchema } from '../index.js';
 import { join } from 'path';
 
 export class BunSqliteStorage extends BaseStorage {
@@ -119,16 +117,6 @@ export class BunSqliteStorage extends BaseStorage {
                 UNIQUE(prompt_id, version)
             );
 
-            -- Tools table
-            CREATE TABLE IF NOT EXISTS tools (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                description TEXT NOT NULL,
-                parameters TEXT,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL
-            );
-
             -- Middlewares table
             CREATE TABLE IF NOT EXISTS middlewares (
                 id TEXT PRIMARY KEY,
@@ -150,17 +138,6 @@ export class BunSqliteStorage extends BaseStorage {
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (system_prompt_id) REFERENCES prompts(id),
                 FOREIGN KEY (model_id) REFERENCES models(id)
-            );
-
-            -- Agent-Tools junction table
-            CREATE TABLE IF NOT EXISTS agent_tools (
-                agent_id TEXT NOT NULL,
-                tool_id TEXT NOT NULL,
-                enabled INTEGER NOT NULL DEFAULT 1,
-                custom_params TEXT,
-                PRIMARY KEY (agent_id, tool_id),
-                FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
-                FOREIGN KEY (tool_id) REFERENCES tools(id) ON DELETE CASCADE
             );
 
             -- Agent-Middlewares junction table
@@ -187,6 +164,17 @@ export class BunSqliteStorage extends BaseStorage {
     }
 
     private runMigrations(): void {
+        // Migration: Drop tools and agent_tools tables (tool-to-middleware refactor)
+        const hasToolsTable = this.db
+            .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='tools'")
+            .get();
+        if (hasToolsTable) {
+            this.db.run('PRAGMA foreign_keys = OFF');
+            this.db.run('DROP TABLE IF EXISTS agent_tools');
+            this.db.run('DROP TABLE IF EXISTS tools');
+            this.db.run('PRAGMA foreign_keys = ON');
+        }
+
         // 每次单独查询，避免 ALTER TABLE 后使用 stale 缓存导致后续迁移失败
         const getModelsColumns = () =>
             (this.db.prepare('PRAGMA table_info(models)').all() as { name: string }[]).map((col) => col.name);
@@ -381,8 +369,8 @@ export class BunSqliteStorage extends BaseStorage {
 
     getModel(id: string): Promise<ModelRow | undefined> {
         const stmt = this.db.prepare('SELECT * FROM models WHERE id = ?');
-        const row = stmt.get(id) as ModelRow | undefined;
-        return Promise.resolve(row);
+        const row = stmt.get(id) as ModelRow | null;
+        return Promise.resolve(row ?? undefined);
     }
 
     getAllModels(): Promise<ModelRow[]> {
@@ -658,59 +646,6 @@ export class BunSqliteStorage extends BaseStorage {
     }
 
     // ========================================
-    // Tools
-    // ========================================
-    insertTool(data: z.infer<typeof ToolSchema>): Promise<void> {
-        const stmt = this.db.prepare(`
-            INSERT INTO tools (id, name, description, parameters, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `);
-
-        stmt.run(data.id, data.name, data.description, null, this.now(), this.now());
-
-        return Promise.resolve();
-    }
-
-    getTool(id: string): Promise<ToolRow | undefined> {
-        const stmt = this.db.prepare('SELECT * FROM tools WHERE id = ?');
-        const row = stmt.get(id) as ToolRow | undefined;
-        return Promise.resolve(row);
-    }
-
-    getAllTools(): Promise<ToolRow[]> {
-        const stmt = this.db.prepare('SELECT * FROM tools ORDER BY created_at DESC');
-        const rows = stmt.all() as ToolRow[];
-        return Promise.resolve(rows);
-    }
-
-    updateTool(data: z.infer<typeof ToolSchema>): Promise<void> {
-        const stmt = this.db.prepare(`
-            UPDATE tools
-            SET name = ?, description = ?, updated_at = ?
-            WHERE id = ?
-        `);
-
-        const result = stmt.run(data.name, data.description, this.now(), data.id);
-
-        if (result.changes === 0) {
-            throw new Error(`Tool with id ${data.id} not found`);
-        }
-
-        return Promise.resolve();
-    }
-
-    deleteTool(id: string): Promise<void> {
-        const stmt = this.db.prepare('DELETE FROM tools WHERE id = ?');
-        const result = stmt.run(id);
-
-        if (result.changes === 0) {
-            throw new Error(`Tool with id ${id} not found`);
-        }
-
-        return Promise.resolve();
-    }
-
-    // ========================================
     // Middlewares
     // ========================================
     insertMiddleware(data: z.infer<typeof MiddlewareSchema>): Promise<void> {
@@ -783,29 +718,13 @@ export class BunSqliteStorage extends BaseStorage {
 
             stmt.run(data.id, data.name, data.description, data.system_prompt, data.model, this.now(), this.now());
 
-            // Insert tools (skip empty keys)
-            const toolStmt = this.db.prepare(`
-                INSERT INTO agent_tools (agent_id, tool_id, enabled, custom_params)
-                VALUES (?, ?, ?, ?)
-            `);
-
-            for (const [toolId, value] of Object.entries(data.tools)) {
-                if (toolId.trim() === '') continue; // Skip empty tool IDs
-                toolStmt.run(
-                    data.id,
-                    toolId,
-                    typeof value === 'boolean' ? this.boolToInt(value) : 1,
-                    typeof value === 'boolean' ? null : this.safeStringify(value),
-                );
-            }
-
             // Insert middlewares (skip empty keys)
             const middlewareStmt = this.db.prepare(`
                 INSERT INTO agent_middlewares (agent_id, middleware_id, enabled, custom_params)
                 VALUES (?, ?, ?, ?)
             `);
 
-            for (const [midId, value] of Object.entries(data.middleware)) {
+            for (const [midId, value] of Object.entries(data.middlewares)) {
                 if (midId.trim() === '') continue; // Skip empty middleware IDs
                 middlewareStmt.run(
                     data.id,
@@ -819,7 +738,6 @@ export class BunSqliteStorage extends BaseStorage {
 
     async getAgent(id: string): Promise<
         | (AgentRow & {
-              tools: Record<string, boolean | any>;
               middlewares: Record<string, boolean | any>;
           })
         | undefined
@@ -828,19 +746,6 @@ export class BunSqliteStorage extends BaseStorage {
         const agent = agentStmt.get(id) as AgentRow | undefined;
 
         if (!agent) return undefined;
-
-        // Get tools (only enabled)
-        const toolStmt = this.db.prepare('SELECT * FROM agent_tools WHERE agent_id = ? AND enabled = 1');
-        const toolRows = toolStmt.all(id) as AgentToolRow[];
-
-        const tools: Record<string, boolean | any> = {};
-        for (const row of toolRows) {
-            if (row.custom_params) {
-                tools[row.tool_id] = this.safeParse(row.custom_params);
-            } else {
-                tools[row.tool_id] = true;
-            }
-        }
 
         // Get middlewares (only enabled)
         const middlewareStmt = this.db.prepare('SELECT * FROM agent_middlewares WHERE agent_id = ? AND enabled = 1');
@@ -855,17 +760,14 @@ export class BunSqliteStorage extends BaseStorage {
             }
         }
 
-        return { ...agent, tools, middlewares };
+        return { ...agent, middlewares };
     }
 
-    async getAllAgents(): Promise<
-        (AgentRow & { tools: Record<string, boolean | any>; middlewares: Record<string, boolean | any> })[]
-    > {
+    async getAllAgents(): Promise<(AgentRow & { middlewares: Record<string, boolean | any> })[]> {
         const agentStmt = this.db.prepare('SELECT * FROM agents ORDER BY created_at DESC');
         const agents = agentStmt.all() as AgentRow[];
 
         const result: (AgentRow & {
-            tools: Record<string, boolean | any>;
             middlewares: Record<string, boolean | any>;
         })[] = [];
 
@@ -901,25 +803,6 @@ export class BunSqliteStorage extends BaseStorage {
                 throw new Error(`Agent with id ${data.id} not found`);
             }
 
-            // Update tools
-            const deleteToolsStmt = this.db.prepare('DELETE FROM agent_tools WHERE agent_id = ?');
-            deleteToolsStmt.run(data.id);
-
-            const toolStmt = this.db.prepare(`
-                INSERT INTO agent_tools (agent_id, tool_id, enabled, custom_params)
-                VALUES (?, ?, ?, ?)
-            `);
-
-            for (const [toolId, value] of Object.entries(data.tools)) {
-                if (toolId.trim() === '') continue; // Skip empty tool IDs
-                toolStmt.run(
-                    data.id,
-                    toolId,
-                    typeof value === 'boolean' ? this.boolToInt(value) : 1,
-                    typeof value === 'boolean' ? null : this.safeStringify(value),
-                );
-            }
-
             // Update middlewares
             const deleteMiddlewaresStmt = this.db.prepare('DELETE FROM agent_middlewares WHERE agent_id = ?');
             deleteMiddlewaresStmt.run(data.id);
@@ -929,7 +812,7 @@ export class BunSqliteStorage extends BaseStorage {
                 VALUES (?, ?, ?, ?)
             `);
 
-            for (const [midId, value] of Object.entries(data.middleware)) {
+            for (const [midId, value] of Object.entries(data.middlewares)) {
                 if (midId.trim() === '') continue; // Skip empty middleware IDs
                 middlewareStmt.run(
                     data.id,
