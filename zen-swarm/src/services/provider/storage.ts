@@ -358,46 +358,6 @@ export class ProviderStorage {
     }
 
     // ========================================
-    // Migration
-    // ========================================
-
-    async migrateFromEnvVars(): Promise<number> {
-        const existingCount = (this.db.prepare('SELECT COUNT(*) as count FROM providers').get() as { count: number })
-            .count;
-        if (existingCount > 0) {
-            return 0; // 已有数据，跳过迁移
-        }
-
-        const providers: ProviderInput[] = [];
-
-        if (process.env.OPENAI_API_KEY) {
-            providers.push({
-                name: 'OpenAI (从环境变量迁移)',
-                type: 'openai',
-                apiKey: process.env.OPENAI_API_KEY,
-                baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
-                isActive: !process.env.ANTHROPIC_API_KEY,
-            });
-        }
-
-        if (process.env.ANTHROPIC_API_KEY) {
-            providers.push({
-                name: 'Anthropic (从环境变量迁移)',
-                type: 'anthropic',
-                apiKey: process.env.ANTHROPIC_API_KEY,
-                baseUrl: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com',
-                isActive: true,
-            });
-        }
-
-        for (const provider of providers) {
-            await this.create(provider);
-        }
-
-        return providers.length;
-    }
-
-    // ========================================
     // Utility Methods
     // ========================================
 

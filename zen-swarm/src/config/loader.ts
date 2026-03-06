@@ -55,12 +55,6 @@ await stateMachineManager.initialize();
 const providerStorage = new ProviderStorage(sharedDb);
 await providerStorage.initialize();
 
-// 从环境变量迁移（如果需要）
-const migratedCount = await providerStorage.migrateFromEnvVars();
-if (migratedCount > 0) {
-    console.log(`Migrated ${migratedCount} provider(s) from environment variables`);
-}
-
 // ========================================
 // Cron 系统
 // ========================================
