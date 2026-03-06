@@ -25,21 +25,18 @@ jobs:
                     # Linux x64 — 用官方 ubuntu runner 直接编译最快
                     - os: ubuntu-latest
                       label: linux-x64
-                      bun_target: bun-linux-x64-modern
                       artifact_name: zen-swarm-linux-x64
                       exe_suffix: ''
 
                     # macOS arm64 — Apple Silicon runner，原生编译省去交叉编译问题
                     - os: macos-latest
                       label: darwin-arm64
-                      bun_target: bun-darwin-arm64
                       artifact_name: zen-swarm-darwin-arm64
                       exe_suffix: ''
 
                     # Windows x64
                     - os: windows-latest
                       label: windows-x64
-                      bun_target: bun-windows-x64
                       artifact_name: zen-swarm-windows-x64
                       exe_suffix: '.exe'
 
@@ -63,10 +60,22 @@ jobs:
               run: bun run --filter './packages/*' build
               continue-on-error: true # 部分包可能无 build 脚本，忽略错误
 
-            # 编译 zen-swarm 为独立二进制（命令直接写在此处，不依赖 package.json scripts）
-            - name: Compile zen-swarm binary
+            # 编译 zen-swarm 为独立二进制（使用 package.json build 脚本）
+            - name: Build zen-swarm binary
               working-directory: zen-swarm
-              run: bun build src/server.ts --compile --minify --target ${{ matrix.bun_target }} --outfile ./dist/${{ matrix.artifact_name }}${{ matrix.exe_suffix }}
+              run: bun run build
+
+            # 重命名产物，加上平台标识
+            - name: Rename binary with platform label (Unix)
+              if: matrix.os != 'windows-latest'
+              working-directory: zen-swarm
+              run: mv ./dist/zen-swarm ./dist/${{ matrix.artifact_name }}
+
+            - name: Rename binary with platform label (Windows)
+              if: matrix.os == 'windows-latest'
+              working-directory: zen-swarm
+              shell: pwsh
+              run: Move-Item ./dist/zen-swarm.exe ./dist/${{ matrix.artifact_name }}${{ matrix.exe_suffix }}
 
             # 校验产物存在
             - name: Verify binary exists (Unix)
