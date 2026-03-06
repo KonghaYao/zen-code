@@ -2,15 +2,16 @@
  * 监控面板工具函数
  */
 
-export function formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B';
+export function formatBytes(bytes: number | null | undefined): string {
+    if (bytes == null || isNaN(bytes) || bytes <= 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
     return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
-export function formatPercent(value: number): string {
+export function formatPercent(value: number | null | undefined): string {
+    if (value == null || isNaN(value)) return '0.0%';
     return `${value.toFixed(1)}%`;
 }
 

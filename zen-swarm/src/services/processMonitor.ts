@@ -101,13 +101,15 @@ export class ProcessMonitor {
                 const [pid, ppid, name, cpu, mem, state, etime, user, ...cmdParts] = parts;
 
                 try {
+                    const cpuNum = parseFloat(cpu);
+                    const memNum = parseFloat(mem);
                     processes.push({
                         pid: parseInt(pid),
                         ppid: parseInt(ppid),
                         name,
                         command: cmdParts.join(' ') || '',
-                        cpuPercent: parseFloat(cpu),
-                        memoryBytes: this.parseMemoryPercent(parseFloat(mem)),
+                        cpuPercent: isNaN(cpuNum) ? 0 : cpuNum,
+                        memoryBytes: this.parseMemoryPercent(isNaN(memNum) ? 0 : memNum),
                         status: this.parseProcessState(state),
                         startTime: this.parseEtime(etime),
                         user,
