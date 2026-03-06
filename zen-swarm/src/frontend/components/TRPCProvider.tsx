@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@ta
 import { TRPCClientError, httpBatchLink } from '@trpc/client';
 import { useState, ReactNode } from 'react';
 import { trpc } from '../api.js';
-import { getAuthHeaders } from '../utils/auth.js';
+import { getAuthHeaders, clearToken } from '../utils/auth.js';
 import type { FullAppRouter } from '../../api/index.js';
 
 interface TRPCProviderProps {
@@ -28,10 +28,11 @@ function isUnauthorizedError(error: unknown): boolean {
 }
 
 /**
- * 跳转到未授权页面
+ * 跳转到登录页（清除无效 token）
  */
-function redirectToUnauthorized(): void {
-    window.location.hash = '/unauthorized';
+function redirectToLogin(): void {
+    clearToken();
+    window.location.hash = '/login';
 }
 
 export function TRPCProvider(props: TRPCProviderProps) {
@@ -46,14 +47,14 @@ export function TRPCProvider(props: TRPCProviderProps) {
                 queryCache: new QueryCache({
                     onError(error) {
                         if (isUnauthorizedError(error)) {
-                            redirectToUnauthorized();
+                            redirectToLogin();
                         }
                     },
                 }),
                 mutationCache: new MutationCache({
                     onError(error) {
                         if (isUnauthorizedError(error)) {
-                            redirectToUnauthorized();
+                            redirectToLogin();
                         }
                     },
                 }),

@@ -174,8 +174,18 @@ export const Terminal = forwardRef<TerminalRef, TerminalProps>(function Terminal
                 // 写入历史输出
                 history.forEach((line) => xtermRef.current?.write(line));
             }
+
+            // attach 成功后，立即同步当前 xterm.js 的真实尺寸给后端
+            // 重连前后窗口可能已经改变大小，必须重新对齐
+            if (fitAddonRef.current && xtermRef.current) {
+                fitAddonRef.current.fit();
+                const dims = fitAddonRef.current.proposeDimensions();
+                if (dims) {
+                    resize(sessionId, dims.cols, dims.rows);
+                }
+            }
         });
-    }, [sessionId, isReady, wsStatus, attachSession]);
+    }, [sessionId, isReady, wsStatus, attachSession, resize]);
 
     // 不再需要单独的监听输出 effect（已在初始化时注册）
 

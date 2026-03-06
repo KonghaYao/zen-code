@@ -22,32 +22,39 @@ import { initDefaultData, checkProviderModelStatus } from './scripts/init-defaul
 import { SERVER_PORT } from './config/constants.js';
 import dashboard from './index.html';
 import { handleTerminalMessage, handleTerminalClose, handleTerminalOpen } from './api/terminalWebSocket.js';
-import { generateToken, validateToken, authMiddleware } from './auth/tokenAuth.js';
+import { validateToken, authMiddleware } from './auth/tokenAuth.js';
+import { authRouter } from './api/auth.js';
 
-// 1. 生成服务 token（内存存储，服务重启后失效）
-const token = generateToken();
-
-// 2. 初始化默认数据（如果需要）
+// 1. 初始化默认数据（如果需要）
 await initDefaultData();
 
-// 3. 检查 Provider 和 Model 状态
+// 2. 检查 Provider 和 Model 状态
 await checkProviderModelStatus();
 
-// 4. 注册 graph（自动提供 HTTP API 和流式支持）
+// 3. 注册 graph（自动提供 HTTP API 和流式支持）
 console.log('Registering swarm graph...');
 registerGraph('swarm', swarmGraph);
 console.log('Swarm graph registered successfully');
 
-// 5. 创建 Hono 应用
+// 4. 创建 Hono 应用
 const app = new Hono();
 
 // 日志中间件
 app.use(logger());
 
-// 认证中间件：保护所有 /api/* 路由
-app.use('/api/*', authMiddleware);
+// 认证公开路由：/api/auth/* 不需要鉴权（注册/登录接口）
+app.route('/api/auth', authRouter);
 
-// 6. API 路由（优先处理）
+// 认证中间件：保护所有其他 /api/* 路由（排除 /api/auth/* 公开接口）
+// 注意：Hono 的 use() 中间件在 route() 之前执行，必须在此处手动排除公开路径
+app.use('/api/*', async (c, next) => {
+    if (c.req.path.startsWith('/api/auth/')) {
+        return next();
+    }
+    return authMiddleware(c, next);
+});
+
+// 5. API 路由（优先处理）
 console.log('Mounting LangGraph routes at /api/langgraph');
 app.route('/api/langgraph', LGApp);
 
@@ -73,14 +80,12 @@ app.get('/health', (c) => {
     });
 });
 
-// 6. WebSocket 路由 - 终端服务（在 Hono 处理之前）
-// 注意：不要在 Hono 中注册 /ws/terminal 路由
-
-// 7. 启动服务器
+// 6. 启动服务器
 const port = SERVER_PORT;
 console.log(`\n🐝 Zen Swarm Server started`);
-console.log(`🔑 Access URL: http://127.0.0.1:${port}/ui?token=${token}`);
+console.log(`🌐 Access URL: http://127.0.0.1:${port}/ui`);
 console.log(`   Health:      http://127.0.0.1:${port}/health`);
+console.log(`   Auth:        http://127.0.0.1:${port}/api/auth/status`);
 console.log(`   LangGraph:   http://127.0.0.1:${port}/api/langgraph`);
 console.log(`   tRPC:        http://127.0.0.1:${port}/api/trpc`);
 console.log(`   Terminal WS: ws://127.0.0.1:${port}/ws/terminal\n`);
@@ -106,19 +111,28 @@ serve({
         if (url.pathname === '/ws/terminal') {
             // WebSocket 无法设置自定义 Header，通过 query 参数传递 token
             const wsToken = url.searchParams.get('token');
-            if (!wsToken || !validateToken(wsToken)) {
-                return new Response(JSON.stringify({ error: 'Unauthorized', message: 'Invalid token' }), {
+            if (!wsToken) {
+                return new Response(JSON.stringify({ error: 'Unauthorized', message: 'Missing token' }), {
                     status: 401,
                     headers: { 'Content-Type': 'application/json' },
                 });
             }
-            const upgraded = server.upgrade(req, {
-                data: { sessionIds: new Set<string>() },
+            // validateToken 是异步的，需要用 Promise 处理
+            return validateToken(wsToken).then((valid) => {
+                if (!valid) {
+                    return new Response(JSON.stringify({ error: 'Unauthorized', message: 'Invalid token' }), {
+                        status: 401,
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                }
+                const upgraded = server.upgrade(req, {
+                    data: { sessionIds: new Set<string>() },
+                });
+                if (upgraded) {
+                    return undefined; // Bun 会接管 WebSocket
+                }
+                return new Response('WebSocket upgrade failed', { status: 400 });
             });
-            if (upgraded) {
-                return undefined; // Bun 会接管 WebSocket
-            }
-            return new Response('WebSocket upgrade failed', { status: 400 });
         }
         // 其他请求交给 Hono 处理
         return app.fetch(req, server);
@@ -132,7 +146,7 @@ serve({
     },
 });
 
-openBrowser(`http://127.0.0.1:${port}/ui?token=${token}`);
+openBrowser(`http://127.0.0.1:${port}/ui`);
 
 // 优雅关闭
 async function gracefulShutdown(signal: string): Promise<void> {

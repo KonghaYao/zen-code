@@ -16,22 +16,68 @@ import { TerminalTabs } from './TerminalTabs.js';
 import { TerminalToolbar } from './TerminalToolbar.js';
 import { useTerminal } from '../../hooks/useTerminal.js';
 
-// 终端默认尺寸
+// 终端默认尺寸（fallback）
 const DEFAULT_COLS = 80;
 const DEFAULT_ROWS = 24;
 
+// 与 Terminal.tsx 保持一致的字体配置
+const FONT_SIZE = 14;
+const FONT_FAMILY = 'Menlo, Monaco, "Courier New", monospace';
+// 终端内边距（Terminal.tsx 容器有 padding: 8px）
+const TERMINAL_PADDING = 8;
+// xterm.js 默认 lineHeight=1.0，行高等于 fontSize
+// 经验上加约 1px 的行间距与实际渲染更接近
+const LINE_HEIGHT_RATIO = 1.0;
+
+/**
+ * 用 canvas 测量单个字符的宽高，再结合容器像素尺寸计算 cols/rows。
+ * 避免依赖 xterm.js 内部 API（_renderService.dimensions 在隐藏容器中为 undefined）。
+ */
+function measureTerminalDimensions(container: HTMLElement): { cols: number; rows: number } {
+    try {
+        const rect = container.getBoundingClientRect();
+        const containerW = rect.width - TERMINAL_PADDING * 2;
+        const containerH = rect.height - TERMINAL_PADDING * 2;
+
+        if (containerW <= 0 || containerH <= 0) {
+            return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS };
+        }
+
+        // 用 canvas 测量等宽字体的单个字符宽高
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS };
+
+        ctx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
+        const charW = ctx.measureText('W').width;
+        // canvas 无法直接测行高，使用与 xterm.js 配置一致的 lineHeight 倍数
+        const charH = FONT_SIZE * LINE_HEIGHT_RATIO;
+
+        const cols = Math.max(1, Math.floor(containerW / charW));
+        const rows = Math.max(1, Math.floor(containerH / charH));
+        return { cols, rows };
+    } catch {
+        return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS };
+    }
+}
+
 export function TerminalView() {
     const terminalRef = useRef<TerminalRef>(null);
+    // 用于测量终端区域真实尺寸的容器 ref
+    const terminalAreaRef = useRef<HTMLDivElement>(null);
 
     const { wsStatus, createSession, destroySession, connect, sessions, activeSessionId } = useTerminal();
 
-    // 新建终端
+    // 新建终端 —— 先测量容器真实 cols/rows，再创建 PTY，避免 80×24 硬编码问题
     const handleNewTerminal = useCallback(() => {
         if (wsStatus !== 'connected') {
             console.warn('WebSocket not connected, cannot create terminal');
             return;
         }
-        createSession(DEFAULT_COLS, DEFAULT_ROWS);
+        const { cols, rows } = terminalAreaRef.current
+            ? measureTerminalDimensions(terminalAreaRef.current)
+            : { cols: DEFAULT_COLS, rows: DEFAULT_ROWS };
+        createSession(cols, rows);
     }, [wsStatus, createSession]);
 
     // 关闭终端（用户主动删除 → 销毁会话）
@@ -64,7 +110,7 @@ export function TerminalView() {
             <TerminalTabs onNewTerminal={handleNewTerminal} onCloseTerminal={handleCloseTerminal} />
 
             {/* 终端区域 */}
-            <div className="flex-1 relative overflow-hidden">
+            <div ref={terminalAreaRef} className="flex-1 relative overflow-hidden">
                 <AnimatePresence mode="wait">
                     {activeSession ? (
                         <motion.div
