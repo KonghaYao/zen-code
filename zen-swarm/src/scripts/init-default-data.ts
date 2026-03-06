@@ -6,7 +6,9 @@
  * 用户首次启动时会通过 Setup 向导（/setup）完成配置。
  */
 
-import { providerStorage, agentPackage } from '../config/loader.js';
+import { providerStorage, agentPackage, sharedDb } from '../config/loader.js';
+import { WorkspaceStorage } from '../config/workspace-storage.js';
+import { resolve } from 'node:path';
 
 /**
  * 初始化默认数据（已废弃自动创建逻辑）
@@ -18,6 +20,38 @@ import { providerStorage, agentPackage } from '../config/loader.js';
 export async function initDefaultData(): Promise<void> {
     // 不再自动写入任何数据，保持空状态以触发前端 Setup 向导
     return;
+}
+
+/**
+ * 启动时检查 Workspace，如果不存在则自动创建以启动目录为根路径的默认 Workspace
+ */
+export async function checkAndInitDefaultWorkspace(): Promise<void> {
+    const storage = new WorkspaceStorage(sharedDb);
+    await storage.initialize();
+
+    const workspaces = await storage.getAllWorkspaces();
+
+    if (workspaces.length > 0) {
+        console.log(`[Workspace] ✅ Found ${workspaces.length} workspace(s), skipping auto-creation.`);
+        return;
+    }
+
+    // 没有任何 Workspace，使用启动目录（process.cwd()）创建默认 Workspace
+    const startupDir = resolve(process.cwd());
+    const defaultName = 'Default Workspace';
+
+    console.log(`[Workspace] ⚠️  No workspaces found. Creating default workspace at: ${startupDir}`);
+
+    try {
+        await storage.createWorkspace({
+            name: defaultName,
+            rootPath: startupDir,
+            description: 'Auto-created on first launch from startup directory.',
+        });
+        console.log(`[Workspace] ✅ Default workspace "${defaultName}" created at: ${startupDir}`);
+    } catch (error: any) {
+        console.error(`[Workspace] ❌ Failed to create default workspace: ${error?.message ?? error}`);
+    }
 }
 
 /**

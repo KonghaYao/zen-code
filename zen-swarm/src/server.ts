@@ -18,7 +18,11 @@ import {
     smDatabase,
     providerStorage,
 } from './config/loader.js';
-import { initDefaultData, checkProviderModelStatus } from './scripts/init-default-data.js';
+import {
+    initDefaultData,
+    checkProviderModelStatus,
+    checkAndInitDefaultWorkspace,
+} from './scripts/init-default-data.js';
 import { SERVER_PORT } from './config/constants.js';
 import dashboard from './index.html';
 import { handleTerminalMessage, handleTerminalClose, handleTerminalOpen } from './api/terminalWebSocket.js';
@@ -28,7 +32,10 @@ import { authRouter } from './api/auth.js';
 // 1. 初始化默认数据（如果需要）
 await initDefaultData();
 
-// 2. 检查 Provider 和 Model 状态
+// 2. 检查 Workspace，如果不存在则以启动目录创建默认 Workspace
+await checkAndInitDefaultWorkspace();
+
+// 3. 检查 Provider 和 Model 状态
 await checkProviderModelStatus();
 
 // 3. 注册 graph（自动提供 HTTP API 和流式支持）

@@ -172,26 +172,6 @@
     --dock-item-size: 56px;
     --dock-item-hover-scale: 1.2;
     --dock-border-radius: 20px;
-
-    /* ---- Finder 专用 tokens ---- */
-    --finder-sidebar-bg: rgba(246, 246, 246, 0.85);
-    --finder-toolbar-bg: rgba(246, 246, 246, 0.9);
-    --finder-statusbar-bg: rgba(246, 246, 246, 0.85);
-    --finder-statusbar-height: 22px;
-    --finder-toolbar-height: 40px;
-    --finder-row-height: 24px;
-    --finder-selection-bg: rgba(0, 98, 255, 0.12);
-    --finder-selection-border: rgba(0, 98, 255, 0.6);
-    --finder-icon-active-bg: rgba(0, 98, 255, 0.85);
-    --finder-folder-gradient: linear-gradient(145deg, #4da3ff 0%, #006eff 100%);
-
-    /* ---- macOS 语义颜色 (Apple HIG) ---- */
-    --macos-label-primary: rgba(0, 0, 0, 0.85);
-    --macos-label-secondary: rgba(60, 60, 67, 0.65);
-    --macos-label-tertiary: rgba(60, 60, 67, 0.45);
-    --macos-separator: rgba(60, 60, 67, 0.29);
-    --macos-blue: rgba(0, 98, 255, 0.85);
-    --macos-sidebar-label: rgba(60, 60, 67, 0.6);
 }
 
 /* ============================================
@@ -1335,7 +1315,7 @@ select option {
     /* 最小触控目标 44px */
     button,
     a,
-    [role="button"] {
+    [role='button'] {
         min-height: 44px;
     }
 
@@ -1351,10 +1331,10 @@ select option {
     }
 
     /* 输入框字体大小 ≥ 16px 防止 iOS 自动缩放 */
-    input[type="text"],
-    input[type="search"],
-    input[type="email"],
-    input[type="password"],
+    input[type='text'],
+    input[type='search'],
+    input[type='email'],
+    input[type='password'],
     textarea {
         font-size: 16px;
     }
