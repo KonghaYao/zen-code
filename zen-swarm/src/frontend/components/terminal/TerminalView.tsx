@@ -122,8 +122,8 @@ export function TerminalView() {
                 </AnimatePresence>
             </div>
 
-            {/* 底部状态栏 */}
-            <div className="flex items-center justify-between px-4 py-1.5 bg-black/30 border-t border-white/10 text-xs text-white/40">
+            {/* 底部状态栏 - 小屏幕隐藏 */}
+            <div className="hidden md:flex items-center justify-between px-4 py-1.5 bg-black/30 border-t border-white/10 text-xs text-white/40">
                 <div className="flex items-center gap-4">
                     {activeSession && (
                         <>

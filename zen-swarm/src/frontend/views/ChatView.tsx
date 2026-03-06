@@ -3,7 +3,8 @@
  *
  * 功能：
  * - 单个核心 Chat 界面（Chat + History sidebar + Config Drawer）
- * - 三栏布局：History Sidebar | ChatPanel | Config Drawer
+ * - 桌面端三栏布局：History Sidebar | ChatPanel | Config Drawer
+ * - 移动端：全屏 ChatPanel，侧栏通过底部抽屉/浮层访问
  * - 右侧 Config Drawer 可折叠，懒加载
  * - 窗口模式（而非 full-screen）
  * - 支持多个 workspace 的聊天历史
@@ -11,7 +12,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChatProvider } from '@langgraph-js/sdk/react';
-import { AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { HistoryGroupedSidebar } from '../components/HistoryGroupedSidebar.js';
 import { ChatPanel } from '../components/ChatPanel.js';
 import { ConfigDrawer, type ConfigDrawerSection } from '../components/ConfigDrawer.js';
@@ -19,15 +20,20 @@ import { WorkspaceManageDialog } from '../components/workspace-dialogs/index.js'
 import { useCurrentWorkspace, useWorkspaces, useWorkspaceStore } from '../stores/workspace.js';
 import { useAgentsStore, useModelsStore } from '../stores/index.js';
 import { getAuthHeaders } from '../utils/auth.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 
 export function ChatViewInternal() {
     const currentWorkspace = useCurrentWorkspace();
     const workspaces = useWorkspaces();
     const { loadWorkspaces, getWorkspaceByPath } = useWorkspaceStore();
+    const isMobile = useIsMobile();
 
     // Config Drawer 状态
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerSection, setDrawerSection] = useState<ConfigDrawerSection | undefined>(undefined);
+
+    // 移动端历史记录抽屉状态
+    const [mobileHistoryOpen, setMobileHistoryOpen] = useState(false);
 
     // Agent/Model 状态（由 ChatView 管理）
     const [selectedAgentId, setSelectedAgentId] = useState<string | undefined>(undefined);
@@ -150,13 +156,15 @@ export function ChatViewInternal() {
     return (
         <>
             <div className="flex flex-col h-full bg-white">
-                {/* 主内容区域 - 三栏布局 */}
+                {/* 主内容区域 */}
                 <div className="flex-1 flex min-h-0 overflow-hidden">
-                    {/* History Sidebar */}
-                    <HistoryGroupedSidebar
-                        onManageWorkspace={handleManageWorkspace}
-                        onAddWorkspace={handleAddWorkspace}
-                    />
+                    {/* History Sidebar - 桌面端显示，移动端隐藏 */}
+                    <div className="hidden md:flex">
+                        <HistoryGroupedSidebar
+                            onManageWorkspace={handleManageWorkspace}
+                            onAddWorkspace={handleAddWorkspace}
+                        />
+                    </div>
 
                     {/* Chat Panel */}
                     <div className="flex-1 min-w-0">
@@ -168,10 +176,11 @@ export function ChatViewInternal() {
                             currentModelName={currentModelName}
                             onOpenConfig={handleOpenConfig}
                             configDrawerOpen={drawerOpen}
+                            onOpenMobileHistory={isMobile ? () => setMobileHistoryOpen(true) : undefined}
                         />
                     </div>
 
-                    {/* Config Drawer */}
+                    {/* Config Drawer - 桌面端内联，移动端浮层 */}
                     <AnimatePresence>
                         {drawerOpen && (
                             <ConfigDrawer
@@ -187,6 +196,56 @@ export function ChatViewInternal() {
                     </AnimatePresence>
                 </div>
             </div>
+
+            {/* 移动端历史记录抽屉 */}
+            <AnimatePresence>
+                {isMobile && mobileHistoryOpen && (
+                    <>
+                        {/* 遮罩层 */}
+                        <motion.div
+                            className="fixed inset-0 z-40 bg-black/40"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setMobileHistoryOpen(false)}
+                        />
+                        {/* 抽屉 */}
+                        <motion.div
+                            className="fixed inset-y-0 left-0 z-50 w-[85vw] max-w-[340px] bg-white shadow-xl flex flex-col"
+                            initial={{ x: '-100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '-100%' }}
+                            transition={{ type: 'spring', stiffness: 350, damping: 35 }}
+                        >
+                            {/* 抽屉标题栏 */}
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200">
+                                <span className="text-sm font-semibold text-neutral-900">历史记录</span>
+                                <button
+                                    onClick={() => setMobileHistoryOpen(false)}
+                                    className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100"
+                                    aria-label="关闭"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            {/* 侧栏内容 */}
+                            <div className="flex-1 overflow-hidden">
+                                <HistoryGroupedSidebar
+                                    onManageWorkspace={(path) => {
+                                        setMobileHistoryOpen(false);
+                                        handleManageWorkspace(path);
+                                    }}
+                                    onAddWorkspace={() => {
+                                        setMobileHistoryOpen(false);
+                                        handleAddWorkspace();
+                                    }}
+                                    onSwitchToChat={() => setMobileHistoryOpen(false)}
+                                />
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
 
             {/* 管理对话框 */}
             <WorkspaceManageDialog

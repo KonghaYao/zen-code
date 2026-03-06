@@ -475,10 +475,37 @@ export function ConfigView() {
     }, [currentTableConfig.actions, handleEditClick, handleDeleteClick]);
 
     return (
-        <div className="flex gap-6 h-full overflow-hidden">
-            {/* 左侧导航列 */}
-            <aside className="w-64 flex-shrink-0">
-                <nav className="h-full bg-white rounded-lg border border-border-subtle p-2 flex flex-col">
+        <div className="flex flex-col md:flex-row gap-0 md:gap-6 h-full overflow-hidden">
+            {/* 左侧导航列 - 桌面端竖向，移动端横向可滚动 Tab */}
+            <aside
+                className="
+                md:w-64 md:flex-shrink-0
+                flex-shrink-0
+                md:block
+            "
+            >
+                {/* 移动端：水平滚动 Tab 条 */}
+                <div className="md:hidden overflow-x-auto border-b border-border-subtle bg-white">
+                    <div className="flex px-2 py-1.5 gap-1 min-w-max">
+                        {TABS.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                                    activeTab === tab.id
+                                        ? 'bg-primary text-white'
+                                        : 'text-text-secondary hover:bg-bg-tertiary'
+                                }`}
+                            >
+                                <span>{tab.icon}</span>
+                                <span>{tab.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 桌面端：竖向侧栏 */}
+                <nav className="hidden md:flex h-full bg-white rounded-lg border border-border-subtle p-2 flex-col">
                     <h2 className="px-3 py-2 text-sm font-semibold text-text-muted uppercase tracking-wider">
                         AI Configuration
                     </h2>
@@ -555,17 +582,21 @@ export function ConfigView() {
             </aside>
 
             {/* 右侧内容区 */}
-            <main className="flex-1 min-w-0 flex flex-col">
-                <div className="bg-white rounded-lg border border-border-subtle flex flex-col min-h-0">
-                    <div className="p-6 flex-shrink-0">
-                        <div className="flex items-center justify-between mb-6">
+            <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
+                <div className="bg-white md:rounded-lg md:border border-border-subtle flex flex-col min-h-0 h-full">
+                    <div className="px-4 md:px-6 py-4 md:py-6 flex-shrink-0">
+                        <div className="flex items-center justify-between mb-4 md:mb-6">
                             <div>
-                                <h1 className="text-2xl font-semibold text-text-primary">{activeTabConfig?.label}</h1>
-                                <p className="text-sm text-text-muted mt-1">{activeTabConfig?.description}</p>
+                                <h1 className="text-lg md:text-2xl font-semibold text-text-primary">
+                                    {activeTabConfig?.label}
+                                </h1>
+                                <p className="text-xs md:text-sm text-text-muted mt-0.5 md:mt-1">
+                                    {activeTabConfig?.description}
+                                </p>
                             </div>
                             <button
                                 onClick={handleCreateClick}
-                                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-3 md:px-4 py-1.5 md:py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={!activeTabConfig?.editable}
                             >
                                 {getActionLabel()}

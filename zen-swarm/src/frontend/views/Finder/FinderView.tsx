@@ -25,6 +25,7 @@ import { FinderPreview } from '../../components/finder/Preview/FinderPreview.js'
 import { FinderInspector } from '../../components/finder/Inspector/FinderInspector.js';
 import { FinderDialogs } from '../../components/finder/Dialogs/FinderDialogs.js';
 import { FinderStatusBar } from '../../components/finder/StatusBar/FinderStatusBar.js';
+import { useIsMobile } from '../../hooks/useIsMobile.js';
 
 // ========================================
 // Constants
@@ -103,6 +104,7 @@ function transformFileItem(item: any, parentPath: string): FinderFileItem {
 export const FinderView: React.FC = () => {
     const [searchParams] = useSearchParams();
     const containerRef = useRef<HTMLDivElement>(null);
+    const isMobile = useIsMobile();
 
     // Sidebar resize state
     const [isResizingSidebar, setIsResizingSidebar] = useState(false);
@@ -639,8 +641,8 @@ export const FinderView: React.FC = () => {
                         {!error && renderView()}
                     </div>
 
-                    {/* Preview Panel */}
-                    {preview.isOpen && (
+                    {/* Preview Panel - 移动端不显示 */}
+                    {!isMobile && preview.isOpen && (
                         <>
                             <div
                                 className="w-1 cursor-col-resize bg-transparent hover:bg-primary hover:opacity-50 transition-colors"
@@ -650,8 +652,8 @@ export const FinderView: React.FC = () => {
                         </>
                     )}
 
-                    {/* Inspector Panel */}
-                    {inspector.isOpen && (
+                    {/* Inspector Panel - 移动端不显示 */}
+                    {!isMobile && inspector.isOpen && (
                         <FinderInspector
                             path={inspector.targetPath}
                             tab={inspector.tab}

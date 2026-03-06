@@ -51,18 +51,18 @@ export function TerminalToolbar({ onNewTerminal, onCloseTerminal, onClear, onRec
     const hasActiveSession = activeSessionId && sessions.length > 0;
 
     return (
-        <div className="flex items-center justify-between px-4 py-2 bg-black/30 border-b border-white/10">
+        <div className="flex items-center justify-between px-2 py-2 bg-black/30 border-b border-white/10">
             {/* 左侧操作按钮 */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
                 <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={onNewTerminal}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 transition-colors"
+                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 transition-colors"
                     title="新建终端 (Cmd+T)"
                 >
                     <Plus size={16} />
-                    <span className="text-sm">新建</span>
+                    <span className="hidden sm:inline text-sm">新建</span>
                 </motion.button>
 
                 {hasActiveSession && (
@@ -71,37 +71,39 @@ export function TerminalToolbar({ onNewTerminal, onCloseTerminal, onClear, onRec
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={onCloseTerminal}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors"
+                            className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors"
                             title="关闭终端"
                         >
                             <Trash2 size={16} />
-                            <span className="text-sm">关闭</span>
+                            <span className="hidden sm:inline text-sm">关闭</span>
                         </motion.button>
 
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={onClear}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 transition-colors"
+                            className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 transition-colors"
                             title="清空终端"
                         >
                             <RefreshCw size={16} />
-                            <span className="text-sm">清空</span>
+                            <span className="hidden sm:inline text-sm">清空</span>
                         </motion.button>
                     </>
                 )}
             </div>
 
             {/* 右侧状态和信息 */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
                 {/* WebSocket 连接状态 */}
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-1.5 text-sm">
                     {wsStatus === 'connected' ? (
                         <Wifi size={16} className={getWsStatusColor(wsStatus)} />
                     ) : (
                         <WifiOff size={16} className={getWsStatusColor(wsStatus)} />
                     )}
-                    <span className={`text-white/60 ${getWsStatusColor(wsStatus)}`}>{getWsStatusText(wsStatus)}</span>
+                    <span className={`hidden sm:inline text-white/60 ${getWsStatusColor(wsStatus)}`}>
+                        {getWsStatusText(wsStatus)}
+                    </span>
                     {wsStatus !== 'connected' && onReconnect && (
                         <motion.button
                             whileHover={{ scale: 1.05 }}
@@ -114,8 +116,8 @@ export function TerminalToolbar({ onNewTerminal, onCloseTerminal, onClear, onRec
                     )}
                 </div>
 
-                {/* 会话计数 */}
-                <div className="text-sm text-white/40">{sessions.length} 个终端</div>
+                {/* 会话计数 - 小屏隐藏 */}
+                <div className="hidden sm:block text-sm text-white/40">{sessions.length} 个终端</div>
             </div>
         </div>
     );

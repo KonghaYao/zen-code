@@ -160,20 +160,22 @@ export function CronView() {
     const activeTabConfig = TABS.find((t) => t.id === activeTab);
 
     return (
-        <div className="h-full flex flex-col overflow-hidden p-6">
+        <div className="h-full flex flex-col overflow-hidden p-3 md:p-6">
             {/* Header */}
-            <div className="flex-shrink-0 mb-6">
+            <div className="flex-shrink-0 mb-3 md:mb-6">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-2xl font-semibold text-text-primary">Cron Tasks</h1>
-                        <p className="text-sm text-text-muted mt-1">Schedule and manage automated tasks</p>
+                        <h1 className="text-lg md:text-2xl font-semibold text-text-primary">Cron Tasks</h1>
+                        <p className="text-xs md:text-sm text-text-muted mt-0.5 md:mt-1">
+                            Schedule and manage automated tasks
+                        </p>
                     </div>
                     <button
                         onClick={() => {
                             setEditingTask(null);
                             setShowForm(true);
                         }}
-                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium transition-colors"
+                        className="px-3 md:px-4 py-1.5 md:py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium transition-colors"
                     >
                         + New Task
                     </button>
@@ -182,25 +184,25 @@ export function CronView() {
 
             {/* Queue Status */}
             {queueStatusQuery.data && schedulerStatusQuery.data && (
-                <div className="flex-shrink-0 mb-6">
+                <div className="flex-shrink-0 mb-3 md:mb-6 overflow-x-auto">
                     <QueueIndicator queueStatus={queueStatusQuery.data} schedulerStatus={schedulerStatusQuery.data} />
                 </div>
             )}
 
             {/* Tabs */}
-            <div className="flex-shrink-0 mb-6">
-                <div className="flex gap-2">
+            <div className="flex-shrink-0 mb-3 md:mb-6">
+                <div className="flex gap-1.5 md:gap-2">
                     {TABS.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => handleTabChange(tab.id)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-sm font-medium transition-colors ${
                                 activeTab === tab.id
                                     ? 'bg-primary text-white'
                                     : 'text-text-primary hover:bg-bg-secondary'
                             }`}
                         >
-                            <span>{tab.icon}</span>
+                            <span className="hidden md:inline">{tab.icon}</span>
                             <span>{tab.label}</span>
                         </button>
                     ))}
@@ -209,17 +211,21 @@ export function CronView() {
 
             {/* Content Area */}
             <div className="flex-1 min-h-0 overflow-hidden">
-                <div className="bg-white rounded-lg border border-border-subtle flex flex-col min-h-0">
-                    <div className="p-4 border-b border-border-subtle flex-shrink-0">
-                        <div className="flex items-center gap-3">
-                            <span className="text-xl">{activeTabConfig?.icon}</span>
+                <div className="bg-white md:rounded-lg md:border border-border-subtle flex flex-col min-h-0 h-full">
+                    <div className="px-3 md:p-4 py-2 border-b border-border-subtle flex-shrink-0">
+                        <div className="flex items-center gap-2 md:gap-3">
+                            <span className="hidden md:inline text-xl">{activeTabConfig?.icon}</span>
                             <div>
-                                <h2 className="text-lg font-semibold text-text-primary">{activeTabConfig?.label}</h2>
-                                <p className="text-sm text-text-muted">{activeTabConfig?.description}</p>
+                                <h2 className="text-base md:text-lg font-semibold text-text-primary">
+                                    {activeTabConfig?.label}
+                                </h2>
+                                <p className="text-xs md:text-sm text-text-muted hidden md:block">
+                                    {activeTabConfig?.description}
+                                </p>
                             </div>
                         </div>
                     </div>
-                    <div className="flex-1 overflow-auto p-4">
+                    <div className="flex-1 overflow-auto p-3 md:p-4">
                         {activeTab === 'tasks' && (
                             <>
                                 {isLoading ? (

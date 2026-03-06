@@ -34,6 +34,8 @@ interface ChatPanelProps {
     onOpenConfig?: (section?: ConfigDrawerSection) => void;
     /** Config Drawer 是否处于打开状态（用于高亮 ⚙️ 按钮） */
     configDrawerOpen?: boolean;
+    /** 移动端：打开历史记录抽屉（仅移动端传入） */
+    onOpenMobileHistory?: () => void;
 }
 
 // ========================================
@@ -145,6 +147,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     currentModelName,
     onOpenConfig,
     configDrawerOpen,
+    onOpenMobileHistory,
 }) => {
     const chatStore = useChat();
     const { userInput, setUserInput, loading, renderMessages, sendMessage, stopGeneration, inChatError } = chatStore;
@@ -276,17 +279,43 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                     )
                 }
                 configButton={
-                    <button
-                        onClick={() => onOpenConfig?.()}
-                        title={configDrawerOpen ? '收起配置' : '展开配置'}
-                        className={`p-1.5 rounded transition-colors ${
-                            configDrawerOpen
-                                ? 'bg-primary text-white'
-                                : 'bg-white border border-border-default text-text-secondary hover:bg-bg-tertiary'
-                        }`}
-                    >
-                        <Settings className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                        {/* 移动端历史记录按钮 */}
+                        {onOpenMobileHistory && (
+                            <button
+                                onClick={onOpenMobileHistory}
+                                title="查看历史记录"
+                                className="p-1.5 rounded bg-white border border-border-default text-text-secondary hover:bg-bg-tertiary transition-colors"
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                    <path d="M3 3v5h5" />
+                                    <path d="M12 7v5l4 2" />
+                                </svg>
+                            </button>
+                        )}
+                        {/* 配置按钮 */}
+                        <button
+                            onClick={() => onOpenConfig?.()}
+                            title={configDrawerOpen ? '收起配置' : '展开配置'}
+                            className={`p-1.5 rounded transition-colors ${
+                                configDrawerOpen
+                                    ? 'bg-primary text-white'
+                                    : 'bg-white border border-border-default text-text-secondary hover:bg-bg-tertiary'
+                            }`}
+                        >
+                            <Settings className="w-4 h-4" />
+                        </button>
+                    </div>
                 }
                 stopButton={
                     loading ? (

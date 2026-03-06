@@ -1265,6 +1265,88 @@ select option {
 }
 
 /* ============================================
+   MOBILE RESPONSIVE STYLES
+   移动端适配（< 768px）
+   ============================================ */
+
+/* iOS / Android 安全区域支持 */
+:root {
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
+}
+
+/* 移动端 Tab Bar - pb-safe-bottom 工具类 */
+.pb-safe-bottom {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* macOS Dock - 移动端隐藏 */
+@media (max-width: 767px) {
+    .dock-container {
+        display: none !important;
+    }
+}
+
+/* 移动端全局触控优化 */
+@media (max-width: 767px) {
+    /* 禁用 hover 效果在触摸设备上的残留 */
+    @media (hover: none) {
+        button:hover {
+            opacity: 1;
+        }
+    }
+
+    /* 最小触控目标 44px */
+    button,
+    a,
+    [role="button"] {
+        min-height: 44px;
+    }
+
+    /* 阻止双击缩放 */
+    * {
+        touch-action: manipulation;
+    }
+
+    /* 禁止文本选中（避免长按触发） */
+    .mobile-tab-bar {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    /* 输入框字体大小 ≥ 16px 防止 iOS 自动缩放 */
+    input[type="text"],
+    input[type="search"],
+    input[type="email"],
+    input[type="password"],
+    textarea {
+        font-size: 16px;
+    }
+}
+
+/* 移动端 MobileHeader 层级 */
+.mobile-header {
+    z-index: 50;
+}
+
+/* 移动端底部 Tab Bar */
+.mobile-tab-bar {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* 移动端视口高度修复（避免 iOS Safari 地址栏影响） */
+@supports (height: 100dvh) {
+    @media (max-width: 767px) {
+        #app,
+        .h-screen {
+            height: 100dvh;
+        }
+    }
+}
+
+/* ============================================
    REACT-ACTIVATION KEEPALIVE STYLES
    ============================================ */
 

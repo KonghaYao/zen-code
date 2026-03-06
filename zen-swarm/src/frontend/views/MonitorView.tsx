@@ -137,9 +137,9 @@ export function MonitorView() {
     return (
         <div className="h-full flex flex-col overflow-hidden bg-bg-primary">
             {/* ── Header ───────────────────────────────────────── */}
-            <div className="flex-shrink-0 px-5 pt-5 pb-3 border-b border-border-subtle bg-bg-secondary">
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
+            <div className="flex-shrink-0 px-3 md:px-5 pt-3 md:pt-5 pb-2 md:pb-3 border-b border-border-subtle bg-bg-secondary">
+                <div className="flex items-center justify-between gap-2 md:gap-4">
+                    <div className="flex items-center gap-2 md:gap-3">
                         <h1 className="text-lg font-semibold text-text-primary">Monitor</h1>
                         {/* 视图切换 */}
                         <div className="flex rounded-lg border border-border-subtle overflow-hidden text-xs">
@@ -231,7 +231,7 @@ export function MonitorView() {
             {/* ── Body: list + detail ───────────────────────────── */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Left: Process list */}
-                <div className="flex-1 min-w-0 flex flex-col overflow-hidden border-r border-border-subtle">
+                <div className="flex-1 min-w-0 flex flex-col overflow-hidden md:border-r border-border-subtle">
                     <ProcessTable
                         processes={filteredProcesses}
                         activeTab={activeTab}
@@ -243,8 +243,8 @@ export function MonitorView() {
                     />
                 </div>
 
-                {/* Right: Detail panel */}
-                <div className="w-80 flex-shrink-0 flex flex-col overflow-hidden bg-bg-secondary">
+                {/* Right: Detail panel - 移动端隐藏 */}
+                <div className="hidden md:flex w-80 flex-shrink-0 flex-col overflow-hidden bg-bg-secondary">
                     {selectedProcess ? (
                         <DetailPanel
                             process={selectedProcess}

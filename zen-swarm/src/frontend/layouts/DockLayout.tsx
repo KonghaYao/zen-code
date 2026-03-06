@@ -1,6 +1,8 @@
 /**
  * DockLayout 组件
- * macOS 风格桌面布局，使用 Tailwind CSS 和 React Router
+ * macOS 风格桌面布局（桌面端） + 响应式移动端布局
+ * - 桌面端 (≥768px)：MenuBar + AppWindow + macOS Dock
+ * - 移动端 (<768px)：MobileHeader + 全屏内容 + MobileTabBar
  */
 
 import { Suspense, useCallback, useMemo, useEffect } from 'react';
@@ -8,10 +10,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { DockContainer } from '../components/dock/index.js';
 import { MenuBar, DesktopWallpaper } from '../components/desktop/index.js';
+import { MobileTabBar, MobileHeader } from '../components/mobile/index.js';
 import { getAppById } from '../components/app-registry/index.js';
 import { LoadingSpinner } from '../components/LoadingSpinner.js';
 import type { AppId } from '../components/app-registry/types.js';
 import { useProviders } from '../hooks/useProviders.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 
 // 导入视图组件
 import { ChatView } from '../views/ChatView.js';
@@ -22,6 +26,7 @@ import { AppWindow } from '../components/desktop/index.js';
 export function DockLayout() {
     const location = useLocation();
     const navigate = useNavigate();
+    const isMobile = useIsMobile();
     const { data: providers, isLoading: isProvidersLoading } = useProviders();
 
     // 检测是否需要初始化：providers 加载完成且为空时跳转到 /setup
@@ -58,9 +63,8 @@ export function DockLayout() {
     }, [location.hash]);
 
     const currentApp = activeApp ? getAppById(activeApp) : null;
-    const isFullScreen = false; // 所有应用都使用窗口模式
 
-    // 处理应用切换（由 DockContainer 调用）
+    // 处理应用切换（由 DockContainer / MobileTabBar 调用）
     const handleAppChange = useCallback(
         (appId: AppId) => {
             navigate(`#/${appId}`);
@@ -68,8 +72,71 @@ export function DockLayout() {
         [navigate],
     );
 
+    // ───────────────────────────────────────────────────────────
+    // 移动端布局
+    // ───────────────────────────────────────────────────────────
+    if (isMobile) {
+        return (
+            <div className="flex flex-col h-screen w-screen overflow-hidden bg-neutral-50">
+                {/* 移动端顶部 Header */}
+                <MobileHeader title={currentApp?.name ?? 'Zen Swarm'} />
+
+                {/* providers 加载中时显示全屏加载 */}
+                {isProvidersLoading && (
+                    <div className="fixed inset-0 z-40 flex items-center justify-center gap-4 text-neutral-600 bg-neutral-50">
+                        <LoadingSpinner />
+                        <span className="text-sm">初始化中...</span>
+                    </div>
+                )}
+
+                {/* 主内容区域 - 全屏，padding 让内容不被 header/tabbar 遮挡 */}
+                <main
+                    className="flex-1 flex flex-col min-h-0 overflow-hidden"
+                    style={{ paddingTop: '52px', paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))' }}
+                >
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={location.hash || 'empty'}
+                            className="flex-1 flex flex-col min-h-0 overflow-hidden"
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                            transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                        >
+                            <Suspense
+                                fallback={
+                                    <div className="flex-1 flex flex-col items-center justify-center gap-4 text-neutral-500">
+                                        <LoadingSpinner />
+                                        <span className="text-sm">加载中...</span>
+                                    </div>
+                                }
+                            >
+                                {currentApp ? (
+                                    <currentApp.viewComponent />
+                                ) : (
+                                    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-neutral-500">
+                                        <span className="text-4xl">💬</span>
+                                        <span className="text-sm">选择下方标签开始使用</span>
+                                    </div>
+                                )}
+                            </Suspense>
+                        </motion.div>
+                    </AnimatePresence>
+                </main>
+
+                {/* 移动端底部 Tab Bar */}
+                <MobileTabBar activeApp={activeApp} onAppChange={handleAppChange} />
+            </div>
+        );
+    }
+
+    // ───────────────────────────────────────────────────────────
+    // 桌面端布局（保持不变）
+    // ───────────────────────────────────────────────────────────
+    const isFullScreen = false; // 所有应用都使用窗口模式
+
     // 渲染当前应用
-    const renderActiveApp = useCallback(() => {
+    const renderActiveApp = () => {
         if (!currentApp) {
             return (
                 <div className="flex-1 flex flex-col items-center justify-center gap-4 text-white/80 pointer-events-none">
@@ -113,7 +180,7 @@ export function DockLayout() {
                 </div>
             </div>
         );
-    }, [currentApp, isFullScreen, activeApp, navigate]);
+    };
 
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden">
