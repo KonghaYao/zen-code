@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import lockfile from 'proper-lockfile';
 import type { IConfigStore } from '../interfaces/IConfigStore.js';
-import type { AppConfig, LegacyAppConfig, ProviderConfig } from '../types/index.js';
+import type { AppConfig } from '../types/index.js';
 
 interface Data {
     config: AppConfig;
@@ -27,67 +27,6 @@ const defaultData: Data = {
         compact_mode: true,
     },
 };
-
-/**
- * 检查配置是否为旧版本格式
- */
-function isLegacyConfig(config: any): config is LegacyAppConfig {
-    return 'main_model' in config && !('providers' in config);
-}
-
-/**
- * 将旧版本配置迁移到新格式
- */
-function migrateLegacyConfig(legacy: LegacyAppConfig): AppConfig {
-    const providers: ProviderConfig[] = [];
-
-    // 迁移 OpenAI 配置
-    if (legacy.model_provider === 'openai' || legacy.openai_api_key || legacy.openai_base_url) {
-        providers.push({
-            id: 'openai',
-            type: 'openai',
-            apiKey: legacy.openai_api_key || '',
-            baseUrl: legacy.openai_base_url || 'https://api.openai.com/v1',
-        });
-    }
-
-    // 迁移 Anthropic 配置
-    if (legacy.model_provider === 'anthropic' || legacy.anthropic_api_key || legacy.anthropic_base_url) {
-        providers.push({
-            id: 'anthropic',
-            type: 'anthropic',
-            apiKey: legacy.anthropic_api_key || '',
-            baseUrl: legacy.anthropic_base_url || 'https://api.anthropic.com',
-        });
-    }
-
-    // 如果没有任何 provider，使用默认
-    if (providers.length === 0) {
-        providers.push({
-            id: 'default',
-            type: 'openai',
-            apiKey: '',
-            baseUrl: 'https://api.openai.com/v1',
-        });
-    }
-
-    // 确定当前 provider
-    const providerId = legacy.model_provider === 'anthropic' ? 'anthropic' : 'openai';
-    const targetProvider = providers.find((p) => p.id === providerId) || providers[0];
-
-    return {
-        provider_id: targetProvider.id,
-        provider_type: targetProvider.type,
-        model_id: legacy.main_model,
-        providers,
-        mcp_config: legacy.mcp_config,
-        stream_refresh_interval: legacy.stream_refresh_interval,
-        enable_thinking: legacy.enable_thinking,
-        switch_command: legacy.switch_command,
-        compact_mode: legacy.compact_mode,
-        permissions: legacy.permissions,
-    };
-}
 
 /**
  * 文件系统配置存储实现
@@ -162,12 +101,6 @@ export class FileSystemConfigStore implements IConfigStore {
             if (!this.db.data || !this.db.data.config) {
                 this.db.data = defaultData;
                 await this.db.write();
-            } else if (isLegacyConfig(this.db.data.config)) {
-                // 迁移旧配置
-                console.log('Migrating legacy config to new format...');
-                this.db.data.config = migrateLegacyConfig(this.db.data.config);
-                await this.db.write();
-                console.log('Config migration completed.');
             }
 
             // 将配置设置到环境变量

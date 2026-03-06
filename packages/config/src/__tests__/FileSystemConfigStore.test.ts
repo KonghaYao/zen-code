@@ -3,7 +3,7 @@ import { FileSystemConfigStore } from '../implementations/FileSystemConfigStore.
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import type { AppConfig, LegacyAppConfig } from '../types/index.js';
+import type { AppConfig } from '../types/index.js';
 
 // Helper to create a temporary directory for testing
 async function createTempDir(): Promise<string> {
@@ -109,39 +109,6 @@ describe('FileSystemConfigStore', () => {
             expect(config.provider_id).toBe('custom');
             expect(config.model_id).toBe('custom-model');
             expect(config.providers[0].id).toBe('custom');
-        });
-
-        it('should migrate legacy config to new format', async () => {
-            // Create a legacy config file
-            const zenConfigDir = path.join(tempDir, '.zen-code');
-            await fs.promises.mkdir(zenConfigDir, { recursive: true });
-
-            const legacyConfig: LegacyAppConfig = {
-                main_model: 'gpt-4',
-                model_provider: 'openai',
-                openai_api_key: 'legacy-key',
-                openai_base_url: 'https://legacy.api.com/v1',
-            };
-
-            const settingsPath = path.join(zenConfigDir, 'settings.json');
-            await fs.promises.writeFile(settingsPath, JSON.stringify({ config: legacyConfig }, null, 2));
-
-            // Initialize store - should trigger migration
-            await store.initialize();
-
-            // Check that config was migrated
-            const config = await store.getConfig();
-
-            // New format should have provider_id and model_id
-            expect(config.provider_id).toBeDefined();
-            expect(config.model_id).toBe('gpt-4');
-            expect(config.providers).toBeInstanceOf(Array);
-            expect(config.providers.length).toBeGreaterThan(0);
-
-            // Provider should have legacy API key and base URL
-            const provider = config.providers.find((p) => p.id === 'openai');
-            expect(provider?.apiKey).toBe('legacy-key');
-            expect(provider?.baseUrl).toBe('https://legacy.api.com/v1');
         });
 
         it('should sync config to environment variables', async () => {

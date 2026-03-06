@@ -62,24 +62,6 @@ export interface AppConfig {
 }
 
 /**
- * 旧版本配置格式（用于迁移）
- */
-export interface LegacyAppConfig {
-    main_model: string;
-    model_provider?: 'openai' | 'anthropic';
-    openai_api_key?: string;
-    openai_base_url?: string;
-    anthropic_api_key?: string;
-    anthropic_base_url?: string;
-    mcp_config?: MCPConfig;
-    stream_refresh_interval?: number;
-    enable_thinking?: boolean;
-    switch_command?: string;
-    compact_mode?: boolean;
-    permissions?: PermissionConfig;
-}
-
-/**
  * Permission control configuration for tool calls
  */
 export interface PermissionConfig {
