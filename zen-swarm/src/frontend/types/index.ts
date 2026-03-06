@@ -107,21 +107,6 @@ export type CreateVersionInput = {
 };
 
 // ========================================
-// Tool Types
-// ========================================
-export interface Tool {
-    id: string;
-    name: string;
-    description: string;
-    parameters: string | null; // JSON string or null
-    created_at?: string;
-    updated_at?: string;
-}
-
-export type ToolInput = Omit<Tool, 'created_at' | 'updated_at'>;
-export type UpdateToolInput = Partial<ToolInput> & { id: string };
-
-// ========================================
 // Middleware Types
 // ========================================
 export interface Middleware {
@@ -145,7 +130,6 @@ export interface Agent {
     description: string;
     system_prompt: string; // Prompt ID
     model: string; // Model ID
-    tools: Record<string, boolean | any>;
     middlewares: Record<string, boolean | any>;
     created_at?: string;
     updated_at?: string;
@@ -162,8 +146,7 @@ export type AgentInput = {
     description: string;
     system_prompt: string;
     model: string;
-    tools?: Record<string, boolean | any>;
-    middleware?: Record<string, boolean | any>;
+    middlewares?: Record<string, boolean | any>;
 };
 
 export type UpdateAgentInput = Partial<AgentInput> & { id: string };

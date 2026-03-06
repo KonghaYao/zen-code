@@ -12,27 +12,17 @@ const AgentInputBaseSchema = z.object({
     description: z.string().min(1),
     system_prompt: z.string().min(1), // Prompt ID - must be non-empty
     model: z.string().min(1), // Model ID - must be non-empty
-    tools: z.record(z.string(), z.union([z.boolean(), z.any()])),
-    middleware: z.record(z.string(), z.union([z.boolean(), z.any()])),
+    middlewares: z.record(z.string(), z.union([z.boolean(), z.any()])),
 });
 
 // Schema for create with refinements
 export const AgentInputSchema = AgentInputBaseSchema.superRefine((data, ctx) => {
-    // Validate that tools record has at least one key
-    if (!data.tools || Object.keys(data.tools).length === 0) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'Agent must have at least one tool',
-            path: ['tools'],
-        });
-    }
-
-    // Validate that middleware record has at least one key
-    if (!data.middleware || Object.keys(data.middleware).length === 0) {
+    // Validate that middlewares record has at least one key
+    if (!data.middlewares || Object.keys(data.middlewares).length === 0) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: 'Agent must have at least one middleware',
-            path: ['middleware'],
+            path: ['middlewares'],
         });
     }
 });
@@ -44,17 +34,14 @@ export const UpdateAgentSchema = AgentInputBaseSchema.partial()
     })
     .refine(
         (data) => {
-            // When updating, if tools/middleware are provided, they must not be empty
-            if (data.tools && Object.keys(data.tools).length === 0) {
-                return false;
-            }
-            if (data.middleware && Object.keys(data.middleware).length === 0) {
+            // When updating, if middlewares are provided, they must not be empty
+            if (data.middlewares && Object.keys(data.middlewares).length === 0) {
                 return false;
             }
             return true;
         },
         {
-            message: 'tools and middleware must have at least one entry when provided',
+            message: 'middlewares must have at least one entry when provided',
         },
     );
 
@@ -63,7 +50,7 @@ export const UpdateAgentSchema = AgentInputBaseSchema.partial()
 // ========================================
 
 export const agentsRouter = router({
-    // 列出所有 Agents（包含关联的 Tools 和 Middlewares）
+    // 列出所有 Agents（包含关联的 Middlewares）
     list: publicProcedure.query(async ({ ctx }) => {
         const agents = await ctx.agentPackage.storage.getAllAgents();
 
@@ -76,7 +63,7 @@ export const agentsRouter = router({
         }));
     }),
 
-    // 获取单个 Agent（包含关联的 Tools 和 Middlewares）
+    // 获取单个 Agent（包含关联的 Middlewares）
     get: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
         const agent = await ctx.agentPackage.storage.getAgent(input.id);
         if (!agent) {
@@ -97,7 +84,7 @@ export const agentsRouter = router({
             throw handleNotFound('Agent', input.id);
         }
 
-        // 获取完整的 tools 和 middlewares 配置
+        // 获取完整的 middlewares 配置
         const agentFull = await ctx.agentPackage.storage.getAgent(input.id);
 
         // Transform database row format to frontend expected format
@@ -107,7 +94,6 @@ export const agentsRouter = router({
             model: agentWithDeps.agent.model_id,
             modelInfo: agentWithDeps.model,
             promptInfo: agentWithDeps.systemPrompt,
-            tools: agentFull!.tools,
             middlewares: agentFull!.middlewares,
         };
     }),
@@ -125,17 +111,8 @@ export const agentsRouter = router({
             handleNotFound('Prompt', input.system_prompt);
         }
 
-        // 验证关联的 Tools 是否存在（跳过空键）
-        for (const toolId of Object.keys(input.tools)) {
-            if (toolId.trim() === '') continue; // Skip empty keys
-            const tool = await ctx.agentPackage.storage.getTool(toolId);
-            if (!tool) {
-                handleNotFound('Tool', toolId);
-            }
-        }
-
         // 验证关联的 Middlewares 是否存在（跳过空键）
-        for (const midId of Object.keys(input.middleware)) {
+        for (const midId of Object.keys(input.middlewares)) {
             if (midId.trim() === '') continue; // Skip empty keys
             const middleware = await ctx.agentPackage.storage.getMiddleware(midId);
             if (!middleware) {
@@ -170,20 +147,9 @@ export const agentsRouter = router({
             }
         }
 
-        // 如果更新了 tools，验证它们是否存在（跳过空键）
-        if (input.tools) {
-            for (const toolId of Object.keys(input.tools)) {
-                if (toolId.trim() === '') continue; // Skip empty keys
-                const tool = await ctx.agentPackage.storage.getTool(toolId);
-                if (!tool) {
-                    handleNotFound('Tool', toolId);
-                }
-            }
-        }
-
-        // 如果更新了 middleware，验证它们是否存在（跳过空键）
-        if (input.middleware) {
-            for (const midId of Object.keys(input.middleware)) {
+        // 如果更新了 middlewares，验证它们是否存在（跳过空键）
+        if (input.middlewares) {
+            for (const midId of Object.keys(input.middlewares)) {
                 if (midId.trim() === '') continue; // Skip empty keys
                 const middleware = await ctx.agentPackage.storage.getMiddleware(midId);
                 if (!middleware) {

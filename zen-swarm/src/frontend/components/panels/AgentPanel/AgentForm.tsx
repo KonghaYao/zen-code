@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import type { Agent, Model, Prompt, Tool, Middleware } from '../../../types/index.js';
+import type { Agent, Model, Prompt, Middleware } from '../../../types/index.js';
 import { Select } from '../../ui/Select.js';
 import { Check, Settings2, Wrench, FileText } from 'lucide-react';
 
@@ -16,7 +16,6 @@ interface AgentFormProps {
     agent: Agent | null;
     models: Model[];
     prompts: Prompt[];
-    tools: Tool[];
     middlewares: Middleware[];
     onSave: (formData: any) => Promise<void>;
     onCancel: () => void;
@@ -29,8 +28,7 @@ const createInitialFormData = (agent: Agent | null) => ({
     description: agent?.description ?? '',
     system_prompt: agent?.system_prompt ?? '',
     model: agent?.model ?? '',
-    tools: { ...(agent?.tools || {}) } as Record<string, boolean>,
-    middleware: { ...(agent?.middlewares || {}) } as Record<string, boolean>,
+    middlewares: { ...(agent?.middlewares || {}) } as Record<string, boolean>,
 });
 
 export function AgentForm(props: AgentFormProps) {
@@ -39,7 +37,7 @@ export function AgentForm(props: AgentFormProps) {
     const [error, setError] = useState<string | null>(null);
     const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-    const { models, prompts, tools, middlewares } = props;
+    const { models, prompts, middlewares } = props;
     const optionsLoaded = models.length > 0;
 
     // 初始化表单数据
@@ -53,31 +51,25 @@ export function AgentForm(props: AgentFormProps) {
                 description: '',
                 system_prompt: '',
                 model: '',
-                tools: {},
-                middleware: {},
+                middlewares: {},
             });
         }
     }, [props.agent]);
 
-    // 初始化默认选中所有工具和中间件（创建模式）
+    // 初始化默认选中所有中间件（创建模式）
     useEffect(() => {
         if (!props.agent && optionsLoaded) {
             setFormData((prev) => ({
                 ...prev,
-                tools: Object.fromEntries(tools.map((t) => [t.id, true])),
-                middleware: Object.fromEntries(middlewares.map((m) => [m.id, true])),
+                middlewares: Object.fromEntries(middlewares.map((m) => [m.id, true])),
             }));
         }
-    }, [optionsLoaded, tools, middlewares, props.agent]);
+    }, [optionsLoaded, middlewares, props.agent]);
 
     // 计算选中数量
-    const selectedToolsCount = useMemo(
-        () => Object.keys(formData.tools).filter((k) => formData.tools[k]).length,
-        [formData.tools],
-    );
     const selectedMiddlewaresCount = useMemo(
-        () => Object.keys(formData.middleware).filter((k) => formData.middleware[k]).length,
-        [formData.middleware],
+        () => Object.keys(formData.middlewares).filter((k) => formData.middlewares[k]).length,
+        [formData.middlewares],
     );
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -106,17 +98,10 @@ export function AgentForm(props: AgentFormProps) {
         }
     };
 
-    const toggleTool = (toolId: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            tools: { ...prev.tools, [toolId]: !prev.tools[toolId] },
-        }));
-    };
-
     const toggleMiddleware = (midId: string) => {
         setFormData((prev) => ({
             ...prev,
-            middleware: { ...prev.middleware, [midId]: !prev.middleware[midId] },
+            middlewares: { ...prev.middlewares, [midId]: !prev.middlewares[midId] },
         }));
     };
 
@@ -212,30 +197,8 @@ export function AgentForm(props: AgentFormProps) {
                 <Section
                     title="能力"
                     icon={<Wrench className="w-4 h-4" />}
-                    badge={`${selectedToolsCount + selectedMiddlewaresCount} 项已启用`}
+                    badge={`${selectedMiddlewaresCount} 项已启用`}
                 >
-                    {/* 工具选择 */}
-                    <div className="mb-5">
-                        <div className="flex items-center justify-between mb-3">
-                            <h4 className="text-sm font-medium text-neutral-700">工具</h4>
-                            <span className="text-xs text-neutral-400 tabular-nums">
-                                {selectedToolsCount} / {tools.length}
-                            </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                            {tools.map((tool) => (
-                                <CapabilityCard
-                                    key={tool.id}
-                                    id={tool.id}
-                                    name={tool.name}
-                                    description={tool.description}
-                                    selected={!!formData.tools[tool.id]}
-                                    onClick={() => toggleTool(tool.id)}
-                                />
-                            ))}
-                        </div>
-                    </div>
-
                     {/* 中间件选择 */}
                     <div>
                         <div className="flex items-center justify-between mb-3">
@@ -251,7 +214,7 @@ export function AgentForm(props: AgentFormProps) {
                                     id={mid.id}
                                     name={mid.name}
                                     description={mid.description}
-                                    selected={!!formData.middleware[mid.id]}
+                                    selected={!!formData.middlewares[mid.id]}
                                     onClick={() => toggleMiddleware(mid.id)}
                                 />
                             ))}

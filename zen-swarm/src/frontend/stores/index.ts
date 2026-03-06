@@ -3,8 +3,8 @@
  * 使用 React Hooks (useState, useCallback) 实现响应式状态
  */
 
-import { useState, useCallback, useEffect } from 'react';
-import type { Agent, Model, Prompt, Tool, Middleware, MCPServer } from '../types/index.js';
+import { useState, useCallback } from 'react';
+import type { Agent, Model, Prompt, Middleware, MCPServer } from '../types/index.js';
 import { apiClient } from '../api.js';
 
 // 导出 Zustand store
@@ -184,65 +184,6 @@ export function usePromptsStore() {
         createPrompt,
         updatePrompt,
         deletePrompt,
-    };
-}
-
-// ========================================
-// Tools Store
-// ========================================
-export function useToolsStore() {
-    const [tools, setTools] = useState<Tool[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const loadTools = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await apiClient.tools.list.query();
-            setTools(data);
-        } catch (e: any) {
-            setError(e.message);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    const createTool = useCallback(
-        async (input: any) => {
-            const tool = await apiClient.tools.create.mutate(input);
-            await loadTools();
-            return tool;
-        },
-        [loadTools],
-    );
-
-    const updateTool = useCallback(
-        async (input: any) => {
-            const tool = await apiClient.tools.update.mutate(input);
-            await loadTools();
-            return tool;
-        },
-        [loadTools],
-    );
-
-    const deleteTool = useCallback(
-        async (id: string) => {
-            await apiClient.tools.delete.mutate({ id });
-            await loadTools();
-        },
-        [loadTools],
-    );
-
-    return {
-        tools,
-        toolsLoading: loading,
-        toolsError: error,
-        toolCount: tools.length,
-        loadTools,
-        createTool,
-        updateTool,
-        deleteTool,
     };
 }
 

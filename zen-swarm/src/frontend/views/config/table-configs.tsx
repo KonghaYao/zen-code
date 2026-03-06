@@ -5,7 +5,7 @@
  */
 
 import type { TableColumn, ActionItem } from '../../components/ui/Table.js';
-import type { Agent, Model, Prompt, MCPServer, Tool, Middleware } from '../../types/index.js';
+import type { Agent, Model, Prompt, MCPServer, Middleware } from '../../types/index.js';
 import { StatusBadge } from '../../components/index.js';
 import { Zap } from 'lucide-react';
 
@@ -33,12 +33,6 @@ export const agentsColumns: TableColumn<Agent>[] = [
                 {value || '-'}
             </span>
         ),
-    },
-    {
-        key: 'tools',
-        title: 'Tools',
-        align: 'center',
-        render: (_, record) => <span>{Object.keys(record.tools || {}).length}</span>,
     },
 ];
 
@@ -77,7 +71,7 @@ export const modelsColumns: TableColumn<Model>[] = [
         ),
     },
     {
-        key: 'model_provider',
+        key: 'provider_id',
         title: 'Provider',
     },
     {
@@ -332,33 +326,6 @@ export const mcpActions: ActionItem<MCPServer>[] = [
 ];
 
 // ========================================
-// Tools 表格配置
-// ========================================
-
-export const toolsColumns: TableColumn<Tool>[] = [
-    {
-        key: 'name',
-        title: 'Name',
-        width: '40%',
-        render: (value) => (
-            <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-bg-tertiary flex items-center justify-center text-lg">🔧</div>
-                <span className="font-medium">{value}</span>
-            </div>
-        ),
-    },
-    {
-        key: 'description',
-        title: 'Description',
-        render: (value) => (
-            <span className="text-text-muted line-clamp-2 block max-w-xl" title={value || ''}>
-                {value || '-'}
-            </span>
-        ),
-    },
-];
-
-// ========================================
 // Middlewares 表格配置
 // ========================================
 
@@ -435,10 +402,6 @@ export const tableConfigs: Record<string, TableConfig> = {
         columns: mcpColumns,
         actions: mcpActions,
         emptyMessage: 'No MCP servers configured yet.',
-    },
-    tools: {
-        columns: toolsColumns,
-        emptyMessage: 'No tools yet.',
     },
     middlewares: {
         columns: middlewaresColumns,

@@ -13,7 +13,6 @@
 import { useAgentsStore } from '../stores/index.js';
 import { useModelsStore } from '../stores/index.js';
 import { usePromptsStore } from '../stores/index.js';
-import { useToolsStore } from '../stores/index.js';
 import { useMiddlewaresStore } from '../stores/index.js';
 import { useMcpStore } from '../stores/index.js';
 import {
@@ -37,7 +36,7 @@ import type { Agent, Model, Prompt, MCPServer } from '../types/index.js';
 import { tableConfigs } from './config/table-configs.js';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
-type ConfigTab = 'agents' | 'models' | 'prompts' | 'providers' | 'skills' | 'mcp' | 'tools' | 'middlewares';
+type ConfigTab = 'agents' | 'models' | 'prompts' | 'providers' | 'skills' | 'mcp' | 'middlewares';
 
 interface TabConfig {
     id: ConfigTab;
@@ -107,15 +106,6 @@ const TABS: TabConfig[] = [
         actionLabel: '+ Add MCP Server',
     },
     {
-        id: 'tools',
-        label: 'Tools',
-        icon: '🔧',
-        description: 'Executable tools and commands (read-only)',
-        category: 'resources',
-        editable: false,
-        actionLabel: 'View Tools',
-    },
-    {
         id: 'middlewares',
         label: 'Middlewares',
         icon: '🔌',
@@ -143,7 +133,6 @@ export function ConfigView() {
     const { agents, agentsLoading, loadAgents, createAgent, updateAgent, deleteAgent } = useAgentsStore();
     const { models, modelsLoading, loadModels, createModel, updateModel, deleteModel } = useModelsStore();
     const { prompts, promptsLoading, loadPrompts, createPrompt, updatePrompt, deletePrompt } = usePromptsStore();
-    const { tools, toolsLoading, loadTools } = useToolsStore();
     const { middlewares, middlewaresLoading, loadMiddlewares } = useMiddlewaresStore();
     const { mcpServers, mcpLoading, loadMcpServers, createMcpServer, updateMcpServer, deleteMcpServer } = useMcpStore();
 
@@ -158,7 +147,6 @@ export function ConfigView() {
     const hasLoadedAgents = useRef(false);
     const hasLoadedModels = useRef(false);
     const hasLoadedPrompts = useRef(false);
-    const hasLoadedTools = useRef(false);
     const hasLoadedMiddlewares = useRef(false);
     const hasLoadedMcp = useRef(false);
 
@@ -183,14 +171,6 @@ export function ConfigView() {
         if (!hasLoadedPrompts.current) {
             loadPrompts();
             hasLoadedPrompts.current = true;
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    useEffect(() => {
-        if (!hasLoadedTools.current) {
-            loadTools();
-            hasLoadedTools.current = true;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -226,8 +206,6 @@ export function ConfigView() {
                 return { dataSource: [], loading: false };
             case 'mcp':
                 return { dataSource: mcpServers, loading: mcpLoading };
-            case 'tools':
-                return { dataSource: tools, loading: toolsLoading };
             case 'middlewares':
                 return { dataSource: middlewares, loading: middlewaresLoading };
         }
@@ -243,8 +221,6 @@ export function ConfigView() {
         providersLoading,
         mcpServers,
         mcpLoading,
-        tools,
-        toolsLoading,
         middlewares,
         middlewaresLoading,
     ]);
@@ -268,21 +244,11 @@ export function ConfigView() {
                     return 0;
                 case 'mcp':
                     return mcpServers.length;
-                case 'tools':
-                    return tools.length;
                 case 'middlewares':
                     return middlewares.length;
             }
         },
-        [
-            agents.length,
-            models.length,
-            prompts.length,
-            providers.length,
-            mcpServers.length,
-            tools.length,
-            middlewares.length,
-        ],
+        [agents.length, models.length, prompts.length, providers.length, mcpServers.length, middlewares.length],
     );
 
     const getActionLabel = () => {
@@ -411,7 +377,6 @@ export function ConfigView() {
                         agent={editingItem as Agent | null}
                         models={models}
                         prompts={prompts}
-                        tools={tools}
                         middlewares={middlewares}
                         onSave={handleSave}
                         onCancel={handleModalClose}

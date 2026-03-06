@@ -32,13 +32,11 @@ export function AgentPanel({ onClose }: AgentPanelProps) {
 
     const { data: models = [] } = trpc.models.list.useQuery();
     const { data: prompts = [] } = trpc.prompts.list.useQuery();
-    const { data: tools = [] } = trpc.tools.list.useQuery();
     const { data: middlewares = [] } = trpc.middlewares.list.useQuery();
 
     // 使用 Map 优化查找性能（规则：js-index-maps）
     const modelMap = useMemo(() => new Map(models.map((m) => [m.id, m])), [models]);
     const promptMap = useMemo(() => new Map(prompts.map((p) => [p.id, p])), [prompts]);
-    const toolMap = useMemo(() => new Map(tools.map((t) => [t.id, t])), [tools]);
     const middlewareMap = useMemo(() => new Map(middlewares.map((m) => [m.id, m])), [middlewares]);
 
     const createMutation = trpc.agents.create.useMutation({
@@ -131,7 +129,6 @@ export function AgentPanel({ onClose }: AgentPanelProps) {
                                 agent={agent}
                                 modelMap={modelMap}
                                 promptMap={promptMap}
-                                toolMap={toolMap}
                                 middlewareMap={middlewareMap}
                                 onEdit={handleEdit}
                                 onDelete={handleDeleteClick}
@@ -146,7 +143,6 @@ export function AgentPanel({ onClose }: AgentPanelProps) {
                     agent={modal.editingItem}
                     models={models}
                     prompts={prompts}
-                    tools={tools}
                     middlewares={middlewares}
                     onSave={handleSave}
                     onCancel={modal.close}

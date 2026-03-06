@@ -101,23 +101,18 @@ export function StepModels({ providerId, providerType, onNext }: StepModelsProps
                 change_note: '初始化默认提示词',
             });
 
-            // 3. 获取所有可用 tools 和 middlewares
-            const [tools, middlewares] = await Promise.all([
-                (apiClient as any).tools.list.query() as Promise<{ id: string }[]>,
-                (apiClient as any).middlewares.list.query() as Promise<{ id: string }[]>,
-            ]);
-            const toolsMap = Object.fromEntries(tools.map((t) => [t.id, true]));
-            const middlewaresMap = Object.fromEntries(middlewares.map((m) => [m.id, true]));
+            // 3. 获取所有可用 middlewares
+            const middlewares = (await (apiClient as any).middlewares.list.query()) as { id: string }[];
+            const middlewaresMap = Object.fromEntries(middlewares.map((m: { id: string }) => [m.id, true]));
 
-            // 4. 创建默认 Agent，关联提示词、第一个模型、所有 tools/middlewares
+            // 4. 创建默认 Agent，关联提示词、第一个模型、所有 middlewares
             await (apiClient as any).agents.create.mutate({
                 id: 'default',
                 name: 'Jarvis',
                 description: '全功能默认 Agent，支持代码开发、文件操作和任务管理',
                 system_prompt: defaultPromptId,
                 model: firstModelId,
-                tools: toolsMap,
-                middleware: middlewaresMap,
+                middlewares: middlewaresMap,
             });
 
             onNext();
