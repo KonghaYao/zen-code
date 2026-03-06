@@ -15,6 +15,7 @@ export function VirtualScrollList<T>({
     itemHeight,
     visibleCount = 8,
     renderItem,
+    keyExtractor,
 }: VirtualScrollListProps<T>) {
     if (items.length === 0) {
         return (
@@ -50,7 +51,15 @@ export function VirtualScrollList<T>({
 
     return (
         <Box flexDirection="column" width="100%" gap={1}>
-            {visibleItems.map((item, idx) => renderItem(item, startIndex + idx, startIndex + idx === selectedIndex))}
+            {visibleItems.map((item, idx) => {
+                const absoluteIndex = startIndex + idx;
+                const key = keyExtractor ? keyExtractor(item, absoluteIndex) : absoluteIndex;
+                return (
+                    <React.Fragment key={key}>
+                        {renderItem(item, absoluteIndex, absoluteIndex === selectedIndex)}
+                    </React.Fragment>
+                );
+            })}
         </Box>
     );
 }

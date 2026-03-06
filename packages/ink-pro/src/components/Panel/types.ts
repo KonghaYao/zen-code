@@ -75,6 +75,8 @@ export interface PanelConfig<T = any> {
     // 渲染配置
     /** 渲染每个列表项 */
     renderItem: (item: T, index: number, isSelected: boolean) => React.ReactNode;
+    /** 提取列表项稳定唯一 key，避免使用 index 作为 key 导致渲染问题 */
+    keyExtractor?: (item: T, index: number) => string | number;
     /** 空数据渲染 */
     renderEmpty?: () => React.ReactNode;
 
@@ -125,6 +127,8 @@ export interface VirtualScrollListProps<T> {
     itemHeight: number;
     visibleCount?: number;
     renderItem: (item: T, index: number, isSelected: boolean) => React.ReactNode;
+    /** 提取列表项稳定唯一 key，未提供时回退到 index */
+    keyExtractor?: (item: T, index: number) => string | number;
 }
 
 /**

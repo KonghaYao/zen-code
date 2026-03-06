@@ -85,6 +85,7 @@ const ProcessPanel: React.FC<ProcessPanelProps> = ({ onClose }) => {
             searchable: true,
             searchFields: ['command'],
             renderItem,
+            keyExtractor: (proc) => proc.pid,
             onSelect: handleSelect,
             onDelete: handleKillProcess,
             itemHeight: 2,

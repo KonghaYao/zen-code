@@ -3,7 +3,37 @@ import type { ManagedProcess } from '@langgraph-js/agent-middlewares';
 import { background_processes } from '@langgraph-js/agent-middlewares';
 import type { ProcessInfo } from '../types.js';
 
+const GC_INTERVAL_MS = 5000;
+
 export class ProcessManagerService {
+    constructor() {
+        this.startGC();
+    }
+
+    /**
+     * 启动定时 GC，每 5s 扫描一次全量进程状态
+     * 使用 process.kill(pid, 0) 跨平台探测进程是否存活
+     * 已死亡的进程从 background_processes Map 中移除
+     */
+    private startGC(): void {
+        const timer = setInterval(() => {
+            for (const [pid] of background_processes) {
+                try {
+                    process.kill(pid, 0);
+                    // 进程存活，跳过
+                } catch (err: any) {
+                    if (err.code === 'ESRCH') {
+                        // 进程已死亡，从 Map 中移除
+                        background_processes.delete(pid);
+                    }
+                    // EPERM：进程存在但无权访问，保留记录
+                }
+            }
+        }, GC_INTERVAL_MS);
+        // 不持有事件循环引用，避免阻塞进程退出
+        timer.unref();
+    }
+
     /**
      * 获取所有进程信息（包含资源使用率）
      */

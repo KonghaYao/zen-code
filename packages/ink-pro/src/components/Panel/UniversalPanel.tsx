@@ -29,6 +29,7 @@ export function UniversalPanel<T extends Record<string, any>>({ config, onClose 
     const visibleCount = useMemo(() => config.visibleCount, [config.visibleCount]);
     const itemHeight = useMemo(() => config.itemHeight, [config.itemHeight]);
     const renderItem = useMemo(() => config.renderItem, [config.renderItem]);
+    const keyExtractor = useMemo(() => config.keyExtractor, [config.keyExtractor]);
     const onSelect = useMemo(() => config.onSelect, [config.onSelect]);
     const onDelete = useMemo(() => config.onDelete, [config.onDelete]);
     const showCount = useMemo(() => config.showCount, [config.showCount]);
@@ -131,6 +132,7 @@ export function UniversalPanel<T extends Record<string, any>>({ config, onClose 
                     itemHeight={itemHeight}
                     visibleCount={displayVisibleCount}
                     renderItem={renderItem}
+                    keyExtractor={keyExtractor}
                 />
             </Box>
 
