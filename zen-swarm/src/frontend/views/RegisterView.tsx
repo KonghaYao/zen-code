@@ -6,14 +6,14 @@
  * 流程：
  * 1. 用户输入密码和确认密码
  * 2. 前端 SHA-256(password) → token
- * 3. POST /api/auth/register { token }
- * 4. 服务端保存 token 到 ~/.zen-swarm/token
- * 5. 前端存入 localStorage → 跳转主页 /
+ * 3. POST /api/auth/register（credentials: include）
+ * 4. 服务端保存 token，同时通过 Set-Cookie 下发 HttpOnly Cookie
+ * 5. 跳转主页 /
  */
 
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { hashPassword, setToken } from '../utils/auth.js';
+import { hashPassword } from '../utils/auth.js';
 
 export function RegisterView() {
     const navigate = useNavigate();
@@ -48,16 +48,16 @@ export function RegisterView() {
             // 前端派生 token
             const token = await hashPassword(password);
 
-            // 注册：发送 token hash 到服务端保存
+            // 注册：发送 token hash 到服务端保存，credentials: include 接收 Cookie
             const res = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include', // 服务端通过 Set-Cookie 下发 HttpOnly Cookie
                 body: JSON.stringify({ token }),
             });
 
             if (res.ok) {
-                // 注册成功，存入 localStorage 并跳转
-                setToken(token);
+                // 注册成功，Cookie 已由服务端下发，直接跳转
                 navigate('/', { replace: true });
             } else {
                 const data = (await res.json()) as { error?: string };

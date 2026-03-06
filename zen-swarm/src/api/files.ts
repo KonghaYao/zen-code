@@ -67,7 +67,7 @@ async function validatePath(targetPath: string): Promise<string> {
     // 检查相对路径结果是否在允许的根目录下且存在
     const isRelativePathAllowed = ALLOWED_ROOTS.some((root) => {
         const normalizedRoot = path.resolve(root);
-        return resolvedRelativePath.startsWith(normalizedRoot);
+        return resolvedRelativePath === normalizedRoot || resolvedRelativePath.startsWith(normalizedRoot + path.sep);
     });
 
     const relativePathExists = await pathExists(resolvedRelativePath);
@@ -76,25 +76,23 @@ async function validatePath(targetPath: string): Promise<string> {
         return resolvedRelativePath;
     }
 
-    // 如果是完整的绝对路径（Workspace 功能），尝试直接使用
+    // 如果是完整的绝对路径（Workspace 功能），必须在 ALLOWED_ROOTS 下
     if (path.isAbsolute(targetPath)) {
         const resolvedAbsolutePath = path.resolve(targetPath);
 
-        // 检查是否在允许的根目录下
+        // 严格检查是否在允许的根目录下，防止路径遍历
         const isAbsolutePathAllowed = ALLOWED_ROOTS.some((root) => {
             const normalizedRoot = path.resolve(root);
-            return resolvedAbsolutePath.startsWith(normalizedRoot);
+            // 必须以根目录开头，且紧跟路径分隔符（防止 /home/user2 匹配 /home/user）
+            return (
+                resolvedAbsolutePath === normalizedRoot || resolvedAbsolutePath.startsWith(normalizedRoot + path.sep)
+            );
         });
 
-        if (isAbsolutePathAllowed) {
-            return resolvedAbsolutePath;
+        if (!isAbsolutePathAllowed) {
+            throw new Error(`Access denied: Path "${targetPath}" is outside allowed directories`);
         }
 
-        // 不在允许的根目录下，但路径存在（允许访问其他路径作为 workspace）
-        const absolutePathExists = await pathExists(resolvedAbsolutePath);
-        if (!absolutePathExists) {
-            throw new Error(`Path does not exist: "${targetPath}"`);
-        }
         return resolvedAbsolutePath;
     }
 
@@ -586,24 +584,45 @@ export const filesRouter = router({
             handleBadRequest('Path is not a directory');
         }
 
-        // 动态导入 ripgrep 工具
-        // 这里简化实现，实际可以调用系统的 rg 命令
-        const { exec } = await import('child_process');
-        const { promisify } = await import('util');
-        const execAsync = promisify(exec);
+        const { spawn } = await import('child_process');
 
         const results: any[] = [];
 
         try {
-            // 构建搜索命令
-            let command = `rg --json --max-count=${input.maxResults}`;
+            // 使用参数数组形式调用 rg，彻底避免 shell 解析（防止 shell 注入）
+            const args = ['--json', `--max-count=${input.maxResults}`];
             if (input.filePattern) {
-                command += ` --glob="${input.filePattern}"`;
+                // 直接传递参数，spawn 不经过 shell，filePattern 无法注入
+                args.push(`--glob=${input.filePattern}`);
             }
-            command += ` "${input.query.replace(/"/g, '\\"')}" "${targetPath}"`;
+            args.push(input.query, targetPath);
 
-            const { stdout } = await execAsync(command, {
-                maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+            const stdout = await new Promise<string>((resolve, reject) => {
+                const proc = spawn('rg', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+                const chunks: Buffer[] = [];
+                let totalSize = 0;
+                const maxBuffer = 10 * 1024 * 1024; // 10MB
+
+                proc.stdout.on('data', (chunk: Buffer) => {
+                    totalSize += chunk.length;
+                    if (totalSize > maxBuffer) {
+                        proc.kill();
+                        reject(new Error('Output exceeds buffer limit'));
+                        return;
+                    }
+                    chunks.push(chunk);
+                });
+
+                proc.on('close', (code) => {
+                    // rg 退出码 0=有匹配，1=无匹配，其他=错误
+                    if (code !== null && code > 1) {
+                        reject(new Error(`rg exited with code ${code}`));
+                    } else {
+                        resolve(Buffer.concat(chunks).toString('utf-8'));
+                    }
+                });
+
+                proc.on('error', reject);
             });
 
             // 解析 ripgrep JSON 输出
@@ -626,10 +645,7 @@ export const filesRouter = router({
                 }
             }
         } catch (error: any) {
-            // rg 返回非零退出码时表示没有匹配
-            if (error.code !== 1) {
-                throw new Error(`Search failed: ${error.message}`);
-            }
+            throw new Error(`Search failed: ${error.message}`);
         }
 
         return {

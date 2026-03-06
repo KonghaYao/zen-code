@@ -22,7 +22,7 @@ import { initDefaultData, checkProviderModelStatus } from './scripts/init-defaul
 import { SERVER_PORT } from './config/constants.js';
 import dashboard from './index.html';
 import { handleTerminalMessage, handleTerminalClose, handleTerminalOpen } from './api/terminalWebSocket.js';
-import { validateToken, authMiddleware } from './auth/tokenAuth.js';
+import { validateToken, authMiddleware, extractTokenFromCookie } from './auth/tokenAuth.js';
 import { authRouter } from './api/auth.js';
 
 // 1. 初始化默认数据（如果需要）
@@ -109,15 +109,16 @@ serve({
         // 处理 WebSocket 升级请求
         const url = new URL(req.url);
         if (url.pathname === '/ws/terminal') {
-            // WebSocket 无法设置自定义 Header，通过 query 参数传递 token
-            const wsToken = url.searchParams.get('token');
+            // WebSocket 升级时浏览器自动携带同源 Cookie，从 Cookie 中读取 token
+            // 不再使用 URL query 参数传递 token（防止 token 出现在日志中）
+            const cookieHeader = req.headers.get('Cookie');
+            const wsToken = extractTokenFromCookie(cookieHeader);
             if (!wsToken) {
                 return new Response(JSON.stringify({ error: 'Unauthorized', message: 'Missing token' }), {
                     status: 401,
                     headers: { 'Content-Type': 'application/json' },
                 });
             }
-            // validateToken 是异步的，需要用 Promise 处理
             return validateToken(wsToken).then((valid) => {
                 if (!valid) {
                     return new Response(JSON.stringify({ error: 'Unauthorized', message: 'Invalid token' }), {

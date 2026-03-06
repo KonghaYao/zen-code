@@ -1,29 +1,60 @@
 /**
  * API Key 加密工具
  * 使用 AES-256-GCM 加密存储敏感数据
+ *
+ * 密钥获取优先级：
+ * 1. 环境变量 PROVIDER_ENCRYPTION_KEY
+ * 2. 持久化密钥文件 ~/.zen-swarm/encryption.key（首次启动自动生成）
+ *
+ * 严禁使用硬编码默认密钥。
  */
 
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
+import { join } from 'path';
+import { homedir } from 'os';
 
 // ========================================
 // Configuration
 // ========================================
 
 const ALGORITHM = 'aes-256-gcm';
+const KEY_DIR = join(homedir(), '.zen-swarm');
+const KEY_FILE = join(KEY_DIR, 'encryption.key');
+// 固定盐值用于 scrypt KDF（不需要保密，但每个安装实例的随机密钥已确保安全性）
+const SCRYPT_SALT = 'zen-swarm-provider-v2-salt';
 
-// 从环境变量获取加密密钥（32 bytes）
-// 如果没有设置，使用默认密钥（生产环境应该设置）
+/**
+ * 获取或生成加密密钥
+ *
+ * 优先使用环境变量，否则从持久化文件读取，
+ * 文件不存在时自动生成随机密钥并写入（权限 0o600）。
+ */
 const getEncryptionKey = (): Buffer => {
-    const key = process.env.PROVIDER_ENCRYPTION_KEY;
-    if (key) {
-        // 使用 scrypt 派生密钥
-        return scryptSync(key, 'zen-swarm-provider-salt', 32);
+    // 优先级 1：环境变量
+    const envKey = process.env.PROVIDER_ENCRYPTION_KEY;
+    if (envKey) {
+        return scryptSync(envKey, SCRYPT_SALT, 32);
     }
-    // 默认密钥（仅用于开发环境）
-    return scryptSync('zen-swarm-default-key-please-change-in-production', 'zen-swarm-provider-salt', 32);
+
+    // 优先级 2：持久化密钥文件（首次自动生成）
+    if (!existsSync(KEY_FILE)) {
+        mkdirSync(KEY_DIR, { recursive: true });
+        const newKey = randomBytes(32).toString('hex'); // 64 字符十六进制
+        writeFileSync(KEY_FILE, newKey, { encoding: 'utf-8', mode: 0o600 });
+    }
+
+    const fileKey = readFileSync(KEY_FILE, 'utf-8').trim();
+    if (!fileKey || fileKey.length < 32) {
+        throw new Error(
+            `Invalid encryption key in ${KEY_FILE}. Delete the file to regenerate, or set PROVIDER_ENCRYPTION_KEY env var.`,
+        );
+    }
+
+    return scryptSync(fileKey, SCRYPT_SALT, 32);
 };
 
-// 缓存加密密钥
+// 缓存加密密钥（进程生命周期内不变）
 let cachedKey: Buffer | null = null;
 
 const getOrCreateKey = (): Buffer => {
@@ -111,12 +142,6 @@ export function validateApiKeyFormat(apiKey: string, type: 'openai' | 'anthropic
     // OpenAI API Key 通常以 sk- 开头
     if (type === 'openai' && !apiKey.startsWith('sk-')) {
         return { valid: false, error: 'OpenAI API Key 通常以 sk- 开头' };
-    }
-
-    // Anthropic API Key 通常以 sk-ant- 开头
-    if (type === 'anthropic' && !apiKey.startsWith('sk-ant-')) {
-        // 不强制要求，只做提示
-        // return { valid: false, error: 'Anthropic API Key 通常以 sk-ant- 开头' };
     }
 
     return { valid: true };

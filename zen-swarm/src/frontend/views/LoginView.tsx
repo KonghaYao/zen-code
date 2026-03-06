@@ -4,15 +4,15 @@
  * 流程：
  * 1. 用户输入密码
  * 2. 前端 SHA-256(password) → token
- * 3. 存入 localStorage
- * 4. 发送 POST /api/auth/verify 验证
+ * 3. POST /api/auth/verify（credentials: include）
+ * 4. 服务端校验成功后通过 Set-Cookie 下发 HttpOnly Cookie
  * 5. 成功 → 跳转主页 /
  * 6. 失败（401）→ 显示错误提示
  */
 
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { hashPassword, setToken, clearToken } from '../utils/auth.js';
+import { hashPassword } from '../utils/auth.js';
 
 export function LoginView() {
     const navigate = useNavigate();
@@ -31,20 +31,16 @@ export function LoginView() {
             // 前端派生 token，密码不发送到服务端
             const token = await hashPassword(password);
 
-            // 先存入 localStorage，再发请求验证
-            setToken(token);
-
             const res = await fetch('/api/auth/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include', // 服务端通过 Set-Cookie 下发 HttpOnly Cookie
                 body: JSON.stringify({ token }),
             });
 
             if (res.ok) {
                 navigate('/', { replace: true });
             } else {
-                // 验证失败，清除 token
-                clearToken();
                 setError('密码错误，请重试');
             }
         } catch {

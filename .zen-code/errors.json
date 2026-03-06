@@ -1,0 +1,24 @@
+[
+    {
+        "level": "error",
+        "source": "System",
+        "message": "[UncaughtException] String.prototype.repeat argument must be greater than or equal to 0 and not be Infinity",
+        "file": "at renderBorder (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-border.js",
+        "line": 39,
+        "column": 85,
+        "stack": "RangeError: String.prototype.repeat argument must be greater than or equal to 0 and not be Infinity\n    at repeat (unknown)\n    at renderBorder (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-border.js:39:85)\n    at renderNodeToOutput (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-node-to-output.js:107:13)\n    at renderNodeToOutput (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-node-to-output.js:133:17)\n    at renderNodeToOutput (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-node-to-output.js:133:17)\n    at renderNodeToOutput (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-node-to-output.js:133:17)\n    at renderNodeToOutput (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-node-to-output.js:133:17)\n    at renderNodeToOutput (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-node-to-output.js:133:17)\n    at renderNodeToOutput (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-node-to-output.js:133:17)\n    at renderer (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/renderer.js:35:13)",
+        "id": "e7a94a57-7217-409e-8379-056e7b2e1416",
+        "timestamp": "2026-03-06T11:33:42.633Z"
+    },
+    {
+        "level": "error",
+        "source": "System",
+        "message": "[UncaughtException] String.prototype.repeat argument must be greater than or equal to 0 and not be Infinity",
+        "file": "at renderBorder (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-border.js",
+        "line": 39,
+        "column": 85,
+        "stack": "RangeError: String.prototype.repeat argument must be greater than or equal to 0 and not be Infinity\n    at repeat (unknown)\n    at renderBorder (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-border.js:39:85)\n    at renderNodeToOutput (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-node-to-output.js:107:13)\n    at renderNodeToOutput (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-node-to-output.js:133:17)\n    at renderNodeToOutput (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-node-to-output.js:133:17)\n    at renderNodeToOutput (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-node-to-output.js:133:17)\n    at renderNodeToOutput (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-node-to-output.js:133:17)\n    at renderNodeToOutput (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-node-to-output.js:133:17)\n    at renderNodeToOutput (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/render-node-to-output.js:133:17)\n    at renderer (/Users/konghayao/code/ai/code-graph/node_modules/.bun/ink@6.8.0+f52afc7756478863/node_modules/ink/build/renderer.js:35:13)",
+        "id": "86e4e727-0a22-45c0-ae97-69f5670fb764",
+        "timestamp": "2026-03-06T11:33:40.064Z"
+    }
+]

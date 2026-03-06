@@ -14,13 +14,11 @@ import type {
     TerminalSessionState,
 } from '../components/terminal/types.js';
 import type { TerminalSessionInfo } from '../../services/terminal/types.js';
-import { getToken } from '../utils/auth.js';
 
 function getWsUrl(): string {
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const token = getToken();
-    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
-    return `${protocol}//${location.host}/ws/terminal${tokenParam}`;
+    // WebSocket 升级请求浏览器自动携带同源 Cookie（HttpOnly），无需 URL 传递 token
+    return `${protocol}//${location.host}/ws/terminal`;
 }
 
 // 全局 WebSocket 单例
