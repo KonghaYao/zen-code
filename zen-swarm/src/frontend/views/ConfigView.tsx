@@ -24,6 +24,7 @@ import {
 } from '../hooks/useProviders.js';
 import type { Provider, ProviderUpdateInput } from '../hooks/useProviders.js';
 import { DataTable } from '../components/ui/index.js';
+import { trpc } from '../api.js';
 import { StatusBadge } from '../components/index.js';
 import { AgentForm } from '../components/panels/AgentPanel/AgentForm.js';
 import { ModelForm } from '../components/panels/ModelsPanel/ModelForm.js';
@@ -136,6 +137,9 @@ export function ConfigView() {
     const { middlewares, middlewaresLoading, loadMiddlewares } = useMiddlewaresStore();
     const { mcpServers, mcpLoading, loadMcpServers, createMcpServer, updateMcpServer, deleteMcpServer } = useMcpStore();
 
+    // Skills hook
+    const { data: skills = [], isLoading: skillsLoading } = trpc.skills.list.useQuery();
+
     // Providers hooks
     const { data: providers = [], isLoading: providersLoading } = useProviders();
     const createProviderMutation = useCreateProvider();
@@ -203,7 +207,7 @@ export function ConfigView() {
             case 'providers':
                 return { dataSource: providers, loading: providersLoading };
             case 'skills':
-                return { dataSource: [], loading: false };
+                return { dataSource: skills, loading: skillsLoading };
             case 'mcp':
                 return { dataSource: mcpServers, loading: mcpLoading };
             case 'middlewares':
@@ -219,6 +223,8 @@ export function ConfigView() {
         promptsLoading,
         providers,
         providersLoading,
+        skills,
+        skillsLoading,
         mcpServers,
         mcpLoading,
         middlewares,
@@ -241,14 +247,22 @@ export function ConfigView() {
                 case 'providers':
                     return providers.length;
                 case 'skills':
-                    return 0;
+                    return skills.length;
                 case 'mcp':
                     return mcpServers.length;
                 case 'middlewares':
                     return middlewares.length;
             }
         },
-        [agents.length, models.length, prompts.length, providers.length, mcpServers.length, middlewares.length],
+        [
+            agents.length,
+            models.length,
+            prompts.length,
+            providers.length,
+            skills.length,
+            mcpServers.length,
+            middlewares.length,
+        ],
     );
 
     const getActionLabel = () => {

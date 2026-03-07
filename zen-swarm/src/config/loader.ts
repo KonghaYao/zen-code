@@ -17,6 +17,7 @@ import { CronScheduler } from '../cron/scheduler.js';
 import { CronExecutor } from '../cron/executor.js';
 import { SMDatabase, StateMachineManager } from '../middlewares/sm/index.js';
 import { ProviderStorage } from '../services/provider/index.js';
+import { RemoteStoreStorage } from '../services/remote-store/index.js';
 import { SERVER_PORT } from './constants.js';
 
 // 确保数据库目录存在，默认存放至 ~/.zen-swarm/
@@ -53,6 +54,14 @@ await stateMachineManager.initialize();
 // Provider 存储实例
 const providerStorage = new ProviderStorage(sharedDb);
 await providerStorage.initialize();
+
+// ========================================
+// Remote Store 系统
+// ========================================
+
+// 远程仓库配置存储
+export const remoteStoreStorage = new RemoteStoreStorage(sharedDb);
+await remoteStoreStorage.initialize();
 
 // ========================================
 // Cron 系统

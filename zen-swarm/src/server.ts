@@ -17,6 +17,7 @@ import {
     stateMachineManager,
     smDatabase,
     providerStorage,
+    remoteStoreStorage,
 } from './config/loader.js';
 import {
     initDefaultData,
@@ -72,6 +73,7 @@ const trpcRoute = createTRPCHonoRoute(
     stateMachineManager,
     smDatabase,
     providerStorage,
+    remoteStoreStorage,
 );
 app.route('/api/trpc', trpcRoute);
 

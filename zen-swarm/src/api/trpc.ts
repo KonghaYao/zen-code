@@ -7,6 +7,7 @@ import type { AgentPackage } from '@langgraph-js/standard-agent';
 import type { CronStorage } from '../cron/storage.js';
 import type { CronScheduler } from '../cron/scheduler.js';
 import type { ProviderStorage } from '../services/provider/index.js';
+import type { RemoteStoreStorage } from '../services/remote-store/index.js';
 import { validateToken } from '../auth/tokenAuth.js';
 
 // ========================================
@@ -18,6 +19,7 @@ export interface Context {
     cronStorage: CronStorage;
     cronScheduler: CronScheduler;
     providerStorage: ProviderStorage;
+    remoteStoreStorage: RemoteStoreStorage;
 }
 
 /**
@@ -46,6 +48,7 @@ export async function createContext(
     cronStorage: CronStorage,
     cronScheduler: CronScheduler,
     providerStorage: ProviderStorage,
+    remoteStoreStorage: RemoteStoreStorage,
 ): Promise<Context> {
     // 纵深防御：在 tRPC 层再次校验 token
     // 即使 Hono 中间件被绕过（SSRF、内网直连等），tRPC 层仍能阻断未授权访问
@@ -63,6 +66,7 @@ export async function createContext(
         cronStorage,
         cronScheduler,
         providerStorage,
+        remoteStoreStorage,
     };
 }
 

@@ -15,9 +15,11 @@ import { workspacesRouter } from './workspaces.js';
 import { createSMRouter, SMRouter } from './sm.js';
 import { monitorRouter } from './monitor.js';
 import { createProviderRouter } from './providers.js';
+import { createStoreRouter } from './store.js';
 import type { StateMachineManager } from '../middlewares/sm/StateMachineManager.js';
 import type { SMDatabase } from '../middlewares/sm/database.js';
 import type { ProviderStorage } from '../services/provider/index.js';
+import type { RemoteStoreStorage } from '../services/remote-store/index.js';
 
 // ========================================
 // 基础路由定义（单一来源）
@@ -50,37 +52,18 @@ export function createMergedRouter(
     stateMachineManager?: StateMachineManager,
     smDatabase?: SMDatabase,
     providerStorage?: ProviderStorage,
+    remoteStoreStorage?: RemoteStoreStorage,
 ) {
-    // 有 SM 和 Provider
-    if (stateMachineManager && smDatabase && providerStorage) {
-        const smRouter = createSMRouter(stateMachineManager, smDatabase);
-        const providerRouter = createProviderRouter(providerStorage);
-        return router({
-            ...baseRoutes,
-            sm: smRouter,
-            providers: providerRouter,
-        });
-    }
+    const smRouter = stateMachineManager && smDatabase ? createSMRouter(stateMachineManager, smDatabase) : undefined;
+    const providerRouter = providerStorage ? createProviderRouter(providerStorage) : undefined;
+    const storeRouter = remoteStoreStorage ? createStoreRouter(remoteStoreStorage) : undefined;
 
-    // 仅有 SM
-    if (stateMachineManager && smDatabase) {
-        const smRouter = createSMRouter(stateMachineManager, smDatabase);
-        return router({
-            ...baseRoutes,
-            sm: smRouter,
-        });
-    }
-
-    // 仅有 Provider
-    if (providerStorage) {
-        const providerRouter = createProviderRouter(providerStorage);
-        return router({
-            ...baseRoutes,
-            providers: providerRouter,
-        });
-    }
-
-    return appRouter;
+    return router({
+        ...baseRoutes,
+        ...(smRouter ? { sm: smRouter } : {}),
+        ...(providerRouter ? { providers: providerRouter } : {}),
+        ...(storeRouter ? { store: storeRouter } : {}),
+    });
 }
 
 // 导出 API 路由映射供 Hono 使用

@@ -141,19 +141,46 @@ export async function createMiddlewareRegistry(pkg: AgentPackage, options?: Midd
     }
     pkg.middlewares.registerImplementation(cron);
 
-    // Interaction middleware (ask_user_questions, todo_write)
-    const interaction = {
-        id: 'interaction',
-        name: 'interaction',
-        description: 'User interaction tools (ask_user_questions, todo_write)',
+    const interactive = {
+        id: 'interactive',
+        name: 'interactive',
+        description: 'User interaction for approval and input',
         execute: async () => {
-            const { InteractionMiddleware } = await import('./interaction.js');
-            return new InteractionMiddleware();
+            const { InteractiveMiddleware } = await import('../middlewares/interactive.js');
+            return InteractiveMiddleware;
         },
     };
-    const existingInteraction = await pkg.getMiddleware('interaction');
-    if (!existingInteraction) {
-        await pkg.addMiddleware(interaction);
-    }
-    pkg.middlewares.registerImplementation(interaction);
+    await pkg.addMiddleware(interactive);
+    pkg.middlewares.registerImplementation(interactive);
+
+    const task = {
+        id: 'task',
+        name: 'task',
+        description: 'Task management for todo lists',
+        execute: async () => {
+            const { taskMiddleware } = await import('../middlewares/task.js');
+            return taskMiddleware;
+        },
+    };
+    await pkg.addMiddleware(task);
+    pkg.middlewares.registerImplementation(task);
+    const skills = {
+        id: 'skills',
+        name: 'skills',
+        description: 'Progressive skills disclosure',
+        execute: async (context: { skillsDir?: string; assistantId?: string; projectSkillsDir?: string }) => {
+            // Set default paths for skills directories
+            context.projectSkillsDir = context.projectSkillsDir || './.claude/skills';
+            // User skills directory path: ~/.claude/skills/
+            if (!context.skillsDir) {
+                const os = await import('os');
+                const path = await import('path');
+                context.skillsDir = path.join(os.homedir(), '.claude', 'skills');
+            }
+            const { SkillsMiddleware } = await import('@langgraph-js/standard-agent');
+            return new SkillsMiddleware(context);
+        },
+    };
+    await pkg.addMiddleware(skills);
+    pkg.middlewares.registerImplementation(skills);
 }

@@ -11,7 +11,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { DockContainer } from '../components/dock/index.js';
 import { MenuBar, DesktopWallpaper } from '../components/desktop/index.js';
 import { MobileTabBar, MobileHeader } from '../components/mobile/index.js';
-import { getAppById } from '../components/app-registry/index.js';
+import { getAppById, getAllAppIds } from '../components/app-registry/index.js';
 import { LoadingSpinner } from '../components/LoadingSpinner.js';
 import type { AppId } from '../components/app-registry/types.js';
 import { useProviders } from '../hooks/useProviders.js';
@@ -51,7 +51,7 @@ export function DockLayout() {
         }
 
         // 只返回有效的应用 ID，否则默认为 chat
-        if (['chat', 'config', 'finder', 'sm', 'monitor', 'cron', 'terminal'].includes(path)) {
+        if ((getAllAppIds() as string[]).includes(path)) {
             return path as AppId;
         }
         // 如果路径为空或无效，默认为 chat

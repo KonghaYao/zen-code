@@ -15,6 +15,7 @@ import { CronView } from '../../views/CronView.js';
 import { SMView } from '../../views/SM/index.js';
 import { MonitorView } from '../../views/MonitorView.js';
 import { TerminalView } from '../../components/terminal/TerminalView.js';
+import { StoreView } from '../../views/StoreView.js';
 
 // Custom hand-crafted dock icons
 import { ChatDockIcon } from '../dock/icons/ChatDockIcon.js';
@@ -24,6 +25,7 @@ import { MonitorDockIcon } from '../dock/icons/MonitorDockIcon.js';
 import { SMDockIcon } from '../dock/icons/SMDockIcon.js';
 import { CronDockIcon } from '../dock/icons/CronDockIcon.js';
 import { TerminalDockIcon } from '../dock/icons/TerminalDockIcon.js';
+import { StoreDockIcon } from '../dock/icons/StoreDockIcon.js';
 
 /**
  * 应用注册表
@@ -92,6 +94,15 @@ export const appRegistry: AppRegistryItem[] = [
         description: 'Web 终端',
         viewComponent: TerminalView,
         keyboardShortcut: 'Cmd+7',
+        contextMenuActions: ['open', 'help'],
+    },
+    {
+        id: 'store',
+        name: 'Store',
+        fullIcon: React.createElement(StoreDockIcon, { className: 'w-full h-full' }),
+        description: '远程 Prompt & Skill 仓库',
+        viewComponent: StoreView,
+        keyboardShortcut: 'Cmd+8',
         contextMenuActions: ['open', 'help'],
     },
 ];
