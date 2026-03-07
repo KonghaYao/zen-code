@@ -81,33 +81,75 @@ export const AIMessage: React.FC<AIMessageProps> = ({ message, messageNumber, mo
     const thinkingLines = thinkingContent ? thinkingContent.split('\n').length : 0;
 
     return (
-        <div className="flex flex-col animate-slide-in">
-            <div className="text-xs text-text-muted mb-2">
-                Message #{messageNumber} · {modelName}
+        <div className="flex gap-3 animate-slide-in">
+            {/* AI 头像 */}
+            <div className="shrink-0 w-7 h-7 rounded-full bg-neutral-800 flex items-center justify-center mt-0.5">
+                <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                >
+                    <rect x="3" y="11" width="18" height="10" rx="2" />
+                    <circle cx="12" cy="5" r="2" />
+                    <path d="M12 7v4" />
+                    <line x1="8" y1="16" x2="8" y2="16" strokeWidth="3" strokeLinecap="round" />
+                    <line x1="12" y1="16" x2="12" y2="16" strokeWidth="3" strokeLinecap="round" />
+                    <line x1="16" y1="16" x2="16" y2="16" strokeWidth="3" strokeLinecap="round" />
+                </svg>
             </div>
 
-            {/* Thinking区域 */}
-            {thinkingContent ? (
-                <details
-                    className="mb-3 cursor-pointer group"
-                    open={showThinking}
-                    onToggle={(e) => setShowThinking((e.target as HTMLDetailsElement).open)}
-                >
-                    <summary className="text-sm text-text-secondary hover:text-text-primary select-none mb-2 flex items-center gap-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:rounded">
-                        <span>Thinking</span>
-                        <span className="badge badge-primary">{thinkingLines} lines</span>
-                    </summary>
-                    <pre className="bg-bg-tertiary border border-border-subtle p-4 rounded-lg text-sm text-text-secondary overflow-x-auto whitespace-pre-wrap font-mono">
-                        {thinkingContent}
-                    </pre>
-                </details>
-            ) : null}
+            <div className="flex-1 min-w-0">
+                {/* 标题行 */}
+                <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-xs font-medium text-text-primary">{modelName}</span>
+                    <span className="text-[10px] text-text-muted font-mono">#{messageNumber}</span>
+                </div>
 
-            {/* 消息内容 */}
-            <div className="bg-bg-secondary border border-border-subtle p-6 rounded-lg text-text-primary max-w-none">
-                <Streamdown animated={true} plugins={{ code, cjk }}>
-                    {displayContent}
-                </Streamdown>
+                {/* Thinking 区域 */}
+                {thinkingContent ? (
+                    <details
+                        className="mb-2 cursor-pointer"
+                        open={showThinking}
+                        onToggle={(e) => setShowThinking((e.target as HTMLDetailsElement).open)}
+                    >
+                        <summary className="text-xs text-text-muted hover:text-text-secondary select-none flex items-center gap-1.5 transition-colors focus-visible:outline-none list-none">
+                            <svg
+                                width="10"
+                                height="10"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className={`transition-transform duration-150 ${showThinking ? 'rotate-90' : ''}`}
+                                aria-hidden="true"
+                            >
+                                <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                            <span>Thinking</span>
+                            <span className="px-1 py-0.5 rounded text-[10px] bg-bg-tertiary border border-border-subtle font-mono">
+                                {thinkingLines} lines
+                            </span>
+                        </summary>
+                        <pre className="mt-2 bg-bg-tertiary border border-border-subtle px-3 py-2.5 rounded-md text-[11px] text-text-secondary overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed">
+                            {thinkingContent}
+                        </pre>
+                    </details>
+                ) : null}
+
+                {/* 消息内容 */}
+                <div className="bg-bg-secondary border border-border-subtle px-5 py-4 rounded-lg rounded-tl-sm text-text-primary max-w-none">
+                    <Streamdown animated={true} plugins={{ code, cjk }}>
+                        {displayContent}
+                    </Streamdown>
+                </div>
             </div>
         </div>
     );

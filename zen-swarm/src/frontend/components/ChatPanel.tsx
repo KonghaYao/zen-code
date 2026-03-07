@@ -215,8 +215,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                         </div>
                     </div>
                 ) : (
-                    <div className="space-y-4 max-w-3xl mx-auto">
+                    <div className="max-w-3xl mx-auto space-y-4">
                         {renderMessages.map((message, index) => {
+                            const prevType = index > 0 ? renderMessages[index - 1].type : null;
+                            const isTool = message.type === 'tool';
+                            // 连续工具消息之间不加额外间距（由 ToolMessage 自身的 mb-0.5 控制）
+                            const toolGroupClass = isTool && prevType === 'tool' ? '-mt-3.5' : '';
+
                             if (message.type === 'human') {
                                 return (
                                     <HumanMessage
@@ -227,11 +232,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                                 );
                             } else if (message.type === 'tool') {
                                 return (
-                                    <ToolMessage
-                                        key={message.id || `tool-${index}`}
-                                        message={message}
-                                        messageNumber={index + 1}
-                                    />
+                                    <div key={message.id || `tool-${index}`} className={toolGroupClass}>
+                                        <ToolMessage message={message} messageNumber={index + 1} />
+                                    </div>
                                 );
                             } else {
                                 return (

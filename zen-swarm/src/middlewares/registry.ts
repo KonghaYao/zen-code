@@ -37,21 +37,6 @@ export async function createMiddlewareRegistry(pkg: AgentPackage, options?: Midd
     }
     pkg.middlewares.registerImplementation(subagents);
 
-    const memories = {
-        id: 'memories',
-        name: 'memories',
-        description: 'Knowledge persistence',
-        execute: async () => {
-            const { MemoriesMiddleware } = await import('./memories.js');
-            return new MemoriesMiddleware();
-        },
-    };
-    const existingMemories = await pkg.getMiddleware('memories');
-    if (!existingMemories) {
-        await pkg.addMiddleware(memories);
-    }
-    pkg.middlewares.registerImplementation(memories);
-
     const mcp = {
         id: 'mcp',
         name: 'mcp',
