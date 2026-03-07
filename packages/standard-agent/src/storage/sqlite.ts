@@ -650,7 +650,7 @@ export class BunSqliteStorage extends BaseStorage {
     // ========================================
     insertMiddleware(data: z.infer<typeof MiddlewareSchema>): Promise<void> {
         const stmt = this.db.prepare(`
-            INSERT INTO middlewares (id, name, description, parameters, created_at, updated_at)
+            INSERT OR IGNORE INTO middlewares (id, name, description, parameters, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?)
         `);
 

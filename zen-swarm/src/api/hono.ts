@@ -41,9 +41,9 @@ export function createTRPCHonoRoute(
         return fetchRequestHandler({
             req: c.req.raw,
             router,
-            createContext: ({ req }) =>
+            createContext: () =>
                 createContext(
-                    req.raw ?? c.req.raw,
+                    c.req.raw,
                     agentPackage,
                     cronStorage,
                     cronScheduler,

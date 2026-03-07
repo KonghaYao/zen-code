@@ -2,11 +2,12 @@
  * StorePanel — 远程 prompt/skill 仓库浏览与导入面板
  */
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { TrafficLights } from '../../ui/TrafficLights.js';
 import { ErrorDisplay, EmptyState } from '../../ErrorDisplay.js';
 import { StoreCard } from './StoreCard.js';
 import { StorePreview } from './StorePreview.js';
+import { trpc } from '../../../api.js';
 import {
     useStores,
     useRemotePrompts,
@@ -28,6 +29,7 @@ export function StorePanel({ onClose }: StorePanelProps) {
     const [activeTab, setActiveTab] = useState<TabType>('prompts');
     const [selectedStoreId, setSelectedStoreId] = useState<string>('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchInput, setSearchInput] = useState('');
     const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
     const [importingId, setImportingId] = useState<string | null>(null);
     const [previewItem, setPreviewItem] = useState<any | null>(null);
@@ -37,6 +39,27 @@ export function StorePanel({ onClose }: StorePanelProps) {
     // ── Store 列表 ──
     const { data: stores = [] } = useStores();
     const currentStoreId = selectedStoreId || stores[0]?.id || '';
+    const currentStore = stores.find((s: any) => s.id === currentStoreId);
+
+    // ── 根据 store 类型推断支持的 Tab ──
+    const availableTabs = useMemo<TabType[]>(() => {
+        if (currentStore?.type === 'clawhub') return ['skills'];
+        return ['prompts', 'skills'];
+    }, [currentStore?.type]);
+
+    // store 切换时，若当前 tab 不在支持列表中则自动跳转
+    useEffect(() => {
+        if (!availableTabs.includes(activeTab)) {
+            setActiveTab(availableTabs[0]);
+            setSearchQuery('');
+            setSearchInput('');
+        }
+    }, [availableTabs, activeTab]);
+
+    // ── 已安装的 skills（用于判断是否已导入）──
+    const utils = trpc.useUtils();
+    const { data: installedSkills = [] } = trpc.skills.list.useQuery();
+    const installedSkillNames = useMemo(() => new Set(installedSkills.map((s) => s.name)), [installedSkills]);
 
     // ── 按需拉取 skill 完整内容（preview 时触发）──
     const { data: fetchedSkill, isFetching: fetchingSkill } = useGetRemoteSkill(
@@ -75,10 +98,14 @@ export function StorePanel({ onClose }: StorePanelProps) {
     const importSkillMutation = useImportSkill();
 
     // ── 显示数据 ──
-    const displayPrompts = searchQuery.length > 1 ? (searchedPrompts ?? []) : remotePrompts;
-    const displaySkills = searchQuery.length > 1 ? (searchedSkills ?? []) : remoteSkills;
+    const isSearchMode = searchQuery.length > 1;
+    const displayPrompts = isSearchMode ? (searchedPrompts ?? []) : remotePrompts;
+    const displaySkills = isSearchMode ? (searchedSkills ?? []) : remoteSkills;
 
-    const isLoading = activeTab === 'prompts' ? loadingPrompts || searchingPrompts : loadingSkills || searchingSkills;
+    const isLoading =
+        activeTab === 'prompts'
+            ? loadingPrompts || searchingPrompts || (isSearchMode && searchedPrompts === undefined)
+            : loadingSkills || searchingSkills || (isSearchMode && searchedSkills === undefined);
 
     const error = activeTab === 'prompts' ? promptsError : skillsError;
 
@@ -106,6 +133,7 @@ export function StorePanel({ onClose }: StorePanelProps) {
                 onSuccess: () => {
                     setImportedIds((prev) => new Set([...prev, skillName]));
                     setImportingId(null);
+                    utils.skills.list.invalidate();
                 },
                 onError: () => setImportingId(null),
             },
@@ -146,12 +174,13 @@ export function StorePanel({ onClose }: StorePanelProps) {
 
             {/* Tabs */}
             <div className="flex-shrink-0 flex border-b border-border-subtle px-4">
-                {(['prompts', 'skills'] as TabType[]).map((tab) => (
+                {availableTabs.map((tab) => (
                     <button
                         key={tab}
                         onClick={() => {
                             setActiveTab(tab);
                             setSearchQuery('');
+                            setSearchInput('');
                         }}
                         className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors capitalize ${
                             activeTab === tab
@@ -165,14 +194,27 @@ export function StorePanel({ onClose }: StorePanelProps) {
             </div>
 
             {/* Search */}
-            <div className="flex-shrink-0 px-4 py-3 border-b border-border-subtle">
+            <div className="flex-shrink-0 px-4 py-3 border-b border-border-subtle flex gap-2">
                 <input
                     type="text"
                     placeholder={`Search ${activeTab}...`}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') setSearchQuery(searchInput);
+                        if (e.key === 'Escape') {
+                            setSearchInput('');
+                            setSearchQuery('');
+                        }
+                    }}
+                    className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <button
+                    onClick={() => setSearchQuery(searchInput)}
+                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                    Search
+                </button>
             </div>
 
             {/* Content */}
@@ -196,13 +238,21 @@ export function StorePanel({ onClose }: StorePanelProps) {
                     !error &&
                     activeTab === 'prompts' &&
                     (displayPrompts as any[]).length === 0 &&
-                    currentStoreId && <EmptyState message="No prompts found." />}
+                    currentStoreId && (
+                        <EmptyState
+                            message={isSearchMode ? `No prompts found for "${searchQuery}".` : 'No prompts found.'}
+                        />
+                    )}
 
                 {!isLoading &&
                     !error &&
                     activeTab === 'skills' &&
                     (displaySkills as any[]).length === 0 &&
-                    currentStoreId && <EmptyState message="No skills found." />}
+                    currentStoreId && (
+                        <EmptyState
+                            message={isSearchMode ? `No skills found for "${searchQuery}".` : 'No skills found.'}
+                        />
+                    )}
 
                 {!isLoading &&
                     !error &&
@@ -227,7 +277,7 @@ export function StorePanel({ onClose }: StorePanelProps) {
                             key={skill.name}
                             item={skill}
                             type="skill"
-                            isImported={importedIds.has(skill.name)}
+                            isImported={importedIds.has(skill.name) || installedSkillNames.has(skill.name)}
                             isImporting={importingId === skill.name}
                             onPreview={() => handlePreview(skill)}
                             onImport={() => handleImportSkill(skill.name)}
@@ -261,7 +311,12 @@ export function StorePanel({ onClose }: StorePanelProps) {
                     else handleImportSkill(previewItem.name);
                     setPreviewOpen(false);
                 }}
-                isImported={previewItem ? importedIds.has(previewItem.id ?? previewItem.name) : false}
+                isImported={
+                    previewItem
+                        ? importedIds.has(previewItem.id ?? previewItem.name) ||
+                          (activeTab === 'skills' && installedSkillNames.has(previewItem.name))
+                        : false
+                }
                 isImporting={previewItem ? importingId === (previewItem.id ?? previewItem.name) : false}
             />
         </div>
