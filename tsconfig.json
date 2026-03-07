@@ -9,6 +9,8 @@
         { "path": "./packages/union-client" },
         { "path": "./packages/agent" },
         { "path": "./packages/standard-agent" },
+        { "path": "./packages/agent-middlewares" },
+        { "path": "./packages/bun-plugin-tailwind" },
         { "path": "./zen-code" },
         { "path": "./zen-swarm" }
     ]

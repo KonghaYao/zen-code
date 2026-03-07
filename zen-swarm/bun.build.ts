@@ -1,6 +1,6 @@
 import { build, BunPlugin } from 'bun';
 import { promises as fs } from 'fs';
-import { tailwindPlugin } from './src/plugin/tailwind';
+import { tailwindPlugin } from '@konghayao/bun-plugin-tailwind';
 async function buildZenSwarm() {
     console.log('🐝 Building zen-swarm with Bun...');
 
