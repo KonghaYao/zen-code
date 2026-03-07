@@ -5,6 +5,7 @@
  */
 
 import type { ReactAgent } from 'langchain';
+import type { StateSchema } from '@langchain/langgraph';
 import type { z } from 'zod';
 
 /**
@@ -45,7 +46,7 @@ export interface SubAgentsMiddlewareOptions<TState = any> {
      * State schema for the middleware
      * Used to define the state schema this middleware operates on
      */
-    stateSchema?: z.ZodType<any>;
+    stateSchema?: z.ZodType<any> | StateSchema<any>;
 
     /**
      * Context schema for the middleware

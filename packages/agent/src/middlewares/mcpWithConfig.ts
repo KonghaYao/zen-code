@@ -24,6 +24,20 @@
 import { MCPMiddleware, MCPConfig } from '@langgraph-js/standard-agent';
 import { FileSystemConfigStore } from '@codegraph/config';
 
+// 模块级单例，避免多实例并发竞争文件锁
+let storeInitPromise: Promise<FileSystemConfigStore> | null = null;
+
+function getSharedStore(): Promise<FileSystemConfigStore> {
+    if (!storeInitPromise) {
+        storeInitPromise = (async () => {
+            const store = new FileSystemConfigStore();
+            await store.initialize();
+            return store;
+        })();
+    }
+    return storeInitPromise;
+}
+
 /**
  * MCP Middleware with Config Integration
  *
@@ -45,8 +59,7 @@ export class MCPWithConfigMiddleware extends MCPMiddleware {
      */
     private static async loadConfigFromStore(): Promise<MCPConfig | null> {
         try {
-            const store = new FileSystemConfigStore();
-            await store.initialize();
+            const store = await getSharedStore();
             const globalConfig = await store.getConfig();
 
             if (!globalConfig.mcp_config || Object.keys(globalConfig.mcp_config).length === 0) {
