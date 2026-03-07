@@ -1,0 +1,40 @@
+{
+    "name": "@konghayao/bun-plugin-tailwind",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "A fast and smart Tailwind CSS v4 plugin for Bun bundler with automatic source detection",
+    "main": "./src/index.ts",
+    "types": "./src/index.ts",
+    "keywords": [
+        "bun",
+        "tailwindcss",
+        "tailwind",
+        "css",
+        "plugin",
+        "bundler"
+    ],
+    "author": "KongHaYao",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/konghayao/zen-code",
+        "directory": "packages/bun-plugin-tailwind"
+    },
+    "exports": {
+        ".": {
+            "types": "./src/index.ts",
+            "import": "./src/index.ts"
+        }
+    },
+    "files": [
+        "src",
+        "README.md"
+    ],
+    "peerDependencies": {
+        "bun": ">=1.0.0"
+    },
+    "dependencies": {
+        "@tailwindcss/node": "^4.0.0",
+        "@tailwindcss/oxide": "^4.0.0"
+    }
+}
