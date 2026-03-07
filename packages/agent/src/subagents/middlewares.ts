@@ -43,19 +43,6 @@ export async function createMiddlewareRegistry(pkg: AgentPackage) {
     await pkg.addMiddleware(subagents);
     pkg.middlewares.registerImplementation(subagents);
 
-    const memories = {
-        id: 'memories',
-        name: 'memories',
-        description: 'Knowledge persistence',
-        execute: async (context: { memoriesDir?: string; assistantId?: string; projectMemoriesDir?: string }) => {
-            context.projectMemoriesDir = context.projectMemoriesDir || './.claude/memories';
-            const { MemoriesMiddleware } = await import('../middlewares/memories.js');
-            return new MemoriesMiddleware(context);
-        },
-    };
-    await pkg.addMiddleware(memories);
-    pkg.middlewares.registerImplementation(memories);
-
     const skills = {
         id: 'skills',
         name: 'skills',

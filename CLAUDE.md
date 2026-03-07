@@ -21,8 +21,7 @@ code-graph/
 ├── zen-code/                   # TUI CLI tool
 ├── zen-swarm/                  # Web UI server + tRPC API
 ├── .claude/
-│   ├── skills/                 # Project-level skills
-│   └── memories/               # Project-level memories
+│   └── skills/                 # Project-level skills
 └── specs/                      # Feature documentation
 ```
 
@@ -247,7 +246,6 @@ const agent = await createAgent({
 
 **Available Branches**:
 
-- `smart_memory` - Analyze conversation and save to `.claude/memories/`
 - Agent routing via `switch_command`
 
 **Available Agents** (configured in `subagents/config.ts`):
@@ -330,7 +328,7 @@ const agent = await createAgent({
 **Current Agents**:
 
 - `default` - Full capabilities (tools: read, write, glob, grep, terminal, interaction, task; middleware: all)
-- `manager` - Task administration (same tools; middleware: agents_md, skills, memories, subagents - **no mcp**)
+- `manager` - Task administration (same tools; middleware: agents_md, skills, subagents - **no mcp**)
 
 **Key Differences**:
 
@@ -350,59 +348,6 @@ const agent = await createAgent({
 - Load from `~/.zen-code/settings.json`
 - Load from database
 - Remote configuration service
-
-### Memory System
-
-**Trigger**: Manual invocation via `switch_command: 'smart_memory'`
-
-**Storage**: `.langgraph_api/memory.md` (runtime), `.claude/memories/` (persistent)
-
-**Tools**:
-
-- `add_memory_tool` - Store new memory
-- `query_memory_tool` - Search existing memories
-
-**Analysis**: `packages/agent/src/memories/analyze.ts`
-
-**Memory Format**: Directory with `MEMORY.md` (YAML frontmatter + Markdown content)
-
-**Memory Organization** (Compressed into core files):
-
-```
-.claude/memories/
-├── core-architecture/MEMORY.md
-│   ├── 2025 Q1 Refactor (layered architecture, dependency injection)
-│   ├── Standard Agent Module (async storage, entity layer removal)
-│   ├── SubAgent System (AgentPackage, factory-v2, switchBranch routing)
-│   ├── Task System (2-layer tree, 6-state machine, DAG dependencies)
-│   ├── Dynamic Tool Command System (CommandSystemMiddleware)
-│   └── Configuration Management (path migration, multi-provider)
-├── tui-system/MEMORY.md
-│   ├── MultiLineTextInput (desiredColumn cursor, controlled state, cross-platform)
-│   ├── UniversalPanel (virtual scroll, fuzzy search, unified interaction)
-│   ├── React Performance Optimization (useRef, useMemo, infinite render fix)
-│   ├── GlobalApprovalPanel (multi-tab, auto-jump, batch execution)
-│   ├── TanStack Query Migration (library vs application separation)
-│   └── Ink Static Optimization (lazy initialization pattern)
-├── testing-bugfixes/MEMORY.md
-│   ├── Vitest Complete Guide (monorepo, assertions, test configs)
-│   ├── Common Test Fix Patterns (API mismatch, default behavior, data validation)
-│   ├── Bug #1: /sum command parameter passing
-│   └── Bug #2: Setup Wizard configuration validation
-├── agent-middlewares-package-architecture/MEMORY.md
-│   └── 2025-01-23 Migration to @langgraph-js/agent-middlewares
-├── subagents-middleware-migration/MEMORY.md
-│   └── 2025-01-17 SubAgentsMiddleware dependency injection refactor
-├── zen-swarm-frontend-design/MEMORY.md
-│   └── Web UI architecture and component design
-├── zen-swarm-trpc-architecture/MEMORY.md
-│   └── tRPC API design and implementation
-├── zen-swarm-finder-implementation/MEMORY.md
-│   └── Finder component with ripgrep integration
-├── zen-swarm-panel-layout-system/MEMORY.md
-│   └── Four-panel layout architecture
-└── ... (additional memory files for specific features and fixes)
-```
 
 ### Tool System
 

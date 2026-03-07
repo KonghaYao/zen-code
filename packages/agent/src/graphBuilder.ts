@@ -5,31 +5,11 @@
 
 import { Runtime } from 'langchain';
 import { CodeAnnotation as CodeState, CodeStateType } from './state.js';
-import { getBufferMessage } from './utils/getBufferMessage.js';
-import { REMOVE_ALL_MESSAGES, START, StateGraph } from '@langchain/langgraph';
-import { AIMessage, RemoveMessage } from '@langchain/core/messages';
-import { initChatModel } from './utils/initChatModel.js';
-import { analyzeAndSaveMemories } from './memories/analyze.js';
+import { START, StateGraph } from '@langchain/langgraph';
 import { createStandardAgentV2, getAvailableAgentIds } from './subagents/factory-v2.js';
 import { AgentPackage } from '@langgraph-js/standard-agent';
 import { getThreadId } from '@langgraph-js/pro';
 import { agentPackage } from './config/index.js';
-
-const switchBranch = {
-    smart_memory: async (state: CodeStateType) => {
-        const model = await initChatModel(state.model_id, {
-            modelProvider: state.provider_type,
-            streamUsage: true,
-            enableThinking: state.enable_thinking ?? true,
-            streaming: state.streaming ?? false,
-        });
-        const summaryContent = await analyzeAndSaveMemories(model, getBufferMessage(state.messages));
-        return {
-            switch_command: '',
-            messages: [new RemoveMessage({ id: REMOVE_ALL_MESSAGES }), new AIMessage(summaryContent)],
-        };
-    },
-} as const;
 
 async function invokeAgent(agentId: string, pkg: AgentPackage, state: CodeStateType, runtime: Runtime) {
     const agent = await createStandardAgentV2(agentId, pkg, state, runtime);
@@ -57,8 +37,6 @@ export function createCodeGraph() {
     return new StateGraph(CodeState)
         .addNode('graph', async (state: CodeStateType, runtime: Runtime) => {
             const { switch_command: cmd } = state;
-
-            if (cmd === 'smart_memory') return switchBranch.smart_memory(state);
 
             // Load agent package (cached after first load)
             const pkg = agentPackage;

@@ -7,7 +7,6 @@
  */
 
 export { MCPWithConfigMiddleware } from './mcp.js';
-export { MemoriesMiddleware } from './memories.js';
 export { createSubAgentsMiddleware } from './subagents.js';
 
 // State Machine middleware
