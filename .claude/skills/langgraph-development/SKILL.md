@@ -13,39 +13,40 @@ This guide covers building AI agents with LangChain/LangGraph, focusing on agent
 
 ### State Management
 
+使用 `StateSchema` 统一定义状态（替代旧的 `createState` + `Annotation` 双对象模式）：
+
 ```typescript
-import { createDefaultAnnotation, createState } from '@langgraph-js/pro';
-import { MessagesAnnotation, Annotation } from '@langchain/langgraph';
+import { StateSchema, ReducedValue, MessagesValue } from '@langchain/langgraph';
 import { z } from 'zod';
 
-// Create agent state with annotations
-export const MyState = createState().build({
-    my_field: createDefaultAnnotation(() => 'value'),
-    counter: createDefaultAnnotation(() => 0),
-    data: createDefaultAnnotation(() => ({ nested: true })),
+// 基本状态：简单字段直接用 Zod schema，无需额外 Annotation
+export const MySchema = new StateSchema({
+    messages: MessagesValue, // 预构建的 messages ReducedValue（含标准 reducer）
+    my_field: z.string().default('value'),
+    counter: z.number().default(0),
+    data: z.object({ nested: z.boolean() }).default(() => ({ nested: true })),
 });
 
-// Use MessagesAnnotation as base for message handling
-export const MessageState = createState(MessagesAnnotation).build({
-    my_field: createDefaultAnnotation(() => 'value'),
+// 自定义 reducer 字段（并发更新时合并而非覆盖）
+export const ComplexSchema = new StateSchema({
+    messages: MessagesValue,
+    task_store: new ReducedValue(
+        z.record(z.string(), z.any()).default(() => ({})),
+        {
+            reducer: (a: Record<string, any>, b: Record<string, any>) => ({ ...a, ...b }),
+        },
+    ),
+    my_field: z.string().default('value'),
 });
 
-// Custom reducer for merge behavior
-export const ComplexState = createState().build({
-    task_store: Annotation({
-        reducer: (a, b: any) => ({ ...a, ...b }),
-        default: () => ({}),
-    }),
-});
-
-// Optional validation schema
-export const MyStateSchema = z.object({
-    my_field: z.string().optional(),
-    counter: z.number().optional(),
-});
-
-export type MyStateType = typeof MyState.State;
+export type MyStateType = typeof MySchema.State;
 ```
+
+**规则**：
+
+- 普通字段（最后写入胜出）→ 直接用 Zod schema
+- 需要合并/累积的字段 → 用 `new ReducedValue(schema, { reducer })`
+- `messages` 字段 → 直接用预构建的 `MessagesValue`
 
 ## Agent Creation
 
@@ -62,7 +63,7 @@ const agent = createAgent({
     model,
     systemPrompt: 'You are a helpful assistant',
     tools: [myTool1, myTool2],
-    stateSchema: MyState,
+    stateSchema: MySchema,
 });
 ```
 
@@ -241,7 +242,7 @@ serve({
 
 ```typescript
 import { Runtime } from 'langchain';
-import { MyState, MyStateType } from './state.js';
+import { MySchema, MyStateType } from './state.js';
 import { START, StateGraph } from '@langchain/langgraph';
 import { createAgent } from 'langchain';
 
@@ -252,12 +253,12 @@ const agent = createAgent({
     model,
     systemPrompt: 'You are a helpful assistant',
     tools: [myTool1, myTool2],
-    stateSchema: MyState,
+    stateSchema: MySchema,
 });
 
 // Build graph
 export function createMyGraph() {
-    return new StateGraph(MyState)
+    return new StateGraph(MySchema)
         .addNode('agent', async (state: MyStateType, runtime: Runtime) => {
             const response = await agent.invoke(state, {
                 recursionLimit: 100,
@@ -290,7 +291,7 @@ describe('MyAgent', () => {
             name: 'TestAgent',
             model: fakeModel,
             tools: [myTool],
-            stateSchema: MyState,
+            stateSchema: MySchema,
         });
 
         const result = await agent.invoke({ messages: [] });
@@ -324,7 +325,7 @@ const coderAgent = createAgent({
     model,
     systemPrompt: 'You are an expert software engineer',
     tools: [searchTool, codeEditTool],
-    stateSchema: MyState,
+    stateSchema: MySchema,
 });
 
 const reviewerAgent = createAgent({
@@ -332,7 +333,7 @@ const reviewerAgent = createAgent({
     model,
     systemPrompt: 'You review code for bugs and best practices',
     tools: [readTool, analysisTool],
-    stateSchema: MyState,
+    stateSchema: MySchema,
 });
 
 // Use based on task
@@ -351,7 +352,7 @@ const agent = createAgent({
     model,
     systemPrompt: 'You are a helpful assistant',
     tools,
-    stateSchema: MyState,
+    stateSchema: MySchema,
 });
 ```
 
@@ -395,17 +396,40 @@ src/
 
 ## Best Practices
 
-1. **Use createState().build()**: Create state with annotations
-2. **createDefaultAnnotation**: Always use for default values
-3. **Async Initialization**: Always await model initialization
-4. **Error Handling**: Wrap agent calls in try/catch
-5. **Tool Focus**: Keep tools single-purpose and well-named
-6. **Testing**: Test agents and tools independently
-7. **Streaming**: Support streaming for better UX
-8. **Documentation**: Add JSDoc for complex functions
-9. **Configuration**: Use AgentPackage for complex systems
+1. **使用 `StateSchema`**：单一对象同时承担类型定义和运行时行为，不再需要 Zod schema + Annotation 双对象
+2. **普通字段用 Zod schema**：`z.string().default('...')` 即可，无需 `createDefaultAnnotation`
+3. **并发更新字段用 `ReducedValue`**：fanout/并行节点写同一 key 时必须定义 reducer，否则报
+   `INVALID_CONCURRENT_GRAPH_UPDATE`
+4. **`messages` 直接用 `MessagesValue`**：预构建，无需手写 reducer
+5. **Async Initialization**：始终 await 模型初始化
+6. **Error Handling**：agent 调用包裹在 try/catch 中
+7. **Tool Focus**：每个 tool 单一职责，命名清晰
+8. **Testing**：agent 和 tool 独立测试
+9. **Streaming**：支持流式输出以改善 UX
+10. **Configuration**：复杂系统使用 AgentPackage
 
 ## Common Issues
+
+### 并发更新报错 INVALID_CONCURRENT_GRAPH_UPDATE
+
+fanout 或并行节点同时写入同一字段时，需要用 `ReducedValue` 定义合并逻辑：
+
+```typescript
+// 错误：并行节点都写 results，会报错
+export const BadSchema = new StateSchema({
+    results: z.array(z.string()).default(() => []),
+});
+
+// 正确：使用 ReducedValue 定义 reducer
+export const GoodSchema = new StateSchema({
+    results: new ReducedValue(
+        z.array(z.string()).default(() => []),
+        {
+            reducer: (existing, update: string[]) => existing.concat(update),
+        },
+    ),
+});
+```
 
 ### Type errors with tools
 
@@ -417,15 +441,11 @@ const tools = [myTool1 as any, myTool2 as any];
 ### State not updating
 
 ```typescript
-// Ensure state has proper annotations
-const MyState = createState().build({
-    my_field: createDefaultAnnotation(() => 'default'),
-});
+// 确保 StateSchema 传入 createAgent 和 StateGraph 是同一个实例
+export const MySchema = new StateSchema({ ... });
 
-// Check state type matches
-const agent = createAgent({
-    stateSchema: MyState, // Not typeof MyState
-});
+const agent = createAgent({ stateSchema: MySchema, ... });
+const graph = new StateGraph(MySchema);
 ```
 
 ## Installation
@@ -433,7 +453,7 @@ const agent = createAgent({
 ### Core Dependencies
 
 ```bash
-npm install langchain @langchain/core @langchain/langgraph @langchain/openai @langchain/anthropic @langgraph-js/pro zod
+npm install langchain @langchain/core @langchain/langgraph @langchain/openai @langchain/anthropic zod
 ```
 
 ### Development Dependencies

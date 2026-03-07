@@ -2,7 +2,7 @@ import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { Box, Text } from 'ink';
 import { UniversalPanel } from 'ink-pro';
 import type { PanelConfig } from 'ink-pro';
-import type { ProcessInfo } from '../../services/ProcessManagerService.js';
+import type { ProcessInfo } from '../../types.js';
 import { processManager } from '../../services/ProcessManagerService.js';
 import ProcessOutputPanel from './ProcessOutputPanel.js';
 import ErrorBoundary from '../common/ErrorBoundary';
