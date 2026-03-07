@@ -174,14 +174,21 @@ export function useAgentAutocomplete({
             const firstAgent = getFirstAgent();
             if (!firstAgent) return input;
 
-            // Find the part before @ and replace @xxx with @agent-name
-            const beforeAt = input.slice(0, state.triggerPosition);
-            const afterQuery = input.slice(state.triggerPosition + 1 + state.query.length);
+            // Re-derive trigger position and query directly from current input
+            // to avoid using stale state values (state.query / state.triggerPosition
+            // may be one render behind the actual internalValue)
+            const lastIndex = input.lastIndexOf('@');
+            if (lastIndex === -1 || !shouldTrigger(input, lastIndex)) return input;
 
-            // Complete with agent name and add a space
-            return `${beforeAt}@${firstAgent.name} ${afterQuery}`;
+            const currentQuery = extractQuery(input, lastIndex);
+            const beforeAt = input.slice(0, lastIndex);
+            const afterQuery = input.slice(lastIndex + 1 + currentQuery.length);
+
+            // trimStart() prevents a double-space when afterQuery starts with a space
+            // (e.g. input was "@manager more" → afterQuery = " more")
+            return `${beforeAt}@${firstAgent.name} ${afterQuery.trimStart()}`;
         },
-        [getFirstAgent, state.triggerPosition, state.query],
+        [getFirstAgent],
     );
 
     // Hide autocomplete list

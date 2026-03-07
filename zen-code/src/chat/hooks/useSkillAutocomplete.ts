@@ -194,14 +194,21 @@ export function useSkillAutocomplete({
             const firstSkill = getFirstSkill();
             if (!firstSkill) return input;
 
-            // Find the part before # and replace #xxx with #skill-name
-            const beforeHash = input.slice(0, state.triggerPosition);
-            const afterQuery = input.slice(state.triggerPosition + 1 + state.query.length);
+            // Re-derive trigger position and query directly from current input
+            // to avoid using stale state values (state.query / state.triggerPosition
+            // may be one render behind the actual internalValue)
+            const lastHashIndex = input.lastIndexOf('#');
+            if (lastHashIndex === -1 || !shouldTrigger(input, lastHashIndex)) return input;
 
-            // Complete with skill name and add a space
-            return `${beforeHash}#${firstSkill.name} ${afterQuery}`;
+            const currentQuery = extractQuery(input, lastHashIndex);
+            const beforeHash = input.slice(0, lastHashIndex);
+            const afterQuery = input.slice(lastHashIndex + 1 + currentQuery.length);
+
+            // trimStart() prevents a double-space when afterQuery starts with a space
+            // (e.g. input was "#web more" → afterQuery = " more")
+            return `${beforeHash}#${firstSkill.name} ${afterQuery.trimStart()}`;
         },
-        [getFirstSkill, state.triggerPosition, state.query],
+        [getFirstSkill],
     );
 
     // Hide autocomplete list
