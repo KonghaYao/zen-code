@@ -40,6 +40,10 @@ const TaskHeader: React.FC<{ tool: ToolRenderData<Record<string, never>, TaskPar
                 <Text color="yellow">Task </Text>
                 <Text dimColor>(</Text>
                 <Text color="cyan">{subagentId}</Text>
+
+                <Text color="yellow" dimColor>
+                    {input?.task_id}
+                </Text>
                 <Text dimColor>)</Text>
             </Box>
         </Box>

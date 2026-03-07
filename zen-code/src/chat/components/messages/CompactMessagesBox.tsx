@@ -57,9 +57,9 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
             {toolGroup.map((msg, idx) => {
                 const render = msg.name ? getToolUIRender(msg.name!) : null;
                 if (!render) return null;
-                const totalSubmessages = msg.sub_messages?.length || 0;
-                const submessages = msg.sub_messages?.slice(-4) || [];
-                const omittedCount = totalSubmessages - submessages.length;
+
+                const submessages = msg.sub_messages || [];
+                const omittedCount = submessages.length;
                 const Render = () => {
                     return <ErrorBoundary fallback={msg.name + ' is error'}>{render(msg) as any}</ErrorBoundary>;
                 };
@@ -76,16 +76,6 @@ const ToolGroupExtraRender = memo(function ToolGroupExtraRender({
                                         </Text>
                                     </Box>
                                 )}
-                                {/* 递归渲染，但传入 depth 参数限制深度 */}
-                                <CompactMessagesBox
-                                    renderMessages={submessages}
-                                    startIndex={1}
-                                    depth={depth + 1}
-                                    // 修复：使用唯一 instanceId 生成 staticKey，避免不同子组件间冲突
-                                    staticKey={`sub-d${depth}-i${idx}`}
-                                    getToolUIRender={getToolUIRender}
-                                    loading={loading}
-                                />
                             </>
                         ) : null}
                     </Fragment>
