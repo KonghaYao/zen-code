@@ -105,6 +105,7 @@ export class SubAgentsMiddleware<TState = any> implements AgentMiddleware {
 
         // Set stateSchema and contextSchema from options
         if (options.stateSchema) {
+            /** @ts-ignore langchain 问题 */
             this.stateSchema = options.stateSchema;
         }
         if (options.contextSchema) {

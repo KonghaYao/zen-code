@@ -5,23 +5,24 @@
  * Migrated from packages/agent/src/tools/task_tools/create_task_tool.ts
  */
 
-import { Annotation, Command } from '@langchain/langgraph';
+import { Command, StateSchema, ReducedValue } from '@langchain/langgraph';
 import { HumanMessage, tool } from 'langchain';
 import { z } from 'zod';
 import { Message } from '@langchain/core/messages';
 import { type ToolRuntime } from '@langchain/core/tools';
-import { createState } from '@langgraph-js/pro';
 
-export const SubAgentStateSchema = z.object({
-    task_store: z.record(z.string(), z.any()).default({}),
+export const SubAgentSchema = new StateSchema({
+    task_store: new ReducedValue(
+        z.record(z.string(), z.any()).default(() => ({})),
+        {
+            reducer: (a: Record<string, any>, b: Record<string, any>) => ({ ...a, ...b }),
+        },
+    ),
 });
 
-export const SubAgentAnnotation = createState().build({
-    task_store: Annotation({
-        reducer: (a, b: any) => ({ ...a, ...b }),
-        default: () => ({}),
-    }),
-});
+// 向后兼容
+export const SubAgentStateSchema = SubAgentSchema;
+export const SubAgentAnnotation = SubAgentSchema;
 
 const schema = z.object({
     task_id: z
@@ -162,7 +163,7 @@ export const create_task_tool = (agentCreator: AgentCreator, options?: CreateTas
 
             const update: any = {
                 task_store: {
-                    ...(state?.['task_store'] || {}),
+                    ...((state as any)?.['task_store'] || {}),
                     [taskId]: new_state,
                 },
                 messages: [

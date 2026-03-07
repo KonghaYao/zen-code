@@ -30,6 +30,5 @@ export async function getAgentListFromPackage(pkg: AgentPackage): Promise<SubAge
         id: agent.id,
         name: agent.name || agent.id,
         description: agent.description || '',
-        tools: agent.tools ? Object.keys(agent.tools) : [],
     }));
 }
