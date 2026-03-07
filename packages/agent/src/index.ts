@@ -15,9 +15,17 @@ export { getBufferMessage } from './utils/getBufferMessage.js';
 // Middlewares - 导出迁移的中间件
 export * from './middlewares/index.js';
 
-// Subagents - V2 API (standard-agent based)
-
-export { createStandardAgentV2, getAvailableAgentIds } from './subagents/factory-v2.js';
+// Unified Factory (for zen-code and zen-swarm)
+export {
+    createUnifiedAgent,
+    getAvailableAgentIds as getUnifiedAgentIds,
+    clearCache,
+    type IProviderResolver,
+    type ResolvedProvider,
+    type ModelConfig,
+    type IModelResolver,
+    type CreateUnifiedAgentOptions,
+} from './subagents/unified-factory.js';
 
 // Subagents - V1 API (legacy, kept for compatibility)
 export * from './subagents/config.js';

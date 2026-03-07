@@ -1,18 +1,27 @@
 /**
  * Graph Builder V2
- * 使用 standard-agent 的 AgentPackage 系统构建动态代理图
+ * 使用 unified-agent factory 构建动态代理图
  */
 
 import { Runtime } from 'langchain';
 import { CodeAnnotation as CodeState, CodeStateType } from './state.js';
 import { START, StateGraph } from '@langchain/langgraph';
-import { createStandardAgentV2, getAvailableAgentIds } from './subagents/factory-v2.js';
+import { createUnifiedAgent, getAvailableAgentIds } from './subagents/unified-factory.js';
 import { AgentPackage } from '@langgraph-js/standard-agent';
 import { getThreadId } from '@langgraph-js/pro';
 import { agentPackage } from './config/index.js';
+import { initChatModel } from './utils/initChatModel.js';
+import { getEnvInfo } from './prompts/coding.js';
 
 async function invokeAgent(agentId: string, pkg: AgentPackage, state: CodeStateType, runtime: Runtime) {
-    const agent = await createStandardAgentV2(agentId, pkg, state, runtime);
+    const agent = await createUnifiedAgent(agentId, state, {
+        pkg,
+        initModel: initChatModel,
+        stateSchema: CodeState,
+        enhanceSystemPrompt: async (basePrompt, state) => {
+            return basePrompt + '\n\n' + (await getEnvInfo(state));
+        },
+    });
 
     state.thread_id = getThreadId(runtime);
     // This is a known type mismatch in the library, the runtime works correctly at runtime

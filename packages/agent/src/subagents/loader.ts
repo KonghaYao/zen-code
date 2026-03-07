@@ -73,6 +73,7 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
             subagents: true,
             interactive: true,
             task: true,
+            mcp: true,
         },
     });
     // Default SubAgents
@@ -90,6 +91,7 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
             subagents: true,
             interactive: true,
             task: true,
+            mcp: true,
         },
     });
 

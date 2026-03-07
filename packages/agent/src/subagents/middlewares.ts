@@ -104,4 +104,16 @@ export async function createMiddlewareRegistry(pkg: AgentPackage) {
     };
     await pkg.addMiddleware(task);
     pkg.middlewares.registerImplementation(task);
+
+    const mcp = {
+        id: 'mcp',
+        name: 'mcp',
+        description: 'Task management for todo lists',
+        execute: async () => {
+            const { MCPWithConfigMiddleware } = await import('../middlewares/mcpWithConfig.js');
+            return new MCPWithConfigMiddleware();
+        },
+    };
+    await pkg.addMiddleware(mcp);
+    pkg.middlewares.registerImplementation(mcp);
 }

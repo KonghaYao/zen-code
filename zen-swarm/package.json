@@ -8,6 +8,7 @@
         "build:js": "bun build src/server.ts --target bun --outdir ./dist"
     },
     "dependencies": {
+        "@codegraph/agent": "workspace:^",
         "@codegraph/config": "workspace:^",
         "@google/generative-ai": "^0.24.1",
         "@langchain/anthropic": "^1.3.15",

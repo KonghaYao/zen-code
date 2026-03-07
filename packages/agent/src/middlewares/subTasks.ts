@@ -7,7 +7,7 @@
 
 import { SubAgentsMiddleware, getAgentListFromPackage, type SubAgentInfo } from '@langgraph-js/standard-agent';
 import type { AgentPackage } from '@langgraph-js/standard-agent';
-import { createStandardAgentV2 } from '../subagents/factory-v2';
+import { createStandardAgentV2 } from '../subagents/unified-factory';
 import { CodeState } from '../state';
 
 export { SubAgentsMiddleware, getAgentListFromPackage } from '@langgraph-js/standard-agent';
