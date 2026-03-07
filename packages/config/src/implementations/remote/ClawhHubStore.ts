@@ -17,33 +17,44 @@ import type { IRemotePromptStore, RemotePromptItem } from '../../interfaces/IRem
 // ClawhHub API Response Types
 // ========================================
 
-interface ClawhHubAuthor {
-    username?: string;
-    display_name?: string;
-}
-
-interface ClawhHubSkillSummary {
-    slug: string;
-    name?: string;
-    description?: string;
-    tags?: string[];
-    author?: ClawhHubAuthor | string;
-    version?: string;
-    latest_version?: string;
+interface ClawhHubStats {
     downloads?: number;
     stars?: number;
+    comments?: number;
+}
+
+interface ClawhHubLatestVersion {
+    version?: string;
+}
+
+/** /api/v1/skills 列表接口返回的单项结构 */
+interface ClawhHubListItem {
+    slug: string;
+    displayName?: string;
+    summary?: string;
+    tags?: Record<string, string>;
+    stats?: ClawhHubStats;
+    latestVersion?: ClawhHubLatestVersion;
+    metadata?: unknown;
+}
+
+/** /api/v1/search 搜索接口返回的单项结构 */
+interface ClawhHubSearchItem {
+    slug: string;
+    displayName?: string;
+    summary?: string;
+    version?: string | null;
+    score?: number;
+    updatedAt?: number;
 }
 
 interface ClawhHubListResponse {
-    items: ClawhHubSkillSummary[];
-    cursor?: string;
-    total?: number;
+    items: ClawhHubListItem[];
+    nextCursor?: string;
 }
 
 interface ClawhHubSearchResponse {
-    items: ClawhHubSkillSummary[];
-    cursor?: string;
-    total?: number;
+    results: ClawhHubSearchItem[];
 }
 
 // ========================================
@@ -65,26 +76,26 @@ export class ClawhHubStore extends BaseRemoteStore implements IRemoteSkillStore,
             sort: 'downloads',
         };
         const res = await this.get<ClawhHubListResponse>('/api/v1/skills', params);
-        return (res.items ?? []).map(this.mapSkill);
+        return (res.items ?? []).map(this.mapListItem);
     }
 
     async searchRemoteSkills(query: string): Promise<RemoteSkillItem[]> {
         const res = await this.get<ClawhHubSearchResponse>('/api/v1/search', { q: query });
-        return (res.items ?? []).map(this.mapSkill);
+        return (res.results ?? []).map(this.mapSearchItem);
     }
 
     async fetchRemoteSkill(slug: string): Promise<RemoteSkillItem | null> {
         // Get skill metadata
-        let detail: ClawhHubSkillSummary;
+        let detail: ClawhHubListItem;
         try {
-            detail = await this.get<ClawhHubSkillSummary>(`/api/v1/skills/${slug}`);
+            detail = await this.get<ClawhHubListItem>(`/api/v1/skills/${slug}`);
         } catch {
             return null;
         }
 
         // Get SKILL.md content
         const content = await this.fetchSkillFile(slug);
-        const mapped = this.mapSkill(detail);
+        const mapped = this.mapListItem(detail);
 
         return {
             ...mapped,
@@ -150,29 +161,31 @@ export class ClawhHubStore extends BaseRemoteStore implements IRemoteSkillStore,
         }
     }
 
-    private mapSkill = (raw: ClawhHubSkillSummary): RemoteSkillItem => {
-        const authorStr =
-            typeof raw.author === 'string' ? raw.author : (raw.author?.display_name ?? raw.author?.username);
-
-        const tags = Array.isArray(raw.tags)
-            ? raw.tags
-            : typeof raw.tags === 'string'
-              ? raw.tags
-                    .split(',')
-                    .map((t) => t.trim())
-                    .filter(Boolean)
-              : undefined;
-
+    private mapListItem = (raw: ClawhHubListItem): RemoteSkillItem => {
         return {
             name: raw.slug,
-            description: raw.description,
+            description: raw.summary,
             content: '',
-            tags,
-            author: authorStr,
+            tags: undefined,
+            author: undefined,
             source_url: `${CLAWHUB_BASE_URL}/skills/${raw.slug}`,
-            version: raw.latest_version ?? raw.version,
-            downloads: raw.downloads,
-            stars: raw.stars,
+            version: raw.latestVersion?.version,
+            downloads: raw.stats?.downloads,
+            stars: raw.stats?.stars,
+        };
+    };
+
+    private mapSearchItem = (raw: ClawhHubSearchItem): RemoteSkillItem => {
+        return {
+            name: raw.slug,
+            description: raw.summary,
+            content: '',
+            tags: undefined,
+            author: undefined,
+            source_url: `${CLAWHUB_BASE_URL}/skills/${raw.slug}`,
+            version: raw.version ?? undefined,
+            downloads: undefined,
+            stars: undefined,
         };
     };
 }
