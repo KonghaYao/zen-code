@@ -40,7 +40,7 @@
         "@testing-library/react": "^16.3.2",
         "@types/micromatch": "^4.0.10",
         "@types/node": "^20.19.30",
-        "@types/react": "^19",
+        "@types/react": "^19.2.14",
         "happy-dom": "^20.3.9",
         "typescript": "^5.9.3",
         "vitest": "^4.0.18"
