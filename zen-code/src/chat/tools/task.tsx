@@ -6,7 +6,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createUITool, ToolManager, ToolRenderData } from '@langgraph-js/sdk';
 import { Box, Text } from 'ink';
-import { LimitedOutput } from '../components/common/LimitedOutput';
 
 import { z } from 'zod';
 
@@ -34,17 +33,24 @@ const TaskHeader: React.FC<{ tool: ToolRenderData<Record<string, never>, TaskPar
     // 防御：subagent_id 在流式阶段可能是 undefined 或非字符串
     const subagentId = typeof input?.subagent_id === 'string' ? input.subagent_id : String(input?.subagent_id ?? '');
 
+    // 提取并格式化 task_description
+    const rawDesc = input?.task_description as unknown as string;
+    const truncatedDesc = rawDesc ? rawDesc.slice(0, 50) : '';
+    const hasEllipsis = rawDesc && rawDesc.length > 50;
+
     return (
         <Box paddingX={1} flexDirection="column">
             <Box>
                 <Text color="yellow">Task </Text>
-                <Text dimColor>(</Text>
+                <Text dimColor>{'→ '}</Text>
                 <Text color="cyan">@{subagentId}</Text>
-
-                <Text color="yellow" dimColor>
-                    {input?.task_description}
+            </Box>
+            <Box>
+                <Text dimColor>{'  '}</Text>
+                <Text color="gray" italic>
+                    {truncatedDesc}
+                    {hasEllipsis && <Text color="dim">...</Text>}
                 </Text>
-                <Text dimColor>)</Text>
             </Box>
         </Box>
     );
