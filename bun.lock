@@ -122,6 +122,7 @@
       "name": "@codegraph/config",
       "version": "1.0.0",
       "dependencies": {
+        "fflate": "^0.8.2",
         "lowdb": "^7.0.1",
         "micromatch": "^4.0.8",
         "proper-lockfile": "^4.1.2",

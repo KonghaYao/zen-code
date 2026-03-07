@@ -9,6 +9,9 @@
  *   GET /api/v1/skills/{slug}/file?path=SKILL.md
  */
 
+import { unzipSync } from 'fflate';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 import { BaseRemoteStore } from './BaseRemoteStore.js';
 import type { IRemoteSkillStore, RemoteSkillItem } from '../../interfaces/IRemoteSkillStore.js';
 import type { IRemotePromptStore, RemotePromptItem } from '../../interfaces/IRemotePromptStore.js';
@@ -57,11 +60,37 @@ interface ClawhHubSearchResponse {
     results: ClawhHubSearchItem[];
 }
 
+/** /api/v1/skills/{slug} 详情接口返回的包装结构 */
+interface ClawhHubDetailResponse {
+    skill: ClawhHubListItem;
+    latestVersion?: ClawhHubLatestVersion;
+    owner?: unknown;
+    moderation?: unknown;
+    metadata?: unknown;
+}
+
 // ========================================
 // ClawhHubStore
 // ========================================
 
 export const CLAWHUB_BASE_URL = 'https://clawhub.ai';
+
+/**
+ * 判断 zip 条目是否全在同一顶层目录下，返回需剥离的前缀（含末尾 /）。
+ * 例：["agent/SKILL.md", "agent/templates/a.ts"] → "agent/"
+ * 例：["SKILL.md", "templates/a.ts"]             → ""
+ */
+function resolveZipPrefix(entries: string[]): string {
+    const fileEntries = entries.filter((e) => !e.endsWith('/'));
+    if (fileEntries.length === 0) return '';
+
+    const firstSlash = fileEntries[0].indexOf('/');
+    if (firstSlash === -1) return '';
+
+    const candidate = fileEntries[0].slice(0, firstSlash + 1); // e.g. "agent/"
+    const allUnder = fileEntries.every((e) => e.startsWith(candidate));
+    return allUnder ? candidate : '';
+}
 
 export class ClawhHubStore extends BaseRemoteStore implements IRemoteSkillStore, IRemotePromptStore {
     constructor(apiKey?: string) {
@@ -85,13 +114,19 @@ export class ClawhHubStore extends BaseRemoteStore implements IRemoteSkillStore,
     }
 
     async fetchRemoteSkill(slug: string): Promise<RemoteSkillItem | null> {
-        // Get skill metadata
-        let detail: ClawhHubListItem;
+        // Get skill metadata — detail endpoint wraps data in { skill: {...}, latestVersion: {...} }
+        let detailRes: ClawhHubDetailResponse;
         try {
-            detail = await this.get<ClawhHubListItem>(`/api/v1/skills/${slug}`);
+            detailRes = await this.get<ClawhHubDetailResponse>(`/api/v1/skills/${slug}`);
         } catch {
             return null;
         }
+
+        // Merge latestVersion into the skill item for mapListItem to use
+        const detail: ClawhHubListItem = {
+            ...detailRes.skill,
+            latestVersion: detailRes.latestVersion ?? detailRes.skill.latestVersion,
+        };
 
         // Get SKILL.md content
         const content = await this.fetchSkillFile(slug);
@@ -99,9 +134,49 @@ export class ClawhHubStore extends BaseRemoteStore implements IRemoteSkillStore,
 
         return {
             ...mapped,
-            name: mapped.name || slug, // fallback: input slug 一定有值
+            name: mapped.name || slug,
             content,
         };
+    }
+
+    async installRemoteSkill(slug: string, destDir: string): Promise<void> {
+        const url = new URL('/api/v1/download', this.baseUrl);
+        url.searchParams.set('slug', slug);
+
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), this.timeout);
+
+        try {
+            const res = await fetch(url.toString(), {
+                headers: this.headers,
+                signal: controller.signal,
+            });
+
+            if (!res.ok) {
+                throw new Error(`Download failed: ${res.status} ${res.statusText}`);
+            }
+
+            const zipBuffer = new Uint8Array(await res.arrayBuffer());
+            const files = unzipSync(zipBuffer);
+
+            // Strip common top-level directory prefix (e.g. "self-improving-agent/SKILL.md" → "SKILL.md")
+            const entries = Object.keys(files);
+            const prefix = resolveZipPrefix(entries);
+
+            for (const [entryPath, content] of Object.entries(files)) {
+                // Skip pure directory entries (empty content, trailing slash)
+                if (entryPath.endsWith('/')) continue;
+
+                const relativePath = prefix ? entryPath.slice(prefix.length) : entryPath;
+                if (!relativePath) continue;
+
+                const fullPath = join(destDir, relativePath);
+                mkdirSync(dirname(fullPath), { recursive: true });
+                writeFileSync(fullPath, content);
+            }
+        } finally {
+            clearTimeout(timer);
+        }
     }
 
     // ── IRemotePromptStore (stub — ClawhHub 无 prompt 概念) ────────────────
@@ -142,7 +217,7 @@ export class ClawhHubStore extends BaseRemoteStore implements IRemoteSkillStore,
                 return res.text();
             }
 
-            // Fallback: download endpoint
+            // Fallback: 从 zip 包中提取 SKILL.md
             const dlUrl = new URL('/api/v1/download', this.baseUrl);
             dlUrl.searchParams.set('slug', slug);
 
@@ -151,11 +226,19 @@ export class ClawhHubStore extends BaseRemoteStore implements IRemoteSkillStore,
                 signal: controller.signal,
             });
 
-            if (dlRes.ok) {
-                return dlRes.text();
+            if (!dlRes.ok) {
+                throw new Error(`Failed to fetch skill content for "${slug}": ${dlRes.status}`);
             }
 
-            throw new Error(`Failed to fetch skill content for "${slug}": ${dlRes.status}`);
+            const zipBuffer = new Uint8Array(await dlRes.arrayBuffer());
+            const files = unzipSync(zipBuffer);
+            const prefix = resolveZipPrefix(Object.keys(files));
+            const skillMdKey = prefix ? `${prefix}SKILL.md` : 'SKILL.md';
+            const skillMdBytes = files[skillMdKey];
+            if (!skillMdBytes) {
+                throw new Error(`SKILL.md not found in downloaded package for "${slug}"`);
+            }
+            return new TextDecoder().decode(skillMdBytes);
         } finally {
             clearTimeout(timer);
         }

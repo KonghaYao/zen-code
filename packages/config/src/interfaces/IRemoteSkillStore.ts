@@ -27,7 +27,13 @@ export interface IRemoteSkillStore {
     searchRemoteSkills(query: string): Promise<RemoteSkillItem[]>;
 
     /**
-     * 获取单个 skill 的完整内容
+     * 获取单个 skill 的完整内容（元数据 + SKILL.md 文本）
      */
     fetchRemoteSkill(name: string): Promise<RemoteSkillItem | null>;
+
+    /**
+     * 下载并安装 skill 到指定目录。
+     * 实现方可下载完整包（zip）并解压；未实现时由调用方回退到写 SKILL.md。
+     */
+    installRemoteSkill?(name: string, destDir: string): Promise<void>;
 }

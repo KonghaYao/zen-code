@@ -178,14 +178,20 @@ export function createStoreRouter(remoteStoreStorage: RemoteStoreStorage) {
                 const entry = remoteStoreStorage.get(input.storeId);
                 if (!entry) handleNotFound('RemoteStore', input.storeId);
                 const storeInstance = createStoreInstance(entry!);
-                const item = await storeInstance.fetchRemoteSkill(input.skillName);
-                if (!item) handleNotFound('RemoteSkill', input.skillName);
 
-                // 写入 ~/.claude/skills/<name>/SKILL.md
-                const skillName = item!.name || input.skillName;
+                const skillName = input.skillName;
                 const skillDir = join(homedir(), '.claude', 'skills', skillName);
                 mkdirSync(skillDir, { recursive: true });
-                writeFileSync(join(skillDir, 'SKILL.md'), item!.content, 'utf-8');
+
+                if (storeInstance.installRemoteSkill) {
+                    // 原生安装：下载完整 zip 包并解压（保留所有文件）
+                    await storeInstance.installRemoteSkill(input.skillName, skillDir);
+                } else {
+                    // 回退：仅写入 SKILL.md
+                    const item = await storeInstance.fetchRemoteSkill(input.skillName);
+                    if (!item) handleNotFound('RemoteSkill', input.skillName);
+                    writeFileSync(join(skillDir, 'SKILL.md'), item!.content, 'utf-8');
+                }
 
                 return { name: skillName };
             }),
