@@ -1,5 +1,7 @@
 import { AgentPackage } from '@langgraph-js/standard-agent';
 import { FilesystemMiddleware, TerminalMiddleware } from '@langgraph-js/agent-middlewares';
+import { AgentMiddleware } from 'langchain';
+import { CodeState } from '../state.js';
 
 /**
  * Register middleware implementations into the registry
@@ -7,12 +9,16 @@ import { FilesystemMiddleware, TerminalMiddleware } from '@langgraph-js/agent-mi
  */
 export async function createMiddlewareRegistry(pkg: AgentPackage) {
     // FilesystemMiddleware from agent-middlewares
+    const modify = (m: AgentMiddleware) => {
+        m.stateSchema = CodeState;
+        return m;
+    };
     const filesystem = {
         id: 'filesystem',
         name: 'filesystem',
         description: 'File and directory operations (read, write, search, glob)',
         execute: async () => {
-            return new FilesystemMiddleware();
+            return modify(new FilesystemMiddleware());
         },
     };
     await pkg.addMiddleware(filesystem);
@@ -24,7 +30,7 @@ export async function createMiddlewareRegistry(pkg: AgentPackage) {
         name: 'terminal',
         description: 'Terminal command execution (Bash/CMD, background processes)',
         execute: async () => {
-            return new TerminalMiddleware();
+            return modify(new TerminalMiddleware());
         },
     };
     await pkg.addMiddleware(terminal);
