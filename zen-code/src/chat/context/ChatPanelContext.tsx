@@ -11,7 +11,6 @@
 
 import { createContext, useContext, ReactNode } from 'react';
 import type { ChatView } from '../hooks/useChatPanels';
-import type { TaskNode } from '@codegraph/config';
 
 export interface ChatPanelContextValue {
     activeView: ChatView;
@@ -21,12 +20,10 @@ export interface ChatPanelContextValue {
     switchToSettings: () => void;
     switchToModelProvider: () => void;
     switchToAgent: () => void;
-    switchToTask: () => void;
     switchToMcp: () => void;
     switchToProcess: () => void;
     switchToErrors: () => void;
     closePanel: () => void;
-    handleExecuteTask: (task: TaskNode) => void;
     hasPendingInteractions: boolean;
 }
 

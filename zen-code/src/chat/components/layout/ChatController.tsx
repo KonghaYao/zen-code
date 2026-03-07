@@ -28,7 +28,6 @@ import { useToolInitialization } from '../../hooks/useToolInitialization';
 import { useConfigValidation } from '../../hooks/useConfigValidation';
 import { useAutoFocus } from '../../hooks/useAutoFocus';
 import { useChatPanels } from '../../hooks/useChatPanels';
-import { useTaskExecutor } from '../../hooks/useTaskExecutor';
 import { ChatPanelProvider, type ChatPanelContextValue } from '../../context/ChatPanelContext';
 import DefaultTools from '../../tools/index';
 import SetupWizard from '../setup/SetupWizard';
@@ -58,9 +57,6 @@ const ChatControllerInternal: React.FC<ChatControllerProps> = ({ children }) => 
     // Panel management
     const panelState = useChatPanels();
     const { isChatView } = panelState;
-
-    // Task execution handler
-    const { handleExecuteTask } = useTaskExecutor({ closePanel: panelState.closePanel });
 
     // Global keyboard shortcuts
     useInput(
@@ -95,12 +91,10 @@ const ChatControllerInternal: React.FC<ChatControllerProps> = ({ children }) => 
         switchToSettings: panelState.switchToSettings,
         switchToModelProvider: panelState.switchToModelProvider,
         switchToAgent: panelState.switchToAgent,
-        switchToTask: panelState.switchToTask,
         switchToMcp: panelState.switchToMcp,
         switchToProcess: panelState.switchToProcess,
         switchToErrors: panelState.switchToErrors,
         closePanel: panelState.closePanel,
-        handleExecuteTask,
         hasPendingInteractions,
     };
 

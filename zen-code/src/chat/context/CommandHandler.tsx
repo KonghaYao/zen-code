@@ -27,7 +27,6 @@ interface CommandHandlerProps {
     switchToModelProvider?: () => void;
     /** 切换到 Agent 面板 */
     switchToAgent?: () => void;
-    switchToTask?: () => void;
     switchToMcp?: () => void;
     switchToProcess?: () => void;
     /** 切换到错误日志面板 */
@@ -64,7 +63,6 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
         switchToSettings,
         switchToAgent,
         closePanel,
-        switchToTask,
         switchToModelProvider,
         switchToMcp,
         switchToProcess,
@@ -134,7 +132,6 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
                     switchToSettings,
                     switchToModelProvider,
                     switchToAgent,
-                    switchToTask,
                     switchToMcp,
                     switchToProcess,
                     switchToErrors,
@@ -190,7 +187,6 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
             switchToSettings,
             switchToModelProvider,
             switchToAgent,
-            switchToTask,
             switchToMcp,
             switchToProcess,
             switchToErrors,

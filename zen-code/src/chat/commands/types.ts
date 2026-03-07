@@ -50,8 +50,6 @@ export interface CommandContext {
     switchToModelProvider?: () => void;
     /** 切换到 Agent 面板 */
     switchToAgent?: () => void;
-    /** 切换到任务看板面板 */
-    switchToTask?: () => void;
     /** 切换到 MCP 配置面板 */
     switchToMcp?: () => void;
     /** 切换到进程管理器面板 */

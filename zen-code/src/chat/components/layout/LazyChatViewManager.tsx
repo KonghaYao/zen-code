@@ -19,7 +19,6 @@ import {
     LazySettingsPanel,
     LazyModelProviderPanel,
     LazyAgentPanel,
-    LazyTaskPanel,
     LazyMcpPanel,
     LazyProcessPanel,
     LazyErrorPanel,
@@ -50,7 +49,7 @@ const PanelErrorFallback = (panelName: string) => (
  * Each panel wrapped with ErrorBoundary for isolation.
  */
 export const LazyChatViewManager: React.FC = memo(() => {
-    const { activeView, closePanel, handleExecuteTask } = useChatPanel();
+    const { activeView, closePanel } = useChatPanel();
 
     return (
         <Box flexGrow={1} flexDirection="row">
@@ -94,13 +93,6 @@ export const LazyChatViewManager: React.FC = memo(() => {
                 <Suspense key="agent-suspense" fallback={<LoadingFallback />}>
                     <ErrorBoundary key="agent-panel" name="AgentPanel" fallback={PanelErrorFallback('Agent')}>
                         <LazyAgentPanel onClose={closePanel} />
-                    </ErrorBoundary>
-                </Suspense>
-            )}
-            {activeView === 'task' && (
-                <Suspense key="task-suspense" fallback={<LoadingFallback />}>
-                    <ErrorBoundary key="task-panel" name="TaskPanel" fallback={PanelErrorFallback('Task')}>
-                        <LazyTaskPanel onClose={closePanel} onExecuteTask={handleExecuteTask} />
                     </ErrorBoundary>
                 </Suspense>
             )}

@@ -46,28 +46,25 @@ const ChatMessages: React.FC = () => {
 
     return (
         <Box flexDirection="column" flexGrow={1} paddingX={0} paddingY={0}>
-            {debouncedRenderMessages.length === 0 && <WelcomeHeader />}
-
-            {/* 当没有消息的时候, 绝对不要渲染 */}
-            {debouncedRenderMessages.length ? (
-                compactMode ? (
-                    <CompactMessagesBox
-                        renderMessages={debouncedRenderMessages}
-                        startIndex={0}
-                        staticKey={currentChatId!}
-                        getToolUIRender={stableGetToolUIRender}
-                        loading={loading}
-                        key={currentChatId}
-                    />
-                ) : (
-                    <MessagesBox
-                        loading={loading}
-                        renderMessages={debouncedRenderMessages}
-                        startIndex={0}
-                        staticKey={currentChatId!}
-                    />
-                )
-            ) : null}
+            {debouncedRenderMessages.length === 0 ? (
+                <WelcomeHeader />
+            ) : compactMode ? (
+                <CompactMessagesBox
+                    renderMessages={debouncedRenderMessages}
+                    startIndex={0}
+                    staticKey={currentChatId!}
+                    getToolUIRender={stableGetToolUIRender}
+                    loading={loading}
+                    key={currentChatId}
+                />
+            ) : (
+                <MessagesBox
+                    loading={loading}
+                    renderMessages={debouncedRenderMessages}
+                    startIndex={0}
+                    staticKey={currentChatId!}
+                />
+            )}
         </Box>
     );
 };

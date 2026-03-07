@@ -20,7 +20,6 @@ export type ChatView =
     | 'settings'
     | 'model-provider'
     | 'agent'
-    | 'task'
     | 'mcp'
     | 'process'
     | 'errors';
@@ -33,7 +32,6 @@ interface UseChatPanelsResult {
     switchToSettings: () => void;
     switchToModelProvider: () => void;
     switchToAgent: () => void;
-    switchToTask: () => void;
     switchToMcp: () => void;
     switchToProcess: () => void;
     switchToErrors: () => void;
@@ -74,10 +72,6 @@ export function useChatPanels(): UseChatPanelsResult {
         setActiveView('agent');
     }, []);
 
-    const switchToTask = useCallback(() => {
-        setActiveView('task');
-    }, []);
-
     const switchToMcp = useCallback(() => {
         setActiveView('mcp');
     }, []);
@@ -106,7 +100,6 @@ export function useChatPanels(): UseChatPanelsResult {
         switchToSettings,
         switchToModelProvider,
         switchToAgent,
-        switchToTask,
         switchToMcp,
         switchToProcess,
         switchToErrors,
