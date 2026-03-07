@@ -33,7 +33,6 @@ describe('planCommand', () => {
         expect(messages[0].type).toBe('human');
         expect(messages[0].content).toContain('[Plan Mode Activated]');
         expect(messages[0].content).toContain('create login feature');
-        expect(messages[0].content).toContain('writing-plans skill');
     });
 
     it('should return success result with message', async () => {

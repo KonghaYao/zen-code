@@ -81,12 +81,12 @@ describe('dbPath utils', () => {
             const fileSize = 5 * 1024 * 1024; // 5MB
             fs.writeFileSync(testDbPath, 'x'.repeat(fileSize));
 
-            const consoleWarnSpy = vi.spyOn(console, 'warn');
+            const consoleTraceSpy = vi.spyOn(console, 'trace');
             checkDbSize(testDbPath, 1 * 1024 * 1024); // 1MB limit
-            expect(consoleWarnSpy).toHaveBeenCalled();
-            const warnCall = consoleWarnSpy.mock.calls[0][0] as string;
-            expect(warnCall).toContain('5.00MB');
-            consoleWarnSpy.mockRestore();
+            expect(consoleTraceSpy).toHaveBeenCalled();
+            const traceCall = consoleTraceSpy.mock.calls[0][0] as string;
+            expect(traceCall).toContain('5.00MB');
+            consoleTraceSpy.mockRestore();
         });
 
         it('should use default limit (100MB) if no env var', () => {
@@ -103,13 +103,13 @@ describe('dbPath utils', () => {
             const fileSize = 15 * 1024 * 1024; // 15MB
             fs.writeFileSync(testDbPath, 'x'.repeat(fileSize));
 
-            const consoleWarnSpy = vi.spyOn(console, 'warn');
+            const consoleTraceSpy = vi.spyOn(console, 'trace');
             checkDbSize(testDbPath);
-            expect(consoleWarnSpy).toHaveBeenCalled();
-            const warnCall = consoleWarnSpy.mock.calls[0][0] as string;
-            expect(warnCall).toContain('15.00MB');
-            expect(warnCall).toContain('limit: 10.00MB');
-            consoleWarnSpy.mockRestore();
+            expect(consoleTraceSpy).toHaveBeenCalled();
+            const traceCall = consoleTraceSpy.mock.calls[0][0] as string;
+            expect(traceCall).toContain('15.00MB');
+            expect(traceCall).toContain('limit: 10.00MB');
+            consoleTraceSpy.mockRestore();
         });
 
         it('should prioritize parameter over env var', () => {
@@ -119,12 +119,12 @@ describe('dbPath utils', () => {
             const fileSize = 15 * 1024 * 1024;
             fs.writeFileSync(testDbPath, 'x'.repeat(fileSize));
 
-            const consoleWarnSpy = vi.spyOn(console, 'warn');
+            const consoleTraceSpy = vi.spyOn(console, 'trace');
             checkDbSize(testDbPath, 10 * 1024 * 1024); // 10MB parameter
-            expect(consoleWarnSpy).toHaveBeenCalled();
-            const warnCall = consoleWarnSpy.mock.calls[0][0] as string;
-            expect(warnCall).toContain('limit: 10.00MB');
-            consoleWarnSpy.mockRestore();
+            expect(consoleTraceSpy).toHaveBeenCalled();
+            const traceCall = consoleTraceSpy.mock.calls[0][0] as string;
+            expect(traceCall).toContain('limit: 10.00MB');
+            consoleTraceSpy.mockRestore();
         });
     });
 

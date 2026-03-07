@@ -25,7 +25,6 @@ const INTERACTIVE_COMMANDS = [
     'more',
     'top',
     'htop',
-    'git commit',
     'git rebase -i',
     'crontab -e',
     'vi',

@@ -125,8 +125,8 @@ describe('CronMiddleware', () => {
         });
     });
 
-    describe('create command', () => {
-        it('should create a new task', async () => {
+    describe('upsert command', () => {
+        it('should create a new task with upsert', async () => {
             const tool = middleware.tools[0];
             const taskData = {
                 id: 'test-task',
@@ -137,13 +137,14 @@ describe('CronMiddleware', () => {
             };
 
             const result = await tool.invoke({
-                command: 'create',
+                command: 'upsert',
                 task: taskData,
             });
             const parsed = JSON.parse(result as string);
 
             expect(parsed.success).toBe(true);
             expect(parsed.id).toBe('test-task');
+            expect(parsed.message).toContain('created');
             expect(mockStorage.insertTask).toHaveBeenCalled();
             expect(mockScheduler.scheduleTask).toHaveBeenCalled();
         });
@@ -153,21 +154,6 @@ describe('CronMiddleware', () => {
         it('should return error for non-existent task', async () => {
             const tool = middleware.tools[0];
             const result = await tool.invoke({ command: 'get', task_id: 'non-existent' });
-            const parsed = JSON.parse(result as string);
-
-            expect(parsed.success).toBe(false);
-            expect(parsed.error).toContain('Task not found');
-        });
-    });
-
-    describe('update command', () => {
-        it('should return error for non-existent task', async () => {
-            const tool = middleware.tools[0];
-            const result = await tool.invoke({
-                command: 'update',
-                task_id: 'non-existent',
-                updates: { name: 'New Name' },
-            });
             const parsed = JSON.parse(result as string);
 
             expect(parsed.success).toBe(false);
@@ -244,12 +230,12 @@ describe('CronMiddleware', () => {
     });
 
     describe('full workflow', () => {
-        it('should handle create, get, toggle, and delete', async () => {
+        it('should handle upsert, get, toggle, and delete', async () => {
             const tool = middleware.tools[0];
 
-            // Create task
+            // Create task via upsert
             const createResult = await tool.invoke({
-                command: 'create',
+                command: 'upsert',
                 task: {
                     id: 'workflow-test',
                     name: 'Workflow Test',
@@ -294,9 +280,9 @@ describe('CronMiddleware', () => {
         it('should handle multiple concurrent triggers of the same task', async () => {
             const tool = middleware.tools[0];
 
-            // Create a task
+            // Create a task via upsert
             await tool.invoke({
-                command: 'create',
+                command: 'upsert',
                 task: {
                     id: 'concurrent-test',
                     name: 'Concurrent Test',
@@ -349,7 +335,7 @@ describe('CronMiddleware', () => {
 
             for (const expr of validExpressions) {
                 await tool.invoke({
-                    command: 'create',
+                    command: 'upsert',
                     task: {
                         id: `cron-validation-${expr.replace(/[^a-zA-Z0-9]/g, '')}`,
                         name: 'Validation Test',
@@ -371,7 +357,7 @@ describe('CronMiddleware', () => {
 
             for (const expr of edgeExpressions) {
                 const result = await tool.invoke({
-                    command: 'create',
+                    command: 'upsert',
                     task: {
                         id: `edge-${expr.replace(/[^a-zA-Z0-9]/g, '')}`,
                         name: 'Edge Test',
@@ -386,46 +372,37 @@ describe('CronMiddleware', () => {
         });
     });
 
-    describe('task update edge cases', () => {
-        it('should handle updating enabled to false', async () => {
+    describe('task upsert edge cases', () => {
+        it('should handle upserting task with enabled false', async () => {
             const tool = middleware.tools[0];
 
-            // Create enabled task
-            await tool.invoke({
-                command: 'create',
+            // Create disabled task via upsert
+            const result = await tool.invoke({
+                command: 'upsert',
                 task: {
-                    id: 'update-test',
-                    name: 'Update Test',
+                    id: 'disabled-test',
+                    name: 'Disabled Test',
                     cron_expression: '0 9 * * *',
                     prompt: 'Test',
                     agent_id: 'agents/default',
-                    enabled: true,
+                    enabled: false,
                 },
-            });
-            expect(mockScheduler.scheduleTask).toHaveBeenCalled();
-
-            // Update to disabled
-            const result = await tool.invoke({
-                command: 'update',
-                task_id: 'update-test',
-                updates: { enabled: false },
             });
 
             const parsed = JSON.parse(result as string);
             expect(parsed.success).toBe(true);
-            // Note: The middleware's update command only calls scheduler.scheduleTask,
-            // the unschedule/reschedule logic is handled at the API level (api/cron.ts)
+            expect(parsed.message).toContain('created');
         });
 
-        it('should handle updating cron expression while enabled', async () => {
+        it('should handle updating existing task via upsert', async () => {
             const tool = middleware.tools[0];
 
             // Create task
             await tool.invoke({
-                command: 'create',
+                command: 'upsert',
                 task: {
-                    id: 'expr-update-test',
-                    name: 'Expression Update Test',
+                    id: 'upsert-update-test',
+                    name: 'Original Name',
                     cron_expression: '0 9 * * *',
                     prompt: 'Test',
                     agent_id: 'agents/default',
@@ -433,16 +410,23 @@ describe('CronMiddleware', () => {
                 },
             });
 
-            // Update expression (should reschedule)
+            // Update via upsert (same id, different data)
             const result = await tool.invoke({
-                command: 'update',
-                task_id: 'expr-update-test',
-                updates: { cron_expression: '0 10 * * *' },
+                command: 'upsert',
+                task: {
+                    id: 'upsert-update-test',
+                    name: 'Updated Name',
+                    cron_expression: '0 10 * * *',
+                    prompt: 'Updated Test',
+                    agent_id: 'agents/default',
+                    enabled: true,
+                },
             });
 
             const parsed = JSON.parse(result as string);
             expect(parsed.success).toBe(true);
-            expect(mockScheduler.scheduleTask).toHaveBeenCalled();
+            expect(parsed.message).toContain('updated');
+            expect(mockStorage.updateTask).toHaveBeenCalled();
         });
     });
 });

@@ -191,8 +191,9 @@ describe('useSkillAutocomplete', () => {
         });
 
         // Should replace #web at its position
+        // Implementation uses trimStart() on afterQuery to avoid double-space
         const completedText = result.current.complete('hello #web world');
-        expect(completedText).toBe('hello #web-research  world');
+        expect(completedText).toBe('hello #web-research world');
     });
 
     it('should return null for getFirstSkill when not active', () => {

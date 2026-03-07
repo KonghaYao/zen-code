@@ -24,7 +24,8 @@ describe('notify', () => {
 
         expect(notifier.notify).toHaveBeenCalledTimes(1);
         expect(notifier.notify).toHaveBeenCalledWith({
-            title: 'Test message',
+            title: 'Notification',
+            message: 'Test message',
         });
     });
 
@@ -82,7 +83,7 @@ describe('notify', () => {
         expect(notifier.notify).toHaveBeenCalledWith(
             expect.objectContaining({
                 sound: true,
-            })
+            }),
         );
     });
 
@@ -96,7 +97,7 @@ describe('notify', () => {
         expect(notifier.notify).toHaveBeenCalledWith(
             expect.objectContaining({
                 sound: false,
-            })
+            }),
         );
     });
 });

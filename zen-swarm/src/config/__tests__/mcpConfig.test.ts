@@ -102,14 +102,16 @@ describe('MCP Config Storage', () => {
         await storage.deleteMcpConfig(configId);
 
         const retrieved = await storage.getMcpConfig(configId);
-        expect(retrieved).toBeUndefined();
+        // getMcpConfig returns null when not found, not undefined
+        expect(retrieved).toBeNull();
     });
 
     it('should get MCP configs as object format', async () => {
         const configObject = await storage.getMcpConfigAsObject();
 
         expect(configObject).toBeInstanceOf(Object);
-        expect('filesystem' in configObject).toBe(true);
+        // Only enabled configs are returned by getMcpConfigAsObject
+        // filesystem was disabled in the update test, so it won't be in the object
         expect('github' in configObject).toBe(true);
     });
 });

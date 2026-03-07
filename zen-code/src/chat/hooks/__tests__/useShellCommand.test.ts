@@ -8,26 +8,27 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useShellCommand } from '../useShellCommand';
 
-// Mock fetch for API calls
-const mockFetch = vi.fn();
-global.fetch = mockFetch as any;
+// Mock executeBashCommand
+vi.mock('@codegraph/agent/src/server/bash_command', () => ({
+    executeBashCommand: vi.fn(),
+}));
+
+// Import after mock
+const { executeBashCommand } = await import('@codegraph/agent/src/server/bash_command');
+const mockExecute = executeBashCommand as ReturnType<typeof vi.fn>;
 
 describe('useShellCommand', () => {
     beforeEach(() => {
-        mockFetch.mockClear();
+        mockExecute.mockClear();
     });
 
     it('should execute shell command successfully', async () => {
-        // Mock successful API response
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                id: 'test-id',
-                pid: 12345,
-                output: 'Command output',
-                status: 'completed',
-                exitCode: 0,
-            }),
+        mockExecute.mockResolvedValueOnce({
+            id: 'test-id',
+            pid: 12345,
+            output: 'Command output',
+            status: 'completed',
+            exitCode: 0,
         });
 
         const { result } = renderHook(() => useShellCommand());
@@ -52,11 +53,11 @@ describe('useShellCommand', () => {
         const { result } = renderHook(() => useShellCommand());
 
         await act(async () => {
-            const response = await result.current.executeCommand('   ');
+            await result.current.executeCommand('   ');
         });
 
         expect(result.current.activeCommand).toBeNull();
-        expect(mockFetch).not.toHaveBeenCalled();
+        expect(mockExecute).not.toHaveBeenCalled();
     });
 
     it('should detect and reject interactive commands', async () => {
@@ -73,7 +74,7 @@ describe('useShellCommand', () => {
             status: 'failed',
         });
 
-        expect(mockFetch).not.toHaveBeenCalled();
+        expect(mockExecute).not.toHaveBeenCalled();
     });
 
     it('should detect git commit as interactive', async () => {
@@ -90,20 +91,16 @@ describe('useShellCommand', () => {
             status: 'failed',
         });
 
-        expect(mockFetch).not.toHaveBeenCalled();
+        expect(mockExecute).not.toHaveBeenCalled();
     });
 
     it('should allow non-interactive git commands', async () => {
-        // Mock successful API response
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                id: 'test-id',
-                pid: 12345,
-                output: 'Commit created',
-                status: 'completed',
-                exitCode: 0,
-            }),
+        mockExecute.mockResolvedValueOnce({
+            id: 'test-id',
+            pid: 12345,
+            output: 'Commit created',
+            status: 'completed',
+            exitCode: 0,
         });
 
         const { result } = renderHook(() => useShellCommand());
@@ -121,15 +118,11 @@ describe('useShellCommand', () => {
             pid: 12345,
         });
 
-        expect(mockFetch).toHaveBeenCalled();
+        expect(mockExecute).toHaveBeenCalled();
     });
 
     it('should handle API errors', async () => {
-        // Mock failed API response
-        mockFetch.mockResolvedValueOnce({
-            ok: false,
-            statusText: 'Internal Server Error',
-        });
+        mockExecute.mockRejectedValueOnce(new Error('API request failed: Internal Server Error'));
 
         const { result } = renderHook(() => useShellCommand());
 
@@ -148,16 +141,12 @@ describe('useShellCommand', () => {
     });
 
     it('should clear output on command', async () => {
-        // Mock successful API response
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                id: 'test-id',
-                pid: 12345,
-                output: 'Command output',
-                status: 'completed',
-                exitCode: 0,
-            }),
+        mockExecute.mockResolvedValueOnce({
+            id: 'test-id',
+            pid: 12345,
+            output: 'Command output',
+            status: 'completed',
+            exitCode: 0,
         });
 
         const { result } = renderHook(() => useShellCommand());
@@ -176,38 +165,37 @@ describe('useShellCommand', () => {
     });
 
     it('should set isExecuting to true during command execution', async () => {
-        let resolveFetch: (value: any) => void;
+        let resolveMock: (value: any) => void;
 
-        // Mock delayed API response
-        mockFetch.mockImplementationOnce(
+        mockExecute.mockImplementationOnce(
             () =>
                 new Promise((resolve) => {
-                    resolveFetch = resolve;
+                    resolveMock = resolve;
                 }),
         );
 
         const { result } = renderHook(() => useShellCommand());
 
-        const executePromise = act(async () => {
-            await result.current.executeCommand('sleep 1');
+        // Start command without awaiting - just fire it off
+        act(() => {
+            result.current.executeCommand('sleep 1');
         });
 
-        // Check that isExecuting is true while command is running
+        // Immediately after starting, isExecuting should be true
+        // Note: In bun's React test environment, state updates may be synchronous
+        // so we check it immediately after triggering
         expect(result.current.isExecuting).toBe(true);
 
         // Resolve to complete the command
-        resolveFetch!({
-            ok: true,
-            json: async () => ({
+        await act(async () => {
+            resolveMock!({
                 id: 'test-id',
                 pid: 12345,
                 output: '',
                 status: 'completed',
                 exitCode: 0,
-            }),
+            });
         });
-
-        await executePromise;
 
         expect(result.current.isExecuting).toBe(false);
     });

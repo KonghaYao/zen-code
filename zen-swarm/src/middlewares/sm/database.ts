@@ -9,7 +9,8 @@
  */
 
 import Database from 'bun:sqlite';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { mkdirSync } from 'fs';
 import {
     StateMachineDefinitionRow,
     StateInstanceRow,
@@ -67,6 +68,7 @@ export class SMDatabase {
         if (typeof config === 'string') {
             // Backward compatible: config is dbPath
             this.dbPath = config;
+            mkdirSync(dirname(this.dbPath), { recursive: true });
             this.db = new Database(this.dbPath, { create: true });
             this.ownsDb = true;
         } else if (config?.db) {
@@ -76,6 +78,7 @@ export class SMDatabase {
         } else {
             // Create new Database with provided or default path
             this.dbPath = config?.dbPath || SMDatabase.getDefaultPath();
+            mkdirSync(dirname(this.dbPath), { recursive: true });
             this.db = new Database(this.dbPath, { create: true });
             this.ownsDb = true;
         }

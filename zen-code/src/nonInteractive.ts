@@ -33,7 +33,7 @@ async function readStdin(): Promise<string> {
  * @param prompt - 命令行参数提供的提示词（可选）
  * @param useStdin - 是否从 stdin 读取（用于管道支持）
  */
-export async function runNonInteractive(prompt?: string, useStdin: boolean = false) {
+export async function runNonInteractive(prompt?: string, useStdin: boolean = false): Promise<any> {
     // 初始化配置（读取 ~/.zen-code/settings.json）
     const configManager = await createFSManager();
     await configManager.initialize();

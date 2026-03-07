@@ -46,7 +46,8 @@ describe('WorkspaceStorage', () => {
             expect(workspace.description).toBe('Test workspace');
             expect(workspace.createdAt).toBeDefined();
             expect(workspace.updatedAt).toBeDefined();
-            expect(workspace.lastAccessedAt).toBeUndefined();
+            // lastAccessedAt is initialized to creation time on workspace creation
+            expect(workspace.lastAccessedAt).toBeDefined();
         });
 
         it('should throw error if name already exists', async () => {

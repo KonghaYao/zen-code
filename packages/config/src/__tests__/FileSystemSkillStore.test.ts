@@ -69,7 +69,8 @@ describe('FileSystemSkillStore', () => {
         const mockProjectDir = path.join(tempBaseDir, 'project');
 
         // Store the actual skill directories for test setup
-        userSkillsDir = path.join(mockHomeDir, '.claude', 'code', 'skills');
+        // Note: FileSystemSkillStore uses ~/.claude/skills (not ~/.claude/code/skills)
+        userSkillsDir = path.join(mockHomeDir, '.claude', 'skills');
         projectSkillsDir = path.join(mockProjectDir, '.claude', 'skills');
 
         // Create the directories
@@ -304,7 +305,7 @@ describe('FileSystemSkillStore', () => {
         });
 
         it('should handle deleting non-existent skill gracefully', async () => {
-            await expect(store.deleteSkill('non-existent')).resolves.not.toThrow();
+            await expect(store.deleteSkill('non-existent')).resolves.toBeUndefined();
         });
 
         it('should delete entire skill directory', async () => {
@@ -395,7 +396,7 @@ describe('FileSystemSkillStore', () => {
                 listRemotePlugins: vi.fn(),
             };
 
-            await expect(store.syncFromRemote(mockRemoteStore)).resolves.not.toThrow();
+            await expect(store.syncFromRemote(mockRemoteStore)).resolves.toBeUndefined();
             expect(mockRemoteStore.fetchSkill).not.toHaveBeenCalled();
         });
     });

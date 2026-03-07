@@ -4,195 +4,187 @@ import { useSkills } from '../hooks/useSkills.js';
 import type { ConfigManager } from '@codegraph/config';
 import type { Skill, SkillContent } from '@codegraph/config';
 
-// Mock ConfigManager
-const mockManager = {
-  listSkills: vi.fn(),
-  getSkill: vi.fn(),
-  saveSkill: vi.fn(),
-  deleteSkill: vi.fn(),
-} as unknown as ConfigManager;
+// Mock ConfigManager - 保留原始 mock 函数引用以便直接调用
+const mocks = {
+    listSkills: vi.fn(),
+    getSkill: vi.fn(),
+    saveSkill: vi.fn(),
+    deleteSkill: vi.fn(),
+};
+
+const mockManager = mocks as unknown as ConfigManager;
 
 describe('useSkills', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  describe('initialization', () => {
-    it('should return empty skills when manager is null', async () => {
-      const { result } = renderHook(() => useSkills(null));
-
-      expect(result.current.loading).toBe(false);
-      expect(result.current.skills).toEqual([]);
-      expect(result.current.error).toBeNull();
+    beforeEach(() => {
+        vi.clearAllMocks();
     });
 
-    it('should load skills on mount', async () => {
-      const mockSkills: Skill[] = [
-        { name: 'skill1', description: 'Skill 1', path: '/path/to/skill1' },
-        { name: 'skill2', description: 'Skill 2', path: '/path/to/skill2' },
-      ];
-      vi.mocked(mockManager.listSkills).mockResolvedValue(mockSkills);
+    describe('initialization', () => {
+        it('should return empty skills when manager is null', async () => {
+            const { result } = renderHook(() => useSkills(null));
 
-      const { result } = renderHook(() => useSkills(mockManager));
+            expect(result.current.loading).toBe(false);
+            expect(result.current.skills).toEqual([]);
+            expect(result.current.error).toBeNull();
+        });
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
+        it('should load skills on mount', async () => {
+            const mockSkills: Skill[] = [
+                { name: 'skill1', description: 'Skill 1', path: '/path/to/skill1' },
+                { name: 'skill2', description: 'Skill 2', path: '/path/to/skill2' },
+            ];
+            mocks.listSkills.mockResolvedValue(mockSkills);
 
-      expect(mockManager.listSkills).toHaveBeenCalledOnce();
-      expect(result.current.skills).toEqual(mockSkills);
-      expect(result.current.error).toBeNull();
+            const { result } = renderHook(() => useSkills(mockManager));
+
+            await waitFor(() => {
+                expect(result.current.loading).toBe(false);
+            });
+
+            expect(mockManager.listSkills).toHaveBeenCalledOnce();
+            expect(result.current.skills).toEqual(mockSkills);
+            expect(result.current.error).toBeNull();
+        });
+
+        it('should handle errors during load', async () => {
+            const error = new Error('Failed to load skills');
+            mocks.listSkills.mockRejectedValue(error);
+
+            const { result } = renderHook(() => useSkills(mockManager));
+
+            await waitFor(() => {
+                expect(result.current.loading).toBe(false);
+            });
+
+            expect(result.current.error).toEqual(error);
+        });
     });
 
-    it('should handle errors during load', async () => {
-      const error = new Error('Failed to load skills');
-      vi.mocked(mockManager.listSkills).mockRejectedValue(error);
+    describe('getSkill', () => {
+        it('should get skill content', async () => {
+            const mockContent: SkillContent = {
+                frontmatter: { description: 'Test Skill' },
+                markdown: '# Test Skill\n\nContent here',
+            };
+            mocks.getSkill.mockResolvedValue(mockContent);
 
-      const { result } = renderHook(() => useSkills(mockManager));
+            const { result } = renderHook(() => useSkills(mockManager));
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
+            let content: SkillContent | null = null;
+            await act(async () => {
+                content = await result.current.getSkill('test-skill');
+            });
 
-      expect(result.current.error).toEqual(error);
-    });
-  });
+            expect(mockManager.getSkill).toHaveBeenCalledWith('test-skill');
+            expect(content).toEqual(mockContent);
+        });
 
-  describe('getSkill', () => {
-    it('should get skill content', async () => {
-      const mockContent: SkillContent = {
-        frontmatter: { description: 'Test Skill' },
-        markdown: '# Test Skill\n\nContent here',
-      };
-      vi.mocked(mockManager.getSkill).mockResolvedValue(mockContent);
+        it('should throw error when manager is null', async () => {
+            const { result } = renderHook(() => useSkills(null));
 
-      const { result } = renderHook(() => useSkills(mockManager));
+            await expect(result.current.getSkill('test-skill')).rejects.toThrow('ConfigManager not initialized');
+        });
 
-      let content: SkillContent | null = null;
-      await act(async () => {
-        content = await result.current.getSkill('test-skill');
-      });
+        it('should throw error on getSkill failure', async () => {
+            const error = new Error('Skill not found');
+            mocks.getSkill.mockRejectedValue(error);
 
-      expect(mockManager.getSkill).toHaveBeenCalledWith('test-skill');
-      expect(content).toEqual(mockContent);
-    });
+            const { result } = renderHook(() => useSkills(mockManager));
 
-    it('should throw error when manager is null', async () => {
-      const { result } = renderHook(() => useSkills(null));
-
-      await expect(result.current.getSkill('test-skill')).rejects.toThrow(
-        'ConfigManager not initialized'
-      );
+            await expect(result.current.getSkill('test-skill')).rejects.toThrow(
+                'Failed to get skill "test-skill": Skill not found',
+            );
+        });
     });
 
-    it('should throw error on getSkill failure', async () => {
-      const error = new Error('Skill not found');
-      vi.mocked(mockManager.getSkill).mockRejectedValue(error);
+    describe('saveSkill', () => {
+        it('should save skill and reload list', async () => {
+            const mockSkills: Skill[] = [{ name: 'skill1', description: 'Skill 1', path: '/path/to/skill1' }];
+            const mockContent: SkillContent = {
+                frontmatter: { description: 'New Skill' },
+                markdown: '# New Skill',
+            };
 
-      const { result } = renderHook(() => useSkills(mockManager));
+            mocks.listSkills.mockResolvedValue(mockSkills);
+            mocks.saveSkill.mockResolvedValue(undefined);
 
-      await expect(result.current.getSkill('test-skill')).rejects.toThrow(
-        'Failed to get skill "test-skill": Skill not found'
-      );
-    });
-  });
+            const { result } = renderHook(() => useSkills(mockManager));
 
-  describe('saveSkill', () => {
-    it('should save skill and reload list', async () => {
-      const mockSkills: Skill[] = [
-        { name: 'skill1', description: 'Skill 1', path: '/path/to/skill1' },
-      ];
-      const mockContent: SkillContent = {
-        frontmatter: { description: 'New Skill' },
-        markdown: '# New Skill',
-      };
+            // Wait for initial load
+            await waitFor(() => {
+                expect(result.current.loading).toBe(false);
+            });
 
-      vi.mocked(mockManager.listSkills).mockResolvedValue(mockSkills);
-      vi.mocked(mockManager.saveSkill).mockResolvedValue(undefined);
+            // Save skill
+            await act(async () => {
+                await result.current.saveSkill('new-skill', mockContent);
+            });
 
-      const { result } = renderHook(() => useSkills(mockManager));
+            expect(mockManager.saveSkill).toHaveBeenCalledWith('new-skill', mockContent);
+            expect(mockManager.listSkills).toHaveBeenCalledTimes(2); // Initial load + reload after save
+        });
 
-      // Wait for initial load
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
+        it('should throw error when manager is null', async () => {
+            const { result } = renderHook(() => useSkills(null));
 
-      // Save skill
-      await act(async () => {
-        await result.current.saveSkill('new-skill', mockContent);
-      });
-
-      expect(mockManager.saveSkill).toHaveBeenCalledWith('new-skill', mockContent);
-      expect(mockManager.listSkills).toHaveBeenCalledTimes(2); // Initial load + reload after save
+            await expect(result.current.saveSkill('test-skill', {} as SkillContent)).rejects.toThrow(
+                'ConfigManager not initialized',
+            );
+        });
     });
 
-    it('should throw error when manager is null', async () => {
-      const { result } = renderHook(() => useSkills(null));
+    describe('deleteSkill', () => {
+        it('should delete skill and reload list', async () => {
+            const mockSkills: Skill[] = [];
+            mocks.listSkills.mockResolvedValue(mockSkills);
+            mocks.deleteSkill.mockResolvedValue(undefined);
 
-      await expect(
-        result.current.saveSkill('test-skill', {} as SkillContent)
-      ).rejects.toThrow('ConfigManager not initialized');
-    });
-  });
+            const { result } = renderHook(() => useSkills(mockManager));
 
-  describe('deleteSkill', () => {
-    it('should delete skill and reload list', async () => {
-      const mockSkills: Skill[] = [];
-      vi.mocked(mockManager.listSkills).mockResolvedValue(mockSkills);
-      vi.mocked(mockManager.deleteSkill).mockResolvedValue(undefined);
+            // Wait for initial load
+            await waitFor(() => {
+                expect(result.current.loading).toBe(false);
+            });
 
-      const { result } = renderHook(() => useSkills(mockManager));
+            // Delete skill
+            await act(async () => {
+                await result.current.deleteSkill('test-skill');
+            });
 
-      // Wait for initial load
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
+            expect(mockManager.deleteSkill).toHaveBeenCalledWith('test-skill');
+            expect(mockManager.listSkills).toHaveBeenCalledTimes(2); // Initial load + reload after delete
+        });
 
-      // Delete skill
-      await act(async () => {
-        await result.current.deleteSkill('test-skill');
-      });
+        it('should throw error when manager is null', async () => {
+            const { result } = renderHook(() => useSkills(null));
 
-      expect(mockManager.deleteSkill).toHaveBeenCalledWith('test-skill');
-      expect(mockManager.listSkills).toHaveBeenCalledTimes(2); // Initial load + reload after delete
+            await expect(result.current.deleteSkill('test-skill')).rejects.toThrow('ConfigManager not initialized');
+        });
     });
 
-    it('should throw error when manager is null', async () => {
-      const { result } = renderHook(() => useSkills(null));
+    describe('refresh', () => {
+        it('should reload skills list', async () => {
+            const mockSkills1: Skill[] = [{ name: 'skill1', description: 'Skill 1', path: '/path/to/skill1' }];
+            const mockSkills2: Skill[] = [
+                { name: 'skill1', description: 'Skill 1', path: '/path/to/skill1' },
+                { name: 'skill2', description: 'Skill 2', path: '/path/to/skill2' },
+            ];
 
-      await expect(result.current.deleteSkill('test-skill')).rejects.toThrow(
-        'ConfigManager not initialized'
-      );
+            mocks.listSkills.mockResolvedValueOnce(mockSkills1).mockResolvedValueOnce(mockSkills2);
+
+            const { result } = renderHook(() => useSkills(mockManager));
+
+            // Wait for initial load
+            await waitFor(() => {
+                expect(result.current.skills).toEqual(mockSkills1);
+            });
+
+            // Refresh
+            await act(async () => {
+                await result.current.refresh();
+            });
+
+            expect(result.current.skills).toEqual(mockSkills2);
+        });
     });
-  });
-
-  describe('refresh', () => {
-    it('should reload skills list', async () => {
-      const mockSkills1: Skill[] = [
-        { name: 'skill1', description: 'Skill 1', path: '/path/to/skill1' },
-      ];
-      const mockSkills2: Skill[] = [
-        { name: 'skill1', description: 'Skill 1', path: '/path/to/skill1' },
-        { name: 'skill2', description: 'Skill 2', path: '/path/to/skill2' },
-      ];
-
-      vi.mocked(mockManager.listSkills)
-        .mockResolvedValueOnce(mockSkills1)
-        .mockResolvedValueOnce(mockSkills2);
-
-      const { result } = renderHook(() => useSkills(mockManager));
-
-      // Wait for initial load
-      await waitFor(() => {
-        expect(result.current.skills).toEqual(mockSkills1);
-      });
-
-      // Refresh
-      await act(async () => {
-        await result.current.refresh();
-      });
-
-      expect(result.current.skills).toEqual(mockSkills2);
-    });
-  });
 });

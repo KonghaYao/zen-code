@@ -31,7 +31,7 @@ export function initDbPath(inputPath: string): string {
  * 检查数据库文件大小并警告
  *
  * @param dbPath - 数据库文件路径
- * @param maxSize - 最大大小（字节），默认 100MB（可通过环境变量 SQLITE_MAX_SIZE_MB 配置）
+ * @param maxSize - 最大大小（字节），默认 300MB（可通过环境变量 SQLITE_MAX_SIZE_MB 配置）
  */
 export function checkDbSize(dbPath: string, maxSize?: number): void {
     if (!fs.existsSync(dbPath)) {
