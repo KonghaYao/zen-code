@@ -82,9 +82,9 @@ export const SkillAutocompleteHintUI: React.FC<SkillAutocompleteUIProps> = ({
             <Text color="yellow" bold>
                 技能建议 (按 → 补全):
             </Text>
-            {visibleSkills.map(({ skill, result }) => (
+            {visibleSkills.map(({ skill, result }, index) => (
                 <Box key={skill.name}>
-                    <Text> #</Text>
+                    <Text color={index === 0 ? 'yellow' : undefined}>{index === 0 ? '▶ #' : '  #'}</Text>
                     <HighlightedName name={skill.name} result={result} />
                 </Box>
             ))}

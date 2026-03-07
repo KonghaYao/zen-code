@@ -177,7 +177,7 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
         skillAutocomplete.hide();
 
         return true; // Intercept the key
-    }, [skillAutocomplete.isActive, internalValue, handleChange]);
+    }, [skillAutocomplete.isActive, skillAutocomplete.complete, skillAutocomplete.hide, internalValue, handleChange]);
 
     // Handle agent completion - right arrow key
     const handleAgentCompletion = useCallback(() => {
@@ -190,7 +190,7 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
         agentAutocomplete.hide();
 
         return true; // Intercept the key
-    }, [agentAutocomplete.isActive, internalValue, handleChange]);
+    }, [agentAutocomplete.isActive, agentAutocomplete.complete, agentAutocomplete.hide, internalValue, handleChange]);
 
     // Get placeholder text based on current state
     const getPlaceholder = useMemo(() => {

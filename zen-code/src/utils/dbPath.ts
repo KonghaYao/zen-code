@@ -44,7 +44,7 @@ export function checkDbSize(dbPath: string, maxSize?: number): void {
         ? parseInt(process.env.SQLITE_MAX_SIZE_MB, 10) * 1024 * 1024
         : undefined;
 
-    const limit = maxSize ?? maxSizeFromEnv ?? 100 * 1024 * 1024;
+    const limit = maxSize ?? maxSizeFromEnv ?? 300 * 1024 * 1024;
 
     const stats = fs.statSync(dbPath);
     const sizeInBytes = stats.size;
@@ -52,9 +52,9 @@ export function checkDbSize(dbPath: string, maxSize?: number): void {
 
     if (sizeInBytes > limit) {
         const limitMB = limit / (1024 * 1024);
-        console.warn(`⚠️  Database file is large: ${sizeInMB.toFixed(2)}MB (limit: ${limitMB.toFixed(2)}MB)`);
-        console.warn(`   Path: ${dbPath}`);
-        console.warn(`   Set SQLITE_MAX_SIZE_MB to adjust limit`);
+        console.trace(`⚠️  Database file is large: ${sizeInMB.toFixed(2)}MB (limit: ${limitMB.toFixed(2)}MB)`);
+        console.trace(`   Path: ${dbPath}`);
+        console.trace(`   Set SQLITE_MAX_SIZE_MB to adjust limit`);
     }
 }
 

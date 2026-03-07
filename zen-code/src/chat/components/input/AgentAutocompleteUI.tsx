@@ -65,9 +65,9 @@ export const AgentAutocompleteHintUI: React.FC<AgentAutocompleteUIProps> = ({
             <Text color="yellow" bold>
                 Agent 建议 (按 → 补全):
             </Text>
-            {visibleAgents.map((agent) => (
+            {visibleAgents.map((agent, index) => (
                 <Box key={agent.id}>
-                    <Text> @</Text>
+                    <Text color={index === 0 ? 'yellow' : undefined}>{index === 0 ? '▶ @' : '  @'}</Text>
                     <HighlightedName name={agent.name} query={query} />
                     <Text dimColor> - {agent.description}</Text>
                 </Box>
