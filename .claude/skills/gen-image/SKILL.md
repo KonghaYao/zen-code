@@ -72,13 +72,13 @@ node scripts/image.mjs edit a.png b.png c.png -p "合并三张图的元素" -o r
 
 **常见指令**:
 
-| 场景     | 示例                               |
-| -------- | ---------------------------------- |
-| 添加元素 | `"在右下角添加一朵玫瑰花"`         |
-| 背景替换 | `"将背景替换为夜晚城市霓虹街道"`   |
-| 风格迁移 | `"转换为水彩画风格，保留原有构图"` |
-| 局部修改 | `"将人物服装颜色改为红色"`         |
-| 删除元素 | `"移除图中的文字水印，补全背景"`   |
+| 场景     | 示例                                                            |
+| -------- | --------------------------------------------------------------- |
+| 添加元素 | `"Add a rose flower in the bottom right corner"`                |
+| 背景替换 | `"Replace the background with a neon-lit city street at night"` |
+| 风格迁移 | `"Convert to watercolor style, preserve original composition"`  |
+| 局部修改 | `"Change the person's clothing color to red"`                   |
+| 删除元素 | `"Remove the text watermark and fill in the background"`        |
 
 ---
 
@@ -102,7 +102,7 @@ done
 
 ```bash
 node scripts/image.mjs edit input.png \
-  -p "请将此图放大并提升清晰度，保持原有风格与构图不变" \
+  -p "Upscale and enhance clarity while preserving original style and composition" \
   --size 4K -o output_4k.png
 ```
 
@@ -122,10 +122,13 @@ export NANO_BANANA_API_KEY="sk-your-api-key"
 
 示例文件位于 `examples/`，格式为 YAML frontmatter（command/aspect/size）+ prompt 正文。
 
-| 文件                                                | 场景               | 命令   | 参数          |
-| --------------------------------------------------- | ------------------ | ------ | ------------- |
-| [cyberpunk-city.md](examples/cyberpunk-city.md)     | 赛博朋克城市夜景   | `gen`  | `16:9` / `2K` |
-| [product-photo.md](examples/product-photo.md)       | 极简产品摄影       | `gen`  | `1:1` / `2K`  |
-| [flat-icon.md](examples/flat-icon.md)               | 扁平图标插画       | `gen`  | `1:1` / `1K`  |
-| [watercolor-style.md](examples/watercolor-style.md) | 水彩风格迁移       | `edit` | `2K`          |
-| [beach-background.md](examples/beach-background.md) | 背景替换为日落海滩 | `edit` | `2K`          |
+| 文件                                                                    | 场景                 | 命令   | 参数          |
+| ----------------------------------------------------------------------- | -------------------- | ------ | ------------- |
+| [typographic-mask-editorial.md](examples/typographic-mask-editorial.md) | 字体掩码编辑海报     | `gen`  | `16:9` / `2K` |
+| [monochromatic-ink-portrait.md](examples/monochromatic-ink-portrait.md) | 单色水墨肖像         | `edit` | `1:1` / `2K`  |
+| [chibi-doodle-portrait.md](examples/chibi-doodle-portrait.md)           | Q版涂鸦人物肖像      | `edit` | `1:1` / `2K`  |
+| [isometric-diorama.md](examples/isometric-diorama.md)                   | 3D 等距微缩场景      | `gen`  | `1:1` / `1K`  |
+| [dual-exposure-photo-grid.md](examples/dual-exposure-photo-grid.md)     | 双重曝光照片网格海报 | `gen`  | `16:9` / `2K` |
+| [exploded-view-breakdown.md](examples/exploded-view-breakdown.md)       | 商业爆炸图分解展示   | `edit` | `1:1` / `4K`  |
+| [city-brushstroke-poster.md](examples/city-brushstroke-poster.md)       | 城市笔触艺术海报     | `gen`  | `16:9` / `2K` |
+| [minimalist-editorial-recap.md](examples/minimalist-editorial-recap.md) | 极简编辑回顾海报     | `gen`  | `1:1` / `2K`  |
