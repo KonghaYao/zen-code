@@ -11,7 +11,7 @@ import { initDatabaseUri } from './utils';
 
 const args = process.argv.slice(2);
 process.env.LG_TEMP_MESSAGE = 'true';
-process.env.DISABLE_BUN_SQLITE = 'true';
+
 async function main() {
     // 初始化错误拦截器（捕获所有 console.error/warn 等）
     const { initErrorInterceptor } = await import('./chat/services/ErrorInterceptor');
