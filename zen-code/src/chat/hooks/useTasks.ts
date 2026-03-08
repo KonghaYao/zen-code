@@ -31,13 +31,12 @@ interface UseTasksOptions {
  * const { data: tasks, isLoading, error } = useTasks();
  * ```
  */
-export function useTasks({ filter, enabled = true }: UseTasksOptions) {
+export function useTasks({ filter, enabled = true }: UseTasksOptions = {}) {
     return useQuery({
         queryKey: queryKeys.tasks.list(filter),
         queryFn: async () => {
-            const { getTasksStore } = await import('@codegraph/config');
-            const tasksStore = getTasksStore(process.cwd());
-            await tasksStore.initialize();
+            const { TaskStoreManager } = await import('@codegraph/config');
+            const tasksStore = new TaskStoreManager(process.cwd());
 
             if (filter) {
                 return await tasksStore.getTasksByStatus(filter);
@@ -65,9 +64,8 @@ export function useTask(taskId: string) {
     return useQuery({
         queryKey: queryKeys.tasks.detail(taskId),
         queryFn: async () => {
-            const { getTasksStore } = await import('@codegraph/config');
-            const tasksStore = getTasksStore(process.cwd());
-            await tasksStore.initialize();
+            const { TaskStoreManager } = await import('@codegraph/config');
+            const tasksStore = new TaskStoreManager(process.cwd());
             return await tasksStore.getTask(taskId);
         },
         enabled: !!taskId,
@@ -94,9 +92,8 @@ export function useDeleteTask() {
 
     return useMutation({
         mutationFn: async (taskId: string) => {
-            const { getTasksStore } = await import('@codegraph/config');
-            const tasksStore = getTasksStore(process.cwd());
-            await tasksStore.initialize();
+            const { TaskStoreManager } = await import('@codegraph/config');
+            const tasksStore = new TaskStoreManager(process.cwd());
             return await tasksStore.deleteTask(taskId);
         },
         onSuccess: (_, taskId) => {
@@ -128,9 +125,8 @@ export function useUpdateTaskStatus() {
 
     return useMutation({
         mutationFn: async ({ taskId, status }: { taskId: string; status: TaskStatus }) => {
-            const { getTasksStore } = await import('@codegraph/config');
-            const tasksStore = getTasksStore(process.cwd());
-            await tasksStore.initialize();
+            const { TaskStoreManager } = await import('@codegraph/config');
+            const tasksStore = new TaskStoreManager(process.cwd());
             return await tasksStore.updateTask(taskId, { status });
         },
         onSuccess: (_, { taskId }) => {

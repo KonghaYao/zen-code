@@ -97,7 +97,7 @@ export function validateCronExpression(expression: string): CronValidationResult
     // 生成人类可读的描述
     const description = parseCronExpression(expr);
 
-    return { valid: true, description };
+    return { valid: true, description: description ?? undefined };
 }
 
 /**

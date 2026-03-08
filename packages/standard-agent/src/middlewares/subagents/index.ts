@@ -14,7 +14,7 @@
  */
 
 import { AgentMiddleware, AIMessage, SystemMessage } from 'langchain';
-import type { ServerTool } from '@langchain/core/tools';
+import type { ClientTool, ServerTool } from '@langchain/core/tools';
 import type { z } from 'zod';
 import { create_task_tool } from './task_tool.js';
 import type { SubAgentsMiddlewareOptions, SubAgentInfo } from './types.js';
@@ -92,7 +92,7 @@ export class SubAgentsMiddleware<TState = any> implements AgentMiddleware {
     contextSchema: z.ZodType<any> | undefined;
 
     // Tools
-    tools: AgentMiddleware['tools'] = [];
+    tools: (ClientTool | ServerTool)[] = [];
 
     // Agent list (plain array, no AgentPackage dependency)
     private agents: SubAgentInfo[];
@@ -127,7 +127,7 @@ export class SubAgentsMiddleware<TState = any> implements AgentMiddleware {
             },
         );
 
-        this.tools!.push(taskTool as any as ServerTool);
+        this.tools.push(taskTool as any as ServerTool);
     }
 
     /**

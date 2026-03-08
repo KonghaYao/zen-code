@@ -149,7 +149,7 @@ export async function createSwarmAgent(
         const impl = pkg.middlewares.getImplementation(middlewareId);
         if (!impl) continue;
 
-        const context = typeof params === 'boolean' ? {} : params.customParams || {};
+        const context = typeof params === 'boolean' ? {} : (params as any).customParams || {};
         middleware.push(await impl.execute(context));
     }
 

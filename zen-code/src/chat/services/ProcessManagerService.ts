@@ -1,3 +1,4 @@
+// @ts-ignore - pidusage has no type declarations
 import pidusage from 'pidusage';
 import type { ManagedProcess } from '@langgraph-js/agent-middlewares';
 import { background_processes } from '@langgraph-js/agent-middlewares';

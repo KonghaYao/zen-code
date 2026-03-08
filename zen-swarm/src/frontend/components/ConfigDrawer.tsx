@@ -145,7 +145,7 @@ const ModelList: React.FC<ModelListProps> = ({ models, selectedId, onSelect }) =
                 >
                     <div className="flex-1 min-w-0">
                         <div className="truncate font-medium">{model.model_name}</div>
-                        <div className="text-[10px] text-text-muted truncate">{model.model_provider}</div>
+                        <div className="text-[10px] text-text-muted truncate">{(model as any).model_provider}</div>
                     </div>
                     {selectedId === model.id && <Check className="w-3 h-3 text-primary" />}
                 </button>

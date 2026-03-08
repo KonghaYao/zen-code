@@ -158,11 +158,11 @@ export const cronRouter = router({
             handleNotFound('CronTask', input.id);
         }
 
-        const newEnabled = !task.enabled;
+        const newEnabled = !task!.enabled;
 
         if (newEnabled) {
             // 启用：先调度再更新数据库（保证调度器状态正确）
-            ctx.cronScheduler.scheduleTask({ ...task, enabled: newEnabled });
+            ctx.cronScheduler.scheduleTask({ ...task!, enabled: newEnabled });
             await ctx.cronStorage.updateTask({ id: input.id, enabled: newEnabled });
         } else {
             // 禁用：先取消调度再更新数据库

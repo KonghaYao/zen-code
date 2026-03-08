@@ -141,7 +141,7 @@ export function ProviderForm({ provider, onSubmit, onCancel, isSaving }: Provide
                         placeholder={isEditing ? '留空保持不变' : 'sk-...'}
                         error={!!errors.apiKey}
                         disabled={isSaving}
-                        className="pr-10"
+                        {...{ className: 'pr-10' }}
                     />
                     <button
                         type="button"

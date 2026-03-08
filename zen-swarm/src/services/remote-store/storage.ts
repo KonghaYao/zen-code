@@ -119,9 +119,9 @@ export class RemoteStoreStorage {
             [
                 input.name ?? existing.name,
                 input.base_url ?? existing.base_url,
-                input.api_key !== undefined ? input.api_key : existing.api_key,
-                input.field_map !== undefined ? JSON.stringify(input.field_map) : existing.field_map,
-                input.paths !== undefined ? JSON.stringify(input.paths) : existing.paths,
+                input.api_key !== undefined ? (input.api_key ?? null) : (existing.api_key ?? null),
+                input.field_map !== undefined ? JSON.stringify(input.field_map) : (existing.field_map ?? null),
+                input.paths !== undefined ? JSON.stringify(input.paths) : (existing.paths ?? null),
                 input.enabled !== undefined ? (input.enabled ? 1 : 0) : existing.enabled,
                 new Date().toISOString(),
                 input.id,

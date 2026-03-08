@@ -4,6 +4,18 @@ import { z } from 'zod';
 // ============ Implementation Interfaces ============
 
 /**
+ * Tool implementation interface
+ * Pure schema + execution logic
+ */
+export interface ToolImplementation<Params = unknown, Result = unknown> {
+    readonly id: string;
+    readonly name: string;
+    readonly description: string;
+    readonly paramsSchema?: z.ZodType<Params>;
+    execute(params: Params): Promise<Result> | Result;
+}
+
+/**
  * Middleware implementation interface
  * Pure schema + execution logic
  */

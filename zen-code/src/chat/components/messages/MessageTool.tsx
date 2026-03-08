@@ -184,12 +184,12 @@ const MessageTool: React.FC<MessageToolProps> = ({ message, messageNumber }) => 
 
                     // 根据工具名称确定记录方法
                     if (message.name === 'terminal') {
-                        const command = inputRepaired?.command || 'unknown';
+                        const command = (inputRepaired as any)?.command || 'unknown';
                         logTerminalError(command, errorMsg);
-                    } else if (message.name.startsWith('Agent:')) {
+                    } else if (message.name?.startsWith('Agent:')) {
                         logAgentError(message.name, errorMsg);
                     } else {
-                        logToolError(message.name, errorMsg);
+                        logToolError(message.name!, errorMsg);
                     }
                 })
                 .catch((err) => {
@@ -197,7 +197,7 @@ const MessageTool: React.FC<MessageToolProps> = ({ message, messageNumber }) => 
                     console.warn('Failed to log error:', err);
                 });
         }
-    }, [message.status, message.name, message.content, inputRepaired?.command]);
+    }, [message.status, message.name, message.content, (inputRepaired as any)?.command]);
 
     return (
         <ErrorBoundary>

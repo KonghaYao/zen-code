@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ToolImplementation } from './index.js';
+import type { ToolImplementation } from './types.js';
 
 // ============ Adapter Function ============
 /**

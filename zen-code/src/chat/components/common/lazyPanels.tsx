@@ -12,18 +12,32 @@
  * ```
  */
 
-import { lazy } from 'react';
+import { lazy, type LazyExoticComponent, type ComponentType } from 'react';
+
+type LazyPanel = LazyExoticComponent<ComponentType<any>>;
 
 // Lazy load panel components
-export const LazyHistoryPanel = lazy(() => import('../panels/HistoryPanel').then((m) => ({ default: m.default })));
-export const LazyKnowledgePanel = lazy(() => import('../panels/KnowledgePanel').then((m) => ({ default: m.default })));
-export const LazySettingsPanel = lazy(() =>
+export const LazyHistoryPanel: LazyPanel = lazy(() =>
+    import('../panels/HistoryPanel').then((m) => ({ default: m.default })),
+);
+export const LazyKnowledgePanel: LazyPanel = lazy(() =>
+    import('../panels/KnowledgePanel').then((m) => ({ default: m.default })),
+);
+export const LazySettingsPanel: LazyPanel = lazy(() =>
     import('../panels/settings/SettingsPanel').then((m) => ({ default: m.default })),
 );
-export const LazyModelProviderPanel = lazy(() =>
+export const LazyModelProviderPanel: LazyPanel = lazy(() =>
     import('../panels/ModelProviderPanel').then((m) => ({ default: m.default })),
 );
-export const LazyAgentPanel = lazy(() => import('../panels/AgentPanel').then((m) => ({ default: m.default })));
-export const LazyMcpPanel = lazy(() => import('../panels/mcp/McpPanel').then((m) => ({ default: m.default })));
-export const LazyProcessPanel = lazy(() => import('../panels/ProcessPanel').then((m) => ({ default: m.default })));
-export const LazyErrorPanel = lazy(() => import('../panels/ErrorPanel').then((m) => ({ default: m.default })));
+export const LazyAgentPanel: LazyPanel = lazy(() =>
+    import('../panels/AgentPanel').then((m) => ({ default: m.default })),
+);
+export const LazyMcpPanel: LazyPanel = lazy(() =>
+    import('../panels/mcp/McpPanel').then((m) => ({ default: m.default })),
+);
+export const LazyProcessPanel: LazyPanel = lazy(() =>
+    import('../panels/ProcessPanel').then((m) => ({ default: m.default })),
+);
+export const LazyErrorPanel: LazyPanel = lazy(() =>
+    import('../panels/ErrorPanel').then((m) => ({ default: m.default })),
+);

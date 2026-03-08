@@ -21,11 +21,14 @@ export type TerminalClientMessage =
     | { type: 'resize'; sessionId: string; cols: number; rows: number }
     | { type: 'create'; cols: number; rows: number; cwd?: string }
     | { type: 'destroy'; sessionId: string }
+    | { type: 'attach'; sessionId: string }
     | { type: 'list' };
 
 export type TerminalServerMessage =
     | { type: 'output'; sessionId: string; data: string }
     | { type: 'created'; session: TerminalSessionInfo }
+    | { type: 'attached'; session: TerminalSessionInfo; history: string[] }
+    | { type: 'history'; sessionId: string; history: string[] }
     | { type: 'destroyed'; sessionId: string }
     | { type: 'error'; sessionId?: string; message: string }
     | { type: 'list'; sessions: TerminalSessionInfo[] }

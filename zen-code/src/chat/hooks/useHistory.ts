@@ -18,8 +18,8 @@ import { useChat } from '@langgraph-js/sdk/react';
 
 export interface HistoryFilter {
     metadata?: Record<string, string>;
-    status?: string;
-    sortBy?: string;
+    status?: 'idle' | 'busy' | 'interrupted' | 'error' | null;
+    sortBy?: 'thread_id' | 'status' | 'created_at' | 'updated_at';
     sortOrder?: 'asc' | 'desc';
 }
 

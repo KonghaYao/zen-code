@@ -21,7 +21,7 @@ interface TRPCProviderProps {
  * 判断是否为 401 未授权错误
  */
 function isUnauthorizedError(error: unknown): boolean {
-    if (error instanceof TRPCClientError<FullAppRouter>) {
+    if (error instanceof TRPCClientError && (error as TRPCClientError<FullAppRouter>).data?.httpStatus === 401) {
         return error.data?.httpStatus === 401;
     }
     return false;

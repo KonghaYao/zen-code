@@ -35,7 +35,7 @@ export function AgentPanel({ onClose }: AgentPanelProps) {
     const { data: middlewares = [] } = trpc.middlewares.list.useQuery();
 
     // 使用 Map 优化查找性能（规则：js-index-maps）
-    const modelMap = useMemo(() => new Map(models.map((m) => [m.id, m])), [models]);
+    const modelMap = useMemo(() => new Map(models.map((m) => [m.id, { ...m, name: m.name ?? undefined }])), [models]);
     const promptMap = useMemo(() => new Map(prompts.map((p) => [p.id, p])), [prompts]);
     const middlewareMap = useMemo(() => new Map(middlewares.map((m) => [m.id, m])), [middlewares]);
 
@@ -141,7 +141,7 @@ export function AgentPanel({ onClose }: AgentPanelProps) {
             <Modal open={modal.isOpen} onClose={modal.close} title={modal.getTitle('Agent')} size="lg">
                 <AgentForm
                     agent={modal.editingItem}
-                    models={models}
+                    models={models.map((m) => ({ ...m, name: m.name ?? undefined }))}
                     prompts={prompts}
                     middlewares={middlewares}
                     onSave={handleSave}

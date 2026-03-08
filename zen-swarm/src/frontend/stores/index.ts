@@ -82,7 +82,7 @@ export function useModelsStore() {
         setError(null);
         try {
             const data = await apiClient.models.list.query();
-            setModels(data);
+            setModels(data.map((m) => ({ ...m, name: m.name ?? undefined })));
         } catch (e: any) {
             setError(e.message);
         } finally {

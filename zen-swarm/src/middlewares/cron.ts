@@ -240,7 +240,7 @@ function createCronTool(storage: CronStorage, scheduler: CronScheduler) {
                     }
 
                     case 'get': {
-                        const task = await storage.getTask(input.task_id);
+                        const task = await storage.getTask(input.task_id!);
                         if (!task) {
                             return JSON.stringify(
                                 {
@@ -263,18 +263,18 @@ function createCronTool(storage: CronStorage, scheduler: CronScheduler) {
 
                     case 'upsert': {
                         try {
-                            const existing = await storage.getTask(input.task.id);
+                            const existing = await storage.getTask(input.task!.id);
                             const message = existing
-                                ? `Task "${input.task.name}" updated`
-                                : `Task "${input.task.name}" created and scheduled`;
+                                ? `Task "${input.task!.name}" updated`
+                                : `Task "${input.task!.name}" created and scheduled`;
 
                             if (existing) {
-                                await storage.updateTask(input.task);
+                                await storage.updateTask(input.task!);
                             } else {
-                                await storage.insertTask(input.task);
+                                await storage.insertTask(input.task!);
                             }
 
-                            const task = await storage.getTask(input.task.id);
+                            const task = await storage.getTask(input.task!.id);
                             if (task) {
                                 scheduler.scheduleTask(task);
                             }
@@ -282,7 +282,7 @@ function createCronTool(storage: CronStorage, scheduler: CronScheduler) {
                             return JSON.stringify(
                                 {
                                     success: true,
-                                    id: input.task.id,
+                                    id: input.task!.id,
                                     message,
                                 },
                                 null,
@@ -303,7 +303,7 @@ function createCronTool(storage: CronStorage, scheduler: CronScheduler) {
 
                     case 'delete': {
                         try {
-                            const existing = await storage.getTask(input.task_id);
+                            const existing = await storage.getTask(input.task_id!);
                             if (!existing) {
                                 return JSON.stringify(
                                     {
@@ -315,8 +315,8 @@ function createCronTool(storage: CronStorage, scheduler: CronScheduler) {
                                 );
                             }
 
-                            scheduler.unscheduleTask(input.task_id);
-                            await storage.deleteTask(input.task_id);
+                            scheduler.unscheduleTask(input.task_id!);
+                            await storage.deleteTask(input.task_id!);
 
                             return JSON.stringify(
                                 {
@@ -342,7 +342,7 @@ function createCronTool(storage: CronStorage, scheduler: CronScheduler) {
 
                     case 'toggle': {
                         try {
-                            const task = await storage.getTask(input.task_id);
+                            const task = await storage.getTask(input.task_id!);
                             if (!task) {
                                 return JSON.stringify(
                                     {
@@ -356,17 +356,17 @@ function createCronTool(storage: CronStorage, scheduler: CronScheduler) {
 
                             const newEnabled = !task.enabled;
                             await storage.updateTask({
-                                id: input.task_id,
+                                id: input.task_id!,
                                 enabled: newEnabled,
                             });
 
                             if (newEnabled) {
-                                const updated = await storage.getTask(input.task_id);
+                                const updated = await storage.getTask(input.task_id!);
                                 if (updated) {
                                     scheduler.scheduleTask(updated);
                                 }
                             } else {
-                                scheduler.unscheduleTask(input.task_id);
+                                scheduler.unscheduleTask(input.task_id!);
                             }
 
                             return JSON.stringify(
@@ -394,7 +394,7 @@ function createCronTool(storage: CronStorage, scheduler: CronScheduler) {
 
                     case 'trigger': {
                         try {
-                            const task = await storage.getTask(input.task_id);
+                            const task = await storage.getTask(input.task_id!);
                             if (!task) {
                                 return JSON.stringify(
                                     {
@@ -406,7 +406,7 @@ function createCronTool(storage: CronStorage, scheduler: CronScheduler) {
                                 );
                             }
 
-                            const logId = await scheduler.triggerManually(input.task_id);
+                            const logId = await scheduler.triggerManually(input.task_id!);
 
                             return JSON.stringify(
                                 {

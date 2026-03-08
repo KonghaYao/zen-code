@@ -19,7 +19,7 @@ export const MCPStatusPanel: React.FC = () => {
         if (!renderMessages) return null;
 
         for (let i = renderMessages.length - 1; i >= 0; i--) {
-            const msg = renderMessages[i];
+            const msg = renderMessages[i] as any;
             if (msg.role === 'assistant' && msg.content) {
                 try {
                     const content = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: msg.content }];

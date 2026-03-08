@@ -21,8 +21,8 @@ const RemoteStoreInputSchema = z.object({
     type: z.enum(['generic_http', 'clawhub']).optional(),
     base_url: z.string().url().optional(),
     api_key: z.string().optional(),
-    field_map: z.record(z.string()).optional(),
-    paths: z.record(z.string()).optional(),
+    field_map: z.record(z.string(), z.string()).optional(),
+    paths: z.record(z.string(), z.string()).optional(),
     enabled: z.boolean().optional(),
 });
 
@@ -132,7 +132,7 @@ export function createStoreRouter(remoteStoreStorage: RemoteStoreStorage) {
 
                 const id = crypto.randomUUID();
                 await ctx.agentPackage.storage.insertPrompt(
-                    { id, name: item!.name, metadata: item!.metadata },
+                    { id, name: item!.name },
                     item!.content,
                     `Imported from remote store: ${entry!.name}`,
                 );
@@ -183,9 +183,9 @@ export function createStoreRouter(remoteStoreStorage: RemoteStoreStorage) {
                 const skillDir = join(homedir(), '.claude', 'skills', skillName);
                 mkdirSync(skillDir, { recursive: true });
 
-                if (storeInstance.installRemoteSkill) {
+                if ((storeInstance as any).installRemoteSkill) {
                     // 原生安装：下载完整 zip 包并解压（保留所有文件）
-                    await storeInstance.installRemoteSkill(input.skillName, skillDir);
+                    await (storeInstance as any).installRemoteSkill(input.skillName, skillDir);
                 } else {
                     // 回退：仅写入 SKILL.md
                     const item = await storeInstance.fetchRemoteSkill(input.skillName);

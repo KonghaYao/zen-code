@@ -40,7 +40,7 @@ export interface SubAgentsMiddlewareOptions<TState = any> {
             data_transfer?: any;
         },
         parentState: TState,
-    ) => Promise<ReactAgent<any, any, any, any>>;
+    ) => Promise<ReactAgent>;
 
     /**
      * State schema for the middleware

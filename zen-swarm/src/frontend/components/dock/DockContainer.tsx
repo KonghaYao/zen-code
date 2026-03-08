@@ -193,7 +193,7 @@ export function DockContainer({ activeApp, onAppChange, notifications = {} }: Do
  * useDockState Hook
  */
 export function useDockState(defaultApp?: AppId) {
-    const initialApp = defaultApp ?? getDefaultAppId() ?? 'dashboard';
+    const initialApp = defaultApp ?? getDefaultAppId() ?? ('dashboard' as AppId);
     const [activeApp, setActiveApp] = useState<AppId | null>(initialApp);
     const [notifications, setNotifications] = useState<NotificationData>({});
 

@@ -114,7 +114,7 @@ export function StepProvider({ onNext }: StepProviderProps) {
                             placeholder={formData.type === 'openai' ? 'sk-...' : 'sk-ant-...'}
                             error={!!errors.apiKey}
                             disabled={createProvider.isPending}
-                            className="pr-10"
+                            {...{ className: 'pr-10' }}
                         />
                         <button
                             type="button"

@@ -142,12 +142,12 @@ export function ProviderPanel({ open, onClose }: ProviderPanelProps) {
             {/* 删除确认对话框 */}
             <ConfirmModal
                 open={panelState.deleteConfirmId !== null}
-                onClose={() => setPanelState({ ...panelState, deleteConfirmId: null })}
+                onCancel={() => setPanelState({ ...panelState, deleteConfirmId: null })}
                 onConfirm={handleConfirmDelete}
                 title="确认删除"
                 message="确定要删除此提供商吗？此操作无法撤销。"
                 confirmText="删除"
-                isDestructive
+                confirmVariant="danger"
                 isLoading={deleteMutation.isPending}
             />
         </>

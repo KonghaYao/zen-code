@@ -27,7 +27,7 @@ export function ModelsPanel({ onClose }: ModelsPanelProps) {
     const modal = useModal<Model>();
 
     const { data: models = [], isLoading, error, refetch } = trpc.models.list.useQuery();
-    const { data: providers = [] } = trpc.providers.list.useQuery();
+    const { data: providers = [] } = trpc.providers?.list.useQuery() ?? { data: [] };
 
     const createMutation = trpc.models.create.useMutation({
         onSuccess: () => {
@@ -116,7 +116,12 @@ export function ModelsPanel({ onClose }: ModelsPanelProps) {
                 {!isLoading && !error && models.length > 0 && (
                     <div className="grid gap-4">
                         {models.map((model) => (
-                            <ModelCard key={model.id} model={model} onEdit={handleEdit} onDelete={handleDeleteClick} />
+                            <ModelCard
+                                key={model.id}
+                                model={{ ...model, name: model.name ?? undefined }}
+                                onEdit={handleEdit}
+                                onDelete={handleDeleteClick}
+                            />
                         ))}
                     </div>
                 )}
