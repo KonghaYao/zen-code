@@ -1,6 +1,8 @@
 import { build, BunPlugin } from 'bun';
 import { promises as fs } from 'fs';
 import { tailwindPlugin } from '@konghayao/bun-plugin-tailwind';
+import packageJson from './package.json';
+
 async function buildZenSwarm() {
     console.log('🐝 Building zen-swarm with Bun...');
 
@@ -19,6 +21,16 @@ async function buildZenSwarm() {
         splitting: false,
         compile: {
             outfile: './dist/zen-swarm',
+
+            windows: {
+                // icon: './path/to/icon.ico',
+                // hideConsole: true,
+                title: 'Zen Swarm',
+                publisher: 'KongHaYao',
+                version: packageJson.version,
+                description: 'A collaborative AI agent swarm with multi-project workspace management',
+                copyright: 'Copyright 2025',
+            },
         },
         plugins: [tailwindPlugin],
         external: [
