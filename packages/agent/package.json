@@ -17,6 +17,7 @@
         "@langchain/mcp-adapters": "^1.1.1",
         "@langchain/openai": "^1.2.12",
         "@langgraph-js/agent-middlewares": "workspace:^",
+        "@langgraph-js/web-fetch": "workspace:^",
         "@langgraph-js/pure-graph": "^3.3.0",
         "@langgraph-js/standard-agent": "workspace:^",
         "execa": "^9.6.1",

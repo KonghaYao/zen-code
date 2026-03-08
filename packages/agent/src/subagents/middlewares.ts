@@ -116,4 +116,16 @@ export async function createMiddlewareRegistry(pkg: AgentPackage) {
     };
     await pkg.addMiddleware(mcp);
     pkg.middlewares.registerImplementation(mcp);
+
+    const web = {
+        id: 'web',
+        name: 'web',
+        description: 'Fetch and extract readable content from URLs',
+        execute: async () => {
+            const { WebMiddleware } = await import('../middlewares/web.js');
+            return WebMiddleware;
+        },
+    };
+    await pkg.addMiddleware(web);
+    pkg.middlewares.registerImplementation(web);
 }

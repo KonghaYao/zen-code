@@ -164,7 +164,7 @@ async function extractSingleUrl(
     }
 }
 
-export async function extract(params: z.infer<typeof ExtractSchema>): Promise<ExtractResponse> {
+export async function webFetch(params: z.infer<typeof ExtractSchema>): Promise<ExtractResponse> {
     const startTime = Date.now();
     const urls = Array.isArray(params.urls) ? params.urls : [params.urls];
 

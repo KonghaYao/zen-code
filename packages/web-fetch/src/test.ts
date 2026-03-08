@@ -1,4 +1,4 @@
-import { extract } from './extract';
+import { webFetch } from './extract';
 
 const testCases = [
     // 注释部分均为测试通过
@@ -131,7 +131,7 @@ for (const { label, url } of testCases) {
     console.log(`[${label}] ${url}`);
     console.log('='.repeat(60));
     try {
-        const response = await extract({
+        const response = await webFetch({
             urls: [url],
             include_images: false,
             include_favicon: false,

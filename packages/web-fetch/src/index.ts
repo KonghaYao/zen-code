@@ -1,5 +1,5 @@
 // Core extraction
-export { extract, extractReadableContent, getHTMLContent, HTMLToMarkdown, ExtractSchema } from './extract.js';
+export { webFetch, extractReadableContent, getHTMLContent, HTMLToMarkdown, ExtractSchema } from './extract.js';
 export type { ExtractResult, FailedResult, ExtractResponse } from './extract.js';
 
 // Metadata

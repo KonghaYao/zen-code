@@ -1,5 +1,5 @@
 {
-    "name": "@codegraph/web-fetch",
+    "name": "@langgraph-js/web-fetch",
     "version": "1.0.0",
     "type": "module",
     "description": "Web content extraction and parsing library with HTML-to-Markdown conversion",
