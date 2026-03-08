@@ -211,6 +211,22 @@
         "typescript": "^5.9.3",
       },
     },
+    "packages/zen-tunnel": {
+      "name": "zen-tunnel",
+      "version": "0.1.0",
+      "bin": {
+        "zen-tunnel": "./dist/cli.js",
+      },
+      "dependencies": {
+        "@hono/node-server": "^1.13.7",
+        "commander": "^14.0.0",
+        "hono": "^4.11.4",
+      },
+      "devDependencies": {
+        "rollup-plugin-node-externals": "^8.1.2",
+        "vite": "^7.3.1",
+      },
+    },
     "zen-code": {
       "name": "zen-code",
       "version": "4.9.2",
@@ -956,7 +972,7 @@
 
     "comma-separated-tokens": ["comma-separated-tokens@2.0.3", "", {}, "sha512-Fu4hJdvzeylCfQPp9SGWidpzrMs7tTrlu6Vb8XGaRGck8QSNZJJp538Wrb60Lax4fPwR64ViY468OIUTbRlGZg=="],
 
-    "commander": ["commander@13.1.0", "https://registry.npmmirror.com/commander/-/commander-13.1.0.tgz", {}, "sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw=="],
+    "commander": ["commander@14.0.3", "", {}, "sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw=="],
 
     "console-table-printer": ["console-table-printer@2.15.0", "https://registry.npmmirror.com/console-table-printer/-/console-table-printer-2.15.0.tgz", { "dependencies": { "simple-wcswidth": "^1.1.2" } }, "sha512-SrhBq4hYVjLCkBVOWaTzceJalvn5K1Zq5aQA6wXC/cYjI3frKWNPEMK3sZsJfNNQApvCQmgBcc13ZKmFj8qExw=="],
 
@@ -2096,6 +2112,8 @@
 
     "zen-swarm": ["zen-swarm@workspace:zen-swarm"],
 
+    "zen-tunnel": ["zen-tunnel@workspace:packages/zen-tunnel"],
+
     "zod": ["zod@4.3.6", "https://registry.npmmirror.com/zod/-/zod-4.3.6.tgz", {}, "sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg=="],
 
     "zod-defaults": ["zod-defaults@0.2.3", "https://registry.npmmirror.com/zod-defaults/-/zod-defaults-0.2.3.tgz", { "peerDependencies": { "zod": "^4.1.12" } }, "sha512-7pYkOH1/c+Ril5AZUYtsbhMkehkI8CMqzFZ7YZXfC9SMLRvZuLyonQE7BAIVSNxeTpqTZmW5BLxGSzWMnKNdIw=="],
@@ -2201,6 +2219,8 @@
     "jsdom/whatwg-mimetype": ["whatwg-mimetype@4.0.0", "", {}, "sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg=="],
 
     "langsmith/chalk": ["chalk@4.1.2", "https://registry.npmmirror.com/chalk/-/chalk-4.1.2.tgz", { "dependencies": { "ansi-styles": "^4.1.0", "supports-color": "^7.1.0" } }, "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA=="],
+
+    "lint-staged/commander": ["commander@13.1.0", "https://registry.npmmirror.com/commander/-/commander-13.1.0.tgz", {}, "sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw=="],
 
     "listr2/cli-truncate": ["cli-truncate@4.0.0", "https://registry.npmmirror.com/cli-truncate/-/cli-truncate-4.0.0.tgz", { "dependencies": { "slice-ansi": "^5.0.0", "string-width": "^7.0.0" } }, "sha512-nPdaFdQ0h/GEigbPClz11D0v/ZJEwxmeVZGeMo3Z5StPtUTkA9o1lD6QwoirYiSDzbcwn2XcjwmCp68W1IS4TA=="],
 
