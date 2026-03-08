@@ -13,8 +13,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../query-keys';
-import { listMemories, type MemoryMetadata } from '@codegraph/agent/src/memories/load.js';
-import { listSkills, type SkillMetadata } from '@langgraph-js/standard-agent';
+import { listMemories, type MemoryMetadata, listSkills, type SkillMetadata } from '@langgraph-js/standard-agent';
 import { join } from 'path';
 
 export type KnowledgeItem = (MemoryMetadata | SkillMetadata) & { type: 'memory' | 'skill' };

@@ -60,8 +60,7 @@ function getMimeType(filepath) {
 
 function saveImage(imgData, outputPath) {
     const fullPath = resolve(process.cwd(), outputPath);
-    const dir = dirname(fullPath);
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    mkdirSync(dirname(fullPath), { recursive: true });
     writeFileSync(fullPath, Buffer.from(imgData, 'base64'));
     return fullPath;
 }
