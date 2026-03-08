@@ -16,7 +16,7 @@ import { DockerHubCleaner } from './cleaner/DockerHubCleaner.js';
 import { FeishuCleaner } from './cleaner/FeishuCleaner.js';
 
 export const ExtractSchema = z.object({
-    urls: z.array(z.string().url()).describe('The URL(s) to extract content from'),
+    urls: z.array(z.url()).describe('The URL(s) to extract content from'),
     include_images: z
         .boolean()
         .optional()

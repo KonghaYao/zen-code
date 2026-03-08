@@ -1,0 +1,28 @@
+{
+    "name": "zen-tunnel",
+    "version": "0.2.0",
+    "type": "module",
+    "description": "SSH reverse port forwarding tunnel tool",
+    "main": "./dist/cli.js",
+    "bin": {
+        "zen-tunnel": "./dist/cli.js"
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "dev": "bun run src/cli.ts",
+        "build": "vite build",
+        "watch": "vite build --watch",
+        "prepublishOnly": "bun run build"
+    },
+    "dependencies": {
+        "@hono/node-server": "^1.13.7",
+        "commander": "^14.0.0",
+        "hono": "^4.11.4"
+    },
+    "devDependencies": {
+        "rollup-plugin-node-externals": "^8.1.2",
+        "vite": "^7.3.1"
+    }
+}
