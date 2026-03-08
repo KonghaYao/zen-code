@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { createMiddlewareRegistry } from './middlewares.js';
 import { CORE_SYSTEM_PROMPT } from '../prompts/coding.js';
 import { architectPrompt } from '../prompts/architect.js';
+import { cliAgent } from '../prompts/cli.js';
 
 export interface SubAgentConfig extends z.infer<typeof AgentSchema> {}
 
@@ -45,7 +46,15 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
             id: 'prompts/default',
             name: 'default',
         },
-        CORE_SYSTEM_PROMPT,
+        cliAgent({
+            cwd: process.cwd()!,
+            env: {
+                isGitRepo: true,
+                platform: process.platform,
+                osVersion: process.version,
+                date: new Date().toISOString().split('T')[0],
+            },
+        }),
     );
     await pkg.addPrompt(
         {

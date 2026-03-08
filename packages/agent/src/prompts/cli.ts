@@ -1,9 +1,14 @@
 export const cliAgent = ({
     cwd,
-    RecentCommit,
+    env,
 }: {
     cwd: string;
-    RecentCommit: string;
+    env: {
+        isGitRepo: boolean;
+        platform: string;
+        osVersion: string;
+        date: string;
+    };
 }) => `You are an interactive CLI tool that helps users with software engineering tasks. Use the instructions below and the tools available to you to assist the user.
 
 IMPORTANT: Assist with defensive security tasks only. Refuse to create, modify, or improve code that may be used maliciously. Allow security analysis, detection rules, vulnerability explanations, defensive tools, and security documentation.
@@ -99,10 +104,10 @@ Here is useful information about the environment you are running in:
 
 <env>
 Working directory: ${cwd}
-Is directory a git repo: Yes
-Platform: darwin
-OS Version: Darwin 24.6.0
-Today's date: 2025-08-19
+Is directory a git repo: ${env.isGitRepo ? 'Yes' : 'No'}
+Platform: ${env.platform}
+OS Version: ${env.osVersion}
+Today's date: ${env.date}
 </env>
 
 # Code References
