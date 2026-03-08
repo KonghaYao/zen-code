@@ -127,7 +127,7 @@ remaining = Scanner 返回的 flows 数组（全部）
 追踪方法：
 1. 读取入口文件，找到 entry_function 的实现
 2. 识别它调用的下一个关键函数（忽略工具函数、类型转换等细节）
-3. 追踪 3-6 层深度（不超过 6 层）
+3. **严格控制 3-6 层深度**，这是质量红线
 4. 在每一步记录：文件路径（相对路径）、函数名、参数/返回值的关键类型
 5. 标注重要的边界：异步等待点、模块跨越点、数据变换点
 
@@ -135,6 +135,29 @@ remaining = Scanner 返回的 flows 数组（全部）
 - 选择"主干路径"，忽略错误处理分支
 - 遇到 Promise/async 时，追踪 await 之后的路径
 - 遇到回调/事件时，追踪最主要的那个处理函数
+**压缩策略**（避免调用链过长）：
+- ❌ 跳过：组件渲染链（如 `main() → render(<App/>) → <App> → <Child>`）
+- ❌ 跳过：纯传递调用（函数只做转发，无业务逻辑）
+- ❌ 跳过：框架内部调用（如 React 渲染、LangChain 内部）
+- ✅ 保留：跨模块边界（Client → Server → Framework）
+- ✅ 保留：数据变换点（输入类型 → 输出类型）
+- ✅ 保留：异步/网络边界
+- ✅ 保留：用户交互点
+
+**示例**：用户消息处理（正确压缩后）
+```
+[入口] ChatInput.handleSendMessage(input)
+  ↓ 网络边界：HTTP POST
+[调用] packages/agent/src/export.ts:handleRequest()
+  ↓ 数据变换：Message[] → CodeStateType
+[调用] packages/agent/src/graphBuilder.ts:invokeAgent()
+  ↓ 模块跨越：Application → Framework
+[调用] packages/agent/src/subagents/unified-factory.ts:createUnifiedAgent()
+  ↓ 异步边界：Agent 执行
+[出口] SSE 流式响应 → UI 渲染
+```
+**仅 5 层**，而非未压缩的 16 层。
+
 - 如果某步调用了多个函数，只追踪最关键的那条线
 
 输出要求：
