@@ -10,7 +10,7 @@ interface DesktopWallpaperProps {
     blur?: boolean;
 }
 
-const DEFAULT_WALLPAPER = 'https://www.macos-web.app/assets/ventura-5-Ddip4tdG.webp';
+const DEFAULT_WALLPAPER = 'https://ucarecdn.com/84b88e4c-17ca-421c-a752-a71ba50bc6e9/-/preview/3000x1674/';
 
 export function DesktopWallpaper({ imagePath = DEFAULT_WALLPAPER, blur = false }: DesktopWallpaperProps) {
     return (

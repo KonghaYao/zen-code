@@ -153,21 +153,30 @@ describe('dbPath utils', () => {
     });
 
     describe('getDefaultDatabasePath', () => {
+        let mockHomeDir: string;
+
+        beforeEach(() => {
+            mockHomeDir = path.join(os.tmpdir(), `dbPath-home-test-${Date.now()}`);
+            vi.spyOn(os, 'homedir').mockReturnValue(mockHomeDir);
+        });
+
+        afterEach(() => {
+            vi.restoreAllMocks();
+            if (fs.existsSync(mockHomeDir)) {
+                fs.rmSync(mockHomeDir, { recursive: true });
+            }
+        });
+
         it('should return ~/.zen-code/session.db', () => {
             const result = getDefaultDatabasePath();
-            const expected = path.join(os.homedir(), '.zen-code', 'session.db');
+            const expected = path.join(mockHomeDir, '.zen-code', 'session.db');
             expect(result).toBe(expected);
         });
 
         it('should create .zen-code directory', () => {
             getDefaultDatabasePath();
-            const zenCodeDir = path.join(os.homedir(), '.zen-code');
+            const zenCodeDir = path.join(mockHomeDir, '.zen-code');
             expect(fs.existsSync(zenCodeDir)).toBe(true);
-
-            // Cleanup
-            if (fs.existsSync(zenCodeDir)) {
-                fs.rmSync(zenCodeDir, { recursive: true });
-            }
         });
     });
 
