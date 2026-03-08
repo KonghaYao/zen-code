@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Patch kysely ESM index to comment out createQueryId export.
+ * Patch kysely ESM index to comment out exports.
  *
  * Run automatically via postinstall.
  * Safe to run multiple times (idempotent).
@@ -17,8 +17,23 @@ const TARGET = resolve(
 );
 
 // Matches the line regardless of whether it is already commented (idempotent)
-const RE = /^(\/\/\s*)*export \{ createQueryId \} from '\.\/util\/query-id\.js';$/m;
-const COMMENT_LINE = `// export { createQueryId } from './util/query-id.js';`;
+const PATTERNS = [
+    {
+        re: /^(\/\/\s*)*export \{ createQueryId \} from '\.\/util\/query-id\.js';$/m,
+        replacement: '// export { createQueryId } from \'./util/query-id.js\';',
+        name: 'createQueryId'
+    },
+    {
+        re: /^(\/\/\s*)*export \{ expressionBuilder(,)? \} from '\.\/expression\/expression-builder\.js';$/m,
+        replacement: '// export { expressionBuilder } from \'./expression/expression-builder.js\';',
+        name: 'expressionBuilder'
+    },
+    {
+        re: /^(\/\/\s*)*export \{ logOnce \} from '\.\/util\/log-once\.js';$/m,
+        replacement: '// export { logOnce } from \'./util/log-once.js\';',
+        name: 'logOnce'
+    }
+];
 
 let content;
 try {
@@ -28,16 +43,25 @@ try {
     process.exit(0);
 }
 
-if (!RE.test(content)) {
-    console.warn('[patch-kysely] Target line not found, skipping.');
-    process.exit(0);
+let patched = false;
+let output = content;
+
+for (const { re, replacement, name } of PATTERNS) {
+    if (!re.test(content)) {
+        console.warn(`[patch-kysely] Pattern for ${name} not found, skipping.`);
+        continue;
+    }
+
+    const newOutput = output.replace(re, replacement);
+    if (newOutput !== output) {
+        output = newOutput;
+        patched = true;
+        console.log(`[patch-kysely] Patched: commented out ${name} export.`);
+    }
 }
 
-const patched = content.replace(RE, COMMENT_LINE);
-
-if (patched === content) {
+if (!patched) {
     console.log('[patch-kysely] Already patched, nothing to do.');
 } else {
-    writeFileSync(TARGET, patched, 'utf8');
-    console.log('[patch-kysely] Patched: commented out createQueryId export.');
+    writeFileSync(TARGET, output, 'utf8');
 }
