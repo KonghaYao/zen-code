@@ -3,12 +3,15 @@
     "version": "1.0.0",
     "type": "module",
     "description": "Web content extraction and parsing library with HTML-to-Markdown conversion",
-    "main": "./src/index.ts",
-    "types": "./src/index.ts",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
-        "mcp:serve": "bun ./src/mcp.ts"
+        "web-fetch": "bun ./src/cli.ts"
+    },
+    "bin": {
+        "web-fetch": "./dist/cli.js"
     },
     "dependencies": {
         "@b-fuze/deno-dom": "npm:@jsr/b-fuze__deno-dom",

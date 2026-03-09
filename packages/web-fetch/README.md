@@ -121,22 +121,56 @@ class MyCustomCleaner extends HTMLCleaner {
 }
 ```
 
-## MCP Server
+## CLI 工具
 
-本包可作为 MCP (Model Context Protocol) Server 运行，为 AI 助手提供网页内容抓取能力。
+本包提供命令行工具 `web-fetch`，用于快速抓取网页内容。
 
-### MCP 配置
+### 安装
 
-```json
-{
-    "mcpServers": {
-        "web-fetch": {
-            "command": "npx",
-            "args": ["@langgraph-js/web-fetch/dist/mcp.js"]
-        }
-    }
-}
+```bash
+bun add @langgraph-js/web-fetch
+# 或全局安装
+npm install -g @langgraph-js/web-fetch
 ```
+
+### 使用
+
+```bash
+# 基本用法
+web-fetch https://example.com
+
+# 多个 URL
+web-fetch https://example.com https://docs.example.com
+
+# 输出为纯文本
+web-fetch https://example.com --format text
+
+# 高级提取模式
+web-fetch https://example.com --extract-depth advanced
+
+# 包含图片链接
+web-fetch https://example.com --include-images
+
+# 设置超时时间
+web-fetch https://example.com --timeout 30
+
+# 完整示例
+web-fetch https://example.com \
+  --format markdown \
+  --extract-depth advanced \
+  --include-images \
+  --timeout 30
+```
+
+### 选项
+
+| 选项                | 类型    | 默认值   | 描述                        |
+| ------------------- | ------- | -------- | --------------------------- |
+| `--format`          | string  | markdown | 输出格式：markdown 或 text  |
+| `--extract-depth`   | string  | basic    | 提取深度：basic 或 advanced |
+| `--include-images`  | boolean | false    | 是否提取图片链接            |
+| `--include-favicon` | boolean | false    | 是否提取 favicon            |
+| `--timeout`         | number  | 10       | 超时秒数（1-60）            |
 
 ## 依赖
 
@@ -149,4 +183,3 @@ class MyCustomCleaner extends HTMLCleaner {
 | `iconv-lite`                     | 字符集编码转换       |
 | `fetch-cookie` + `tough-cookie`  | Cookie 管理          |
 | `zod`                            | 参数验证             |
-| `@modelcontextprotocol/sdk`      | MCP Server 实现      |
