@@ -9,11 +9,13 @@ import { AgentAutocompleteHintUI } from './AgentAutocompleteUI';
 import { colorizeInputLine } from './inputColorizer';
 import type { Skill, Agent } from '@codegraph/config';
 import { useBufferedMessageSender } from '../../hooks/useBufferedMessageSender';
+import { useImagePaste, type AttachedImage } from './useImagePaste.js';
+import { ImagePreviewUI } from './ImagePreviewUI.js';
 
 export interface ChatInputBufferProps {
     value: string;
     onChange: (value: string) => void;
-    onSubmit: (value: string) => void;
+    onSubmit: (value: string, attachedImages?: AttachedImage[]) => void;
     loading: boolean;
     placeholder?: string;
     commandHandler: {
@@ -26,6 +28,8 @@ export interface ChatInputBufferProps {
     /** Available agents for autocomplete */
     agents?: Agent[];
 }
+
+export type { AttachedImage };
 
 export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
     value,
@@ -40,6 +44,16 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
     useBufferedMessageSender();
     const { bufferedMessage, setBufferedMessage, clearBuffer } = useChatInputBuffer();
     const [internalValue, setInternalValue] = useState(value);
+    const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([]);
+
+    const {
+        handlePaste: handleImagePaste,
+        removeImage,
+        clearImages,
+    } = useImagePaste({
+        attachedImages,
+        onImagesChange: setAttachedImages,
+    });
 
     // Prevent infinite loop: track if we're processing external value changes
     const isExternalUpdateRef = useRef(false);
@@ -103,7 +117,7 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
 
     const handleSubmit = useCallback(
         (submitValue: string) => {
-            if (!submitValue.trim()) return;
+            if (!submitValue.trim() && attachedImages.length === 0) return;
 
             // Hide autocompletes on submit
             skillAutocomplete.hide();
@@ -116,16 +130,27 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
             }
 
             if (loading) {
-                // AI 响应中：加入缓冲区
+                // AI 响应中：加入缓冲区（图片暂不支持缓冲区，等 AI 空闲再发）
                 setBufferedMessage(submitValue);
                 setInternalValue(''); // 清空输入框
             } else {
-                // AI 空闲：直接发送
-                onSubmit(submitValue);
+                // AI 空闲：直接发送，携带附件图片
+                const imagesToSend = attachedImages.length > 0 ? [...attachedImages] : undefined;
+                onSubmit(submitValue, imagesToSend);
                 setInternalValue('');
+                clearImages();
             }
         },
-        [isCommandInput, loading, onSubmit, setBufferedMessage, skillAutocomplete, agentAutocomplete],
+        [
+            isCommandInput,
+            loading,
+            onSubmit,
+            setBufferedMessage,
+            skillAutocomplete,
+            agentAutocomplete,
+            attachedImages,
+            clearImages,
+        ],
     );
 
     // 处理 Esc 键清空缓冲区或关闭自动补全
@@ -142,12 +167,25 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
             return;
         }
 
+        // 如果有附件图片，先移除最后一张
+        if (attachedImages.length > 0) {
+            removeImage(attachedImages[attachedImages.length - 1].id);
+            return;
+        }
+
         if (bufferedMessage) {
             clearBuffer(); // 清空缓冲区
         } else {
             setInternalValue(''); // 清空输入框
         }
-    }, [bufferedMessage, clearBuffer, skillAutocomplete.isActive, agentAutocomplete.isActive]);
+    }, [
+        bufferedMessage,
+        clearBuffer,
+        skillAutocomplete.isActive,
+        agentAutocomplete.isActive,
+        attachedImages,
+        removeImage,
+    ]);
 
     // 处理命令补全 - 右箭头键（仅在光标在末尾且是命令输入时触发）
     const handleCommandCompletion = useCallback(() => {
@@ -231,6 +269,9 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
                 query={agentAutocomplete.state.query}
             />
 
+            {/* 附件图片预览 */}
+            <ImagePreviewUI images={attachedImages} onRemove={removeImage} />
+
             {/* Skill autocomplete suggestions */}
             <SkillAutocompleteHintUI
                 visible={skillAutocomplete.state.visible}
@@ -250,6 +291,21 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
                         if (key.escape) {
                             handleEsc();
                             return false; // 阻止默认行为
+                        }
+
+                        // Backspace：输入为空时移除最后一张图片
+                        if (key.backspace && internalValue === '' && attachedImages.length > 0) {
+                            removeImage(attachedImages[attachedImages.length - 1].id);
+                            return false; // 阻止默认 backspace 行为
+                        }
+
+                        // Ctrl+V: 优先尝试图片粘贴
+                        if (key.ctrl && input === 'v') {
+                            handleImagePaste().then((handled) => {
+                                // handled=false 时，ink 的默认粘贴行为会处理文字
+                            });
+                            // 返回 true 让 ink 继续处理（文字粘贴）
+                            return true;
                         }
 
                         // Handle right arrow for autocompletions

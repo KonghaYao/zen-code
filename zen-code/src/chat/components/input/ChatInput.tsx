@@ -10,6 +10,8 @@
  */
 
 import React, { useCallback, memo, useState } from 'react';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { Box } from 'ink';
 import { useChat } from '@langgraph-js/sdk/react';
 import { useSettings } from '../../context/SettingsContext';
@@ -19,7 +21,7 @@ import { useAgents } from '../../hooks/useAgents';
 import { useRalphLoop } from '../../hooks/useRalphLoop';
 import { useChatPanel } from '../../context/ChatPanelContext';
 import { useShellCommand } from '../../hooks/useShellCommand';
-import { ChatInputBuffer } from './ChatInputBuffer';
+import { ChatInputBuffer, type AttachedImage } from './ChatInputBuffer';
 import { ShellOutputPreview } from '../ShellOutputPreview';
 
 import { notify } from '../../../utils/notify';
@@ -86,8 +88,8 @@ export const ChatInput: React.FC = memo(() => {
 
     // Handle message submission
     const handleSendMessage = useCallback(
-        async (inputValue: string) => {
-            if (!inputValue) return;
+        async (inputValue: string, attachedImages?: AttachedImage[]) => {
+            if (!inputValue && (!attachedImages || attachedImages.length === 0)) return;
 
             // Shell command处理 (! 前缀)
             if (inputValue.startsWith('!')) {
@@ -108,12 +110,40 @@ export const ChatInput: React.FC = memo(() => {
                 }
             }
 
-            // 普通消息处理
+            // 构建消息内容：支持多模态（图片 + 文字）
+            const hasImages = attachedImages && attachedImages.length > 0;
+            let messageContent: any = inputValue;
+            if (hasImages) {
+                const imageBlocks = await Promise.all(
+                    attachedImages!.map(async (img) => {
+                        const buf = await fs.readFile(img.filePath);
+                        const base64 = buf.toString('base64');
+                        const ext = path.extname(img.fileName).slice(1).toLowerCase() || 'jpeg';
+                        const mimeMap: Record<string, string> = {
+                            png: 'image/png',
+                            jpg: 'image/jpeg',
+                            jpeg: 'image/jpeg',
+                            gif: 'image/gif',
+                            webp: 'image/webp',
+                        };
+                        return {
+                            type: 'image' as const,
+                            source_type: 'base64',
+                            data: base64,
+                            mime_type: mimeMap[ext] ?? 'image/jpeg',
+                            // sb langchain 文档是错的, 需要使用 mineType
+                            mimeType: mimeMap[ext] ?? 'image/jpeg',
+                        };
+                    }),
+                );
+                messageContent = [...imageBlocks, ...(inputValue ? [{ type: 'text' as const, text: inputValue }] : [])];
+            }
+
             await sendMessage(
                 [
                     {
                         type: 'human',
-                        content: inputValue,
+                        content: messageContent,
                     },
                 ],
                 { extraParams, metadata: metadataOfChat },

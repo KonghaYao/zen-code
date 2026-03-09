@@ -31,10 +31,9 @@
         "format:check": "prettier --check ."
     },
     "dependencies": {
-        "@anthropic-ai/claude-code": "2.1.71",
-        "@anthropic-ai/sdk": "^0.71.2",
+        "@anthropic-ai/sdk": "^0.78.0",
         "@langchain/anthropic": "^1.3.22",
-        "@langchain/core": "^1.1.26",
+        "@langchain/core": "^1.1.31",
         "@langchain/langgraph": "^1.1.0",
         "@langchain/mcp-adapters": "^1.1.1",
         "@langchain/openai": "^1.2.12",
@@ -45,7 +44,7 @@
         "execa": "^9.6.1",
         "glob": "^11.1.0",
         "hono": "^4.11.4",
-        "langchain": "1.1.1",
+        "langchain": "^1.1.1",
         "micromatch": "^4.0.0",
         "openai": "^6.16.0",
         "react": "^19.2.3",
@@ -93,5 +92,8 @@
         "uuid": "^13.0.0",
         "execa": "^9.6.1",
         "@langgraph-js/pure-graph": "3.3.3"
+    },
+    "patchedDependencies": {
+        "run-jxa@3.0.0": "patches/run-jxa@3.0.0.patch"
     }
 }

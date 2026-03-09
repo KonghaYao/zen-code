@@ -16,9 +16,23 @@ const MessageHuman: React.FC<MessageHumanProps> = ({ content, messageNumber }) =
         }
 
         if (Array.isArray(content)) {
-            return content
-                .filter((item) => item.type === 'text')
-                .map((item, index) => <Text color="white">{item.text}</Text>);
+            return content.map((item, index) => {
+                if (item.type === 'text') {
+                    return (
+                        <Text key={index} color="white">
+                            {item.text}
+                        </Text>
+                    );
+                }
+                if (item.type === 'image') {
+                    return (
+                        <Text key={index} color="cyan">
+                            📎 [image/{item.mime_type?.split('/')[1] ?? 'png'}]
+                        </Text>
+                    );
+                }
+                return null;
+            });
         }
         // Fallback for unexpected content types
         return <Text color="white">{JSON.stringify(content)}</Text>;
