@@ -34,7 +34,7 @@
         "@langchain/openai": "^1.2.12",
         "@langgraph-js/agent-middlewares": "workspace:^",
         "@langgraph-js/pure-graph": "^3.3.0",
-        "@langgraph-js/sdk": "^4.6.4",
+        "@langgraph-js/sdk": "^4.6.5",
         "@langgraph-js/standard-agent": "workspace:^",
         "@nanostores/react": "^1.0.0",
         "@tanstack/react-query": "^5.90.21",
