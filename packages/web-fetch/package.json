@@ -7,10 +7,12 @@
     "types": "./src/index.ts",
     "scripts": {
         "build": "tsc",
-        "watch": "tsc --watch"
+        "watch": "tsc --watch",
+        "mcp:serve": "bun ./src/mcp.ts"
     },
     "dependencies": {
         "@b-fuze/deno-dom": "npm:@jsr/b-fuze__deno-dom",
+        "@modelcontextprotocol/sdk": "^1.27.1",
         "@mozilla/readability": "^0.6.0",
         "defuddle": "^0.10.0",
         "fetch-cookie": "^3.2.0",

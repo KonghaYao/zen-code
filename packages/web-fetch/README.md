@@ -121,6 +121,23 @@ class MyCustomCleaner extends HTMLCleaner {
 }
 ```
 
+## MCP Server
+
+本包可作为 MCP (Model Context Protocol) Server 运行，为 AI 助手提供网页内容抓取能力。
+
+### MCP 配置
+
+```json
+{
+    "mcpServers": {
+        "web-fetch": {
+            "command": "npx",
+            "args": ["@langgraph-js/web-fetch/dist/mcp.js"]
+        }
+    }
+}
+```
+
 ## 依赖
 
 | 依赖                             | 用途                 |
@@ -132,3 +149,4 @@ class MyCustomCleaner extends HTMLCleaner {
 | `iconv-lite`                     | 字符集编码转换       |
 | `fetch-cookie` + `tough-cookie`  | Cookie 管理          |
 | `zod`                            | 参数验证             |
+| `@modelcontextprotocol/sdk`      | MCP Server 实现      |
