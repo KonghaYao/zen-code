@@ -16,7 +16,7 @@ async function buildZenSwarm() {
         entrypoints: ['./src/server.ts'],
         target: 'node',
         format: 'esm',
-        minify: false,
+        minify: true,
         sourcemap: false,
         splitting: false,
         outdir: 'dist',
