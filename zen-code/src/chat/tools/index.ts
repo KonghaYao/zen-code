@@ -10,6 +10,7 @@ import { folder_operations } from './folder_operations';
 import { load_mcp_tools } from './mcp/load_mcp_tools';
 import { execute_mcp_tool } from './mcp/execute_mcp_tool';
 import { task } from './task';
+import { web_fetch } from './web_fetch';
 
 export default [
     terminal,
@@ -24,4 +25,5 @@ export default [
     load_mcp_tools,
     execute_mcp_tool,
     task,
+    web_fetch,
 ];
