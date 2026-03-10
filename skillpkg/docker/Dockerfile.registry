@@ -1,0 +1,33 @@
+FROM oven/bun:1-alpine AS builder
+
+WORKDIR /app
+
+# Copy workspace files
+COPY package.json ./
+COPY registry/package.json ./registry/
+COPY cli/package.json ./cli/
+
+# Install dependencies
+RUN bun install --frozen-lockfile
+
+# Copy source files
+COPY registry/ ./registry/
+
+# Build frontend
+RUN cd registry && bun run build:frontend
+
+# Build server
+RUN cd registry && bun build src/server.ts --target bun --outdir dist
+
+# --- Production image ---
+FROM oven/bun:1-alpine
+
+WORKDIR /app
+
+COPY --from=builder /app/registry/dist ./dist
+COPY --from=builder /app/registry/dist/public ./dist/public
+
+ENV NODE_ENV=production
+EXPOSE 3000
+
+CMD ["bun", "run", "dist/server.js"]

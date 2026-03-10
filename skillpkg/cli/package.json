@@ -1,0 +1,21 @@
+{
+    "name": "skillpkg-cli",
+    "version": "1.0.0",
+    "type": "module",
+    "bin": {
+        "skillpkg": "./dist/index.js"
+    },
+    "scripts": {
+        "dev": "bun --watch src/index.ts",
+        "build": "bun build src/index.ts --target bun --outdir dist",
+        "build:watch": "bun build src/index.ts --target bun --outdir dist --watch"
+    },
+    "dependencies": {
+        "semver": "^7.7.2"
+    },
+    "devDependencies": {
+        "@types/semver": "^7.5.8",
+        "@types/node": "^20.19.30",
+        "typescript": "^5.9.3"
+    }
+}

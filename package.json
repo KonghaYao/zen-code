@@ -7,7 +7,8 @@
     "workspaces": [
         "packages/*",
         "zen-code",
-        "zen-swarm"
+        "zen-swarm",
+        "skillpkg"
     ],
     "scripts": {
         "dev:docs": "bunx --bun xyd-js@0.1.0-alpha.5",
@@ -39,7 +40,7 @@
         "@langchain/openai": "^1.2.12",
         "@langgraph-js/pro": "^2.2.0",
         "@langgraph-js/pure-graph": "^3.3.0",
-        "@langgraph-js/sdk": "^4.6.5",
+        "@langgraph-js/sdk": "^4.6.6",
         "eventemitter3": "^5.0.1",
         "execa": "^9.6.1",
         "glob": "^11.1.0",
