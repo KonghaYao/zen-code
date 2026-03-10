@@ -24,8 +24,7 @@ async function main() {
         args.splice(yoloIndex, 1); // 移除 --yolo 参数
     }
 
-    /** @ts-ignore */
-    globalThis.Bun && initDatabaseUri('~/.zen-code/data/sessions.db');
+    initDatabaseUri('~/.zen-code/data/sessions.db');
     if (args[0] === 'init') {
         console.log('Please zen-code and use /m to configure models');
     } else if (args[0] === 'keyboard') {

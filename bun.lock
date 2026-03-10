@@ -13,7 +13,7 @@
         "@langchain/openai": "^1.2.12",
         "@langgraph-js/pro": "^2.2.0",
         "@langgraph-js/pure-graph": "^3.3.0",
-        "@langgraph-js/sdk": "^4.6.4",
+        "@langgraph-js/sdk": "^4.6.5",
         "eventemitter3": "^5.0.1",
         "execa": "^9.6.1",
         "glob": "^11.1.0",
@@ -243,7 +243,7 @@
         "@langchain/openai": "^1.2.12",
         "@langgraph-js/agent-middlewares": "workspace:^",
         "@langgraph-js/pure-graph": "^3.3.0",
-        "@langgraph-js/sdk": "^4.6.4",
+        "@langgraph-js/sdk": "^4.6.5",
         "@langgraph-js/standard-agent": "workspace:^",
         "@nanostores/react": "^1.0.0",
         "@tanstack/react-query": "^5.90.21",
@@ -308,7 +308,7 @@
         "@langchain/langgraph": "^1.2.1",
         "@langgraph-js/agent-middlewares": "workspace:^",
         "@langgraph-js/pure-graph": "^3.3.0",
-        "@langgraph-js/sdk": "^4.6.4",
+        "@langgraph-js/sdk": "^4.6.5",
         "@langgraph-js/standard-agent": "workspace:^",
         "@nanostores/react": "^1.0.0",
         "@streamdown/cjk": "^1.0.2",
@@ -549,7 +549,7 @@
 
     "@langgraph-js/pure-graph": ["@langgraph-js/pure-graph@3.3.3", "", { "dependencies": { "@langchain/core": "^1.0.6", "@langchain/langgraph": "^1.0.2", "@langchain/langgraph-checkpoint": "^1.0.0", "@langgraph-js/pro": "^2.0.0", "camelcase-keys": "^10.0.0", "eventemitter3": "^5.0.1", "kysely": "^0.28.8", "langchain": "^1.0.6", "uuid": "^13.0.0", "zod": "^4", "zod-defaults": "^0.2.3" }, "optionalDependencies": { "@hono/zod-validator": "^0.7.3", "@langchain/langgraph-checkpoint-postgres": "^1.0.0", "@langchain/langgraph-checkpoint-redis": "^1.0.0", "hono": "^4.9.9", "kysely-bun-worker": "^1.2.1", "kysely-wasm": "^1.2.1", "node-sqlite3-wasm": "^0.8.51", "pg": "^8.16.3", "redis": "^5.8.3" } }, "sha512-6Y3Wpl3Xg5Gdj0l64qHAkKty5wPTE0LE5CccI7nj6rm3LfW/i4042Qfkucj3XgxBidZB3DKwsnBmI7oU7euriw=="],
 
-    "@langgraph-js/sdk": ["@langgraph-js/sdk@4.6.4", "https://registry.npmmirror.com/@langgraph-js/sdk/-/sdk-4.6.4.tgz", { "dependencies": { "@langchain/langgraph-sdk": "^1.0.0", "camelcase-keys": "^10.0.1", "change-case": "^5.4.4", "eventemitter3": "^5.0.1", "nanostores": "^1.0.1", "partial-json": "^0.1.7", "ts-debounce": "^4.0.0", "zod": "^4", "zod-to-json-schema": "^3.24.5" }, "peerDependencies": { "@nanostores/react": "^1.0.0", "@nanostores/solid": "^1.0.0", "@nanostores/vue": "^1.0.0", "react": "^19||^18", "solid-js": "^1.0.0", "vue": "^3.0.0" }, "optionalPeers": ["@nanostores/react", "@nanostores/solid", "@nanostores/vue", "react", "solid-js", "vue"] }, "sha512-DlhRrAr/RUGoh5iA1ihIOFWKEHPLE7aDLgKr237sWz1z1fDQ8hZCxKL42zBcGO3r06pAqfZ4K8VgNWQrCP+4OA=="],
+    "@langgraph-js/sdk": ["@langgraph-js/sdk@4.6.5", "", { "dependencies": { "@langchain/langgraph-sdk": "^1.0.0", "camelcase-keys": "^10.0.1", "change-case": "^5.4.4", "eventemitter3": "^5.0.1", "nanostores": "^1.0.1", "partial-json": "^0.1.7", "ts-debounce": "^4.0.0", "zod": "^4", "zod-to-json-schema": "^3.24.5" }, "peerDependencies": { "@nanostores/react": "^1.0.0", "@nanostores/solid": "^1.0.0", "@nanostores/vue": "^1.0.0", "react": "^19||^18", "solid-js": "^1.0.0", "vue": "^3.0.0" }, "optionalPeers": ["@nanostores/react", "@nanostores/solid", "@nanostores/vue", "react", "solid-js", "vue"] }, "sha512-hxUGNjkmYSE3+0h4f67SYM2oM3OGNmJcmn7tClQUkb9WZu2CONulg58cQQVP+o0p1oRbi8nHuDDHzK9Lr8mCDA=="],
 
     "@langgraph-js/standard-agent": ["@langgraph-js/standard-agent@workspace:packages/standard-agent"],
 
@@ -2125,8 +2125,6 @@
 
     "@langgraph-js/pro/@langchain/openai": ["@langchain/openai@1.2.8", "https://registry.npmmirror.com/@langchain/openai/-/openai-1.2.8.tgz", { "dependencies": { "js-tiktoken": "^1.0.12", "openai": "^6.18.0", "zod": "^3.25.76 || ^4" }, "peerDependencies": { "@langchain/core": "^1.0.0" } }, "sha512-qliwC7sb7/Kw0tsl/EiMchMThKt62rZbyofKXtxPwYBte3BMzMXo2HKaEFvAN2QHVOuDi4voqQ7ZlRXc/o2e8w=="],
 
-    "@langgraph-js/sdk/@langchain/langgraph-sdk": ["@langchain/langgraph-sdk@1.6.4", "https://registry.npmmirror.com/@langchain/langgraph-sdk/-/langgraph-sdk-1.6.4.tgz", { "dependencies": { "@types/json-schema": "^7.0.15", "p-queue": "^9.0.1", "p-retry": "^7.1.1", "uuid": "^13.0.0" }, "peerDependencies": { "@langchain/core": "^1.1.16", "react": "^18 || ^19", "react-dom": "^18 || ^19" }, "optionalPeers": ["@langchain/core", "react", "react-dom"] }, "sha512-VvN+onhHiwNkC/oEfiO03PeEtJvzgII+IEKPT5vE7T4Oek3bnGKEpD3EmFQ0U6dFMHojV6hXreK8hKvgBLYytA=="],
-
     "@redis/graph/@redis/client": ["@redis/client@1.6.1", "https://registry.npmmirror.com/@redis/client/-/client-1.6.1.tgz", { "dependencies": { "cluster-key-slot": "1.1.2", "generic-pool": "3.9.0", "yallist": "4.0.0" } }, "sha512-/KCsg3xSlR+nCK8/8ZYSknYxvXHwubJrU82F3Lm1Fp6789VQ0/3RJKfsmRXjqfaTA++23CvC3hqmqe/2GEt6Kw=="],
 
     "@tailwindcss/oxide-wasm32-wasi/@emnapi/core": ["@emnapi/core@1.8.1", "", { "dependencies": { "@emnapi/wasi-threads": "1.1.0", "tslib": "^2.4.0" }, "bundled": true }, "sha512-AvT9QFpxK0Zd8J0jopedNm+w/2fIzvtPKPjqyw9jwvBaReTTqPBk9Hixaz7KbjimP+QNz605/XnjFcDAL2pqBg=="],
@@ -2279,8 +2277,6 @@
 
     "@langchain/langgraph-sdk/p-queue/p-timeout": ["p-timeout@7.0.1", "https://registry.npmmirror.com/p-timeout/-/p-timeout-7.0.1.tgz", {}, "sha512-AxTM2wDGORHGEkPCt8yqxOTMgpfbEHqF51f/5fJCmwFC3C/zNcGT63SymH2ttOAaiIws2zVg4+izQCjrakcwHg=="],
 
-    "@langgraph-js/sdk/@langchain/langgraph-sdk/p-queue": ["p-queue@9.1.0", "https://registry.npmmirror.com/p-queue/-/p-queue-9.1.0.tgz", { "dependencies": { "eventemitter3": "^5.0.1", "p-timeout": "^7.0.0" } }, "sha512-O/ZPaXuQV29uSLbxWBGGZO1mCQXV2BLIwUr59JUU9SoH76mnYvtms7aafH/isNSNGwuEfP6W/4xD0/TJXxrizw=="],
-
     "cli-highlight/chalk/ansi-styles": ["ansi-styles@4.3.0", "https://registry.npmmirror.com/ansi-styles/-/ansi-styles-4.3.0.tgz", { "dependencies": { "color-convert": "^2.0.1" } }, "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg=="],
 
     "cli-highlight/yargs/cliui": ["cliui@7.0.4", "https://registry.npmmirror.com/cliui/-/cliui-7.0.4.tgz", { "dependencies": { "string-width": "^4.2.0", "strip-ansi": "^6.0.0", "wrap-ansi": "^7.0.0" } }, "sha512-OcRE68cOsVMXp1Yvonl/fzkQOyjLSu/8bhPDfQt0e0/Eb283TKP20Fs2MqoPsr9SwA595rRCA+QMzYc9nBP+JQ=="],
@@ -2326,8 +2322,6 @@
     "yargs/string-width/is-fullwidth-code-point": ["is-fullwidth-code-point@3.0.0", "https://registry.npmmirror.com/is-fullwidth-code-point/-/is-fullwidth-code-point-3.0.0.tgz", {}, "sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg=="],
 
     "yargs/string-width/strip-ansi": ["strip-ansi@6.0.1", "https://registry.npmmirror.com/strip-ansi/-/strip-ansi-6.0.1.tgz", { "dependencies": { "ansi-regex": "^5.0.1" } }, "sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A=="],
-
-    "@langgraph-js/sdk/@langchain/langgraph-sdk/p-queue/p-timeout": ["p-timeout@7.0.1", "https://registry.npmmirror.com/p-timeout/-/p-timeout-7.0.1.tgz", {}, "sha512-AxTM2wDGORHGEkPCt8yqxOTMgpfbEHqF51f/5fJCmwFC3C/zNcGT63SymH2ttOAaiIws2zVg4+izQCjrakcwHg=="],
 
     "cli-highlight/yargs/cliui/strip-ansi": ["strip-ansi@6.0.1", "https://registry.npmmirror.com/strip-ansi/-/strip-ansi-6.0.1.tgz", { "dependencies": { "ansi-regex": "^5.0.1" } }, "sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A=="],
 
