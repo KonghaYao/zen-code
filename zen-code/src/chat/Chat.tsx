@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { Box, Text } from 'ink';
 import { ChatProvider } from '@langgraph-js/sdk/react';
 import { TanStackQueryProvider } from './QueryClientProvider';
-import { ApprovalProvider } from '@codegraph/union-client';
 import { LangGraphFetch } from '@codegraph/agent/src/export';
 import { InteractionProvider } from './interaction/context';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
@@ -113,13 +112,11 @@ const ChatWrapper: React.FC = () => {
                         <SettingsProvider get_allowed_models={get_allowed_models}>
                             <ChatProviderWrapper>
                                 <ErrorBoundary key="approval-provider" name="ApprovalProvider">
-                                    <ApprovalProvider>
-                                        <ErrorBoundary key="interaction-provider" name="InteractionProvider">
-                                            <InteractionProvider>
-                                                <Chat />
-                                            </InteractionProvider>
-                                        </ErrorBoundary>
-                                    </ApprovalProvider>
+                                    <ErrorBoundary key="interaction-provider" name="InteractionProvider">
+                                        <InteractionProvider>
+                                            <Chat />
+                                        </InteractionProvider>
+                                    </ErrorBoundary>
                                 </ErrorBoundary>
                             </ChatProviderWrapper>
                         </SettingsProvider>

@@ -26,7 +26,7 @@ export const DynamicRenderer = <T,>({
         () => {
             if (shouldShowRef.current) {
                 // 清理屏幕以更新数据
-                process.stdout.write(clearTerminal);
+                // process.stdout.write(clearTerminal);
                 setVisible(true);
                 shouldShowRef.current = false;
             }

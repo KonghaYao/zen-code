@@ -2,10 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Box, Text } from 'ink';
 import { MultiLineTextInput } from 'ink-pro';
 import { useChatInputBuffer } from '@codegraph/union-client';
-import { useSkillAutocomplete } from '../../hooks/useSkillAutocomplete';
-import { useAgentAutocomplete } from '../../hooks/useAgentAutocomplete';
-import { SkillAutocompleteHintUI } from './SkillAutocompleteUI';
-import { AgentAutocompleteHintUI } from './AgentAutocompleteUI';
+import { useUnifiedAutocomplete } from '../../hooks/useUnifiedAutocomplete';
+import { UnifiedAutocompleteUI } from './UnifiedAutocompleteUI';
 import { colorizeInputLine } from './inputColorizer';
 import type { Skill, Agent } from '@codegraph/config';
 import { useBufferedMessageSender } from '../../hooks/useBufferedMessageSender';
@@ -58,16 +56,23 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
     // Prevent infinite loop: track if we're processing external value changes
     const isExternalUpdateRef = useRef(false);
 
-    // Initialize skill autocomplete
-    const skillAutocomplete = useSkillAutocomplete({
-        skills,
-        maxSuggestions: 5,
-    });
+    // Convert commandSuggestions to AutocompleteItem format
+    const commandItems = useMemo(() => {
+        if (!commandHandler.commandSuggestions) return [];
+        return commandHandler.commandSuggestions.map((cmd: any) => ({
+            id: cmd.command || cmd.name,
+            name: cmd.command || cmd.name,
+            displayText: cmd.displayText || cmd.command,
+            description: cmd.description,
+        }));
+    }, [commandHandler.commandSuggestions]);
 
-    // Initialize agent autocomplete
-    const agentAutocomplete = useAgentAutocomplete({
+    // Initialize unified autocomplete
+    const autocomplete = useUnifiedAutocomplete({
+        commands: commandItems,
+        skills,
         agents,
-        maxSuggestions: 5,
+        maxVisible: 5,
     });
 
     // 同步外部 value 变化（避免循环更新）
@@ -82,23 +87,12 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
     // 计算是否为命令输入（基于 internalValue）
     const isCommandInput = useMemo(() => internalValue.startsWith('/'), [internalValue]);
 
-    // 计算是否处于「纯命令阶段」：以 / 开头且不含空格（命令名还未确定，尚未开始写参数）
-    // /help → 纯命令阶段，屏蔽 skill 建议
-    // /i djidji # → 已有参数，允许 skill 建议
-    const isPureCommandPhase = useMemo(
-        () => internalValue.startsWith('/') && !internalValue.includes(' '),
-        [internalValue],
-    );
-
-    // Check for skill/agent autocomplete trigger when input changes
-    // Intentionally omit checkTrigger functions from dependencies to avoid infinite loops
+    // Check for autocomplete trigger when input changes
+    // Intentionally omit checkTrigger from dependencies to avoid infinite loops
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
-        if (!isPureCommandPhase) {
-            skillAutocomplete.checkTrigger(internalValue);
-            agentAutocomplete.checkTrigger(internalValue);
-        }
-    }, [internalValue, isPureCommandPhase]);
+        autocomplete.checkTrigger(internalValue);
+    }, [internalValue]);
 
     // 处理输入变化，同步到外部和命令检测（避免循环更新）
     const handleChange = useCallback(
@@ -119,9 +113,9 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
         (submitValue: string) => {
             if (!submitValue.trim() && attachedImages.length === 0) return;
 
-            // Hide autocompletes on submit
-            skillAutocomplete.hide();
-            agentAutocomplete.hide();
+            // Hide autocomplete on submit
+            autocomplete.hide();
+
             // 命令优先处理
             if (isCommandInput) {
                 onSubmit(submitValue);
@@ -141,29 +135,14 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
                 clearImages();
             }
         },
-        [
-            isCommandInput,
-            loading,
-            onSubmit,
-            setBufferedMessage,
-            skillAutocomplete,
-            agentAutocomplete,
-            attachedImages,
-            clearImages,
-        ],
+        [isCommandInput, loading, onSubmit, setBufferedMessage, autocomplete, attachedImages, clearImages],
     );
 
     // 处理 Esc 键清空缓冲区或关闭自动补全
     const handleEsc = useCallback(() => {
-        // If agent autocomplete is open, close it first
-        if (agentAutocomplete.isActive) {
-            agentAutocomplete.hide();
-            return;
-        }
-
-        // If skill autocomplete is open, close it
-        if (skillAutocomplete.isActive) {
-            skillAutocomplete.hide();
+        // If autocomplete is open, close it first
+        if (autocomplete.isActive) {
+            autocomplete.hide();
             return;
         }
 
@@ -178,74 +157,24 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
         } else {
             setInternalValue(''); // 清空输入框
         }
-    }, [
-        bufferedMessage,
-        clearBuffer,
-        skillAutocomplete.isActive,
-        agentAutocomplete.isActive,
-        attachedImages,
-        removeImage,
-    ]);
-
-    // 处理命令补全 - 右箭头键（仅在光标在末尾且是命令输入时触发）
-    const handleCommandCompletion = useCallback(() => {
-        if (!isCommandInput || !commandHandler.commandSuggestions || commandHandler.commandSuggestions.length === 0) {
-            return false; // 不是命令输入或没有建议，不拦截
-        }
-
-        const suggestions = commandHandler.commandSuggestions;
-        const firstSuggestion = suggestions[0];
-        const completionText = firstSuggestion.displayText || firstSuggestion.command || '';
-
-        // 执行补全：使用第一个建议
-        const completedText = completionText + ' '; // 补全后添加空格
-        handleChange(completedText);
-
-        return true; // 拦截按键，阻止默认行为
-    }, [isCommandInput, commandHandler.commandSuggestions, handleChange]);
-
-    // Handle skill completion - right arrow key
-    const handleSkillCompletion = useCallback(() => {
-        if (!skillAutocomplete.isActive) {
-            return false;
-        }
-
-        const completedText = skillAutocomplete.complete(internalValue);
-        handleChange(completedText);
-        skillAutocomplete.hide();
-
-        return true; // Intercept the key
-    }, [skillAutocomplete.isActive, skillAutocomplete.complete, skillAutocomplete.hide, internalValue, handleChange]);
-
-    // Handle agent completion - right arrow key
-    const handleAgentCompletion = useCallback(() => {
-        if (!agentAutocomplete.isActive) {
-            return false;
-        }
-
-        const completedText = agentAutocomplete.complete(internalValue);
-        handleChange(completedText);
-        agentAutocomplete.hide();
-
-        return true; // Intercept the key
-    }, [agentAutocomplete.isActive, agentAutocomplete.complete, agentAutocomplete.hide, internalValue, handleChange]);
+    }, [bufferedMessage, clearBuffer, autocomplete, attachedImages, removeImage]);
 
     // Get placeholder text based on current state
     const getPlaceholder = useMemo(() => {
         if (loading) {
             return bufferedMessage ? '按 Esc 清空缓冲区' : 'AI 响应中，Enter 将消息加入缓冲区';
         }
+        if (autocomplete.isActive) {
+            const type = autocomplete.state.type;
+            if (type === 'command') return '↑↓ 选择, Tab/→ 补全命令';
+            if (type === 'skill') return '↑↓ 选择, Tab/→ 补全技能';
+            if (type === 'agent') return '↑↓ 选择, Tab/→ 补全 Agent';
+        }
         if (isCommandInput) {
-            return '输入命令... (试试 /help，按 → 补全第一个建议)';
-        }
-        if (agentAutocomplete.isActive) {
-            return '按 → 补全 Agent';
-        }
-        if (skillAutocomplete.isActive) {
-            return '按 → 补全技能';
+            return '输入命令... (试试 /help)';
         }
         return placeholder;
-    }, [loading, bufferedMessage, isCommandInput, agentAutocomplete.isActive, skillAutocomplete.isActive, placeholder]);
+    }, [loading, bufferedMessage, isCommandInput, autocomplete.isActive, autocomplete.state.type, placeholder]);
 
     return (
         <Box flexDirection="column">
@@ -262,22 +191,17 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
             {/* 外部命令提示（用于错误和成功消息） */}
             <commandHandler.CommandHintUI />
 
-            {/* Agent autocomplete suggestions */}
-            <AgentAutocompleteHintUI
-                visible={agentAutocomplete.state.visible}
-                agents={agentAutocomplete.state.filteredAgents}
-                query={agentAutocomplete.state.query}
+            {/* Unified autocomplete suggestions */}
+            <UnifiedAutocompleteUI
+                visible={autocomplete.state.visible}
+                type={autocomplete.state.type}
+                items={autocomplete.state.items}
+                selectedIndex={autocomplete.state.selectedIndex}
+                query={autocomplete.state.query}
             />
 
             {/* 附件图片预览 */}
             <ImagePreviewUI images={attachedImages} onRemove={removeImage} />
-
-            {/* Skill autocomplete suggestions */}
-            <SkillAutocompleteHintUI
-                visible={skillAutocomplete.state.visible}
-                skills={skillAutocomplete.state.filteredSkills}
-                query={skillAutocomplete.state.query}
-            />
 
             {/* 输入框 */}
             <Box paddingY={1}>
@@ -308,23 +232,27 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
                             return true;
                         }
 
-                        // Handle right arrow for autocompletions
-                        if (key.rightArrow) {
-                            // Try agent completion first
-                            if (agentAutocomplete.isActive) {
-                                const handled = handleAgentCompletion();
-                                if (handled) return false;
+                        // Handle autocomplete navigation and completion
+                        if (autocomplete.isActive) {
+                            // Up arrow - navigate to previous item
+                            if (key.upArrow) {
+                                autocomplete.selectPrev();
+                                return false; // Prevent cursor movement
                             }
 
-                            // Then try skill completion
-                            if (skillAutocomplete.isActive) {
-                                const handled = handleSkillCompletion();
-                                if (handled) return false;
+                            // Down arrow - navigate to next item
+                            if (key.downArrow) {
+                                autocomplete.selectNext();
+                                return false; // Prevent cursor movement
                             }
 
-                            // Finally try command completion
-                            const handled = handleCommandCompletion();
-                            if (handled) return false;
+                            // Tab or Right arrow - complete
+                            if (key.tab || key.rightArrow) {
+                                const completed = autocomplete.complete(internalValue);
+                                handleChange(completed);
+                                autocomplete.hide();
+                                return false;
+                            }
                         }
 
                         return true;

@@ -195,54 +195,29 @@ export const useCommandHandler = (props: CommandHandlerProps): CommandHandlerRet
         ],
     );
 
-    // 命令提示UI组件
+    // 命令状态UI组件 - 显示错误和成功消息（命令建议已由 UnifiedAutocompleteUI 处理）
     const CommandHintUI: React.FC = () => {
-        if (!showCommandHint || commandSuggestions.length === 0) {
-            return null;
-        }
-
         return (
-            <Box marginBottom={1} flexDirection="column">
-                <Text color="yellow" bold>
-                    命令建议:
-                </Text>
-                {commandSuggestions.slice(0, 5).map((suggestion, index: number) => (
-                    <Text key={index} color="cyan">
-                        {suggestion.displayText} - {suggestion.description}
-                    </Text>
-                ))}
-                {commandSuggestions.length > 5 && (
-                    <Text color="gray">...还有 {commandSuggestions.length - 5} 个命令</Text>
+            <>
+                {commandError && (
+                    <Box marginBottom={1}>
+                        <Text color="red">❌ {commandError}</Text>
+                    </Box>
                 )}
-            </Box>
+                {commandSuccessMessage && (
+                    <Box marginBottom={1}>
+                        <Text color="green">✅ {commandSuccessMessage}</Text>
+                    </Box>
+                )}
+            </>
         );
     };
 
-    // 命令错误UI组件
-    const CommandErrorUI: React.FC = () => {
-        if (!commandError) {
-            return null;
-        }
+    // 命令错误UI组件 (deprecated: 已合并到 CommandHintUI)
+    const CommandErrorUI: React.FC = () => null;
 
-        return (
-            <Box marginBottom={1}>
-                <Text color="red">❌ {commandError}</Text>
-            </Box>
-        );
-    };
-
-    // 命令成功消息UI组件
-    const CommandSuccessUI: React.FC = () => {
-        if (!commandSuccessMessage) {
-            return null;
-        }
-
-        return (
-            <Box marginBottom={1}>
-                <Text color="green">✅ {commandSuccessMessage}</Text>
-            </Box>
-        );
-    };
+    // 命令成功消息UI组件 (deprecated: 已合并到 CommandHintUI)
+    const CommandSuccessUI: React.FC = () => null;
 
     return {
         isCommandInput,
