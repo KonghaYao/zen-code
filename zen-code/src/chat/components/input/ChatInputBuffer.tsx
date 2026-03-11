@@ -59,10 +59,10 @@ export const ChatInputBuffer: React.FC<ChatInputBufferProps> = ({
     // Convert commandSuggestions to AutocompleteItem format
     const commandItems = useMemo(() => {
         if (!commandHandler.commandSuggestions) return [];
-        return commandHandler.commandSuggestions.map((cmd: any) => ({
-            id: cmd.command || cmd.name,
-            name: cmd.command || cmd.name,
-            displayText: cmd.displayText || cmd.command,
+        return commandHandler.commandSuggestions.map((cmd: any, index: number) => ({
+            id: cmd.command || cmd.name || `cmd-${index}`,
+            name: cmd.command || cmd.name || '',
+            displayText: cmd.displayText || (cmd.command ? `/${cmd.command}` : ''),
             description: cmd.description,
         }));
     }, [commandHandler.commandSuggestions]);

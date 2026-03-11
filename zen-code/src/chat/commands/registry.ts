@@ -214,7 +214,18 @@ export class CommandRegistry {
         prefixMatches.sort(sortFn);
         includeMatches.sort(sortFn);
 
-        suggestions.push(...prefixMatches, ...includeMatches);
+        // 去重：以 command 字段为主，相同 command 只保留第一个
+        const seen = new Set<string>();
+        const dedupedSuggestions: CommandSuggestion[] = [];
+
+        for (const suggestion of [...prefixMatches, ...includeMatches]) {
+            if (!seen.has(suggestion.command)) {
+                seen.add(suggestion.command);
+                dedupedSuggestions.push(suggestion);
+            }
+        }
+
+        suggestions.push(...dedupedSuggestions);
 
         return suggestions.slice(0, 10); // 限制建议数量
     }

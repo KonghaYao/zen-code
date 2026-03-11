@@ -149,12 +149,12 @@ function commandsToItems(commands: any[], query: string, maxResults: number): Au
         return name.startsWith(lowerQuery);
     });
 
-    return matches.slice(0, maxResults).map((cmd) => {
+    return matches.slice(0, maxResults).map((cmd, index) => {
         const name = cmd.name || cmd.command;
         return {
-            id: name,
-            name,
-            displayText: cmd.displayText || `/${name}`,
+            id: name || `cmd-${index}`,
+            name: name || '',
+            displayText: cmd.displayText || (name ? `/${name}` : ''),
             description: cmd.description,
             raw: cmd,
         };
