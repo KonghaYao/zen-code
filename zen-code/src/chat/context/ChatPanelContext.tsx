@@ -48,12 +48,12 @@ interface ChatPanelProviderProps {
 /**
  * Provider for chat panel state.
  *
- * Note: Parent (ChatController) is responsible for providing stable value
- * by using useCallback for all function references.
+ * 稳定性保证由调用方（ChatController）负责：
+ * - 所有回调函数在 ChatController 中通过 useChatPanels 的 useCallback 包裹
+ * - value 对象本身在 ChatController 中通过 useMemo 包裹，仅在
+ *   activeView / hasPendingInteractions 变化时重建
+ * - Provider 本身无需再做额外 memoization
  */
 export const ChatPanelProvider: React.FC<ChatPanelProviderProps> = ({ children, value }) => {
-    // No useMemo here - parent should provide stable references via useCallback
-    // Adding useMemo with value.xxx dependencies is ineffective because
-    // value object itself changes on every parent render
     return <ChatPanelContext.Provider value={value}>{children}</ChatPanelContext.Provider>;
 };

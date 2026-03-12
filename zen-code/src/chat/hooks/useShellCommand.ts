@@ -132,14 +132,16 @@ export const useShellCommand = (): UseShellCommandReturn => {
             // Check for interactive command
             const interactiveWarning = isInteractiveCommand(trimmedCommand);
             if (interactiveWarning) {
-                setActiveCommand({
+                // 构造错误结果并直接返回，不依赖旧的 activeCommand 状态（避免闭包陷阱）
+                const warningResult: ShellCommandResult = {
                     id: '',
                     command: trimmedCommand,
                     output: interactiveWarning,
                     status: 'failed',
-                });
+                };
+                setActiveCommand(warningResult);
                 setIsExecuting(false);
-                return activeCommand;
+                return warningResult;
             }
 
             setIsExecuting(true);
@@ -194,7 +196,10 @@ export const useShellCommand = (): UseShellCommandReturn => {
                 return errorResult;
             }
         },
-        [clearOutput, activeCommand],
+        // activeCommand 已从依赖中移除：
+        // 1. 交互式命令的返回值改为直接返回新构造的 warningResult，不再读取旧状态
+        // 2. 其余路径均不读取 activeCommand，因此无需将其加入依赖
+        [clearOutput],
     );
 
     return {

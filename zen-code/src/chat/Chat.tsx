@@ -101,28 +101,35 @@ const ChatProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children
 
 /**
  * Wrapper with all required providers.
- * Top-level ErrorBoundary catches any errors from providers themselves.
+ *
+ * ErrorBoundary 层级设计（3层，每层职责明确）：
+ *
+ * 1. AppRoot     — 兜底层，捕获所有未被下层处理的错误
+ * 2. DataLayer   — 保护数据层 Provider（QueryClient + Settings + ChatProvider）
+ *                  数据层出错时，整个应用降级为错误提示，无需细分
+ * 3. UILayer     — 保护交互层（InteractionProvider + Chat）
+ *                  与数据层隔离，UI 崩溃不会污染数据 Provider
+ *
+ * 已移除的冗余层：
+ * - "TanStackQueryProvider" 单独的 EB 层（QueryClient 初始化几乎不会抛错）
+ * - "ApprovalProvider" 空包裹层（该层内部没有额外逻辑，与 InteractionProvider 合并）
  */
 const ChatWrapper: React.FC = () => {
     return (
         <ErrorBoundary key="app-root" name="AppRoot">
-            <ErrorBoundary key="tanstack-query-provider" name="TanStackQueryProvider">
-                <TanStackQueryProvider>
-                    <ErrorBoundary key="settings-provider" name="SettingsProvider">
-                        <SettingsProvider get_allowed_models={get_allowed_models}>
-                            <ChatProviderWrapper>
-                                <ErrorBoundary key="approval-provider" name="ApprovalProvider">
-                                    <ErrorBoundary key="interaction-provider" name="InteractionProvider">
-                                        <InteractionProvider>
-                                            <Chat />
-                                        </InteractionProvider>
-                                    </ErrorBoundary>
-                                </ErrorBoundary>
-                            </ChatProviderWrapper>
-                        </SettingsProvider>
-                    </ErrorBoundary>
-                </TanStackQueryProvider>
-            </ErrorBoundary>
+            <TanStackQueryProvider>
+                <ErrorBoundary key="data-layer" name="DataLayer">
+                    <SettingsProvider get_allowed_models={get_allowed_models}>
+                        <ChatProviderWrapper>
+                            <ErrorBoundary key="ui-layer" name="UILayer">
+                                <InteractionProvider>
+                                    <Chat />
+                                </InteractionProvider>
+                            </ErrorBoundary>
+                        </ChatProviderWrapper>
+                    </SettingsProvider>
+                </ErrorBoundary>
+            </TanStackQueryProvider>
         </ErrorBoundary>
     );
 };

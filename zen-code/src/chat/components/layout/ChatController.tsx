@@ -19,7 +19,7 @@
  * - Move effect to event handler (rerender-move-effect-to-event)
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useChat } from '@langgraph-js/sdk/react';
 import { useSettings } from '../../context/SettingsContext';
 import { useInteractionContext } from '../../interaction/context';
@@ -81,22 +81,44 @@ const ChatControllerInternal: React.FC<ChatControllerProps> = ({ children }) => 
         );
     }
 
-    // Build context value with stable references
-    // Note: All callback functions in panelState are already useCallback-wrapped
-    const contextValue: ChatPanelContextValue = {
-        activeView: panelState.activeView,
-        isChatView: panelState.isChatView,
-        switchToHistory: panelState.switchToHistory,
-        switchToKnowledge: panelState.switchToKnowledge,
-        switchToSettings: panelState.switchToSettings,
-        switchToModelProvider: panelState.switchToModelProvider,
-        switchToAgent: panelState.switchToAgent,
-        switchToMcp: panelState.switchToMcp,
-        switchToProcess: panelState.switchToProcess,
-        switchToErrors: panelState.switchToErrors,
-        closePanel: panelState.closePanel,
-        hasPendingInteractions,
-    };
+    // useMemo 包裹 context value，只在真正影响消费者的值变化时才重建对象。
+    //
+    // 为什么这里 useMemo 是有效的？
+    // - panelState 中所有回调（switchToXxx / closePanel）均由 useChatPanels
+    //   内的 useCallback 包裹，其引用在 activeView 不变时保持稳定。
+    // - 因此只需将 activeView 和 hasPendingInteractions 列为依赖，
+    //   就能精确控制 Context 更新频率，避免所有 useChatPanel() 消费者
+    //   在无关渲染时重渲。
+    const contextValue = useMemo<ChatPanelContextValue>(
+        () => ({
+            activeView: panelState.activeView,
+            isChatView: panelState.isChatView,
+            switchToHistory: panelState.switchToHistory,
+            switchToKnowledge: panelState.switchToKnowledge,
+            switchToSettings: panelState.switchToSettings,
+            switchToModelProvider: panelState.switchToModelProvider,
+            switchToAgent: panelState.switchToAgent,
+            switchToMcp: panelState.switchToMcp,
+            switchToProcess: panelState.switchToProcess,
+            switchToErrors: panelState.switchToErrors,
+            closePanel: panelState.closePanel,
+            hasPendingInteractions,
+        }),
+        [
+            panelState.activeView,
+            panelState.isChatView,
+            panelState.switchToHistory,
+            panelState.switchToKnowledge,
+            panelState.switchToSettings,
+            panelState.switchToModelProvider,
+            panelState.switchToAgent,
+            panelState.switchToMcp,
+            panelState.switchToProcess,
+            panelState.switchToErrors,
+            panelState.closePanel,
+            hasPendingInteractions,
+        ],
+    );
 
     return (
         <ErrorBoundary name="ChatPanelContext" fallback={null}>
