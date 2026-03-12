@@ -15,3 +15,4 @@ export * from './storage/memory.js';
 // export * from './storage/sqlite.js';
 export * from './langchain.js';
 export * from './middlewares/index.js';
+export * from './claude-agents/index.js';
