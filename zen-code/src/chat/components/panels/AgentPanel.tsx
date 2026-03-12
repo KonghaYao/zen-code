@@ -35,7 +35,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
                         {index + 1}. {agent.id}
                     </Text>
                     <Spacer></Spacer>
-                    <Text dimColor>{agent.description}</Text>
+                    <Text dimColor>{agent.description.slice(0, 20)}</Text>
                 </SelectItem>
             );
         },
@@ -105,7 +105,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
             defaultFilter: 'all',
 
             // 渲染配置
-            itemHeight: 3, // 每个 agent 占 3 行
+            itemHeight: 1, // 每个 agent 占 1 行
             visibleCount: 15, // 显示 15 个 agent
 
             renderItem: renderItem,
