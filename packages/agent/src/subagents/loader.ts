@@ -86,7 +86,8 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
             web: true,
         },
     });
-    // Default SubAgents
+    // Manager Agent - 项目经理，与用户主要交流，派发任务给子 agent
+    // 不需要直接操作文件系统、终端或 MCP，专注于协调和沟通
     await pkg.addAgent({
         id: 'agents/manager',
         name: 'Manager',
@@ -94,15 +95,15 @@ export async function loadDefaultConfigs(): Promise<AgentPackage> {
         system_prompt: 'prompts/manager',
         model: 'glm-4.7',
         middlewares: {
-            filesystem: true,
-            terminal: true,
+            filesystem: false,
+            terminal: false,
             agents_md: true,
             skills: true,
             subagents: true,
             interactive: true,
             task: true,
-            mcp: true,
-            web: true,
+            mcp: false,
+            web: false,
         },
     });
 
