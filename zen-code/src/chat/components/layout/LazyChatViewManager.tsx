@@ -22,6 +22,7 @@ import {
     LazyMcpPanel,
     LazyProcessPanel,
     LazyErrorPanel,
+    LazyCronPanel,
 } from '../common/lazyPanels';
 import { useChatPanel } from '../../context/ChatPanelContext';
 import ErrorBoundary from '../common/ErrorBoundary';
@@ -114,6 +115,13 @@ export const LazyChatViewManager: React.FC = memo(() => {
                 <Suspense key="errors-suspense" fallback={<LoadingFallback />}>
                     <ErrorBoundary key="errors-panel" name="ErrorPanel" fallback={PanelErrorFallback('Errors')}>
                         <LazyErrorPanel onClose={closePanel} />
+                    </ErrorBoundary>
+                </Suspense>
+            )}
+            {activeView === 'cron' && (
+                <Suspense key="cron-suspense" fallback={<LoadingFallback />}>
+                    <ErrorBoundary key="cron-panel" name="CronPanel" fallback={PanelErrorFallback('Cron')}>
+                        <LazyCronPanel onClose={closePanel} />
                     </ErrorBoundary>
                 </Suspense>
             )}

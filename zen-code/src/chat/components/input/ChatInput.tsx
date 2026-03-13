@@ -53,6 +53,7 @@ export const ChatInput: React.FC = memo(() => {
         switchToMcp,
         switchToProcess,
         switchToErrors,
+        switchToCron,
         closePanel,
     } = useChatPanel();
 
@@ -82,6 +83,7 @@ export const ChatInput: React.FC = memo(() => {
         switchToMcp,
         switchToProcess,
         switchToErrors,
+        switchToCron,
         closePanel,
         startRalphLoop,
     });

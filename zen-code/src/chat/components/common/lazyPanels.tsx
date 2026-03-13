@@ -41,3 +41,4 @@ export const LazyProcessPanel: LazyPanel = lazy(() =>
 export const LazyErrorPanel: LazyPanel = lazy(() =>
     import('../panels/ErrorPanel').then((m) => ({ default: m.default })),
 );
+export const LazyCronPanel: LazyPanel = lazy(() => import('../panels/CronPanel').then((m) => ({ default: m.default })));

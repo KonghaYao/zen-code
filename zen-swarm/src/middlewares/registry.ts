@@ -5,23 +5,18 @@
 
 import { AgentPackage } from '@langgraph-js/standard-agent';
 import type { StateMachineManager } from './sm/index.js';
-import type { CronStorage } from '../cron/storage.js';
-import type { CronScheduler } from '../cron/scheduler.js';
-
 /**
  * 中间件注册选项
  */
 export interface MiddlewareRegistryOptions {
     stateMachineManager?: StateMachineManager;
-    cronStorage?: CronStorage;
-    cronScheduler?: CronScheduler;
 }
 
 /**
  * 注册中间件实现到 AgentPackage
  */
 export async function createMiddlewareRegistry(pkg: AgentPackage, options?: MiddlewareRegistryOptions) {
-    const { stateMachineManager, cronStorage, cronScheduler } = options || {};
+    const { stateMachineManager } = options || {};
     const subagents = {
         id: 'subagents',
         name: 'subagents',
@@ -106,25 +101,6 @@ export async function createMiddlewareRegistry(pkg: AgentPackage, options?: Midd
         await pkg.addMiddleware(sm);
     }
     pkg.middlewares.registerImplementation(sm);
-
-    // Cron middleware (with dependency injection)
-    const cron = {
-        id: 'cron',
-        name: 'cron',
-        description: 'Cron task management (create, update, delete, trigger scheduled tasks)',
-        execute: async () => {
-            const { CronMiddleware } = await import('./cron.js');
-            if (cronStorage && cronScheduler) {
-                return new CronMiddleware({ storage: cronStorage, scheduler: cronScheduler });
-            }
-            throw new Error('CronMiddleware requires cronStorage and cronScheduler to be provided');
-        },
-    };
-    const existingCron = await pkg.getMiddleware('cron');
-    if (!existingCron) {
-        await pkg.addMiddleware(cron);
-    }
-    pkg.middlewares.registerImplementation(cron);
 
     const interactive = {
         id: 'interactive',

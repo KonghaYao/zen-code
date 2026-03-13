@@ -18,7 +18,7 @@ import type {
 } from '@langgraph-js/standard-agent';
 import { ModelSchema, PromptSchema, MiddlewareSchema, AgentSchema } from '@langgraph-js/standard-agent';
 import type { MemoryStorage } from '@langgraph-js/standard-agent';
-import type { BunSqliteStorage } from '@langgraph-js/standard-agent/src/storage/sqlite.js';
+import type { BunSqliteStorage } from '@langgraph-js/standard-agent/storage/sqlite';
 
 // ========================================
 // 工具函数

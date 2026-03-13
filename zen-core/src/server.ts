@@ -1,6 +1,6 @@
 /**
  * zen-core 主入口
- * Hono HTTP Server + LangGraph + tRPC
+ * Hono HTTP Server + LangGraph + tRPC + 认证 + 终端 WebSocket
  */
 
 import { Hono } from 'hono';
@@ -15,8 +15,12 @@ import { createContext } from './context.js';
 import { registerLangGraphRoutes } from './langgraph/handler.js';
 import { healthHandler } from './health.js';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import { authRouter } from './routes/auth.js';
+import { validateToken, authMiddleware, extractTokenFromCookie } from './auth/tokenAuth.js';
+import { handleTerminalMessage, handleTerminalClose, handleTerminalOpen } from './terminalWebSocket.js';
 
 const PORT = Number(process.env.ZEN_CORE_PORT || 8125);
+const NO_AUTH = process.env.ZEN_CORE_NO_AUTH === 'true';
 const PID_FILE = join(homedir(), '.zen-code', 'zen-core.pid');
 
 // ─── PID 文件机制（孤儿进程清理）────────────────────────────
@@ -31,7 +35,6 @@ if (existsSync(PID_FILE)) {
         try {
             process.kill(oldPid, 'SIGTERM');
             console.log(`Terminated old zen-core process (PID: ${oldPid})`);
-            // 等待旧进程释放端口（固定缓冲 500ms，避免轮询阻塞）
             await new Promise((r) => setTimeout(r, 500));
         } catch {
             // 进程已退出，忽略
@@ -57,8 +60,24 @@ await registerLangGraphRoutes(services.agentPackage);
 const app = new Hono();
 app.use(logger());
 
-// /health 端点
+// /health 端点（公开）
 app.get('/health', healthHandler(services));
+
+// 认证公开路由：/api/auth/* 不需要鉴权
+app.route('/api/auth', authRouter);
+
+// 认证中间件：保护所有其他 /api/* 路由
+// ZEN_CORE_NO_AUTH=true 时跳过鉴权（zen-code 等本地工具使用场景）
+if (!NO_AUTH) {
+    app.use('/api/*', async (c, next) => {
+        if (c.req.path.startsWith('/api/auth/')) {
+            return next();
+        }
+        return authMiddleware(c, next);
+    });
+} else {
+    console.log('[zen-core] Auth disabled (ZEN_CORE_NO_AUTH=true)');
+}
 
 // tRPC 路由
 app.all('/api/trpc/*', async (c) => {
@@ -70,14 +89,66 @@ app.all('/api/trpc/*', async (c) => {
     });
 });
 
-// LangGraph 路由（使用 @langgraph-js/pure-graph 的 Hono adapter）
+// LangGraph 路由
 const { default: LGApp } = await import('@langgraph-js/pure-graph/dist/adapter/hono');
 app.route('/api/langgraph', LGApp);
 
 // ─── 启动服务器 ──────────────────────────────────────────────
-serve({ fetch: app.fetch, port: PORT });
+serve({
+    fetch(req, server) {
+        const url = new URL(req.url);
+        if (url.pathname === '/ws/terminal') {
+            if (NO_AUTH) {
+                const upgraded = server.upgrade(req, { data: { sessionIds: new Set<string>() } });
+                if (upgraded) return undefined;
+                return new Response('WebSocket upgrade failed', { status: 400 });
+            }
+            const cookieHeader = req.headers.get('Cookie');
+            const wsToken = extractTokenFromCookie(cookieHeader);
+            if (!wsToken) {
+                return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+                    status: 401,
+                    headers: { 'Content-Type': 'application/json' },
+                });
+            }
+            return validateToken(wsToken).then((valid) => {
+                if (!valid) {
+                    return new Response(JSON.stringify({ error: 'Unauthorized', message: 'Invalid token' }), {
+                        status: 401,
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                }
+                const upgraded = server.upgrade(req, {
+                    data: { sessionIds: new Set<string>() },
+                });
+                if (upgraded) return undefined;
+                return new Response('WebSocket upgrade failed', { status: 400 });
+            });
+        }
+        return app.fetch(req, server);
+    },
+    idleTimeout: 120,
+    port: PORT,
+    websocket: {
+        open: handleTerminalOpen,
+        message: handleTerminalMessage,
+        close: handleTerminalClose,
+    },
+});
+
 console.log(`zen-core running on http://127.0.0.1:${PORT}`);
+console.log(`   Health:    http://127.0.0.1:${PORT}/health`);
+console.log(`   Auth:      http://127.0.0.1:${PORT}/api/auth/status`);
+console.log(`   LangGraph: http://127.0.0.1:${PORT}/api/langgraph`);
+console.log(`   tRPC:      http://127.0.0.1:${PORT}/api/trpc`);
+console.log(`   Terminal:  ws://127.0.0.1:${PORT}/ws/terminal`);
 
 // ─── 优雅关闭 ────────────────────────────────────────────────
-process.on('SIGTERM', () => process.exit(0));
-process.on('SIGINT', () => process.exit(0));
+async function gracefulShutdown(signal: string): Promise<void> {
+    console.log(`\n[zen-core] Received ${signal}, shutting down...`);
+    await services.cronScheduler.stop();
+    process.exit(0);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

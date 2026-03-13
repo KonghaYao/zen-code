@@ -56,6 +56,8 @@ export interface CommandContext {
     switchToProcess?: () => void;
     /** 切换到错误日志面板 */
     switchToErrors?: () => void;
+    /** 切换到 Cron 定时任务面板 */
+    switchToCron?: () => void;
     /** 关闭面板返回聊天 */
     closePanel?: () => void;
     /** 启动 Ralph 循环模式 */

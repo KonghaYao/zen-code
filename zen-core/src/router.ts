@@ -12,6 +12,16 @@ import { agentsRouter } from './routes/agents.js';
 import { providersRouter } from './routes/providers.js';
 import { knowledgeRouter } from './routes/knowledge.js';
 import { processesRouter } from './routes/processes.js';
+// zen-swarm 迁入路由
+import { mcpRouter } from './routes/mcp.js';
+import { workspacesRouter } from './routes/workspaces.js';
+import { cronRouter } from './routes/cron.js';
+import { smRouter } from './routes/sm.js';
+import { storeRouter } from './routes/store.js';
+import { filesRouter } from './routes/files.js';
+import { monitorRouter } from './routes/monitor.js';
+import { promptsRouter } from './routes/prompts.js';
+import { middlewaresRouter } from './routes/middlewares.js';
 
 export { router, procedure } from './trpc.js';
 
@@ -25,6 +35,16 @@ export const appRouter = router({
     providers: providersRouter,
     knowledge: knowledgeRouter,
     processes: processesRouter,
+    // zen-swarm 迁入路由
+    mcp: mcpRouter,
+    workspaces: workspacesRouter,
+    cron: cronRouter,
+    sm: smRouter,
+    store: storeRouter,
+    files: filesRouter,
+    monitor: monitorRouter,
+    prompts: promptsRouter,
+    middlewares: middlewaresRouter,
 });
 
 export type AppRouter = typeof appRouter;

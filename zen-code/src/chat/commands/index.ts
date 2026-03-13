@@ -23,14 +23,14 @@ import { mcpPanelCommand } from './mcpCommand';
 // NEW: Import Settings panel command
 import { settingsCommand } from './settingsCommand';
 
-// NEW: Import Memory-clear command
-import { memoryCommands } from './memoryClearCommand';
-
 // NEW: Import GC command
 import { gcCommand } from './gcCommand';
 
 // NEW: Import Error panel command
 import { errorPanelCommand } from './errorCommand';
+
+// NEW: Import Cron panel command
+import { cronCommand } from './cronCommand';
 
 // 注册内置命令
 [
@@ -40,12 +40,12 @@ import { errorPanelCommand } from './errorCommand';
     ...interviewCommands,
     ...planCommands,
     ...createAgentMdCommands,
-    ...memoryCommands,
     compactCommand,
     mcpPanelCommand,
     settingsCommand,
     gcCommand,
     errorPanelCommand,
+    cronCommand,
 ].forEach((command) => {
     commandRegistry.register(command);
 });

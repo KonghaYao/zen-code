@@ -13,3 +13,5 @@ if (portIdx !== -1 && args[portIdx + 1]) {
 
 // 启动服务器
 await import('../src/server.js');
+
+export {};

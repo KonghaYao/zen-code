@@ -9,13 +9,24 @@
         "start": "bun run src/server.ts",
         "dev": "bun --watch run src/server.ts"
     },
+    "devDependencies": {
+        "@types/mime-types": "^3",
+        "@types/node-cron": "^3.0.11"
+    },
     "dependencies": {
         "@codegraph/agent": "workspace:^",
         "@codegraph/config": "workspace:^",
+        "@langgraph-js/agent-middlewares": "workspace:^",
         "@langgraph-js/standard-agent": "workspace:^",
         "@langgraph-js/pure-graph": "^3.3.0",
         "@trpc/server": "^11",
+        "bun-pty": "^0.4.8",
+        "fs-extra": "^11.3.3",
         "hono": "^4",
+        "mime-types": "^3.0.2",
+        "node-cron": "^4.2.1",
+        "uuid": "^13.0.0",
+        "xstate": "^5.28.0",
         "zod": "^4"
     }
 }

@@ -22,7 +22,8 @@ export type ChatView =
     | 'agent'
     | 'mcp'
     | 'process'
-    | 'errors';
+    | 'errors'
+    | 'cron';
 
 interface UseChatPanelsResult {
     activeView: ChatView;
@@ -35,6 +36,7 @@ interface UseChatPanelsResult {
     switchToMcp: () => void;
     switchToProcess: () => void;
     switchToErrors: () => void;
+    switchToCron: () => void;
     closePanel: () => void;
 }
 
@@ -84,6 +86,10 @@ export function useChatPanels(): UseChatPanelsResult {
         setActiveView('errors');
     }, []);
 
+    const switchToCron = useCallback(() => {
+        setActiveView('cron');
+    }, []);
+
     const closePanel = useCallback(() => {
         setActiveView('chat');
         focusManager.focus('global-input');
@@ -103,6 +109,7 @@ export function useChatPanels(): UseChatPanelsResult {
         switchToMcp,
         switchToProcess,
         switchToErrors,
+        switchToCron,
         closePanel,
     };
 }

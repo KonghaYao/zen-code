@@ -8,7 +8,7 @@ import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { AgentPackage } from '@langgraph-js/standard-agent';
-import { BunSqliteStorage } from '@langgraph-js/standard-agent/src/storage/sqlite.js';
+import { BunSqliteStorage } from '@langgraph-js/standard-agent/src/storage/sqlite';
 import { ZenSwarmMcpStorage } from './storage.js';
 import { setMcpConfigStorage } from './mcpProvider.js';
 import { createMiddlewareRegistry } from '../middlewares/registry.js';
@@ -90,11 +90,9 @@ await cronScheduler.start();
 // 导出单例
 export const agentPackage = new AgentPackage(agentStorage);
 
-// 注册中间件实现（传入 stateMachineManager 和 cron 依赖）
+// 注册中间件实现
 await createMiddlewareRegistry(agentPackage, {
     stateMachineManager,
-    cronStorage,
-    cronScheduler,
 });
 
 // 导出存储实例供外部使用

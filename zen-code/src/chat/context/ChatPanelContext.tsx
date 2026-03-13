@@ -23,6 +23,7 @@ export interface ChatPanelContextValue {
     switchToMcp: () => void;
     switchToProcess: () => void;
     switchToErrors: () => void;
+    switchToCron: () => void;
     closePanel: () => void;
     hasPendingInteractions: boolean;
 }
