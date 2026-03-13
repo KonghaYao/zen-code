@@ -2,9 +2,9 @@ import React, { useMemo } from 'react';
 import { Box, Text } from 'ink';
 import { ChatProvider } from '@langgraph-js/sdk/react';
 import { TanStackQueryProvider } from './QueryClientProvider';
-import { LangGraphFetch } from '@codegraph/agent/src/export';
 import { InteractionProvider } from './interaction/context';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
+import { ZenCoreProvider } from './context/ZenCoreContext';
 import { get_allowed_models } from '@codegraph/agent/src/utils/get_allowed_models';
 import { ChatController } from './components/layout/ChatController';
 import { ChatMain } from './components/layout/ChatMain';
@@ -12,6 +12,7 @@ import { LazyChatViewManager } from './components/layout/LazyChatViewManager';
 import StatusBar from './components/status/StatusBar';
 import { useChatPanel } from './context/ChatPanelContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import type { ZenCoreConnection } from '@codegraph/union-client';
 
 /**
  * ChatLayout - renders the main chat UI structure.
@@ -65,10 +66,10 @@ const Chat: React.FC = () => {
  * Internal component that wraps ChatProvider with SettingsProvider
  * This allows us to access settings for defaultHeaders configuration
  */
-const ChatProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const ChatProviderWrapper: React.FC<{ children: React.ReactNode; apiUrl: string }> = ({ children, apiUrl }) => {
     return (
         <ChatProvider
-            apiUrl="http://127.0.0.1:8123"
+            apiUrl={apiUrl}
             defaultAgent="code"
             defaultHeaders={{}}
             withCredentials={false}
@@ -85,7 +86,6 @@ const ChatProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children
                         // 忽略错误
                     });
             }}
-            fetch={LangGraphFetch as any}
             autoRestoreLastSession
             /** @ts-ignore */
             historyFilter={{
@@ -115,20 +115,27 @@ const ChatProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children
  * - "ApprovalProvider" 空包裹层（该层内部没有额外逻辑，与 InteractionProvider 合并）
  */
 const ChatWrapper: React.FC = () => {
+    // 从全局获取 zen-core 连接（由 cli.ts 初始化）
+    const zenCoreConnection: ZenCoreConnection | null = (globalThis as any).__zenCoreConnection || null;
+    // 如果没有 zen-core 连接，使用旧的默认地址（向后兼容）
+    const apiUrl = zenCoreConnection?.apiUrl || 'http://127.0.0.1:8125';
+
     return (
         <ErrorBoundary key="app-root" name="AppRoot">
             <TanStackQueryProvider>
-                <ErrorBoundary key="data-layer" name="DataLayer">
-                    <SettingsProvider get_allowed_models={get_allowed_models}>
-                        <ChatProviderWrapper>
-                            <ErrorBoundary key="ui-layer" name="UILayer">
-                                <InteractionProvider>
-                                    <Chat />
-                                </InteractionProvider>
-                            </ErrorBoundary>
-                        </ChatProviderWrapper>
-                    </SettingsProvider>
-                </ErrorBoundary>
+                <ZenCoreProvider value={zenCoreConnection}>
+                    <ErrorBoundary key="data-layer" name="DataLayer">
+                        <SettingsProvider get_allowed_models={get_allowed_models}>
+                            <ChatProviderWrapper apiUrl={apiUrl}>
+                                <ErrorBoundary key="ui-layer" name="UILayer">
+                                    <InteractionProvider>
+                                        <Chat />
+                                    </InteractionProvider>
+                                </ErrorBoundary>
+                            </ChatProviderWrapper>
+                        </SettingsProvider>
+                    </ErrorBoundary>
+                </ZenCoreProvider>
             </TanStackQueryProvider>
         </ErrorBoundary>
     );

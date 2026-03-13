@@ -7,6 +7,7 @@ import { Shimmer, useInput } from 'ink-pro';
 import { useLoadingTimer, formatDuration } from '../../hooks/useSystemResources';
 import SystemInfoBar from '../common/SystemInfoBar';
 import { processManager } from '../../services/ProcessManagerService.js';
+import { useZenCoreStatus } from '../../hooks/useZenCoreStatus.js';
 import path from 'path';
 
 /**
@@ -20,6 +21,7 @@ const StatusBar: React.FC = () => {
     const { loading: chatLoading, stopGeneration } = useChat();
     const isYoloMode = process.env.YOLO_MODE === 'true';
     const [backgroundProcessCount, setBackgroundProcessCount] = useState(0);
+    const zenCoreStatus = useZenCoreStatus();
 
     // 轮询后台进程数量（每 2 秒）
     useEffect(() => {
@@ -96,6 +98,10 @@ const StatusBar: React.FC = () => {
                         </Text>
                     )}
                     <MCPStatusPanel />
+                    {/* zen-core 状态 */}
+                    <Text color={zenCoreStatus.online ? 'green' : 'red'}>
+                        {zenCoreStatus.online ? '● core' : '○ core'}
+                    </Text>
                     {backgroundProcessCount > 0 && (
                         <Text color="magenta" bold>
                             {' '}

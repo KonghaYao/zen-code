@@ -1,0 +1,21 @@
+{
+    "name": "zen-core",
+    "version": "1.0.0",
+    "type": "module",
+    "bin": {
+        "zen-core": "./bin/zen-core.ts"
+    },
+    "scripts": {
+        "start": "bun run src/server.ts",
+        "dev": "bun --watch run src/server.ts"
+    },
+    "dependencies": {
+        "@codegraph/agent": "workspace:^",
+        "@codegraph/config": "workspace:^",
+        "@langgraph-js/standard-agent": "workspace:^",
+        "@langgraph-js/pure-graph": "^3.3.0",
+        "@trpc/server": "^11",
+        "hono": "^4",
+        "zod": "^4"
+    }
+}

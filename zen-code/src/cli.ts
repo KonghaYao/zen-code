@@ -25,7 +25,44 @@ async function main() {
     }
 
     initDatabaseUri('~/.zen-code/data/sessions.db');
-    if (args[0] === 'init') {
+    if (args[0] === 'stop') {
+        // 停止后台 zen-core 服务
+        const { stopZenCore } = await import('@codegraph/union-client');
+        const result = await stopZenCore();
+        console.log(result.message);
+        process.exit(result.stopped ? 0 : 1);
+    } else if (args.includes('--restart')) {
+        // 重启 zen-core：先停止，再重新启动 TUI
+        const { stopZenCore, connectToZenCore } = await import('@codegraph/union-client');
+        const stopResult = await stopZenCore();
+        console.log(stopResult.message);
+        // 等待旧进程释放端口
+        await new Promise((r) => setTimeout(r, 1000));
+        console.log('Starting zen-core...');
+        const connection = await connectToZenCore({
+            spawnIfNotRunning: true,
+            timeout: 15_000,
+        });
+        (globalThis as any).__zenCoreConnection = connection;
+        await import('./app');
+    } else if (args[0] === 'status') {
+        // 查看后台 zen-core 状态
+        const { checkZenCoreVersion } = await import('@codegraph/union-client');
+        const port = Number(process.env.ZEN_CORE_PORT || 8125);
+        const baseUrl = `http://127.0.0.1:${port}`;
+        try {
+            const res = await fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(2000) });
+            if (res.ok) {
+                const data = (await res.json()) as any;
+                console.log(`zen-core  running  port=${data.port}  version=${data.version}`);
+            } else {
+                console.log('zen-core  stopped');
+            }
+        } catch {
+            console.log('zen-core  stopped');
+        }
+        process.exit(0);
+    } else if (args[0] === 'init') {
         console.log('Please zen-code and use /m to configure models');
     } else if (args[0] === 'keyboard') {
         import('./zen-keyboard');
@@ -43,7 +80,17 @@ async function main() {
             const { runNonInteractive } = await import('./nonInteractive');
             await runNonInteractive(undefined, true);
         } else {
-            // 默认：启动 TUI
+            // 默认：启动 TUI（连接 zen-core）
+            console.log('Starting zen-core...');
+            const { connectToZenCore } = await import('@codegraph/union-client');
+            const connection = await connectToZenCore({
+                spawnIfNotRunning: true,
+                timeout: 15_000,
+            });
+
+            // 将 connection 挂载到全局，供 app.tsx 使用
+            (globalThis as any).__zenCoreConnection = connection;
+
             await import('./app');
         }
     }

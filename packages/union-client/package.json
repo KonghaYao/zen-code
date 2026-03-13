@@ -30,6 +30,7 @@
     },
     "dependencies": {
         "@codegraph/config": "workspace:^",
+        "@trpc/client": "^11",
         "micromatch": "^4.0.0",
         "usehooks-ts": "^3.1.1"
     },

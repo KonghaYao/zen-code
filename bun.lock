@@ -174,6 +174,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@codegraph/config": "workspace:^",
+        "@trpc/client": "^11",
         "micromatch": "^4.0.0",
         "usehooks-ts": "^3.1.1",
       },
@@ -296,6 +297,22 @@
         "xdg-basedir": "^5.1.0",
         "yaml": "^2.8.2",
         "zod": "^4.3.5",
+      },
+    },
+    "zen-core": {
+      "name": "zen-core",
+      "version": "1.0.0",
+      "bin": {
+        "zen-core": "./bin/zen-core.ts",
+      },
+      "dependencies": {
+        "@codegraph/agent": "workspace:^",
+        "@codegraph/config": "workspace:^",
+        "@langgraph-js/pure-graph": "^3.3.0",
+        "@langgraph-js/standard-agent": "workspace:^",
+        "@trpc/server": "^11",
+        "hono": "^4",
+        "zod": "^4",
       },
     },
     "zen-swarm": {
@@ -2100,6 +2117,8 @@
     "yoga-layout": ["yoga-layout@3.2.1", "https://registry.npmmirror.com/yoga-layout/-/yoga-layout-3.2.1.tgz", {}, "sha512-0LPOt3AxKqMdFBZA3HBAt/t/8vIKq7VaQYbuA8WxCgung+p9TVyKRYdpvCb80HcdTN2NkbIKbhNwKUfm3tQywQ=="],
 
     "zen-code": ["zen-code@workspace:zen-code"],
+
+    "zen-core": ["zen-core@workspace:zen-core"],
 
     "zen-swarm": ["zen-swarm@workspace:zen-swarm"],
 
