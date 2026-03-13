@@ -17,7 +17,7 @@ import type { StateSchema } from '@langchain/langgraph';
 import { CodeState } from '../state.js';
 import { initChatModel } from '../utils/initChatModel.js';
 import { getEnvInfo } from '../prompts/coding.js';
-import type { ReactAgent, Runtime } from 'langchain';
+import type { ReactAgent } from 'langchain';
 
 // ========================================
 // Provider Resolver Interface
@@ -381,40 +381,4 @@ export async function getAvailableAgentIds(pkg: AgentPackage): Promise<string[]>
  */
 export function clearCache() {
     cache.clear();
-}
-/**
- * Create a standard agent (legacy interface)
- *
- * This is a compatibility adapter that bridges the old factory-v2 interface
- * to the new unified factory.
- *
- * @param agentId - Agent ID from package
- * @param pkg - AgentPackage containing configuration
- * @param state - Current code state
- * @param runtime - LangGraph runtime (unused, kept for compatibility)
- * @param options - Parent options for sub-agents
- */
-export async function createStandardAgentV2(
-    agentId: string,
-    pkg: AgentPackage,
-    state: any,
-    runtime: Runtime,
-    options?: { parent_id?: string },
-): Promise<ReactAgent> {
-    return createUnifiedAgent(
-        agentId,
-        state,
-        {
-            pkg,
-            stateSchema: CodeState,
-            initModel: async (modelName, config) => {
-                return initChatModel(modelName, config);
-            },
-            enhanceSystemPrompt: async (basePrompt, state) => {
-                return basePrompt + `\n\n${await getEnvInfo(state)}`;
-            },
-            yoloMode: process.env.YOLO_MODE !== 'true',
-        },
-        options,
-    );
 }

@@ -200,6 +200,7 @@ export const CompactMessagesBox = memo(function CompactMessagesBox({
         currentDisplayIndex = processedMessages.length;
     }
 
+    // currentDisplayIndex = 0;
     const histories = processedMessages.slice(0, currentDisplayIndex);
     const current = processedMessages.slice(currentDisplayIndex);
 
