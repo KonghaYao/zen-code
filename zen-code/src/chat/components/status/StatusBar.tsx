@@ -35,14 +35,15 @@ const StatusBar: React.FC = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // Ctrl+C 处理逻辑 - 使用 useCallback 避免重复注册
+    // Ctrl+C 处理逻辑：loading 时优先取消 AI 对话，否则退出
     const handleInput = useCallback(
         (input: string, key: any) => {
             if (key.ctrl && input === 'c') {
-                // if (chatLoading) {
-                //     stopGeneration();
-                // }
-                process.exit();
+                if (chatLoading) {
+                    stopGeneration();
+                } else {
+                    process.exit();
+                }
             }
         },
         [chatLoading, stopGeneration],

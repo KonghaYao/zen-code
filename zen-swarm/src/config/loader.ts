@@ -8,7 +8,7 @@ import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { AgentPackage } from '@langgraph-js/standard-agent';
-import { BunSqliteStorage } from '@langgraph-js/standard-agent/src/storage/sqlite';
+import { BunSqliteStorage } from '@langgraph-js/standard-agent/storage/sqlite';
 import { ZenSwarmMcpStorage } from './storage.js';
 import { setMcpConfigStorage } from './mcpProvider.js';
 import { createMiddlewareRegistry } from '../middlewares/registry.js';
