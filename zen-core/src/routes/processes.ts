@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 import { router, procedure } from '../trpc.js';
+import { executeBashCommand } from '@codegraph/agent/src/server/bash_command';
 
 // 进程注册表（进程内单例）
 const processRegistry = new Map<
@@ -29,6 +30,21 @@ export const processesRouter = router({
             throw new Error(`Process '${input.id}' not found`);
         }
         return proc;
+    }),
+
+    exec: procedure.input(z.object({ command: z.string(), cwd: z.string().optional() })).mutation(async ({ input }) => {
+        const result = await executeBashCommand({
+            command: input.command,
+            cwd: input.cwd || process.cwd(),
+        });
+        return {
+            id: result.id,
+            pid: result.pid,
+            stdout: result.output,
+            stderr: '',
+            exitCode: result.exitCode ?? 0,
+            status: result.status,
+        };
     }),
 
     kill: procedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {

@@ -21,6 +21,7 @@ import type { AppConfig, MCPConfig, ConfigManager } from '@codegraph/config';
 import { createFSManager } from '@codegraph/config';
 import { useConfig, useUpdateConfig } from '../hooks/useConfig';
 import { queryKeys } from '../query-keys';
+import { useTrpc } from './ZenCoreContext';
 
 export interface ModelConfig {
     id: string;
@@ -48,28 +49,26 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 interface SettingsProviderProps {
-    get_allowed_models: () => Promise<ModelConfig[]>;
     children: ReactNode;
 }
 
 // 内部组件：在 manager 初始化后渲染
-const SettingsProviderInternal = ({
-    manager,
-    get_allowed_models,
-    children,
-}: SettingsProviderProps & { manager: ConfigManager }) => {
+const SettingsProviderInternal = ({ manager, children }: { manager: ConfigManager; children: ReactNode }) => {
+    const trpc = useTrpc();
     const { data: config, isLoading: configLoading, error: configError } = useConfig({ manager });
     const updateConfigMutation = useUpdateConfig({ manager });
 
+    const providerId = config?.provider_id;
     const {
         data: AVAILABLE_MODELS = [],
         isLoading: modelsLoading,
         error: modelsError,
     } = useQuery({
-        queryKey: queryKeys.models.available(),
-        queryFn: get_allowed_models,
+        queryKey: queryKeys.models.available(providerId),
+        queryFn: () => trpc.models.list.query({ providerId: providerId! }),
         staleTime: 30 * 60 * 1000,
         retry: 1,
+        enabled: !!providerId,
     });
 
     const extraParams = useMemo(() => {
@@ -166,7 +165,7 @@ export const useSettings = () => {
  * - 同一组件实例内仍只初始化一次（Strict Mode 下 Effect 双调用安全）
  * - 不同组件实例拥有独立的 manager，互不影响
  */
-export const SettingsProvider = ({ get_allowed_models, children }: SettingsProviderProps) => {
+export const SettingsProvider = ({ children }: SettingsProviderProps) => {
     const [manager, setManager] = useState<ConfigManager | null>(null);
 
     // 用 ref 持有初始化 Promise，确保同一组件实例内只调用一次 createFSManager()
@@ -196,9 +195,5 @@ export const SettingsProvider = ({ get_allowed_models, children }: SettingsProvi
         );
     }
 
-    return (
-        <SettingsProviderInternal manager={manager} get_allowed_models={get_allowed_models}>
-            {children}
-        </SettingsProviderInternal>
-    );
+    return <SettingsProviderInternal manager={manager}>{children}</SettingsProviderInternal>;
 };

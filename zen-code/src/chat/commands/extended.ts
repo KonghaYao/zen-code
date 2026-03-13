@@ -33,78 +33,6 @@ export const statusCommand: CommandDefinition = {
         };
     },
 };
-import { listTemplates, clearTemplateCache } from '@codegraph/agent/src/templates/load.js';
-/**
- * /template 命令 - 插入预定义模板
- */
-export const templateCommand: CommandDefinition = {
-    name: 'template',
-    description: '插入预定义的消息模板',
-    aliases: ['tpl', 't'],
-    usage: '/template <模板名>',
-    execute: async (args: string[], context) => {
-        const templateName = args[0];
-
-        // MODIFIED: 使用动态模板加载器替代硬编码模板
-        // 导入模板加载器
-
-        // 如果传入 --refresh 参数，清除缓存
-        if (args.includes('--refresh')) {
-            clearTemplateCache();
-            return {
-                success: true,
-                message: '模板缓存已清除',
-                shouldClearInput: true,
-            };
-        }
-
-        // 加载所有模板
-        const templates = listTemplates();
-
-        // 如果没有提供模板名，列出所有可用模板
-        if (!templateName) {
-            if (templates.length === 0) {
-                return {
-                    success: true,
-                    message: '当前没有可用的模板。可以在 ./.claude/templates/ 目录下创建 .md 模板文件。',
-                    shouldClearInput: true,
-                };
-            }
-
-            const templateList = templates.map((t) => `  - ${t.name}: ${t.description}`).join('\n');
-
-            return {
-                success: true,
-                message: `可用模板:
-${templateList}
-
-使用 /template <name> 插入模板`,
-                shouldClearInput: true,
-            };
-        }
-
-        // 查找指定模板
-        const template = templates.find((t) => t.name === templateName);
-
-        if (!template) {
-            const availableTemplates = templates.map((t) => t.name).join(', ');
-            return {
-                success: false,
-                message: `未找到模板 "${templateName}"。可用模板: ${availableTemplates || '(无)'}`,
-            };
-        }
-
-        // 直接设置输入框内容，不需要 setTimeout
-        context.setUserInput(template.content);
-
-        return {
-            success: true,
-            message: `已插入模板: ${template.name}
-${template.description}`,
-            shouldClearInput: false, // 不清空，让用户编辑模板
-        };
-    },
-};
 
 /**
  * /config 命令 - 配置管理
@@ -605,8 +533,6 @@ export const ralphCommand: CommandDefinition = {
 // 导出扩展命令列表
 export const extendedCommands: CommandDefinition[] = [
     statusCommand,
-    templateCommand,
-
     configCommand,
     mcpCommand,
     summarizeCommand, // NEW: 添加总结命令

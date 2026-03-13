@@ -8,8 +8,13 @@ import { UniversalPanel } from 'ink-pro';
 import { SelectItem } from 'ink-pro';
 import { PanelConfig } from 'ink-pro';
 import { useSettings } from '../../context/SettingsContext';
-import { FEAgentConfig, loadAgentsList } from '@codegraph/agent/src/subagents/config.js';
-import { agentPackage } from '@codegraph/agent/src/config';
+import { useTrpc } from '../../context/ZenCoreContext';
+
+interface AgentConfig {
+    id: string;
+    name: string;
+    description: string;
+}
 
 interface AgentPanelProps {
     onClose: () => void;
@@ -17,17 +22,17 @@ interface AgentPanelProps {
 
 const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
     const { config, updateConfig } = useSettings();
+    const trpc = useTrpc();
     const currentAgentId = config?.switch_command || 'default';
 
     // 修复：使用 useCallback 保持 dataSource 引用稳定
     const dataSource = useCallback(async () => {
-        const configs = await loadAgentsList(agentPackage);
-        return Object.values(configs);
-    }, []);
+        return await trpc.agents.list.query();
+    }, [trpc]);
 
     // 修复：使用 useCallback 保持 renderItem 引用稳定
     const renderItem = useCallback(
-        (agent: FEAgentConfig, index: number, isSelected: boolean) => {
+        (agent: AgentConfig, index: number, isSelected: boolean) => {
             const isCurrent = agent.id === currentAgentId;
             return (
                 <SelectItem key={`agent-${agent.id}`} isSelected={isSelected} isCurrent={isCurrent}>
@@ -44,7 +49,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
 
     // 修复：使用 useCallback 保持 isSelected 引用稳定
     const isSelected = useCallback(
-        (agent: FEAgentConfig) => {
+        (agent: AgentConfig) => {
             return agent.id === currentAgentId;
         },
         [currentAgentId],
@@ -52,7 +57,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
 
     // 修复：使用 useCallback 保持 onSelect 引用稳定
     const handleSelect = useCallback(
-        async (agent: FEAgentConfig) => {
+        async (agent: AgentConfig) => {
             const switchCommand = agent.id === 'default' ? '' : agent.id;
             updateConfig({ switch_command: switchCommand });
             onClose();
@@ -94,12 +99,12 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
                 {
                     id: 'default',
                     label: '默认',
-                    predicate: (agent: FEAgentConfig) => agent.id === 'default',
+                    predicate: (agent: AgentConfig) => agent.id === 'default',
                 },
                 {
                     id: 'custom',
                     label: '自定义',
-                    predicate: (agent: FEAgentConfig) => agent.id !== 'default',
+                    predicate: (agent: AgentConfig) => agent.id !== 'default',
                 },
             ],
             defaultFilter: 'all',

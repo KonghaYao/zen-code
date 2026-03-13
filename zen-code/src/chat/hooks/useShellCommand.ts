@@ -15,7 +15,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { executeBashCommand } from '@codegraph/agent/src/server/bash_command';
+import { useTrpc } from '../context/ZenCoreContext';
 
 // Interactive commands that should be rejected
 const INTERACTIVE_COMMANDS = [
@@ -93,6 +93,7 @@ const truncateOutput = (output: string, maxLines: number = 10): string => {
  * Hook for executing shell commands
  */
 export const useShellCommand = (): UseShellCommandReturn => {
+    const trpc = useTrpc();
     const [activeCommand, setActiveCommand] = useState<ShellCommandResult | null>(null);
     const [isExecuting, setIsExecuting] = useState(false);
 
@@ -147,9 +148,8 @@ export const useShellCommand = (): UseShellCommandReturn => {
             setIsExecuting(true);
 
             try {
-                // Call bash_command API endpoint using executeBashCommand from @codegraph/agent
-                // This ensures consistent communication with the agent backend
-                const result = await executeBashCommand({
+                // Call processes.exec via tRPC
+                const result = await trpc.processes.exec.mutate({
                     command: trimmedCommand,
                     cwd: process.cwd(),
                 });
@@ -158,7 +158,7 @@ export const useShellCommand = (): UseShellCommandReturn => {
                 const shellResult: ShellCommandResult = {
                     id: result.id,
                     command: trimmedCommand,
-                    output: result.output || '',
+                    output: result.stdout || '',
                     status: result.status || 'completed',
                     exitCode: result.exitCode,
                     pid: result.pid,
@@ -199,7 +199,7 @@ export const useShellCommand = (): UseShellCommandReturn => {
         // activeCommand 已从依赖中移除：
         // 1. 交互式命令的返回值改为直接返回新构造的 warningResult，不再读取旧状态
         // 2. 其余路径均不读取 activeCommand，因此无需将其加入依赖
-        [clearOutput],
+        [clearOutput, trpc],
     );
 
     return {

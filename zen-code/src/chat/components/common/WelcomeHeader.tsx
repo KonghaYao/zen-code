@@ -60,7 +60,7 @@ const WelcomeHeader: React.FC = () => {
     const currentProvider = config?.providers?.find((p: any) => p.id === provider);
     const hasProviderKey = !!currentProvider?.apiKey;
     const hasModels = AVAILABLE_MODELS.length > 0;
-    const isConfigured = hasProviderKey && hasModels;
+    const isConfigured = hasProviderKey;
 
     const modelId = extraParams?.model_id || config?.model_id || '—';
     const agentName = extraParams?.switch_command || 'default';
@@ -108,11 +108,14 @@ const WelcomeHeader: React.FC = () => {
                     <InfoRow label="Agent" value={agentName} valueColor="magenta" />
                     <InfoRow label="CWD" value={cwd.length > 40 ? '…' + cwd.slice(-39) : cwd} valueColor="gray" />
 
-                    {!isConfigured && (
+                    {!hasProviderKey && (
                         <Box marginTop={1}>
-                            <Text color="yellow">
-                                {!hasProviderKey ? '⚠  运行 /model 配置 API Key' : '⚠  运行 /model 检查模型列表'}
-                            </Text>
+                            <Text color="yellow">⚠ 运行 /model 配置 API Key</Text>
+                        </Box>
+                    )}
+                    {hasProviderKey && !hasModels && (
+                        <Box marginTop={1}>
+                            <Text color="yellow">⚠ 运行 /model 检查模型列表</Text>
                         </Box>
                     )}
                 </Box>

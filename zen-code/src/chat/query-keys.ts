@@ -30,7 +30,7 @@ export const queryKeys = {
     models: {
         all: ['models'] as const,
         list: (providerId: string) => ['models', 'list', providerId] as const,
-        available: () => ['models', 'available'] as const,
+        available: (providerId?: string) => ['models', 'available', providerId] as const,
     },
 
     // ========== Skills ==========

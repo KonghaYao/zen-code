@@ -1,5 +1,6 @@
+/** 废弃功能 */
 import { HumanMessage } from 'langchain';
-import { graph } from '@codegraph/agent/src/index';
+// import { graph } from '@codegraph/agent/src/index';
 import { createFSManager } from '@codegraph/config';
 
 // 使用新的 @codegraph/agent 包

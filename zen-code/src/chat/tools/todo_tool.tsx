@@ -1,6 +1,16 @@
 import { createUITool, ToolManager } from '@langgraph-js/sdk';
 import { Box, Text } from 'ink';
-import { todoWriteSchema } from '@codegraph/agent/src/tools/task_tools/todo_tool';
+import { z } from 'zod';
+
+const todoSchema = z.object({
+    content: z.string().min(1),
+    status: z.enum(['pending', 'in_progress', 'completed']),
+    id: z.string(),
+});
+
+const todoWriteSchema = z.object({
+    todos: z.array(todoSchema).describe('The updated todo list'),
+});
 
 type TodoStatus = 'pending' | 'in_progress' | 'completed';
 

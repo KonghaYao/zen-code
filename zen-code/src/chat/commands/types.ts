@@ -2,7 +2,7 @@
  * 命令系统类型定义
  */
 
-import { ModelConfig } from '@codegraph/agent/src/utils/get_allowed_models';
+import { ModelConfig } from '../context/SettingsContext';
 
 export interface CommandResult {
     /** 是否成功执行 */

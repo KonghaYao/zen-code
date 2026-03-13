@@ -66,6 +66,3 @@ export function createCodeGraph(externalPkg?: AgentPackage) {
         .addEdge(START, 'graph')
         .compile();
 }
-
-// 导出单例实例
-// export const graph = createCodeGraph();

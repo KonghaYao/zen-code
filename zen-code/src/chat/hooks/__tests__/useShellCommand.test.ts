@@ -8,25 +8,29 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useShellCommand } from '../useShellCommand';
 
-// Mock executeBashCommand
-vi.mock('@codegraph/agent/src/server/bash_command', () => ({
-    executeBashCommand: vi.fn(),
+// Mock tRPC context
+const mockExec = vi.fn();
+vi.mock('../../context/ZenCoreContext', () => ({
+    useTrpc: () => ({
+        processes: {
+            exec: {
+                mutate: mockExec,
+            },
+        },
+    }),
 }));
-
-// Import after mock
-const { executeBashCommand } = await import('@codegraph/agent/src/server/bash_command');
-const mockExecute = executeBashCommand as ReturnType<typeof vi.fn>;
 
 describe('useShellCommand', () => {
     beforeEach(() => {
-        mockExecute.mockClear();
+        mockExec.mockClear();
     });
 
     it('should execute shell command successfully', async () => {
-        mockExecute.mockResolvedValueOnce({
+        mockExec.mockResolvedValueOnce({
             id: 'test-id',
             pid: 12345,
-            output: 'Command output',
+            stdout: 'Command output',
+            stderr: '',
             status: 'completed',
             exitCode: 0,
         });
@@ -57,7 +61,7 @@ describe('useShellCommand', () => {
         });
 
         expect(result.current.activeCommand).toBeNull();
-        expect(mockExecute).not.toHaveBeenCalled();
+        expect(mockExec).not.toHaveBeenCalled();
     });
 
     it('should detect and reject interactive commands', async () => {
@@ -74,7 +78,7 @@ describe('useShellCommand', () => {
             status: 'failed',
         });
 
-        expect(mockExecute).not.toHaveBeenCalled();
+        expect(mockExec).not.toHaveBeenCalled();
     });
 
     it('should detect git commit as interactive', async () => {
@@ -91,14 +95,15 @@ describe('useShellCommand', () => {
             status: 'failed',
         });
 
-        expect(mockExecute).not.toHaveBeenCalled();
+        expect(mockExec).not.toHaveBeenCalled();
     });
 
     it('should allow non-interactive git commands', async () => {
-        mockExecute.mockResolvedValueOnce({
+        mockExec.mockResolvedValueOnce({
             id: 'test-id',
             pid: 12345,
-            output: 'Commit created',
+            stdout: 'Commit created',
+            stderr: '',
             status: 'completed',
             exitCode: 0,
         });
@@ -118,11 +123,11 @@ describe('useShellCommand', () => {
             pid: 12345,
         });
 
-        expect(mockExecute).toHaveBeenCalled();
+        expect(mockExec).toHaveBeenCalled();
     });
 
     it('should handle API errors', async () => {
-        mockExecute.mockRejectedValueOnce(new Error('API request failed: Internal Server Error'));
+        mockExec.mockRejectedValueOnce(new Error('API request failed: Internal Server Error'));
 
         const { result } = renderHook(() => useShellCommand());
 
@@ -141,10 +146,11 @@ describe('useShellCommand', () => {
     });
 
     it('should clear output on command', async () => {
-        mockExecute.mockResolvedValueOnce({
+        mockExec.mockResolvedValueOnce({
             id: 'test-id',
             pid: 12345,
-            output: 'Command output',
+            stdout: 'Command output',
+            stderr: '',
             status: 'completed',
             exitCode: 0,
         });
@@ -167,7 +173,7 @@ describe('useShellCommand', () => {
     it('should set isExecuting to true during command execution', async () => {
         let resolveMock: (value: any) => void;
 
-        mockExecute.mockImplementationOnce(
+        mockExec.mockImplementationOnce(
             () =>
                 new Promise((resolve) => {
                     resolveMock = resolve;
@@ -191,7 +197,8 @@ describe('useShellCommand', () => {
             resolveMock!({
                 id: 'test-id',
                 pid: 12345,
-                output: '',
+                stdout: '',
+                stderr: '',
                 status: 'completed',
                 exitCode: 0,
             });

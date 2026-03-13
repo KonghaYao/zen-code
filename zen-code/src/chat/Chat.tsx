@@ -5,7 +5,6 @@ import { TanStackQueryProvider } from './QueryClientProvider';
 import { InteractionProvider } from './interaction/context';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { ZenCoreProvider } from './context/ZenCoreContext';
-import { get_allowed_models } from '@codegraph/agent/src/utils/get_allowed_models';
 import { ChatController } from './components/layout/ChatController';
 import { ChatMain } from './components/layout/ChatMain';
 import { LazyChatViewManager } from './components/layout/LazyChatViewManager';
@@ -125,7 +124,7 @@ const ChatWrapper: React.FC = () => {
             <TanStackQueryProvider>
                 <ZenCoreProvider value={zenCoreConnection}>
                     <ErrorBoundary key="data-layer" name="DataLayer">
-                        <SettingsProvider get_allowed_models={get_allowed_models}>
+                        <SettingsProvider>
                             <ChatProviderWrapper apiUrl={apiUrl}>
                                 <ErrorBoundary key="ui-layer" name="UILayer">
                                     <InteractionProvider>
