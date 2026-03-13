@@ -130,12 +130,7 @@ export function StoreView() {
                     )}
                     {showAddForm && (
                         <AddStoreForm
-                            onAdd={(data) =>
-                                addMutation.mutate(
-                                    { ...data, base_url: data.base_url ?? '' },
-                                    { onSuccess: () => setShowAddForm(false) },
-                                )
-                            }
+                            onAdd={(data) => addMutation.mutate(data, { onSuccess: () => setShowAddForm(false) })}
                             onCancel={() => setShowAddForm(false)}
                             isLoading={addMutation.isPending}
                         />

@@ -19,7 +19,7 @@ const RemoteStoreInputSchema = z.object({
     id: z.string().optional(),
     name: z.string().min(1),
     type: z.enum(['generic_http', 'clawhub']).optional(),
-    base_url: z.string().url().optional(),
+    base_url: z.union([z.string().url(), z.literal('')]).optional(),
     api_key: z.string().optional(),
     field_map: z.record(z.string(), z.string()).optional(),
     paths: z.record(z.string(), z.string()).optional(),

@@ -20,7 +20,6 @@
         "@langgraph-js/standard-agent": "workspace:^",
         "@langgraph-js/pure-graph": "^3.3.0",
         "@trpc/server": "^11",
-        "bun-pty": "^0.4.8",
         "fs-extra": "^11.3.3",
         "hono": "^4",
         "mime-types": "^3.0.2",

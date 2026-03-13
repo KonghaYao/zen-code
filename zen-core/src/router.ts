@@ -7,7 +7,6 @@ import { configRouter } from './routes/config.js';
 import { modelsRouter } from './routes/models.js';
 import { skillsRouter } from './routes/skills.js';
 import { tasksRouter } from './routes/tasks.js';
-import { historyRouter } from './routes/history.js';
 import { agentsRouter } from './routes/agents.js';
 import { providersRouter } from './routes/providers.js';
 import { knowledgeRouter } from './routes/knowledge.js';
@@ -16,8 +15,6 @@ import { processesRouter } from './routes/processes.js';
 import { mcpRouter } from './routes/mcp.js';
 import { workspacesRouter } from './routes/workspaces.js';
 import { cronRouter } from './routes/cron.js';
-import { smRouter } from './routes/sm.js';
-import { storeRouter } from './routes/store.js';
 import { promptsRouter } from './routes/prompts.js';
 import { middlewaresRouter } from './routes/middlewares.js';
 
@@ -28,7 +25,6 @@ export const appRouter = router({
     models: modelsRouter,
     skills: skillsRouter,
     tasks: tasksRouter,
-    history: historyRouter,
     agents: agentsRouter,
     providers: providersRouter,
     knowledge: knowledgeRouter,
@@ -37,8 +33,6 @@ export const appRouter = router({
     mcp: mcpRouter,
     workspaces: workspacesRouter,
     cron: cronRouter,
-    sm: smRouter,
-    store: storeRouter,
     prompts: promptsRouter,
     middlewares: middlewaresRouter,
 });
