@@ -18,8 +18,6 @@ import { workspacesRouter } from './routes/workspaces.js';
 import { cronRouter } from './routes/cron.js';
 import { smRouter } from './routes/sm.js';
 import { storeRouter } from './routes/store.js';
-import { filesRouter } from './routes/files.js';
-import { monitorRouter } from './routes/monitor.js';
 import { promptsRouter } from './routes/prompts.js';
 import { middlewaresRouter } from './routes/middlewares.js';
 
@@ -41,8 +39,6 @@ export const appRouter = router({
     cron: cronRouter,
     sm: smRouter,
     store: storeRouter,
-    files: filesRouter,
-    monitor: monitorRouter,
     prompts: promptsRouter,
     middlewares: middlewaresRouter,
 });

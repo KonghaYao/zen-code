@@ -108,6 +108,24 @@ export async function bootstrap(): Promise<ZenCoreServices> {
     const cronScheduler = new CronScheduler(cronStorage, cronExecutor);
     await cronScheduler.start();
 
+    // ── SM 中间件注册到 AgentPackage ────────────────────────────
+    const smMiddlewareImpl = {
+        id: 'sm',
+        name: 'state-management',
+        description: 'XState-based state machine management with SQLite persistence',
+        execute: async () => {
+            const { SMMiddleware } = await import('./middlewares/sm/index.js');
+            const m = SMMiddleware.fromManager(stateMachineManager);
+            await m.initialize();
+            return m;
+        },
+    };
+    const existingSm = await agentPackage.getMiddleware('sm');
+    if (!existingSm) {
+        await agentPackage.addMiddleware(smMiddlewareImpl);
+    }
+    agentPackage.middlewares.registerImplementation(smMiddlewareImpl);
+
     _services = {
         agentPackage,
         mergedStorage,

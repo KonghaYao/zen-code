@@ -29,6 +29,8 @@ export const CodeSchema = new StateSchema({
     user_id: z.string().optional(),
     thread_id: z.string().optional(),
     cwd: z.string().default(process.cwd()),
+    /** 路由到指定 agent（来自 SwarmState 合并） */
+    agent_id: z.string().default('agents/default'),
 });
 
 // 向后兼容：保持原有导出名称

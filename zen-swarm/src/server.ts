@@ -10,6 +10,7 @@ import { logger } from 'hono/logger';
 import { serve } from 'bun';
 import { SERVER_PORT } from './config/constants.js';
 import dashboard from './index.html';
+import { handleTerminalMessage, handleTerminalClose, handleTerminalOpen } from './api/terminalWebSocket.js';
 
 const ZEN_CORE_URL = process.env.ZEN_CORE_URL || 'http://127.0.0.1:8125';
 
@@ -69,15 +70,19 @@ serve({
     fetch(req, server) {
         const url = new URL(req.url);
 
-        // 代理 WebSocket 终端（转发到 zen-core）
+        // 本地处理 Terminal WebSocket
         if (url.pathname === '/ws/terminal') {
-            // WebSocket 代理：升级并透传到 zen-core
-            const wsUrl = ZEN_CORE_URL.replace('http://', 'ws://').replace('https://', 'wss://');
-            const targetWsUrl = `${wsUrl}/ws/terminal${url.search}`;
-            return fetch(targetWsUrl, req);
+            const upgraded = server.upgrade(req, { data: { sessionIds: new Set<string>() } });
+            if (upgraded) return undefined;
+            return new Response('WebSocket upgrade failed', { status: 426 });
         }
 
         return app.fetch(req, server);
+    },
+    websocket: {
+        open: handleTerminalOpen,
+        message: handleTerminalMessage,
+        close: handleTerminalClose,
     },
     port,
 });

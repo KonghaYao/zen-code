@@ -16,8 +16,7 @@ import { registerLangGraphRoutes } from './langgraph/handler.js';
 import { healthHandler } from './health.js';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { authRouter } from './routes/auth.js';
-import { validateToken, authMiddleware, extractTokenFromCookie } from './auth/tokenAuth.js';
-import { handleTerminalMessage, handleTerminalClose, handleTerminalOpen } from './terminalWebSocket.js';
+import { authMiddleware } from './auth/tokenAuth.js';
 
 const PORT = Number(process.env.ZEN_CORE_PORT || 8125);
 const NO_AUTH = process.env.ZEN_CORE_NO_AUTH === 'true';
@@ -54,7 +53,7 @@ console.log('Bootstrapping zen-core services...');
 const services = await bootstrap();
 
 // ─── 注册 LangGraph graph ────────────────────────────────────
-await registerLangGraphRoutes(services.agentPackage);
+await registerLangGraphRoutes(services);
 
 // ─── 创建 Hono 应用 ──────────────────────────────────────────
 const app = new Hono();
@@ -96,44 +95,10 @@ app.route('/api/langgraph', LGApp);
 // ─── 启动服务器 ──────────────────────────────────────────────
 serve({
     fetch(req, server) {
-        const url = new URL(req.url);
-        if (url.pathname === '/ws/terminal') {
-            if (NO_AUTH) {
-                const upgraded = server.upgrade(req, { data: { sessionIds: new Set<string>() } });
-                if (upgraded) return undefined;
-                return new Response('WebSocket upgrade failed', { status: 400 });
-            }
-            const cookieHeader = req.headers.get('Cookie');
-            const wsToken = extractTokenFromCookie(cookieHeader);
-            if (!wsToken) {
-                return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-                    status: 401,
-                    headers: { 'Content-Type': 'application/json' },
-                });
-            }
-            return validateToken(wsToken).then((valid) => {
-                if (!valid) {
-                    return new Response(JSON.stringify({ error: 'Unauthorized', message: 'Invalid token' }), {
-                        status: 401,
-                        headers: { 'Content-Type': 'application/json' },
-                    });
-                }
-                const upgraded = server.upgrade(req, {
-                    data: { sessionIds: new Set<string>() },
-                });
-                if (upgraded) return undefined;
-                return new Response('WebSocket upgrade failed', { status: 400 });
-            });
-        }
         return app.fetch(req, server);
     },
     idleTimeout: 120,
     port: PORT,
-    websocket: {
-        open: handleTerminalOpen,
-        message: handleTerminalMessage,
-        close: handleTerminalClose,
-    },
 });
 
 console.log(`zen-core running on http://127.0.0.1:${PORT}`);
