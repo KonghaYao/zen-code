@@ -59,7 +59,7 @@ console.log('Bootstrapping zen-core services...');
 const services = await bootstrap();
 
 // ─── 注册 LangGraph graph ────────────────────────────────────
-await registerLangGraphRoutes();
+await registerLangGraphRoutes(services.agentPackage);
 
 // ─── 创建 Hono 应用 ──────────────────────────────────────────
 const app = new Hono();

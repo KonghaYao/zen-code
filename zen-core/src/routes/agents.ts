@@ -8,23 +8,14 @@ import { router, procedure } from '../trpc.js';
 
 export const agentsRouter = router({
     list: procedure.query(async ({ ctx }) => {
-        const agents = await ctx.agentPackage.storage.getAllAgents();
-        return agents.map((agent) => ({
-            ...agent,
-            system_prompt: agent.system_prompt_id,
-            model: agent.model_id,
-        }));
+        return await ctx.agentPackage.listAgents();
     }),
 
     get: procedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
-        const agent = await ctx.agentPackage.storage.getAgent(input.id);
+        const agent = await ctx.agentPackage.getAgent(input.id);
         if (!agent) {
             throw new Error(`Agent '${input.id}' not found`);
         }
-        return {
-            ...agent,
-            system_prompt: agent.system_prompt_id,
-            model: agent.model_id,
-        };
+        return agent;
     }),
 });

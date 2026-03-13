@@ -6,7 +6,7 @@
 // 核心
 
 // Graph
-export { createCodeGraph, graph } from './graphBuilder.js';
+export { createCodeGraph } from './graphBuilder.js';
 
 // Utils
 export { initChatModel } from './utils/initChatModel.js';

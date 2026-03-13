@@ -12,6 +12,7 @@ import { getThreadId } from '@langgraph-js/pro';
 import { agentPackage } from './config/index.js';
 import { initChatModel } from './utils/initChatModel.js';
 import { getEnvInfo } from './prompts/coding.js';
+import { downloadRipGrep } from './utils/ripgrep.js';
 
 async function invokeAgent(agentId: string, pkg: AgentPackage, state: CodeStateType, runtime: Runtime) {
     const agent = await createUnifiedAgent(agentId, state, {
@@ -37,18 +38,19 @@ async function invokeAgent(agentId: string, pkg: AgentPackage, state: CodeStateT
         messages: response.messages,
     };
 }
+await downloadRipGrep();
 
 /**
  * 创建 Code Graph V2
  * 使用 AgentPackage 系统动态加载和路由代理
  */
-export function createCodeGraph() {
+export function createCodeGraph(externalPkg?: AgentPackage) {
     return new StateGraph(CodeState)
         .addNode('graph', async (state: CodeStateType, runtime: Runtime) => {
             const { switch_command: cmd } = state;
 
-            // Load agent package (cached after first load)
-            const pkg = agentPackage;
+            // Load agent package (external injection takes priority over internal singleton)
+            const pkg = externalPkg ?? agentPackage;
 
             // Determine agent ID (from command or default)
             const availableAgents = await getAvailableAgentIds(pkg);
@@ -66,4 +68,4 @@ export function createCodeGraph() {
 }
 
 // 导出单例实例
-export const graph = createCodeGraph();
+// export const graph = createCodeGraph();
