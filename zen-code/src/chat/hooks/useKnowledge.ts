@@ -1,22 +1,19 @@
 /**
  * useKnowledge Hook
  *
- * Manages knowledge base (memories and skills) state using TanStack Query.
- * Replaces manual Promise-based async calls in KnowledgePanel.
- *
- * Features:
- * - Automatic loading state
- * - Error handling
- * - Cache management
- * - Separate queries for memories and skills
+ * Manages knowledge base (memories and skills) state using TanStack Query + zen-core tRPC.
  */
 
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../query-keys';
-import { listMemories, type MemoryMetadata, listSkills, type SkillMetadata } from '@langgraph-js/standard-agent';
-import { join } from 'path';
+import { useTrpc } from '../context/ZenCoreContext';
 
-export type KnowledgeItem = (MemoryMetadata | SkillMetadata) & { type: 'memory' | 'skill' };
+export type KnowledgeItem = {
+    name: string;
+    path?: string;
+    type: 'memory' | 'skill';
+    [key: string]: unknown;
+};
 
 interface UseKnowledgeOptions {
     type: 'memories' | 'skills';
@@ -24,38 +21,14 @@ interface UseKnowledgeOptions {
 }
 
 /**
- * Fetch knowledge base items (memories or skills)
- *
- * @param options - Hook options with type (memories or skills)
- * @returns Query result with knowledge data
- *
- * Example:
- * ```tsx
- * const { data: memories, isLoading } = useKnowledge({ type: 'memories' });
- * const { data: skills, isLoading } = useKnowledge({ type: 'skills' });
- * ```
+ * Fetch knowledge base items (memories or skills) via zen-core tRPC
  */
 export function useKnowledge({ type, enabled = true }: UseKnowledgeOptions) {
+    const trpc = useTrpc();
     return useQuery({
         queryKey: type === 'memories' ? queryKeys.knowledge.memories() : queryKeys.knowledge.skills(),
-        queryFn: async () => {
-            const projectDir = join(process.cwd(), '.claude', type);
-            const userDir = join(process.env.HOME || '', '.deepagents/code', type);
-
-            try {
-                if (type === 'memories') {
-                    const memories = listMemories(userDir, projectDir);
-                    return memories.map((m) => ({ ...m, type: 'memory' as const }));
-                } else {
-                    const skills = listSkills(userDir, projectDir);
-                    return skills.map((s) => ({ ...s, type: 'skill' as const }));
-                }
-            } catch (error) {
-                console.warn(`Failed to load ${type}:`, error);
-                return [];
-            }
-        },
+        queryFn: () => trpc.knowledge.list.query({ type }),
         enabled,
-        staleTime: 2 * 60 * 1000, // 2 minutes - knowledge changes moderately
+        staleTime: 2 * 60 * 1000,
     });
 }

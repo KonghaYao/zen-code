@@ -1,144 +1,72 @@
 /**
  * useSkills Hook
  *
- * Manages skills state using TanStack Query.
- * Replaces manual useState + useEffect pattern in useSkills hook.
- *
- * Features:
- * - Automatic loading state
- * - Error handling
- * - Cache management
- * - Automatic refetch after mutations
+ * Manages skills state using TanStack Query + zen-core tRPC.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../query-keys';
-import type { Skill, SkillContent } from '@codegraph/config';
-import type { ConfigManager } from '@codegraph/config';
-
-interface UseSkillsOptions {
-    manager: ConfigManager | null;
-    enabled?: boolean;
-}
+import { useTrpc } from '../context/ZenCoreContext';
 
 /**
- * Fetch skills list
- *
- * @param options - Hook options
- * @returns Query result with skills data
- *
- * Example:
- * ```tsx
- * const { data: skills, isLoading, error } = useSkills({ manager: configStore });
- * ```
+ * Fetch skills list via zen-core tRPC
  */
-export function useSkills({ manager, enabled = true }: UseSkillsOptions) {
+export function useSkills({ enabled = true }: { enabled?: boolean } = {}) {
+    const trpc = useTrpc();
     return useQuery({
         queryKey: queryKeys.skills.list(),
-        queryFn: async () => {
-            if (!manager) {
-                throw new Error('ConfigManager not initialized');
-            }
-            return await manager.listSkills();
-        },
-        enabled: enabled && !!manager,
-        staleTime: 2 * 60 * 1000, // 2 minutes
+        queryFn: () => trpc.skills.list.query(),
+        enabled,
+        staleTime: 2 * 60 * 1000,
     });
 }
 
 /**
- * Fetch single skill content
- *
- * @param options - Hook options with skill name
- * @returns Query result with skill data
- *
- * Example:
- * ```tsx
- * const { data: skill, isLoading } = useSkill({
- *   manager: configStore,
- *   name: 'brainstorming'
- * });
- * ```
+ * Fetch single skill content via zen-core tRPC
  */
-export function useSkill({ manager, name, enabled = true }: UseSkillsOptions & { name: string }) {
+export function useSkill({ name, enabled = true }: { name: string; enabled?: boolean }) {
+    const trpc = useTrpc();
     return useQuery({
         queryKey: queryKeys.skills.detail(name),
-        queryFn: async () => {
-            if (!manager) {
-                throw new Error('ConfigManager not initialized');
-            }
-            return await manager.getSkill(name);
-        },
-        enabled: enabled && !!manager && !!name,
-        staleTime: 5 * 60 * 1000, // 5 minutes - skill content doesn't change often
+        queryFn: () => trpc.skills.get.query({ name }),
+        enabled: enabled && !!name,
+        staleTime: 5 * 60 * 1000,
     });
 }
 
 /**
- * Save skill mutation
- *
- * @param options - Hook options
- * @returns Mutation result
- *
- * Example:
- * ```tsx
- * const saveSkill = useSaveSkill({ manager: configStore });
- *
- * const handleSave = async (content: SkillContent) => {
- *   await saveSkill.mutateAsync({ name: 'my-skill', content });
- * };
- * ```
+ * Save skill mutation via zen-core tRPC
  */
-export function useSaveSkill({ manager }: { manager: ConfigManager | null }) {
+export function useSaveSkill() {
+    const trpc = useTrpc();
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ name, content }: { name: string; content: SkillContent }) => {
-            if (!manager) {
-                throw new Error('ConfigManager not initialized');
-            }
-            await manager.saveSkill(name, content);
-        },
+        mutationFn: ({
+            name,
+            content,
+        }: {
+            name: string;
+            content: { frontmatter?: Record<string, unknown>; body: string };
+        }) => trpc.skills.save.mutate({ name, content }),
         onSuccess: (_, { name }) => {
-            // Invalidate skills list
             queryClient.invalidateQueries({ queryKey: queryKeys.skills.list() });
-
-            // Invalidate specific skill cache
             queryClient.invalidateQueries({ queryKey: queryKeys.skills.detail(name) });
         },
     });
 }
 
 /**
- * Delete skill mutation
- *
- * @param options - Hook options
- * @returns Mutation result
- *
- * Example:
- * ```tsx
- * const deleteSkill = useDeleteSkill({ manager: configStore });
- *
- * const handleDelete = async (name: string) => {
- *   await deleteSkill.mutateAsync(name);
- * };
- * ```
+ * Delete skill mutation via zen-core tRPC
  */
-export function useDeleteSkill({ manager }: { manager: ConfigManager | null }) {
+export function useDeleteSkill() {
     const queryClient = useQueryClient();
+    const trpc = useTrpc();
 
     return useMutation({
-        mutationFn: async (name: string) => {
-            if (!manager) {
-                throw new Error('ConfigManager not initialized');
-            }
-            await manager.deleteSkill(name);
-        },
+        mutationFn: (name: string) => trpc.skills.delete.mutate({ name }),
         onSuccess: (_, name) => {
-            // Invalidate skills list
             queryClient.invalidateQueries({ queryKey: queryKeys.skills.list() });
-
-            // Remove specific skill from cache
             queryClient.removeQueries({ queryKey: queryKeys.skills.detail(name) });
         },
     });

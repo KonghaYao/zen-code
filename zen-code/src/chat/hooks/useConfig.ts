@@ -1,78 +1,39 @@
 /**
  * useConfig Hook
  *
- * Manages configuration state using TanStack Query.
- * Replaces manual useState + useEffect pattern in SettingsContext.
- *
- * Features:
- * - Automatic loading state
- * - Error handling
- * - Cache management
- * - Optimistic updates
+ * Manages configuration state using TanStack Query + zen-core tRPC.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../query-keys';
 import type { AppConfig } from '@codegraph/config';
-import type { ConfigManager } from '@codegraph/config';
-
-interface UseConfigOptions {
-    manager: ConfigManager;
-    enabled?: boolean;
-}
+import { useTrpc } from '../context/ZenCoreContext';
 
 /**
- * Fetch configuration
- *
- * @param options - Hook options
- * @returns Query result with config data
- *
- * Example:
- * ```tsx
- * const { data: config, isLoading, error } = useConfig({ manager: configStore });
- * ```
+ * Fetch configuration via zen-core tRPC
  */
-export function useConfig({ manager, enabled = true }: UseConfigOptions) {
+export function useConfig({ enabled = true }: { enabled?: boolean } = {}) {
+    const trpc = useTrpc();
     return useQuery({
         queryKey: queryKeys.config.detail(),
-        queryFn: async () => {
-            await manager.initialize();
-            return await manager.getConfig();
-        },
+        queryFn: () => trpc.config.get.query(),
         enabled,
-        staleTime: 5 * 60 * 1000, // 5 minutes - config doesn't change often
-        gcTime: 10 * 60 * 1000, // 10 minutes
+        staleTime: 5 * 60 * 1000,
+        gcTime: 10 * 60 * 1000,
     });
 }
 
 /**
- * Update configuration
- *
- * @param options - Hook options
- * @returns Mutation result
- *
- * Example:
- * ```tsx
- * const updateConfig = useUpdateConfig({ manager: configStore });
- *
- * const handleSave = async () => {
- *   await updateConfig.mutateAsync({ model_id: 'gpt-4' });
- * };
- * ```
+ * Update configuration via zen-core tRPC
  */
-export function useUpdateConfig({ manager }: UseConfigOptions) {
+export function useUpdateConfig() {
+    const trpc = useTrpc();
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (newConfig: Partial<AppConfig>) => {
-            await manager.updateConfig(newConfig);
-            return await manager.getConfig();
-        },
+        mutationFn: (newConfig: Partial<AppConfig>) => trpc.config.update.mutate(newConfig as any),
         onSuccess: (updatedConfig) => {
-            // Update config cache
             queryClient.setQueryData(queryKeys.config.detail(), updatedConfig);
-
-            // Invalidate related queries
             queryClient.invalidateQueries({ queryKey: queryKeys.providers.all });
             queryClient.invalidateQueries({ queryKey: queryKeys.models.all });
         },

@@ -1,48 +1,22 @@
 /**
  * useProviders Hook
  *
- * Manages providers list extracted from config.
- * Derives from config data using TanStack Query.
- *
- * Features:
- * - Automatic loading state
- * - Derived from config query
- * - Cache management
+ * Manages providers list via zen-core tRPC.
  */
 
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../query-keys';
-import type { ConfigManager } from '@codegraph/config';
-import { useConfig } from './useConfig';
-
-interface UseProvidersOptions {
-    manager: ConfigManager;
-    enabled?: boolean;
-}
+import { useTrpc } from '../context/ZenCoreContext';
 
 /**
- * Fetch providers list from config
- *
- * Derives providers from config data. This is a derived query that
- * depends on the config query.
- *
- * @param options - Hook options
- * @returns Query result with providers data
- *
- * Example:
- * ```tsx
- * const { data: providers, isLoading } = useProviders({ manager: configStore });
- * ```
+ * Fetch providers list via zen-core tRPC
  */
-export function useProviders({ manager, enabled = true }: UseProvidersOptions) {
-    const { data: config } = useConfig({ manager, enabled });
-
+export function useProviders({ enabled = true }: { enabled?: boolean } = {}) {
+    const trpc = useTrpc();
     return useQuery({
         queryKey: queryKeys.providers.list(),
-        queryFn: () => {
-            return config?.providers || [];
-        },
-        enabled: enabled && !!config,
-        staleTime: Infinity, // Derive from config, don't refetch independently
+        queryFn: () => trpc.providers.list.query(),
+        enabled,
+        staleTime: 5 * 60 * 1000,
     });
 }

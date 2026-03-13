@@ -33,7 +33,7 @@ import { metadataOfChat } from '../../../utils';
  */
 export const ChatInput: React.FC = memo(() => {
     const { userInput, setUserInput, loading, renderMessages, sendMessage } = useChat();
-    const { extraParams, manager } = useSettings();
+    const { extraParams } = useSettings();
 
     // Shell command hook for executing ! commands
     const {
@@ -57,7 +57,7 @@ export const ChatInput: React.FC = memo(() => {
     } = useChatPanel();
 
     // Fetch skills for autocomplete
-    const { data: skills = [] } = useSkills({ manager });
+    const { data: skills = [] } = useSkills();
 
     // Fetch agents for autocomplete
     const { data: agents = [] } = useAgents();

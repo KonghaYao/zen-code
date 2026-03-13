@@ -1,19 +1,13 @@
 /**
  * useTasks Hook
  *
- * Manages tasks state using TanStack Query.
- * Replaces manual useState + useEffect pattern in TaskPanel.
- *
- * Features:
- * - Automatic loading state
- * - Error handling
- * - Cache management
- * - Automatic refetch after mutations
+ * Manages tasks state using TanStack Query + zen-core tRPC.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../query-keys';
-import type { TaskNode, TaskStatus } from '@codegraph/config';
+import { useTrpc } from '../context/ZenCoreContext';
+import type { TaskStatus } from '@codegraph/config';
 
 interface UseTasksOptions {
     filter?: TaskStatus;
@@ -21,119 +15,59 @@ interface UseTasksOptions {
 }
 
 /**
- * Fetch tasks list
- *
- * @param options - Hook options with optional status filter
- * @returns Query result with tasks data
- *
- * Example:
- * ```tsx
- * const { data: tasks, isLoading, error } = useTasks();
- * ```
+ * Fetch tasks list via zen-core tRPC
  */
 export function useTasks({ filter, enabled = true }: UseTasksOptions = {}) {
+    const trpc = useTrpc();
     return useQuery({
         queryKey: queryKeys.tasks.list(filter),
-        queryFn: async () => {
-            const { TaskStoreManager } = await import('@codegraph/config');
-            const tasksStore = new TaskStoreManager(process.cwd());
-
-            if (filter) {
-                return await tasksStore.getTasksByStatus(filter);
-            }
-
-            return await tasksStore.getAllTasks();
-        },
+        queryFn: () => trpc.tasks.list.query(filter ? { filter } : undefined),
         enabled,
-        staleTime: 30 * 1000, // 30 seconds - tasks change frequently
+        staleTime: 30 * 1000,
     });
 }
 
 /**
- * Fetch single task
- *
- * @param taskId - Task ID
- * @returns Query result with task data
- *
- * Example:
- * ```tsx
- * const { data: task, isLoading } = useTask('task-123');
- * ```
+ * Fetch single task via zen-core tRPC
  */
 export function useTask(taskId: string) {
+    const trpc = useTrpc();
     return useQuery({
         queryKey: queryKeys.tasks.detail(taskId),
-        queryFn: async () => {
-            const { TaskStoreManager } = await import('@codegraph/config');
-            const tasksStore = new TaskStoreManager(process.cwd());
-            return await tasksStore.getTask(taskId);
-        },
+        queryFn: () => trpc.tasks.get.query({ id: taskId }),
         enabled: !!taskId,
         staleTime: 30 * 1000,
     });
 }
 
 /**
- * Delete task mutation
- *
- * @returns Mutation result
- *
- * Example:
- * ```tsx
- * const deleteTask = useDeleteTask();
- *
- * const handleDelete = async (taskId: string) => {
- *   await deleteTask.mutateAsync(taskId);
- * };
- * ```
+ * Delete task mutation via zen-core tRPC
  */
 export function useDeleteTask() {
+    const trpc = useTrpc();
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (taskId: string) => {
-            const { TaskStoreManager } = await import('@codegraph/config');
-            const tasksStore = new TaskStoreManager(process.cwd());
-            return await tasksStore.deleteTask(taskId);
-        },
+        mutationFn: (taskId: string) => trpc.tasks.delete.mutate({ id: taskId }),
         onSuccess: (_, taskId) => {
-            // Invalidate all task queries
             queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
-
-            // Remove specific task from cache
             queryClient.removeQueries({ queryKey: queryKeys.tasks.detail(taskId) });
         },
     });
 }
 
 /**
- * Update task status mutation
- *
- * @returns Mutation result
- *
- * Example:
- * ```tsx
- * const updateTaskStatus = useUpdateTaskStatus();
- *
- * const handleStatusChange = async (taskId: string, status: TaskStatus) => {
- *   await updateTaskStatus.mutateAsync({ taskId, status });
- * };
- * ```
+ * Update task status mutation via zen-core tRPC
  */
 export function useUpdateTaskStatus() {
+    const trpc = useTrpc();
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async ({ taskId, status }: { taskId: string; status: TaskStatus }) => {
-            const { TaskStoreManager } = await import('@codegraph/config');
-            const tasksStore = new TaskStoreManager(process.cwd());
-            return await tasksStore.updateTask(taskId, { status });
-        },
+        mutationFn: ({ taskId, status }: { taskId: string; status: TaskStatus }) =>
+            trpc.tasks.updateStatus.mutate({ id: taskId, status }),
         onSuccess: (_, { taskId }) => {
-            // Invalidate all task queries
             queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all });
-
-            // Invalidate specific task cache
             queryClient.invalidateQueries({ queryKey: queryKeys.tasks.detail(taskId) });
         },
     });
