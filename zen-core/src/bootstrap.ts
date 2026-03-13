@@ -4,15 +4,16 @@
  */
 
 import { AgentPackage, MemoryStorage } from '@langgraph-js/standard-agent';
-import { BunSqliteStorage } from '@langgraph-js/standard-agent/src/storage/sqlite.js';
-import { createFSManager } from '@codegraph/config';
-import { loadDefaultConfigs } from '@codegraph/agent/src/subagents/loader.js';
+import { BunSqliteStorage } from '@langgraph-js/standard-agent/storage/sqlite';
+import { createFSManager, TaskStoreManager } from '@codegraph/config';
+import { loadDefaultConfigs } from '@codegraph/agent/src/';
 import { MergedStorage } from './storage/merged.js';
 
 export interface ZenCoreServices {
     agentPackage: AgentPackage;
     mergedStorage: MergedStorage;
     configManager: Awaited<ReturnType<typeof createFSManager>>;
+    taskStore: TaskStoreManager;
 }
 
 let _services: ZenCoreServices | null = null;
@@ -41,6 +42,10 @@ export async function bootstrap(): Promise<ZenCoreServices> {
     // 6. ConfigManager（读取 ~/.zen-code/settings.json）
     const configManager = await createFSManager();
 
-    _services = { agentPackage, mergedStorage, configManager };
+    // 7. TaskStoreManager（复用单例，避免每次请求重复初始化）
+    const taskStore = new TaskStoreManager(process.cwd());
+    await taskStore.initialize();
+
+    _services = { agentPackage, mergedStorage, configManager, taskStore };
     return _services;
 }

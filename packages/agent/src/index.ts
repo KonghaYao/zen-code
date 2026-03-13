@@ -30,5 +30,8 @@ export {
 // Subagents - V1 API (legacy, kept for compatibility)
 export * from './subagents/config.js';
 
+// Subagents - Config loader（zen-core bootstrap 使用）
+export { loadDefaultConfigs } from './subagents/loader.js';
+
 // Standard Agent System - re-export from @langgraph-js/standard-agent
 export { AgentPackage, MiddlewareRegistry } from '@langgraph-js/standard-agent';

@@ -37,6 +37,16 @@ export const processesRouter = router({
             command: input.command,
             cwd: input.cwd || process.cwd(),
         });
+
+        // 注册到进程表，使 kill/get/list 可以找到
+        processRegistry.set(result.id, {
+            id: result.id,
+            name: input.command,
+            pid: result.pid,
+            status: result.status === 'running' ? 'running' : result.exitCode === 0 ? 'stopped' : 'error',
+            startedAt: Date.now(),
+        });
+
         return {
             id: result.id,
             pid: result.pid,

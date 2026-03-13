@@ -46,10 +46,12 @@ export class MergedStorage implements IStorage {
     // 辅助方法（供路由层使用）
     // ========================================
 
-    /** 判断某个 agent 是否为内置（DB 中没有同 id 记录即为内置） */
+    /** 判断某个 agent 是否为内置（base 中存在 && DB 中不存在覆盖） */
     async isBuiltin(id: string): Promise<boolean> {
+        const baseAgent = await this.base.getAgent(id);
+        if (!baseAgent) return false; // base 中不存在，不是内置
         const dbAgent = await this.db.getAgent(id);
-        return dbAgent === undefined;
+        return dbAgent === undefined; // base 有、DB 没有覆盖 = 内置
     }
 
     /** 判断某个类型的记录在 DB 中是否存在覆盖 */

@@ -233,7 +233,6 @@
       "bin": "./dist/cli.js",
       "devDependencies": {
         "@anthropic-ai/sdk": "^0.71.2",
-        "@codegraph/agent": "workspace:^",
         "@codegraph/config": "workspace:^",
         "@codegraph/union-client": "workspace:^",
         "@google/generative-ai": "^0.24.1",

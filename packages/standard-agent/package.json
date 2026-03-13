@@ -5,6 +5,16 @@
     "description": "Standard Agent System - A unified agent package system for tools, middlewares, and storage",
     "main": "./dist/index.js",
     "types": "./src/index.ts",
+    "exports": {
+        ".": {
+            "import": "./src/index.ts",
+            "default": "./dist/index.js"
+        },
+        "./storage/sqlite": {
+            "import": "./src/storage/sqlite.ts",
+            "default": "./src/storage/sqlite.ts"
+        }
+    },
     "scripts": {
         "build": "vite build",
         "watch": "vite build --watch",

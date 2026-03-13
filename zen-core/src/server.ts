@@ -31,16 +31,8 @@ if (existsSync(PID_FILE)) {
         try {
             process.kill(oldPid, 'SIGTERM');
             console.log(`Terminated old zen-core process (PID: ${oldPid})`);
-            // 等待旧进程退出并释放端口（最多 3 秒）
-            const deadline = Date.now() + 3000;
-            while (Date.now() < deadline) {
-                try {
-                    process.kill(oldPid, 0);
-                } catch {
-                    break;
-                } // 进程已消失
-                await new Promise((r) => setTimeout(r, 100));
-            }
+            // 等待旧进程释放端口（固定缓冲 500ms，避免轮询阻塞）
+            await new Promise((r) => setTimeout(r, 500));
         } catch {
             // 进程已退出，忽略
         }
