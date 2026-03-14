@@ -54,12 +54,42 @@ export interface CollectionInput {
 }
 
 // ========================================
+// Folder
+// ========================================
+
+export interface Folder {
+    id: string;
+    collection_id: string;
+    parent_folder_id: string | null; // null = Collection root
+    name: string;
+    sort_order: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface FolderInput {
+    id: string;
+    collection_id: string;
+    parent_folder_id?: string | null;
+    name: string;
+    sort_order?: number;
+}
+
+export interface UpdateFolderInput {
+    id: string;
+    name?: string;
+    parent_folder_id?: string | null;
+    sort_order?: number;
+}
+
+// ========================================
 // Request (saved)
 // ========================================
 
 export interface SavedRequest {
     id: string;
     collection_id: string;
+    folder_id: string | null; // null = Collection root
     name: string;
     method: HttpMethod;
     url: string;
@@ -76,6 +106,7 @@ export interface SavedRequest {
 export interface SavedRequestInput {
     id: string;
     collection_id: string;
+    folder_id?: string | null;
     name: string;
     method: HttpMethod;
     url: string;
@@ -89,6 +120,7 @@ export interface SavedRequestInput {
 
 export interface UpdateSavedRequestInput {
     id: string;
+    folder_id?: string | null;
     name?: string;
     method?: HttpMethod;
     url?: string;
@@ -174,7 +206,7 @@ export interface HistoryEntryInput {
 }
 
 // ========================================
-// Row types (SQLite)
+// Row types (File System JSON)
 // ========================================
 
 export interface CollectionRow {
@@ -185,9 +217,20 @@ export interface CollectionRow {
     updated_at: string;
 }
 
+export interface FolderRow {
+    id: string;
+    collection_id: string;
+    parent_folder_id: string | null;
+    name: string;
+    sort_order: number;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface SavedRequestRow {
     id: string;
     collection_id: string;
+    folder_id: string | null;
     name: string;
     method: string;
     url: string;
@@ -244,8 +287,10 @@ export interface SendRequestInput {
     body?: RequestBody;
     environment_id?: string;
     save_to_history?: boolean;
+    auto_save_folder?: boolean; // true = auto-archive to default/{date}
     request_id?: string;
     collection_id?: string;
+    folder_id?: string | null;
     name?: string;
 }
 

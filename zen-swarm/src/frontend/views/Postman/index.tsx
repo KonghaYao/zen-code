@@ -27,6 +27,8 @@ import { AuthEditor } from '../../components/postman/AuthEditor.js';
 import { BodyEditor } from '../../components/postman/BodyEditor.js';
 import { HistoryPanel } from '../../components/postman/HistoryPanel.js';
 import { EnvironmentManager } from '../../components/postman/EnvironmentManager.js';
+import { ImportMenu } from '../../components/postman/ImportMenu.js';
+import { isCurlCommand, parseCurl } from '../../utils/curlParser.js';
 import type { ActiveRequest, SendRequestResult, HistoryEntry, HttpMethod } from '../../types/postman.js';
 import { DEFAULT_REQUEST, HTTP_METHODS, METHOD_COLORS } from '../../types/postman.js';
 
@@ -85,7 +87,34 @@ export function PostmanView() {
     }, []);
 
     const handleUrlChange = useCallback((url: string) => {
+        // Detect curl paste in URL bar
+        if (isCurlCommand(url)) {
+            const parsed = parseCurl(url.trim());
+            if (parsed) {
+                const confirmed = window.confirm('检测到 curl 命令，是否导入？');
+                if (confirmed) {
+                    setActiveRequest((prev) => ({
+                        ...prev,
+                        method: parsed.method,
+                        url: parsed.url,
+                        headers: parsed.headers,
+                        query_params: parsed.query_params,
+                        auth: parsed.auth,
+                        body: parsed.body,
+                        isDirty: true,
+                    }));
+                    return;
+                }
+            }
+        }
         setActiveRequest((prev) => ({ ...prev, url, isDirty: true }));
+    }, []);
+
+    const handleImport = useCallback((requests: ActiveRequest[]) => {
+        if (requests.length === 0) return;
+        // Load the first request into the editor
+        setActiveRequest({ ...requests[0], isDirty: true });
+        setResponse(null);
     }, []);
 
     // Send request
@@ -216,6 +245,9 @@ export function PostmanView() {
                     </button>
                 )}
 
+                {/* Import menu */}
+                <ImportMenu onImport={handleImport} />
+
                 {/* New request */}
                 <button
                     onClick={() => {
@@ -231,7 +263,7 @@ export function PostmanView() {
             {/* ── Main layout ───────────────────────────────────── */}
             <div className="flex-1 flex min-h-0 overflow-hidden">
                 {/* LEFT SIDEBAR */}
-                <div className="w-56 flex-shrink-0 border-r border-border-subtle flex flex-col min-h-0 bg-bg-secondary">
+                <div className="w-64 flex-shrink-0 border-r border-border-subtle flex flex-col min-h-0 bg-bg-secondary">
                     {/* Sidebar tab switcher */}
                     <div className="flex-shrink-0 flex border-b border-border-subtle">
                         {(['collections', 'history'] as SidebarTab[]).map((t) => (

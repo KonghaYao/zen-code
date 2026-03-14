@@ -17,7 +17,9 @@ const postmanApi = (apiClient as any).postman;
 export const postmanKeys = {
     all: ['postman'] as const,
     collections: () => [...postmanKeys.all, 'collections'] as const,
-    requests: (collectionId: string) => [...postmanKeys.all, 'requests', collectionId] as const,
+    folders: (collectionId: string) => [...postmanKeys.all, 'folders', collectionId] as const,
+    requests: (collectionId: string, folderId?: string | null) =>
+        [...postmanKeys.all, 'requests', collectionId, folderId ?? 'all'] as const,
     environments: () => [...postmanKeys.all, 'environments'] as const,
     activeEnv: () => [...postmanKeys.all, 'activeEnv'] as const,
     history: (limit?: number) => [...postmanKeys.all, 'history', limit] as const,
@@ -62,13 +64,62 @@ export function useDeleteCollection() {
 }
 
 // ========================================
+// Folders
+// ========================================
+
+export function useFolders(collectionId: string) {
+    return useQuery({
+        queryKey: postmanKeys.folders(collectionId),
+        queryFn: () => postmanApi.listFolders.query({ collection_id: collectionId }),
+        enabled: !!collectionId,
+    });
+}
+
+export function useCreateFolder() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (input: any) => postmanApi.createFolder.mutate(input),
+        onSuccess: (_data: any, vars: any) =>
+            qc.invalidateQueries({ queryKey: postmanKeys.folders(vars.collection_id) }),
+    });
+}
+
+export function useUpdateFolder() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (input: any) => postmanApi.updateFolder.mutate(input),
+        onSuccess: () => qc.invalidateQueries({ queryKey: postmanKeys.all }),
+    });
+}
+
+export function useDeleteFolder() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (input: { id: string }) => postmanApi.deleteFolder.mutate(input),
+        onSuccess: () => qc.invalidateQueries({ queryKey: postmanKeys.all }),
+    });
+}
+
+export function useMoveRequest() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (input: { request_id: string; folder_id: string | null }) => postmanApi.moveRequest.mutate(input),
+        onSuccess: () => qc.invalidateQueries({ queryKey: postmanKeys.all }),
+    });
+}
+
+// ========================================
 // Requests
 // ========================================
 
-export function useRequests(collectionId: string) {
+export function useRequests(collectionId: string, folderId?: string | null) {
     return useQuery({
-        queryKey: postmanKeys.requests(collectionId),
-        queryFn: () => postmanApi.listRequests.query({ collection_id: collectionId }),
+        queryKey: postmanKeys.requests(collectionId, folderId),
+        queryFn: () =>
+            postmanApi.listRequests.query({
+                collection_id: collectionId,
+                ...(folderId !== undefined ? { folder_id: folderId } : {}),
+            }),
     });
 }
 

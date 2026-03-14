@@ -3,19 +3,44 @@
  * 纯前端服务 + API 代理到 zen-core
  *
  * 所有 /api/* 请求转发到 zen-core (默认 8125 端口)
+ * 例外：/api/trpc/postman.* 由本地 tRPC handler 处理
  */
 
 import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 import { serve } from 'bun';
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { SERVER_PORT } from './config/constants.js';
 import dashboard from './index.html';
 import { handleTerminalMessage, handleTerminalClose, handleTerminalOpen } from './api/terminalWebSocket.js';
+import { createPostmanRouter } from './api/postman.js';
+import { FileSystemPostmanStorage } from './postman/fileSystemStorage.js';
+import { router } from './api/trpc.js';
+
+// ── Postman 本地 tRPC ────────────────────────────────────────────────────────
+
+const postmanStorage = new FileSystemPostmanStorage();
+await postmanStorage.initialize();
+
+const postmanTrpcRouter = router({
+    postman: createPostmanRouter(postmanStorage),
+});
 
 const ZEN_CORE_URL = process.env.ZEN_CORE_URL || 'http://127.0.0.1:8125';
 
 const app = new Hono();
 app.use(logger());
+
+// 本地处理 postman tRPC（不走代理）
+app.all('/api/trpc/postman.*', (c) => {
+    return fetchRequestHandler({
+        endpoint: '/api/trpc',
+        req: c.req.raw,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router: postmanTrpcRouter as any,
+        createContext: () => ({}),
+    });
+});
 
 // 代理所有 /api/* 请求到 zen-core
 app.all('/api/*', async (c) => {

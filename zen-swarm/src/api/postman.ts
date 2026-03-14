@@ -1,11 +1,11 @@
 /**
  * Postman Router
- * Collections, Requests, Environments, History, Send
+ * Collections, Folders, Requests, Environments, History, Send
  */
 
 import { z } from 'zod';
 import { router, publicProcedure, handleNotFound } from './trpc.js';
-import type { PostmanStorage } from '../postman/storage.js';
+import type { FileSystemPostmanStorage } from '../postman/fileSystemStorage.js';
 
 // ========================================
 // Schemas
@@ -52,12 +52,32 @@ const CollectionUpdateSchema = z.object({
 });
 
 // ========================================
+// Folder Schemas
+// ========================================
+
+const FolderInputSchema = z.object({
+    id: z.string().min(1),
+    collection_id: z.string().min(1),
+    parent_folder_id: z.string().nullable().optional(),
+    name: z.string().min(1),
+    sort_order: z.number().optional().default(0),
+});
+
+const UpdateFolderSchema = z.object({
+    id: z.string().min(1),
+    name: z.string().min(1).optional(),
+    parent_folder_id: z.string().nullable().optional(),
+    sort_order: z.number().optional(),
+});
+
+// ========================================
 // Request Schemas
 // ========================================
 
 const SavedRequestInputSchema = z.object({
     id: z.string().min(1),
     collection_id: z.string().min(1),
+    folder_id: z.string().nullable().optional(),
     name: z.string().min(1),
     method: HttpMethodSchema,
     url: z.string().default(''),
@@ -71,6 +91,7 @@ const SavedRequestInputSchema = z.object({
 
 const UpdateSavedRequestSchema = z.object({
     id: z.string().min(1),
+    folder_id: z.string().nullable().optional(),
     name: z.string().min(1).optional(),
     method: HttpMethodSchema.optional(),
     url: z.string().optional(),
@@ -113,8 +134,10 @@ const SendRequestInputSchema = z.object({
     body: RequestBodySchema.optional().default({ type: 'none', content: '' }),
     environment_id: z.string().optional(),
     save_to_history: z.boolean().optional().default(true),
+    auto_save_folder: z.boolean().optional().default(false),
     request_id: z.string().optional(),
     collection_id: z.string().optional(),
+    folder_id: z.string().nullable().optional(),
     name: z.string().optional(),
 });
 
@@ -122,7 +145,7 @@ const SendRequestInputSchema = z.object({
 // Router Factory
 // ========================================
 
-export function createPostmanRouter(postmanStorage: PostmanStorage) {
+export function createPostmanRouter(postmanStorage: FileSystemPostmanStorage) {
     return router({
         // ========================================
         // Collections
@@ -157,12 +180,63 @@ export function createPostmanRouter(postmanStorage: PostmanStorage) {
         }),
 
         // ========================================
+        // Folders
+        // ========================================
+
+        listFolders: publicProcedure.input(z.object({ collection_id: z.string() })).query(async ({ input }) => {
+            return postmanStorage.getFoldersByCollection(input.collection_id);
+        }),
+
+        createFolder: publicProcedure.input(FolderInputSchema).mutation(async ({ input }) => {
+            const col = await postmanStorage.getCollection(input.collection_id);
+            if (!col) handleNotFound('Collection', input.collection_id);
+            return postmanStorage.createFolder(input);
+        }),
+
+        updateFolder: publicProcedure.input(UpdateFolderSchema).mutation(async ({ input }) => {
+            const folder = await postmanStorage.getFolder(input.id);
+            if (!folder) handleNotFound('Folder', input.id);
+            return postmanStorage.updateFolder(input);
+        }),
+
+        deleteFolder: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+            const folder = await postmanStorage.getFolder(input.id);
+            if (!folder) handleNotFound('Folder', input.id);
+            await postmanStorage.deleteFolder(input.id);
+            return { id: input.id };
+        }),
+
+        moveRequest: publicProcedure
+            .input(
+                z.object({
+                    request_id: z.string(),
+                    folder_id: z.string().nullable(),
+                }),
+            )
+            .mutation(async ({ input }) => {
+                const req = await postmanStorage.getRequest(input.request_id);
+                if (!req) handleNotFound('Request', input.request_id);
+                return postmanStorage.moveRequest(input.request_id, input.folder_id);
+            }),
+
+        // ========================================
         // Saved Requests
         // ========================================
 
-        listRequests: publicProcedure.input(z.object({ collection_id: z.string() })).query(async ({ input }) => {
-            return postmanStorage.getRequestsByCollection(input.collection_id);
-        }),
+        listRequests: publicProcedure
+            .input(
+                z.object({
+                    collection_id: z.string(),
+                    folder_id: z.string().nullable().optional(),
+                }),
+            )
+            .query(async ({ input }) => {
+                const [folders, requests] = await Promise.all([
+                    postmanStorage.getFoldersByCollection(input.collection_id),
+                    postmanStorage.getRequestsByCollection(input.collection_id, input.folder_id),
+                ]);
+                return { folders, requests };
+            }),
 
         getRequest: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
             const req = await postmanStorage.getRequest(input.id);
@@ -395,13 +469,36 @@ export function createPostmanRouter(postmanStorage: PostmanStorage) {
                 };
             }
 
+            // Auto-archive to default/{date} if requested and no saved request_id
+            let archiveFolderId = input.folder_id ?? null;
+            let archiveCollectionId = input.collection_id;
+            if (input.auto_save_folder && !input.request_id) {
+                const { collectionId, folderId } = await postmanStorage.ensureDefaultArchiveFolder();
+                archiveCollectionId = collectionId;
+                archiveFolderId = folderId;
+                // Save a snapshot request
+                const snapId = crypto.randomUUID();
+                await postmanStorage.createRequest({
+                    id: snapId,
+                    collection_id: collectionId,
+                    folder_id: folderId,
+                    name: input.name ?? `${input.method} ${input.url}`,
+                    method: input.method,
+                    url: input.url,
+                    headers: input.headers ?? [],
+                    query_params: input.query_params ?? [],
+                    auth: input.auth ?? { type: 'none' },
+                    body: input.body ?? { type: 'none', content: '' },
+                });
+            }
+
             // Save to history
             if (input.save_to_history !== false) {
                 const historyId = crypto.randomUUID();
                 await postmanStorage.addHistory({
                     id: historyId,
                     request_id: input.request_id,
-                    collection_id: input.collection_id,
+                    collection_id: archiveCollectionId,
                     name: input.name,
                     method: input.method,
                     url: input.url,

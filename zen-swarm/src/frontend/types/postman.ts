@@ -36,9 +36,20 @@ export interface Collection {
     updated_at: string;
 }
 
+export interface Folder {
+    id: string;
+    collection_id: string;
+    parent_folder_id: string | null;
+    name: string;
+    sort_order: number;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface SavedRequest {
     id: string;
     collection_id: string;
+    folder_id: string | null;
     name: string;
     method: HttpMethod;
     url: string;
@@ -97,6 +108,7 @@ export interface SendRequestResult {
 export interface ActiveRequest {
     id?: string; // if saved
     collection_id?: string;
+    folder_id?: string | null;
     name: string;
     method: HttpMethod;
     url: string;
