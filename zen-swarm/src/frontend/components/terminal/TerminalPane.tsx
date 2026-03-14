@@ -18,13 +18,21 @@ interface TerminalPaneProps {
 }
 
 export function TerminalPane({ pane, workspaceId, isActive, onActivate, onCreateSession }: TerminalPaneProps) {
-    const { wsStatus } = useTerminalStore();
+    const { wsStatus, setPaneSession } = useTerminalStore();
 
     const handleClick = useCallback(() => {
         if (!isActive) {
             onActivate(pane.id);
         }
     }, [isActive, onActivate, pane.id]);
+
+    // 当 attach 失败（服务端找不到该 session）时，清除 pane 绑定，显示空终端
+    const handleAttachError = useCallback(
+        (_sessionId: string) => {
+            setPaneSession(workspaceId, pane.id, null);
+        },
+        [setPaneSession, workspaceId, pane.id],
+    );
 
     return (
         <div
@@ -36,7 +44,7 @@ export function TerminalPane({ pane, workspaceId, isActive, onActivate, onCreate
             onClick={handleClick}
         >
             {pane.sessionId ? (
-                <Terminal sessionId={pane.sessionId} />
+                <Terminal sessionId={pane.sessionId} onAttachError={handleAttachError} />
             ) : (
                 /* 空 pane —— 等待 session 创建 */
                 <div className="flex flex-col items-center justify-center h-full gap-3 text-white/40 bg-[#1e1e1e]">

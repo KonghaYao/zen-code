@@ -45,6 +45,9 @@ let storeSyncSessions: ((sessions: TerminalSessionInfo[]) => void) | null = null
 // 历史输出回调（用于重连后恢复）
 const historyCallbacks = new Map<string, (history: string[]) => void>();
 
+// attach 错误回调（sessionId -> onError）
+const attachErrorCallbacks = new Map<string, (sessionId: string) => void>();
+
 // 一次性 created 回调（用于 createSession 后绑定 pane）
 // key = 请求时的时间戳/占位符，按顺序消费
 const sessionCreatedCallbacks: Array<(sessionId: string) => void> = [];
@@ -159,6 +162,15 @@ function handleMessage(event: MessageEvent) {
             case 'error':
                 storeSetWsError?.(msg.message);
                 console.error('Terminal error:', msg.message);
+                // 如果是 attach 失败（sessionId 不存在），触发 error 回调
+                if (msg.sessionId) {
+                    const errCb = attachErrorCallbacks.get(msg.sessionId);
+                    if (errCb) {
+                        errCb(msg.sessionId);
+                        attachErrorCallbacks.delete(msg.sessionId);
+                    }
+                    historyCallbacks.delete(msg.sessionId);
+                }
                 break;
 
             case 'list':
@@ -338,9 +350,12 @@ export function useTerminal() {
 
     // 附加到已存在的会话（用于重连恢复）
     const attachSession = useCallback(
-        (sessionId: string, onHistory?: (history: string[]) => void) => {
+        (sessionId: string, onHistory?: (history: string[]) => void, onError?: (sessionId: string) => void) => {
             if (onHistory) {
                 historyCallbacks.set(sessionId, onHistory);
+            }
+            if (onError) {
+                attachErrorCallbacks.set(sessionId, onError);
             }
             return send({ type: 'attach', sessionId });
         },

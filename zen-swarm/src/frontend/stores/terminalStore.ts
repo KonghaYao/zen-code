@@ -4,6 +4,7 @@
  */
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type {
     TerminalSessionState,
     WebSocketStatus,
@@ -162,241 +163,256 @@ interface TerminalStore {
 
 const initialWorkspace = createDefaultWorkspace(1);
 
-export const useTerminalStore = create<TerminalStore>((set, get) => ({
-    // 初始状态
-    sessions: [],
-    activeSessionId: null,
-    wsStatus: 'disconnected',
-    wsError: null,
+export const useTerminalStore = create<TerminalStore>()(
+    persist(
+        (set, get) => ({
+            // 初始状态
+            sessions: [],
+            activeSessionId: null,
+            wsStatus: 'disconnected',
+            wsError: null,
 
-    workspaces: [initialWorkspace],
-    activeWorkspaceId: initialWorkspace.id,
+            workspaces: [initialWorkspace],
+            activeWorkspaceId: initialWorkspace.id,
 
-    // 添加会话
-    addSession: (session: TerminalSessionInfo) => {
-        set((state) => {
-            if (state.sessions.some((s) => s.sessionId === session.sessionId)) {
-                return state;
-            }
-            const newSession: TerminalSessionState = {
-                ...session,
-                name: `终端 ${state.sessions.length + 1}`,
-                isActive: state.sessions.length === 0,
-            };
-            return {
-                sessions: [...state.sessions, newSession],
-                activeSessionId: state.sessions.length === 0 ? session.sessionId : state.activeSessionId,
-            };
-        });
-    },
+            // 添加会话
+            addSession: (session: TerminalSessionInfo) => {
+                set((state) => {
+                    if (state.sessions.some((s) => s.sessionId === session.sessionId)) {
+                        return state;
+                    }
+                    const newSession: TerminalSessionState = {
+                        ...session,
+                        name: `终端 ${state.sessions.length + 1}`,
+                        isActive: state.sessions.length === 0,
+                    };
+                    return {
+                        sessions: [...state.sessions, newSession],
+                        activeSessionId: state.sessions.length === 0 ? session.sessionId : state.activeSessionId,
+                    };
+                });
+            },
 
-    // 移除会话
-    removeSession: (sessionId: string) => {
-        set((state) => {
-            const newSessions = state.sessions.filter((s) => s.sessionId !== sessionId);
-            let newActiveId = state.activeSessionId;
-            if (state.activeSessionId === sessionId) {
-                newActiveId = newSessions.length > 0 ? newSessions[0].sessionId : null;
-            }
-            return { sessions: newSessions, activeSessionId: newActiveId };
-        });
-    },
+            // 移除会话
+            removeSession: (sessionId: string) => {
+                set((state) => {
+                    const newSessions = state.sessions.filter((s) => s.sessionId !== sessionId);
+                    let newActiveId = state.activeSessionId;
+                    if (state.activeSessionId === sessionId) {
+                        newActiveId = newSessions.length > 0 ? newSessions[0].sessionId : null;
+                    }
+                    return { sessions: newSessions, activeSessionId: newActiveId };
+                });
+            },
 
-    // 设置激活会话
-    setActiveSession: (sessionId: string | null) => {
-        set((state) => ({
-            sessions: state.sessions.map((s) => ({
-                ...s,
-                isActive: s.sessionId === sessionId,
-            })),
-            activeSessionId: sessionId,
-        }));
-    },
+            // 设置激活会话
+            setActiveSession: (sessionId: string | null) => {
+                set((state) => ({
+                    sessions: state.sessions.map((s) => ({
+                        ...s,
+                        isActive: s.sessionId === sessionId,
+                    })),
+                    activeSessionId: sessionId,
+                }));
+            },
 
-    // 更新会话信息
-    updateSession: (sessionId: string, updates: Partial<TerminalSessionState>) => {
-        set((state) => ({
-            sessions: state.sessions.map((s) => (s.sessionId === sessionId ? { ...s, ...updates } : s)),
-        }));
-    },
+            // 更新会话信息
+            updateSession: (sessionId: string, updates: Partial<TerminalSessionState>) => {
+                set((state) => ({
+                    sessions: state.sessions.map((s) => (s.sessionId === sessionId ? { ...s, ...updates } : s)),
+                }));
+            },
 
-    // 重命名会话
-    renameSession: (sessionId: string, name: string) => {
-        set((state) => ({
-            sessions: state.sessions.map((s) => (s.sessionId === sessionId ? { ...s, name } : s)),
-        }));
-    },
+            // 重命名会话
+            renameSession: (sessionId: string, name: string) => {
+                set((state) => ({
+                    sessions: state.sessions.map((s) => (s.sessionId === sessionId ? { ...s, name } : s)),
+                }));
+            },
 
-    // 同步服务端会话列表
-    syncSessions: (serverSessions: TerminalSessionInfo[]) => {
-        set((state) => {
-            const existingIds = new Set(state.sessions.map((s) => s.sessionId));
-            const newSessions: TerminalSessionState[] = [...state.sessions];
-            for (const serverSession of serverSessions) {
-                if (!existingIds.has(serverSession.sessionId)) {
-                    newSessions.push({
-                        ...serverSession,
-                        name: `终端 ${newSessions.length + 1}`,
-                        isActive: false,
-                    });
-                }
-            }
-            const activeId = state.activeSessionId ?? (newSessions.length > 0 ? newSessions[0].sessionId : null);
-            return { sessions: newSessions, activeSessionId: activeId };
-        });
-    },
+            // 同步服务端会话列表
+            syncSessions: (serverSessions: TerminalSessionInfo[]) => {
+                set((state) => {
+                    const existingIds = new Set(state.sessions.map((s) => s.sessionId));
+                    const newSessions: TerminalSessionState[] = [...state.sessions];
+                    for (const serverSession of serverSessions) {
+                        if (!existingIds.has(serverSession.sessionId)) {
+                            newSessions.push({
+                                ...serverSession,
+                                name: `终端 ${newSessions.length + 1}`,
+                                isActive: false,
+                            });
+                        }
+                    }
+                    const activeId =
+                        state.activeSessionId ?? (newSessions.length > 0 ? newSessions[0].sessionId : null);
+                    return { sessions: newSessions, activeSessionId: activeId };
+                });
+            },
 
-    // WebSocket 状态
-    setWsStatus: (status: WebSocketStatus) => set({ wsStatus: status }),
-    setWsError: (error: string | null) => set({ wsError: error }),
+            // WebSocket 状态
+            setWsStatus: (status: WebSocketStatus) => set({ wsStatus: status }),
+            setWsError: (error: string | null) => set({ wsError: error }),
 
-    // 获取激活会话
-    getActiveSession: () => {
-        const state = get();
-        return state.sessions.find((s) => s.sessionId === state.activeSessionId);
-    },
+            // 获取激活会话
+            getActiveSession: () => {
+                const state = get();
+                return state.sessions.find((s) => s.sessionId === state.activeSessionId);
+            },
 
-    // 获取会话数量
-    getSessionCount: () => get().sessions.length,
+            // 获取会话数量
+            getSessionCount: () => get().sessions.length,
 
-    // ---- 工作区操作 ----
+            // ---- 工作区操作 ----
 
-    createWorkspace: (name?: string) => {
-        set((state) => {
-            const ws = createDefaultWorkspace(state.workspaces.length + 1);
-            if (name) ws.name = name;
-            return {
-                workspaces: [...state.workspaces, ws],
-                activeWorkspaceId: ws.id,
-            };
-        });
-    },
+            createWorkspace: (name?: string) => {
+                set((state) => {
+                    const ws = createDefaultWorkspace(state.workspaces.length + 1);
+                    if (name) ws.name = name;
+                    return {
+                        workspaces: [...state.workspaces, ws],
+                        activeWorkspaceId: ws.id,
+                    };
+                });
+            },
 
-    deleteWorkspace: (id: string) => {
-        set((state) => {
-            if (state.workspaces.length <= 1) return state; // 至少保留 1 个
-            const newWorkspaces = state.workspaces.filter((w) => w.id !== id);
-            const newActiveId = state.activeWorkspaceId === id ? newWorkspaces[0].id : state.activeWorkspaceId;
-            return { workspaces: newWorkspaces, activeWorkspaceId: newActiveId };
-        });
-    },
+            deleteWorkspace: (id: string) => {
+                set((state) => {
+                    if (state.workspaces.length <= 1) return state; // 至少保留 1 个
+                    const newWorkspaces = state.workspaces.filter((w) => w.id !== id);
+                    const newActiveId = state.activeWorkspaceId === id ? newWorkspaces[0].id : state.activeWorkspaceId;
+                    return { workspaces: newWorkspaces, activeWorkspaceId: newActiveId };
+                });
+            },
 
-    renameWorkspace: (id: string, name: string) => {
-        set((state) => ({
-            workspaces: state.workspaces.map((w) => (w.id === id ? { ...w, name } : w)),
-        }));
-    },
+            renameWorkspace: (id: string, name: string) => {
+                set((state) => ({
+                    workspaces: state.workspaces.map((w) => (w.id === id ? { ...w, name } : w)),
+                }));
+            },
 
-    setActiveWorkspace: (id: string) => {
-        set({ activeWorkspaceId: id });
-    },
+            setActiveWorkspace: (id: string) => {
+                set({ activeWorkspaceId: id });
+            },
 
-    // ---- Pane 操作 ----
+            // ---- Pane 操作 ----
 
-    splitPane: (paneId: string, direction: 'horizontal' | 'vertical') => {
-        set((state) => {
-            const ws = state.workspaces.find((w) => w.id === state.activeWorkspaceId);
-            if (!ws) return state;
+            splitPane: (paneId: string, direction: 'horizontal' | 'vertical') => {
+                set((state) => {
+                    const ws = state.workspaces.find((w) => w.id === state.activeWorkspaceId);
+                    if (!ws) return state;
 
-            const rootPane = ws.layout.panes[0];
-            if (!rootPane) return state;
+                    const rootPane = ws.layout.panes[0];
+                    if (!rootPane) return state;
 
-            const total = countPanes(rootPane);
-            if (total >= 4) return state; // 最多 4 个 pane
+                    const total = countPanes(rootPane);
+                    if (total >= 4) return state; // 最多 4 个 pane
 
-            const newRoot = splitPaneInTree(rootPane, paneId, direction);
-            // 新分割后，激活新创建的 pane（最后一个叶子节点）
-            const leaves = collectLeafPanes(newRoot);
-            const newPane = leaves[leaves.length - 1];
+                    const newRoot = splitPaneInTree(rootPane, paneId, direction);
+                    // 新分割后，激活新创建的 pane（最后一个叶子节点）
+                    const leaves = collectLeafPanes(newRoot);
+                    const newPane = leaves[leaves.length - 1];
 
-            return {
-                workspaces: state.workspaces.map((w) =>
-                    w.id === state.activeWorkspaceId
-                        ? {
-                              ...w,
-                              layout: { panes: [newRoot] },
-                              activePaneId: newPane.id,
-                          }
-                        : w,
-                ),
-            };
-        });
-    },
+                    return {
+                        workspaces: state.workspaces.map((w) =>
+                            w.id === state.activeWorkspaceId
+                                ? {
+                                      ...w,
+                                      layout: { panes: [newRoot] },
+                                      activePaneId: newPane.id,
+                                  }
+                                : w,
+                        ),
+                    };
+                });
+            },
 
-    closePane: (paneId: string) => {
-        set((state) => {
-            const ws = state.workspaces.find((w) => w.id === state.activeWorkspaceId);
-            if (!ws) return state;
+            closePane: (paneId: string) => {
+                set((state) => {
+                    const ws = state.workspaces.find((w) => w.id === state.activeWorkspaceId);
+                    if (!ws) return state;
 
-            const rootPane = ws.layout.panes[0];
-            if (!rootPane) return state;
+                    const rootPane = ws.layout.panes[0];
+                    if (!rootPane) return state;
 
-            const total = countPanes(rootPane);
-            if (total <= 1) return state; // 至少保留 1 个
+                    const total = countPanes(rootPane);
+                    if (total <= 1) return state; // 至少保留 1 个
 
-            const newRoot = closePaneInTree(rootPane, paneId);
-            if (!newRoot) return state;
+                    const newRoot = closePaneInTree(rootPane, paneId);
+                    if (!newRoot) return state;
 
-            // 激活第一个叶子 pane
-            const leaves = collectLeafPanes(newRoot);
-            const newActivePaneId = ws.activePaneId === paneId ? leaves[0].id : ws.activePaneId;
+                    // 激活第一个叶子 pane
+                    const leaves = collectLeafPanes(newRoot);
+                    const newActivePaneId = ws.activePaneId === paneId ? leaves[0].id : ws.activePaneId;
 
-            return {
-                workspaces: state.workspaces.map((w) =>
-                    w.id === state.activeWorkspaceId
-                        ? {
-                              ...w,
-                              layout: { panes: [newRoot] },
-                              activePaneId: newActivePaneId,
-                          }
-                        : w,
-                ),
-            };
-        });
-    },
+                    return {
+                        workspaces: state.workspaces.map((w) =>
+                            w.id === state.activeWorkspaceId
+                                ? {
+                                      ...w,
+                                      layout: { panes: [newRoot] },
+                                      activePaneId: newActivePaneId,
+                                  }
+                                : w,
+                        ),
+                    };
+                });
+            },
 
-    setActivePaneInWorkspace: (workspaceId: string, paneId: string) => {
-        set((state) => ({
-            workspaces: state.workspaces.map((w) => (w.id === workspaceId ? { ...w, activePaneId: paneId } : w)),
-        }));
-    },
+            setActivePaneInWorkspace: (workspaceId: string, paneId: string) => {
+                set((state) => ({
+                    workspaces: state.workspaces.map((w) =>
+                        w.id === workspaceId ? { ...w, activePaneId: paneId } : w,
+                    ),
+                }));
+            },
 
-    setPaneSession: (workspaceId: string, paneId: string, sessionId: string | null) => {
-        set((state) => {
-            const ws = state.workspaces.find((w) => w.id === workspaceId);
-            if (!ws) return state;
-            const rootPane = ws.layout.panes[0];
-            if (!rootPane) return state;
-            const newRoot = updateSessionInTree(rootPane, paneId, sessionId);
-            return {
-                workspaces: state.workspaces.map((w) =>
-                    w.id === workspaceId ? { ...w, layout: { panes: [newRoot] } } : w,
-                ),
-            };
-        });
-    },
+            setPaneSession: (workspaceId: string, paneId: string, sessionId: string | null) => {
+                set((state) => {
+                    const ws = state.workspaces.find((w) => w.id === workspaceId);
+                    if (!ws) return state;
+                    const rootPane = ws.layout.panes[0];
+                    if (!rootPane) return state;
+                    const newRoot = updateSessionInTree(rootPane, paneId, sessionId);
+                    return {
+                        workspaces: state.workspaces.map((w) =>
+                            w.id === workspaceId ? { ...w, layout: { panes: [newRoot] } } : w,
+                        ),
+                    };
+                });
+            },
 
-    // 辅助
-    getActiveWorkspace: () => {
-        const state = get();
-        return state.workspaces.find((w) => w.id === state.activeWorkspaceId);
-    },
+            // 辅助
+            getActiveWorkspace: () => {
+                const state = get();
+                return state.workspaces.find((w) => w.id === state.activeWorkspaceId);
+            },
 
-    getActivePane: () => {
-        const state = get();
-        const ws = state.workspaces.find((w) => w.id === state.activeWorkspaceId);
-        if (!ws) return undefined;
-        const leaves = ws.layout.panes[0] ? collectLeafPanes(ws.layout.panes[0]) : [];
-        return leaves.find((p) => p.id === ws.activePaneId);
-    },
+            getActivePane: () => {
+                const state = get();
+                const ws = state.workspaces.find((w) => w.id === state.activeWorkspaceId);
+                if (!ws) return undefined;
+                const leaves = ws.layout.panes[0] ? collectLeafPanes(ws.layout.panes[0]) : [];
+                return leaves.find((p) => p.id === ws.activePaneId);
+            },
 
-    getPaneCount: () => {
-        const state = get();
-        const ws = state.workspaces.find((w) => w.id === state.activeWorkspaceId);
-        if (!ws || !ws.layout.panes[0]) return 0;
-        return countPanes(ws.layout.panes[0]);
-    },
-}));
+            getPaneCount: () => {
+                const state = get();
+                const ws = state.workspaces.find((w) => w.id === state.activeWorkspaceId);
+                if (!ws || !ws.layout.panes[0]) return 0;
+                return countPanes(ws.layout.panes[0]);
+            },
+        }),
+        {
+            name: 'terminal-store',
+            // 只持久化 workspaces 布局和 activeWorkspaceId，不持久化 transient 状态
+            partialize: (state) => ({
+                workspaces: state.workspaces,
+                activeWorkspaceId: state.activeWorkspaceId,
+            }),
+        },
+    ),
+);
 
 // 导出辅助函数供组件使用
 export { collectLeafPanes, countPanes };

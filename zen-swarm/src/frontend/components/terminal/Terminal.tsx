@@ -59,10 +59,12 @@ interface TerminalProps {
     options?: Partial<TerminalOptions>;
     onReady?: () => void;
     onError?: (error: Error) => void;
+    /** 当 attach 到已有会话失败时（服务端找不到该 sessionId）触发，用于清除 pane 绑定 */
+    onAttachError?: (sessionId: string) => void;
 }
 
 export const Terminal = forwardRef<TerminalRef, TerminalProps>(function Terminal(
-    { sessionId, options, onReady, onError },
+    { sessionId, options, onReady, onError, onAttachError },
     ref,
 ) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -166,26 +168,30 @@ export const Terminal = forwardRef<TerminalRef, TerminalProps>(function Terminal
         // 标记已附加，避免重复附加
         hasAttachedRef.current = true;
 
-        // 附加到会话并恢复历史输出
-        attachSession(sessionId, (history) => {
-            if (xtermRef.current && history.length > 0) {
-                // 清空当前终端内容
-                xtermRef.current.clear();
-                // 写入历史输出
-                history.forEach((line) => xtermRef.current?.write(line));
-            }
-
-            // attach 成功后，立即同步当前 xterm.js 的真实尺寸给后端
-            // 重连前后窗口可能已经改变大小，必须重新对齐
-            if (fitAddonRef.current && xtermRef.current) {
-                fitAddonRef.current.fit();
-                const dims = fitAddonRef.current.proposeDimensions();
-                if (dims) {
-                    resize(sessionId, dims.cols, dims.rows);
+        // 附加到会话并恢复历史输出；若会话不存在则触发 onAttachError 清除 pane 绑定
+        attachSession(
+            sessionId,
+            (history) => {
+                if (xtermRef.current && history.length > 0) {
+                    // 清空当前终端内容
+                    xtermRef.current.clear();
+                    // 写入历史输出
+                    history.forEach((line) => xtermRef.current?.write(line));
                 }
-            }
-        });
-    }, [sessionId, isReady, wsStatus, attachSession, resize]);
+
+                // attach 成功后，立即同步当前 xterm.js 的真实尺寸给后端
+                // 重连前后窗口可能已经改变大小，必须重新对齐
+                if (fitAddonRef.current && xtermRef.current) {
+                    fitAddonRef.current.fit();
+                    const dims = fitAddonRef.current.proposeDimensions();
+                    if (dims) {
+                        resize(sessionId, dims.cols, dims.rows);
+                    }
+                }
+            },
+            onAttachError,
+        );
+    }, [sessionId, isReady, wsStatus, attachSession, resize, onAttachError]);
 
     // 不再需要单独的监听输出 effect（已在初始化时注册）
 
