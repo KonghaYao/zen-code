@@ -6,6 +6,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { MoreVertical } from './ui/Icons.js';
+import { IconButton } from './ui/IconButton.js';
 
 export interface MenuItem {
     label: string;
@@ -40,13 +41,9 @@ export function CardMenu({ items }: CardMenuProps) {
 
     return (
         <div className="relative" ref={menuRef}>
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-bg-tertiary text-text-muted hover:text-text-primary transition-colors"
-                aria-label="More options"
-            >
+            <IconButton onClick={() => setIsOpen(!isOpen)} aria-label="More options" className="w-8 h-8">
                 <MoreVertical className="w-5 h-5" />
-            </button>
+            </IconButton>
 
             {isOpen && (
                 <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-border-subtle py-1 z-50">

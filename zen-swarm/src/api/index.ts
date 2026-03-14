@@ -16,10 +16,12 @@ import { createSMRouter, SMRouter } from './sm.js';
 import { monitorRouter } from './monitor.js';
 import { createProviderRouter } from './providers.js';
 import { createStoreRouter } from './store.js';
+import { createPostmanRouter } from './postman.js';
 import type { StateMachineManager } from '../middlewares/sm/StateMachineManager.js';
 import type { SMDatabase } from '../middlewares/sm/database.js';
 import type { ProviderStorage } from '../services/provider/index.js';
 import type { RemoteStoreStorage } from '../services/remote-store/index.js';
+import type { PostmanStorage } from '../postman/storage.js';
 
 // ========================================
 // 基础路由定义（单一来源）
@@ -53,16 +55,19 @@ export function createMergedRouter(
     smDatabase?: SMDatabase,
     providerStorage?: ProviderStorage,
     remoteStoreStorage?: RemoteStoreStorage,
+    postmanStorage?: PostmanStorage,
 ) {
     const smRouter = stateMachineManager && smDatabase ? createSMRouter(stateMachineManager, smDatabase) : undefined;
     const providerRouter = providerStorage ? createProviderRouter(providerStorage) : undefined;
     const storeRouter = remoteStoreStorage ? createStoreRouter(remoteStoreStorage) : undefined;
+    const postmanRouter = postmanStorage ? createPostmanRouter(postmanStorage) : undefined;
 
     return router({
         ...baseRoutes,
         ...(smRouter ? { sm: smRouter } : {}),
         ...(providerRouter ? { providers: providerRouter } : {}),
         ...(storeRouter ? { store: storeRouter } : {}),
+        ...(postmanRouter ? { postman: postmanRouter } : {}),
     });
 }
 

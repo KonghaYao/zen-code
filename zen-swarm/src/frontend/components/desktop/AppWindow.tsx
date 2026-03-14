@@ -16,6 +16,10 @@ interface AppWindowProps {
     appIcon: ReactNode;
     isFullScreen?: boolean;
     onClose?: () => void;
+    /** 最大化/还原回调 */
+    onMaximize?: () => void;
+    /** 当前是否处于最大化（铺满）状态 */
+    isMaximized?: boolean;
     children: React.ReactNode;
     /** 是否显示红绿灯（默认 true） */
     showTrafficLights?: boolean;
@@ -28,6 +32,8 @@ export function AppWindow({
     appName,
     isFullScreen = false,
     onClose,
+    onMaximize,
+    isMaximized = false,
     children,
     showTrafficLights = true,
     showTitleBar = true,
@@ -57,7 +63,7 @@ export function AppWindow({
                         borderBottom: '0.5px solid rgba(0,0,0,0.1)',
                     }}
                 >
-                    <TrafficLights onClose={handleClose} />
+                    <TrafficLights onClose={handleClose} onMaximize={onMaximize} isMaximized={isMaximized} />
                     <span className="ml-4 text-sm font-medium text-text-secondary select-none">{appName}</span>
                 </header>
             )}

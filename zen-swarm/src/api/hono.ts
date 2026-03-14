@@ -14,6 +14,7 @@ import type { StateMachineManager } from '../middlewares/sm/StateMachineManager.
 import type { SMDatabase } from '../middlewares/sm/database.js';
 import type { ProviderStorage } from '../services/provider/index.js';
 import type { RemoteStoreStorage } from '../services/remote-store/index.js';
+import type { PostmanStorage } from '../postman/storage.js';
 import { appRouter, createMergedRouter } from './index.js';
 
 // ========================================
@@ -28,11 +29,18 @@ export function createTRPCHonoRoute(
     smDatabase?: SMDatabase,
     providerStorage?: ProviderStorage,
     remoteStoreStorage?: RemoteStoreStorage,
+    postmanStorage?: PostmanStorage,
 ) {
     const app = new Hono();
 
     // 创建包含 SM Router 和 Provider Router 的合并路由
-    const router = createMergedRouter(stateMachineManager, smDatabase, providerStorage, remoteStoreStorage);
+    const router = createMergedRouter(
+        stateMachineManager,
+        smDatabase,
+        providerStorage,
+        remoteStoreStorage,
+        postmanStorage,
+    );
 
     // 处理所有 tRPC 请求（POST/GET）
     app.all('/*', async (c) => {
@@ -49,6 +57,7 @@ export function createTRPCHonoRoute(
                     cronScheduler,
                     providerStorage!,
                     remoteStoreStorage!,
+                    postmanStorage!,
                 ),
             endpoint,
         });

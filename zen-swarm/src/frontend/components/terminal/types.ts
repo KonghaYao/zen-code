@@ -77,3 +77,37 @@ export interface TerminalOptions {
     cursorStyle: 'block' | 'underline' | 'bar';
     scrollback: number;
 }
+
+// =====================
+// Workspace / Grid / Pane 类型（新增）
+// =====================
+
+/**
+ * 单个 terminal 面板
+ */
+export interface TerminalPane {
+    id: string;
+    sessionId: string | null; // null = 待创建
+    split?: {
+        direction: 'horizontal' | 'vertical';
+        children: [TerminalPane, TerminalPane];
+    };
+}
+
+/**
+ * 网格布局
+ */
+export interface GridLayout {
+    panes: TerminalPane[];
+    direction?: 'horizontal' | 'vertical'; // 顶层分割方向
+}
+
+/**
+ * 工作区 Tab（对应一个项目/工作区，内含多个分割 terminal）
+ */
+export interface TerminalWorkspace {
+    id: string;
+    name: string;
+    layout: GridLayout;
+    activePaneId: string;
+}

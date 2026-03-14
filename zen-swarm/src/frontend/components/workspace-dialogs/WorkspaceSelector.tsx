@@ -12,6 +12,7 @@ import { useWorkspaceStore } from '../../stores/workspace.js';
 import { useCurrentWorkspace, useWorkspaces } from '../../stores/workspace.js';
 import type { Workspace } from '../../stores/workspace.js';
 import { Settings, Folder } from '../ui/Icons.js';
+import { IconButton } from '../ui/IconButton.js';
 
 // ========================================
 // Props
@@ -63,13 +64,9 @@ export const WorkspaceSelector: React.FC<WorkspaceSelectorProps> = ({ onOpenMana
             </div>
 
             {/* 管理按钮 */}
-            <button
-                onClick={onOpenManage}
-                className="p-1.5 hover:bg-bg-hover rounded transition-colors duration-150"
-                title="Manage Workspaces"
-            >
-                <Settings className="w-5 h-5 text-text-secondary hover:text-text-primary" />
-            </button>
+            <IconButton onClick={onOpenManage} title="Manage Workspaces" className="w-8 h-8">
+                <Settings className="w-5 h-5" />
+            </IconButton>
         </div>
     );
 };

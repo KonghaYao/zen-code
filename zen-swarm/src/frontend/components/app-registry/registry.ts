@@ -16,6 +16,7 @@ import { SMView } from '../../views/SM/index.js';
 import { MonitorView } from '../../views/MonitorView.js';
 import { TerminalView } from '../../components/terminal/TerminalView.js';
 import { StoreView } from '../../views/StoreView.js';
+import { PostmanView } from '../../views/Postman/index.js';
 
 // Custom hand-crafted dock icons
 import { ChatDockIcon } from '../dock/icons/ChatDockIcon.js';
@@ -26,6 +27,7 @@ import { SMDockIcon } from '../dock/icons/SMDockIcon.js';
 import { CronDockIcon } from '../dock/icons/CronDockIcon.js';
 import { TerminalDockIcon } from '../dock/icons/TerminalDockIcon.js';
 import { StoreDockIcon } from '../dock/icons/StoreDockIcon.js';
+import { PostmanDockIcon } from '../dock/icons/PostmanDockIcon.js';
 
 /**
  * 应用注册表
@@ -103,6 +105,15 @@ export const appRegistry: AppRegistryItem[] = [
         description: '远程 Prompt & Skill 仓库',
         viewComponent: StoreView,
         keyboardShortcut: 'Cmd+8',
+        contextMenuActions: ['open', 'help'],
+    },
+    {
+        id: 'postman',
+        name: 'Postman',
+        fullIcon: React.createElement(PostmanDockIcon, { className: 'w-full h-full' }),
+        description: 'HTTP API 测试客户端',
+        viewComponent: PostmanView,
+        keyboardShortcut: 'Cmd+9',
         contextMenuActions: ['open', 'help'],
     },
 ];

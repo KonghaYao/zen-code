@@ -13,6 +13,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useChat } from '@langgraph-js/sdk/react';
 import { Bot, Brain, Settings, Square } from 'lucide-react';
+import { IconButton } from './ui/IconButton.js';
 import { HumanMessage, AIMessage, ToolMessage } from './index.js';
 import type { ConfigDrawerSection } from './ConfigDrawer.js';
 
@@ -285,11 +286,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                     <div className="flex items-center gap-1">
                         {/* 移动端历史记录按钮 */}
                         {onOpenMobileHistory && (
-                            <button
-                                onClick={onOpenMobileHistory}
-                                title="查看历史记录"
-                                className="p-1.5 rounded bg-white border border-border-default text-text-secondary hover:bg-bg-tertiary transition-colors"
-                            >
+                            <IconButton onClick={onOpenMobileHistory} title="查看历史记录">
                                 <svg
                                     width="16"
                                     height="16"
@@ -304,20 +301,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                                     <path d="M3 3v5h5" />
                                     <path d="M12 7v5l4 2" />
                                 </svg>
-                            </button>
+                            </IconButton>
                         )}
                         {/* 配置按钮 */}
-                        <button
+                        <IconButton
                             onClick={() => onOpenConfig?.()}
                             title={configDrawerOpen ? '收起配置' : '展开配置'}
-                            className={`p-1.5 rounded transition-colors ${
-                                configDrawerOpen
-                                    ? 'bg-primary text-white'
-                                    : 'bg-white border border-border-default text-text-secondary hover:bg-bg-tertiary'
-                            }`}
+                            variant={configDrawerOpen ? 'primary' : 'default'}
+                            className={configDrawerOpen ? '!bg-primary !text-white hover:!bg-primary' : ''}
                         >
                             <Settings className="w-4 h-4" />
-                        </button>
+                        </IconButton>
                     </div>
                 }
                 stopButton={

@@ -3,6 +3,8 @@
  */
 
 import type { Model } from '../../../types/index.js';
+import { Edit, Trash2 } from '../../ui/Icons.js';
+import { IconButton } from '../../ui/IconButton.js';
 
 interface ModelCardProps {
     model: Model;
@@ -79,19 +81,13 @@ export function ModelCard(props: ModelCardProps) {
                     </div>
                 </div>
 
-                <div className="flex gap-1.5 shrink-0">
-                    <button
-                        onClick={() => props.onEdit(model)}
-                        className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
-                    >
-                        Edit
-                    </button>
-                    <button
-                        onClick={() => props.onDelete(model.id)}
-                        className="px-2 py-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 rounded"
-                    >
-                        Delete
-                    </button>
+                <div className="flex gap-1 shrink-0">
+                    <IconButton onClick={() => props.onEdit(model)} variant="primary" title="Edit">
+                        <Edit className="w-4 h-4" />
+                    </IconButton>
+                    <IconButton onClick={() => props.onDelete(model.id)} variant="danger" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                    </IconButton>
                 </div>
             </div>
         </div>

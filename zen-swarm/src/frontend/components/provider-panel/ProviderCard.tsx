@@ -3,6 +3,7 @@
  */
 
 import { Check, Edit, Trash2, Key, Globe, Zap } from '../ui/Icons.js';
+import { IconButton } from '../ui/IconButton.js';
 import type { Provider } from './types.js';
 
 interface ProviderCardProps {
@@ -79,21 +80,17 @@ export function ProviderCard({ provider, onEdit, onDelete, onSetActive, isDeleti
                     设为活跃
                 </button>
                 <div className="flex items-center gap-1">
-                    <button
-                        onClick={() => onEdit(provider.id)}
-                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                        title="编辑"
-                    >
+                    <IconButton onClick={() => onEdit(provider.id)} variant="primary" title="编辑">
                         <Edit className="w-4 h-4" />
-                    </button>
-                    <button
+                    </IconButton>
+                    <IconButton
                         onClick={() => onDelete(provider.id)}
-                        disabled={isDeleting}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                        variant="danger"
                         title="删除"
+                        disabled={isDeleting}
                     >
                         <Trash2 className="w-4 h-4" />
-                    </button>
+                    </IconButton>
                 </div>
             </div>
         </div>

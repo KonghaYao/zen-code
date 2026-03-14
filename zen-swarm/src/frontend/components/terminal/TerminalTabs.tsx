@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Plus, Terminal as TerminalIcon } from '../ui/Icons.js';
 import { useTerminalStore } from '../../stores/terminalStore.js';
 import type { TerminalSessionState } from './types.js';
+import { IconButton } from '../ui/IconButton.js';
 
 interface TerminalTabsProps {
     onNewTerminal: () => void;
@@ -109,13 +110,13 @@ export function TerminalTabs({ onNewTerminal, onCloseTerminal }: TerminalTabsPro
                         )}
 
                         {/* 关闭按钮 - 点击会销毁终端会话 */}
-                        <button
+                        <IconButton
                             onClick={(e) => handleClose(e, session.sessionId)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-red-500/30 rounded"
                             title="关闭终端（会终止进程）"
+                            className="opacity-0 group-hover:opacity-100 w-5 h-5 hover:!bg-red-500/30 !text-white/60 hover:!text-white"
                         >
                             <X size={14} />
-                        </button>
+                        </IconButton>
                     </motion.div>
                 ))}
             </AnimatePresence>

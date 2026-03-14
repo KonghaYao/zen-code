@@ -13,6 +13,7 @@ import { useWorkspaceStore } from '../../stores/workspace.js';
 import { useWorkspaces, useCurrentWorkspace } from '../../stores/workspace.js';
 import type { Workspace } from '../../stores/workspace.js';
 import { X, Plus, Edit, Trash2, Folder } from '../ui/Icons.js';
+import { IconButton } from '../ui/IconButton.js';
 
 // ========================================
 // Props
@@ -327,9 +328,9 @@ export const WorkspaceManageDialog: React.FC<WorkspaceManageDialogProps> = ({ op
                         {mode === 'edit' && 'Edit Workspace'}
                         {mode === 'delete' && 'Delete Workspace'}
                     </h2>
-                    <button onClick={onClose} className="p-1 hover:bg-bg-hover rounded transition-colors">
-                        <X className="w-5 h-5 text-text-secondary" />
-                    </button>
+                    <IconButton onClick={onClose} variant="default" title="Close">
+                        <X className="w-5 h-5" />
+                    </IconButton>
                 </div>
 
                 {/* 内容区域 */}
@@ -390,26 +391,26 @@ export const WorkspaceManageDialog: React.FC<WorkspaceManageDialogProps> = ({ op
                                                     </p>
                                                 </div>
                                                 <div className="flex items-center gap-1 shrink-0">
-                                                    <button
+                                                    <IconButton
                                                         onClick={() => {
                                                             setSelectedWorkspace(workspace);
                                                             setMode('edit');
                                                         }}
-                                                        className="p-1.5 hover:bg-bg-hover rounded transition-colors"
+                                                        variant="primary"
                                                         title="Edit"
                                                     >
-                                                        <Edit className="w-4 h-4 text-text-secondary" />
-                                                    </button>
-                                                    <button
+                                                        <Edit className="w-4 h-4" />
+                                                    </IconButton>
+                                                    <IconButton
                                                         onClick={() => {
                                                             setSelectedWorkspace(workspace);
                                                             setMode('delete');
                                                         }}
-                                                        className="p-1.5 hover:bg-red-500/10 rounded transition-colors"
+                                                        variant="danger"
                                                         title="Delete"
                                                     >
-                                                        <Trash2 className="w-4 h-4 text-text-secondary hover:text-red-400" />
-                                                    </button>
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </IconButton>
                                                 </div>
                                             </div>
                                         </div>

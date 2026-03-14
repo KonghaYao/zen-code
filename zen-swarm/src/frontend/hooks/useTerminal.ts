@@ -45,6 +45,10 @@ let storeSyncSessions: ((sessions: TerminalSessionInfo[]) => void) | null = null
 // 历史输出回调（用于重连后恢复）
 const historyCallbacks = new Map<string, (history: string[]) => void>();
 
+// 一次性 created 回调（用于 createSession 后绑定 pane）
+// key = 请求时的时间戳/占位符，按顺序消费
+const sessionCreatedCallbacks: Array<(sessionId: string) => void> = [];
+
 // 处理输出消息
 function handleOutput(sessionId: string, data: string) {
     const callbacks = outputCallbacksBySession.get(sessionId);
@@ -102,6 +106,11 @@ function handleMessage(event: MessageEvent) {
         switch (msg.type) {
             case 'created':
                 storeAddSession?.(msg.session);
+                // 触发一次性 created 回调（FIFO）
+                if (sessionCreatedCallbacks.length > 0) {
+                    const cb = sessionCreatedCallbacks.shift();
+                    cb?.(msg.session.sessionId);
+                }
                 break;
 
             case 'attached':
@@ -274,8 +283,25 @@ export function useTerminal() {
     }, []);
 
     // 创建终端会话
+    // onCreated 可选回调，在服务端响应 'created' 后执行，传入新 sessionId
     const createSession = useCallback(
-        (cols: number, rows: number, cwd?: string) => {
+        (
+            cols: number,
+            rows: number,
+            cwdOrCallback?: string | ((sessionId: string) => void),
+            onCreated?: (sessionId: string) => void,
+        ) => {
+            let cwd: string | undefined;
+            let cb: ((sessionId: string) => void) | undefined;
+            if (typeof cwdOrCallback === 'function') {
+                cb = cwdOrCallback;
+            } else {
+                cwd = cwdOrCallback;
+                cb = onCreated;
+            }
+            if (cb) {
+                sessionCreatedCallbacks.push(cb);
+            }
             return send({ type: 'create', cols, rows, cwd });
         },
         [send],

@@ -8,6 +8,8 @@
 
 import type { Prompt, PromptVersion } from '../../../types/index.js';
 import { getContentPreview } from '../../../utils/formatters.js';
+import { Edit, Trash2, Plus } from '../../ui/Icons.js';
+import { IconButton } from '../../ui/IconButton.js';
 
 interface PromptCardProps {
     prompt: Prompt;
@@ -103,25 +105,16 @@ export function PromptCard(props: PromptCardProps) {
                     ) : null}
                 </div>
 
-                <div className="flex flex-col gap-2 ml-4">
-                    <button
-                        onClick={() => props.onCreateVersion(prompt)}
-                        className="px-3 py-1 text-sm bg-green-100 hover:bg-green-200 text-green-700 rounded"
-                    >
-                        New Version
-                    </button>
-                    <button
-                        onClick={() => props.onEdit(prompt)}
-                        className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
-                    >
-                        Edit
-                    </button>
-                    <button
-                        onClick={() => props.onDelete(prompt.id)}
-                        className="px-3 py-1 text-sm bg-red-50 hover:bg-red-100 text-red-600 rounded"
-                    >
-                        Delete
-                    </button>
+                <div className="flex gap-1 ml-4">
+                    <IconButton onClick={() => props.onCreateVersion(prompt)} variant="success" title="New Version">
+                        <Plus className="w-4 h-4" />
+                    </IconButton>
+                    <IconButton onClick={() => props.onEdit(prompt)} variant="primary" title="Edit">
+                        <Edit className="w-4 h-4" />
+                    </IconButton>
+                    <IconButton onClick={() => props.onDelete(prompt.id)} variant="danger" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                    </IconButton>
                 </div>
             </div>
         </div>

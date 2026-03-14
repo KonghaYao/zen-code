@@ -4,6 +4,7 @@
 
 import type { ProcessTreeNode } from './types.js';
 import { useState } from 'react';
+import { IconButton } from '../ui/IconButton.js';
 
 interface ProcessTreeProps {
     tree: ProcessTreeNode | null;
@@ -61,12 +62,9 @@ function TreeNode({ node, expanded, onToggle, level }: TreeNodeProps) {
                 style={{ paddingLeft: `${level * 16 + 4}px` }}
             >
                 {hasChildren && (
-                    <button
-                        onClick={() => onToggle(node.pid)}
-                        className="w-4 h-4 flex items-center justify-center text-xs text-text-muted hover:text-text-primary"
-                    >
+                    <IconButton onClick={() => onToggle(node.pid)} className="w-4 h-4 text-xs">
                         {isExpanded ? '▼' : '▶'}
-                    </button>
+                    </IconButton>
                 )}
                 <span className="flex-1 text-sm text-text-primary">
                     <span className="font-mono text-text-muted mr-2">{node.pid}</span>

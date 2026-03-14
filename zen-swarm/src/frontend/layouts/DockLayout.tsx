@@ -5,7 +5,7 @@
  * - 移动端 (<768px)：MobileHeader + 全屏内容 + MobileTabBar
  */
 
-import { Suspense, useCallback, useMemo } from 'react';
+import { Suspense, useCallback, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { DockContainer } from '../components/dock/index.js';
@@ -141,9 +141,13 @@ export function DockLayout() {
     }
 
     // ───────────────────────────────────────────────────────────
-    // 桌面端布局（保持不变）
+    // 桌面端布局
     // ───────────────────────────────────────────────────────────
-    const isFullScreen = false; // 所有应用都使用窗口模式
+    const [isMaximized, setIsMaximized] = useState(true); // 默认铺满
+
+    const handleToggleMaximize = useCallback(() => {
+        setIsMaximized((prev) => !prev);
+    }, []);
 
     // 渲染当前应用
     const renderActiveApp = () => {
@@ -161,34 +165,30 @@ export function DockLayout() {
             navigate('#/');
         };
 
-        if (isFullScreen) {
-            return (
-                <AppWindow
-                    appId={activeApp!}
-                    appName={currentApp.name}
-                    appIcon={currentApp.fullIcon}
-                    onClose={handleClose}
-                    showTrafficLights={true}
-                >
-                    <ViewComponent />
-                </AppWindow>
-            );
-        }
-
         return (
-            <div className="flex-1 overflow-hidden p-6">
-                <div className="max-w-[1400px] mx-auto h-full">
+            <motion.div
+                layout
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className={`flex-1 overflow-hidden ${isMaximized ? '' : 'p-6'}`}
+            >
+                <motion.div
+                    layout
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    className={`h-full ${isMaximized ? '' : 'max-w-[1400px] mx-auto'}`}
+                >
                     <AppWindow
                         appId={activeApp!}
                         appName={currentApp.name}
                         appIcon={currentApp.fullIcon}
                         onClose={handleClose}
+                        onMaximize={handleToggleMaximize}
+                        isMaximized={isMaximized}
                         showTrafficLights={true}
                     >
                         <ViewComponent />
                     </AppWindow>
-                </div>
-            </div>
+                </motion.div>
+            </motion.div>
         );
     };
 

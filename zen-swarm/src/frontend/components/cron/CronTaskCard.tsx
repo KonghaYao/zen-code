@@ -4,6 +4,7 @@
 
 import type { CronTask, CronLogStatus } from '../../types/cron.js';
 import { Play, Pause, Edit, Trash2 } from '../ui/Icons.js';
+import { IconButton } from '../ui/IconButton.js';
 
 interface CronTaskCardProps {
     task: CronTask;
@@ -64,44 +65,28 @@ export function CronTaskCard(props: CronTaskCardProps) {
                     </div>
 
                     {/* 操作按钮 */}
-                    <div className="flex gap-1.5 ml-4 flex-shrink-0">
-                        <button
+                    <div className="flex gap-1 ml-4 flex-shrink-0">
+                        <IconButton
                             onClick={() => props.onTrigger(task.id)}
                             disabled={!task.enabled}
-                            className={`p-1.5 rounded transition-colors ${
-                                task.enabled
-                                    ? 'bg-blue-50 hover:bg-blue-100 text-blue-600'
-                                    : 'bg-bg-tertiary text-text-muted cursor-not-allowed'
-                            }`}
+                            variant="primary"
                             title="Run now"
                         >
                             <Play className="w-4 h-4" />
-                        </button>
-                        <button
+                        </IconButton>
+                        <IconButton
                             onClick={() => props.onToggle(task.id)}
-                            className={`p-1.5 rounded transition-colors ${
-                                task.enabled
-                                    ? 'bg-yellow-50 hover:bg-yellow-100 text-yellow-600'
-                                    : 'bg-green-50 hover:bg-green-100 text-green-600'
-                            }`}
+                            variant={task.enabled ? 'warning' : 'success'}
                             title={task.enabled ? 'Disable' : 'Enable'}
                         >
                             {task.enabled ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                        </button>
-                        <button
-                            onClick={() => props.onEdit(task)}
-                            className="p-1.5 rounded transition-colors bg-bg-secondary hover:bg-bg-tertiary text-text-secondary hover:text-text-primary"
-                            title="Edit"
-                        >
+                        </IconButton>
+                        <IconButton onClick={() => props.onEdit(task)} variant="default" title="Edit">
                             <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={() => props.onDelete(task.id)}
-                            className="p-1.5 rounded transition-colors bg-red-50 hover:bg-red-100 text-red-600"
-                            title="Delete"
-                        >
+                        </IconButton>
+                        <IconButton onClick={() => props.onDelete(task.id)} variant="danger" title="Delete">
                             <Trash2 className="w-4 h-4" />
-                        </button>
+                        </IconButton>
                     </div>
                 </div>
             </div>

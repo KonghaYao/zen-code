@@ -13,6 +13,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChatProvider } from '@langgraph-js/sdk/react';
 import { AnimatePresence, motion } from 'motion/react';
+import { X } from 'lucide-react';
+import { IconButton } from '../components/ui/IconButton.js';
 import { HistoryGroupedSidebar } from '../components/HistoryGroupedSidebar.js';
 import { ChatPanel } from '../components/ChatPanel.js';
 import { ConfigDrawer, type ConfigDrawerSection } from '../components/ConfigDrawer.js';
@@ -220,13 +222,9 @@ export function ChatViewInternal() {
                             {/* 抽屉标题栏 */}
                             <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200">
                                 <span className="text-sm font-semibold text-neutral-900">历史记录</span>
-                                <button
-                                    onClick={() => setMobileHistoryOpen(false)}
-                                    className="w-8 h-8 flex items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100"
-                                    aria-label="关闭"
-                                >
-                                    ✕
-                                </button>
+                                <IconButton onClick={() => setMobileHistoryOpen(false)} aria-label="关闭">
+                                    <X className="w-4 h-4" />
+                                </IconButton>
                             </div>
                             {/* 侧栏内容 */}
                             <div className="flex-1 overflow-hidden">

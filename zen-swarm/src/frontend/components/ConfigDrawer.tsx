@@ -11,6 +11,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bot, Brain, Link2, FileText, Key, ChevronRight, X, Check, Settings } from 'lucide-react';
+import { IconButton } from './ui/IconButton.js';
 import { useAgentsStore, useModelsStore, useMcpStore, usePromptsStore } from '../stores/index.js';
 import type { Agent, Model, MCPServer, Prompt } from '../types/index.js';
 
@@ -337,13 +338,9 @@ export const ConfigDrawer: React.FC<ConfigDrawerProps> = ({
                 {/* Header */}
                 <header className="flex-shrink-0 px-3 py-2.5 border-b border-border-subtle flex items-center justify-between">
                     <h2 className="text-sm font-semibold text-text-primary">Configuration</h2>
-                    <button
-                        onClick={onClose}
-                        className="p-1 hover:bg-bg-secondary rounded transition-colors text-text-muted hover:text-text-primary"
-                        title="Close"
-                    >
+                    <IconButton onClick={onClose} title="Close">
                         <X className="w-4 h-4" />
-                    </button>
+                    </IconButton>
                 </header>
 
                 {/* Content - Accordion */}

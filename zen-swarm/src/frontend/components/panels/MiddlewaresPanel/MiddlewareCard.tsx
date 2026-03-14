@@ -8,6 +8,8 @@
 
 import type { Middleware } from '../../../types/index.js';
 import { getJsonPreview } from '../../../utils/formatters.js';
+import { Edit, Trash2 } from '../../ui/Icons.js';
+import { IconButton } from '../../ui/IconButton.js';
 
 interface MiddlewareCardProps {
     middleware: Middleware;
@@ -41,19 +43,17 @@ export function MiddlewareCard(props: MiddlewareCardProps) {
                 </div>
 
                 {props.onEdit && props.onDelete ? (
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => props.onEdit?.(props.middleware)}
-                            className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
-                        >
-                            Edit
-                        </button>
-                        <button
+                    <div className="flex gap-1">
+                        <IconButton onClick={() => props.onEdit?.(props.middleware)} variant="primary" title="Edit">
+                            <Edit className="w-4 h-4" />
+                        </IconButton>
+                        <IconButton
                             onClick={() => props.onDelete?.(props.middleware.id)}
-                            className="px-3 py-1 text-sm bg-red-50 hover:bg-red-100 text-red-600 rounded"
+                            variant="danger"
+                            title="Delete"
                         >
-                            Delete
-                        </button>
+                            <Trash2 className="w-4 h-4" />
+                        </IconButton>
                     </div>
                 ) : null}
             </div>

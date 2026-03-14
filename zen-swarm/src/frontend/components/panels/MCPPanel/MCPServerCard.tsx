@@ -3,6 +3,8 @@
  */
 
 import type { MCPServer, McpServerConfig } from '../../../types/index.js';
+import { Edit, Trash2 } from '../../ui/Icons.js';
+import { IconButton } from '../../ui/IconButton.js';
 
 interface MCPServerCardProps {
     server: MCPServer;
@@ -79,19 +81,13 @@ export function MCPServerCard(props: MCPServerCardProps) {
                     )}
                 </div>
 
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => props.onEdit(props.server)}
-                        className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
-                    >
-                        Edit
-                    </button>
-                    <button
-                        onClick={() => props.onDelete(props.server.id)}
-                        className="px-3 py-1 text-sm bg-red-50 hover:bg-red-100 text-red-600 rounded"
-                    >
-                        Delete
-                    </button>
+                <div className="flex gap-1">
+                    <IconButton onClick={() => props.onEdit(props.server)} variant="primary" title="Edit">
+                        <Edit className="w-4 h-4" />
+                    </IconButton>
+                    <IconButton onClick={() => props.onDelete(props.server.id)} variant="danger" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                    </IconButton>
                 </div>
             </div>
         </div>

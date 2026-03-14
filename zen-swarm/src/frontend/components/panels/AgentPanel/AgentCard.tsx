@@ -9,6 +9,8 @@
 
 import type { Agent, Model, Prompt, Middleware } from '../../../types/index.js';
 import { getModelName, getPromptName, getMiddlewareName } from '../../../utils/agentHelpers.js';
+import { Edit, Trash2 } from '../../ui/Icons.js';
+import { IconButton } from '../../ui/IconButton.js';
 
 interface AgentCardProps {
     agent: Agent;
@@ -58,19 +60,13 @@ export function AgentCard(props: AgentCardProps) {
                     )}
                 </div>
 
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => props.onEdit(props.agent)}
-                        className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
-                    >
-                        Edit
-                    </button>
-                    <button
-                        onClick={() => props.onDelete(props.agent.id)}
-                        className="px-3 py-1 text-sm bg-red-50 hover:bg-red-100 text-red-600 rounded"
-                    >
-                        Delete
-                    </button>
+                <div className="flex gap-1">
+                    <IconButton onClick={() => props.onEdit(props.agent)} variant="primary" title="Edit">
+                        <Edit className="w-4 h-4" />
+                    </IconButton>
+                    <IconButton onClick={() => props.onDelete(props.agent.id)} variant="danger" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                    </IconButton>
                 </div>
             </div>
         </div>

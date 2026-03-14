@@ -159,4 +159,6 @@ export {
     Link2,
     Key,
     Square,
+    PanelsLeftRight,
+    PanelsTopBottom,
 } from 'lucide-react';

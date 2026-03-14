@@ -15,6 +15,7 @@ import type { Thread } from '@langgraph-js/sdk';
 import { formatDate } from '../utils/chatHelpers.js';
 import { useWorkspaceStore } from '../stores/workspace.js';
 import { PlusIcon, SettingsIcon, Trash2Icon } from 'lucide-react';
+import { IconButton } from './ui/IconButton.js';
 
 // 定义历史记录线程类型，包含可选的 title 字段
 type HistoryThread = Thread<{ messages: any[] }> & {
@@ -55,12 +56,12 @@ function getWorkspaceName(path: string): string {
 
 // 分组折叠/展开图标
 const ExpandIcon: React.FC<{ isExpanded: boolean; onClick: () => void }> = ({ isExpanded, onClick }) => (
-    <button
+    <IconButton
         onClick={(e) => {
             e.stopPropagation();
             onClick();
         }}
-        className="text-text-muted hover:text-text-primary transition-colors"
+        className="w-5 h-5"
     >
         <svg
             className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
@@ -70,7 +71,7 @@ const ExpandIcon: React.FC<{ isExpanded: boolean; onClick: () => void }> = ({ is
         >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
-    </button>
+    </IconButton>
 );
 
 // 记录数量徽章
@@ -82,30 +83,32 @@ const CountBadge: React.FC<{ count: number }> = ({ count }) => (
 
 // 新建会话按钮（在分组标题中）
 const NewChatButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
-    <button
+    <IconButton
         onClick={(e) => {
             e.stopPropagation();
             onClick();
         }}
-        className="ml-1 w-5 h-5 flex items-center justify-center text-text-muted hover:text-primary hover:bg-primary-light rounded transition-colors"
         title="New chat in this workspace"
+        variant="primary"
+        className="ml-1 w-5 h-5"
     >
         <PlusIcon size={12} />
-    </button>
+    </IconButton>
 );
 
 // 管理 workspace 按钮（在分组标题中）
 const ManageWorkspaceButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
-    <button
+    <IconButton
         onClick={(e) => {
             e.stopPropagation();
             onClick();
         }}
-        className="ml-1 w-5 h-5 flex items-center justify-center text-text-muted hover:text-primary hover:bg-primary-light rounded transition-colors"
         title="Manage workspace"
+        variant="primary"
+        className="ml-1 w-5 h-5"
     >
         <SettingsIcon size={12} />
-    </button>
+    </IconButton>
 );
 
 // 历史记录条目
@@ -133,16 +136,17 @@ const HistoryItem: React.FC<{
                 </div>
             </button>
             {hovered && (
-                <button
+                <IconButton
                     onClick={(e) => {
                         e.stopPropagation();
                         onDelete();
                     }}
-                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-text-muted hover:text-red-500 transition-colors mr-1"
                     title="Delete chat"
+                    variant="danger"
+                    className="flex-shrink-0 w-6 h-6 mr-1"
                 >
                     <Trash2Icon size={12} />
-                </button>
+                </IconButton>
             )}
         </div>
     );

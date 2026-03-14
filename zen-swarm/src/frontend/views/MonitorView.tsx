@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { useMonitorStore } from '../stores/monitorStore.js';
 import type { MonitorTab, MonitorView, ProcessInfo, ProcessTreeNode } from '../components/monitor/types.js';
 import { formatBytes, formatPercent, formatUptime } from '../components/monitor/utils.js';
+import { IconButton } from '../components/ui/IconButton.js';
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                           */
@@ -181,11 +182,11 @@ export function MonitorView() {
                                 className="w-full pl-8 pr-3 py-1.5 text-sm border border-border-subtle rounded-lg bg-bg-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                             />
                         </div>
-                        <button
+                        <IconButton
                             onClick={refreshProcesses}
                             disabled={isLoading}
-                            className="p-1.5 rounded-lg border border-border-subtle text-text-secondary hover:bg-bg-tertiary transition-colors disabled:opacity-40"
                             title="刷新"
+                            className="border border-border-subtle"
                         >
                             <svg
                                 className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`}
@@ -199,7 +200,7 @@ export function MonitorView() {
                                 <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
                                 <path d="M8 16H3v5" />
                             </svg>
-                        </button>
+                        </IconButton>
                     </div>
                 </div>
 

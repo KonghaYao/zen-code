@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, ReactNode } from 'react';
 import { X } from './ui/Icons.js';
+import { IconButton } from './ui/IconButton.js';
 
 type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -93,14 +94,14 @@ export function Modal(props: ModalProps) {
                     <h3 id="modal-title" className="text-base font-semibold text-neutral-800">
                         {props.title}
                     </h3>
-                    <button
+                    <IconButton
                         ref={closeButtonRef}
                         onClick={props.onClose}
                         aria-label="Close dialog"
-                        className="w-8 h-8 flex items-center justify-center rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-500 hover:text-neutral-700 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer"
+                        className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
                         <X className="w-4 h-4" aria-hidden="true" />
-                    </button>
+                    </IconButton>
                 </div>
 
                 {/* Content */}
