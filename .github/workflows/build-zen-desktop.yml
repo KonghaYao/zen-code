@@ -41,6 +41,10 @@ jobs:
               working-directory: zen-desktop
               run: neu build --release
 
+            - name: Codesign macOS binaries (ad-hoc)
+              working-directory: zen-desktop
+              run: ./codesign-mac.sh "-"
+
             - name: Upload artifacts
               uses: actions/upload-artifact@v4
               with:
