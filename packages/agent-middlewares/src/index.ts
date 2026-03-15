@@ -39,3 +39,4 @@ export type BaseAgentStateType = {
 // Re-export bash_tools types for zen-code
 export type { ManagedProcess } from './tools/bash_tools/bash_manager.js';
 export { background_processes } from './tools/bash_tools/bash_manager.js';
+export * from './utils/ripgrep.js';

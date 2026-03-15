@@ -1,9 +1,9 @@
 /**
  * CollectionSidebar — Collections tree with folders and requests
- * Supports: expand/collapse, right-click context menu, folder CRUD
+ * 增加：搜索过滤 + 关键词高亮
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
     useCollections,
     useCreateCollection,
@@ -37,17 +37,33 @@ interface ContextMenuState {
     items: ContextMenuItem[];
 }
 
+// ── 高亮工具 ──────────────────────────────────────────────────────────────────
+
+function highlightMatch(name: string, query: string): React.ReactNode {
+    if (!query.trim()) return name;
+    const idx = name.toLowerCase().indexOf(query.toLowerCase());
+    if (idx === -1) return name;
+    return (
+        <>
+            {name.slice(0, idx)}
+            <mark className="bg-yellow-200 text-yellow-900 rounded-sm">{name.slice(idx, idx + query.length)}</mark>
+            {name.slice(idx + query.length)}
+        </>
+    );
+}
+
 // ── Request Row ───────────────────────────────────────────────────────────────
 
 interface RequestRowProps {
     req: SavedRequest;
     depth: number;
     isActive: boolean;
+    searchQuery: string;
     onSelect: (req: SavedRequest) => void;
     onContextMenu: (e: React.MouseEvent, req: SavedRequest) => void;
 }
 
-function RequestRow({ req, depth, isActive, onSelect, onContextMenu }: RequestRowProps) {
+function RequestRow({ req, depth, isActive, searchQuery, onSelect, onContextMenu }: RequestRowProps) {
     return (
         <div
             onClick={() => onSelect(req)}
@@ -67,7 +83,7 @@ function RequestRow({ req, depth, isActive, onSelect, onContextMenu }: RequestRo
             >
                 {req.method}
             </span>
-            <span className="text-xs truncate flex-1">{req.name}</span>
+            <span className="text-xs truncate flex-1">{highlightMatch(req.name, searchQuery)}</span>
         </div>
     );
 }
@@ -80,6 +96,7 @@ interface FolderNodeProps {
     allRequests: SavedRequest[];
     depth: number;
     activeRequestId?: string;
+    searchQuery: string;
     onSelectRequest: (req: SavedRequest) => void;
     onFolderContextMenu: (e: React.MouseEvent, folder: Folder) => void;
     onRequestContextMenu: (e: React.MouseEvent, req: SavedRequest) => void;
@@ -91,14 +108,39 @@ function FolderNode({
     allRequests,
     depth,
     activeRequestId,
+    searchQuery,
     onSelectRequest,
     onFolderContextMenu,
     onRequestContextMenu,
 }: FolderNodeProps) {
     const [expanded, setExpanded] = useState(true);
 
+    // 搜索时自动展开
+    useEffect(() => {
+        if (searchQuery) setExpanded(true);
+    }, [searchQuery]);
+
     const childFolders = allFolders.filter((f) => f.parent_folder_id === folder.id);
-    const folderRequests = allRequests.filter((r) => r.folder_id === folder.id);
+
+    // 搜索过滤
+    const folderRequests = searchQuery
+        ? allRequests.filter(
+              (r) => r.folder_id === folder.id && r.name.toLowerCase().includes(searchQuery.toLowerCase()),
+          )
+        : allRequests.filter((r) => r.folder_id === folder.id);
+
+    // 过滤子文件夹（递归检测是否有匹配项）
+    function hasMatch(folderId: string): boolean {
+        const reqs = allRequests.filter((r) => r.folder_id === folderId);
+        if (reqs.some((r) => r.name.toLowerCase().includes(searchQuery.toLowerCase()))) return true;
+        const children = allFolders.filter((f) => f.parent_folder_id === folderId);
+        return children.some((c) => hasMatch(c.id));
+    }
+
+    const visibleChildFolders = searchQuery ? childFolders.filter((c) => hasMatch(c.id)) : childFolders;
+
+    // 搜索时若该节点无任何匹配则不渲染（由父层过滤）
+    if (searchQuery && folderRequests.length === 0 && visibleChildFolders.length === 0) return null;
 
     return (
         <div>
@@ -114,13 +156,15 @@ function FolderNode({
             >
                 <span className="text-xs text-text-muted w-3 flex-shrink-0">{expanded ? '▾' : '▸'}</span>
                 <span className="text-xs text-text-muted mr-1">📁</span>
-                <span className="text-xs font-medium text-text-primary truncate flex-1">{folder.name}</span>
+                <span className="text-xs font-medium text-text-primary truncate flex-1">
+                    {highlightMatch(folder.name, searchQuery)}
+                </span>
             </div>
 
             {/* Children */}
             {expanded && (
                 <div>
-                    {childFolders.map((child) => (
+                    {visibleChildFolders.map((child) => (
                         <FolderNode
                             key={child.id}
                             folder={child}
@@ -128,6 +172,7 @@ function FolderNode({
                             allRequests={allRequests}
                             depth={depth + 1}
                             activeRequestId={activeRequestId}
+                            searchQuery={searchQuery}
                             onSelectRequest={onSelectRequest}
                             onFolderContextMenu={onFolderContextMenu}
                             onRequestContextMenu={onRequestContextMenu}
@@ -139,11 +184,12 @@ function FolderNode({
                             req={req}
                             depth={depth + 1}
                             isActive={activeRequestId === req.id}
+                            searchQuery={searchQuery}
                             onSelect={onSelectRequest}
                             onContextMenu={onRequestContextMenu}
                         />
                     ))}
-                    {childFolders.length === 0 && folderRequests.length === 0 && (
+                    {visibleChildFolders.length === 0 && folderRequests.length === 0 && !searchQuery && (
                         <div
                             className="text-xs text-text-muted italic py-1"
                             style={{ paddingLeft: `${8 + (depth + 1) * 16}px` }}
@@ -163,14 +209,26 @@ interface CollectionItemProps {
     collection: Collection;
     onSelectRequest: (req: ActiveRequest) => void;
     activeRequestId?: string;
+    searchQuery: string;
     onDeleteCollection: (id: string) => void;
 }
 
-function CollectionItem({ collection, onSelectRequest, activeRequestId, onDeleteCollection }: CollectionItemProps) {
+function CollectionItem({
+    collection,
+    onSelectRequest,
+    activeRequestId,
+    searchQuery,
+    onDeleteCollection,
+}: CollectionItemProps) {
     const [expanded, setExpanded] = useState(true);
     const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
     const [renameValue, setRenameValue] = useState('');
     const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+
+    // 搜索时自动展开
+    useEffect(() => {
+        if (searchQuery) setExpanded(true);
+    }, [searchQuery]);
 
     const foldersQuery = useFolders(collection.id);
     const requestsQuery = useRequests(collection.id);
@@ -181,7 +239,6 @@ function CollectionItem({ collection, onSelectRequest, activeRequestId, onDelete
     const moveRequestMutation = useMoveRequest();
 
     const allFolders: Folder[] = (foldersQuery.data as Folder[] | undefined) ?? [];
-    // listRequests returns { folders, requests }
     const allRequests: SavedRequest[] =
         (requestsQuery.data as { requests?: SavedRequest[] } | undefined)?.requests ?? [];
 
@@ -240,15 +297,9 @@ function CollectionItem({ collection, onSelectRequest, activeRequestId, onDelete
                 x: e.clientX,
                 y: e.clientY,
                 items: [
-                    {
-                        label: 'New Subfolder',
-                        onClick: () => handleNewFolder(folder.id),
-                    },
+                    { label: 'New Subfolder', onClick: () => handleNewFolder(folder.id) },
                     { label: '', onClick: () => {}, separator: true },
-                    {
-                        label: 'Rename',
-                        onClick: () => handleRenameFolder(folder),
-                    },
+                    { label: 'Rename', onClick: () => handleRenameFolder(folder) },
                     { label: '', onClick: () => {}, separator: true },
                     {
                         label: 'Export as .http',
@@ -285,10 +336,7 @@ function CollectionItem({ collection, onSelectRequest, activeRequestId, onDelete
                 x: e.clientX,
                 y: e.clientY,
                 items: [
-                    {
-                        label: 'Open',
-                        onClick: () => handleSelectRequest(req),
-                    },
+                    { label: 'Open', onClick: () => handleSelectRequest(req) },
                     { label: '', onClick: () => {}, separator: true },
                     {
                         label: 'Move to root',
@@ -318,14 +366,13 @@ function CollectionItem({ collection, onSelectRequest, activeRequestId, onDelete
         [handleSelectRequest, moveRequestMutation, deleteRequestMutation],
     );
 
-    // Root-level folders (no parent)
     const rootFolders = allFolders.filter((f) => f.parent_folder_id === null);
-    // Root-level requests (no folder)
-    const rootRequests = allRequests.filter((r) => r.folder_id === null);
+    const rootRequests = searchQuery
+        ? allRequests.filter((r) => r.folder_id === null && r.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        : allRequests.filter((r) => r.folder_id === null);
 
     return (
         <div className="mb-0.5">
-            {/* Rename overlay if active */}
             {renamingFolderId && <div className="fixed inset-0 z-40" onClick={commitRename} />}
 
             {/* Collection header */}
@@ -335,7 +382,9 @@ function CollectionItem({ collection, onSelectRequest, activeRequestId, onDelete
                     className="flex items-center gap-1.5 flex-1 min-w-0 text-left"
                 >
                     <span className="text-xs text-text-muted">{expanded ? '▾' : '▸'}</span>
-                    <span className="text-xs font-medium text-text-primary truncate">{collection.name}</span>
+                    <span className="text-xs font-medium text-text-primary truncate">
+                        {highlightMatch(collection.name, searchQuery)}
+                    </span>
                 </button>
                 <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
@@ -364,7 +413,6 @@ function CollectionItem({ collection, onSelectRequest, activeRequestId, onDelete
             {/* Expanded tree */}
             {expanded && (
                 <div>
-                    {/* Root folders */}
                     {rootFolders.map((folder) =>
                         renamingFolderId === folder.id ? (
                             <div key={folder.id} className="flex items-center gap-1 pl-4 pr-2 py-0.5">
@@ -387,6 +435,7 @@ function CollectionItem({ collection, onSelectRequest, activeRequestId, onDelete
                                 allRequests={allRequests}
                                 depth={1}
                                 activeRequestId={activeRequestId}
+                                searchQuery={searchQuery}
                                 onSelectRequest={handleSelectRequest}
                                 onFolderContextMenu={handleFolderContextMenu}
                                 onRequestContextMenu={handleRequestContextMenu}
@@ -394,19 +443,19 @@ function CollectionItem({ collection, onSelectRequest, activeRequestId, onDelete
                         ),
                     )}
 
-                    {/* Root requests */}
                     {rootRequests.map((req) => (
                         <RequestRow
                             key={req.id}
                             req={req}
                             depth={1}
                             isActive={activeRequestId === req.id}
+                            searchQuery={searchQuery}
                             onSelect={handleSelectRequest}
                             onContextMenu={handleRequestContextMenu}
                         />
                     ))}
 
-                    {rootFolders.length === 0 && rootRequests.length === 0 && (
+                    {rootFolders.length === 0 && rootRequests.length === 0 && !searchQuery && (
                         <div className="px-4 py-1 text-xs text-text-muted italic">No requests yet</div>
                     )}
                 </div>
@@ -430,6 +479,7 @@ function CollectionItem({ collection, onSelectRequest, activeRequestId, onDelete
 export function CollectionSidebar({ onSelectRequest, activeRequestId }: CollectionSidebarProps) {
     const [showAddCollection, setShowAddCollection] = useState(false);
     const [newColName, setNewColName] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const collectionsQuery = useCollections();
     const createCollectionMutation = useCreateCollection();
@@ -460,6 +510,17 @@ export function CollectionSidebar({ onSelectRequest, activeRequestId }: Collecti
                 >
                     +
                 </button>
+            </div>
+
+            {/* 搜索框 */}
+            <div className="flex-shrink-0 px-2 py-1.5 border-b border-border-subtle">
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="搜索请求..."
+                    className="w-full px-2 py-1 text-xs border border-border-subtle rounded focus:outline-none focus:ring-1 focus:ring-primary/30 bg-white"
+                />
             </div>
 
             {/* Add collection form */}
@@ -496,6 +557,7 @@ export function CollectionSidebar({ onSelectRequest, activeRequestId }: Collecti
                         collection={col}
                         onSelectRequest={onSelectRequest}
                         activeRequestId={activeRequestId}
+                        searchQuery={searchQuery}
                         onDeleteCollection={(id) => {
                             if (confirm(`Delete collection "${col.name}" and all its contents?`)) {
                                 deleteCollectionMutation.mutate({ id });

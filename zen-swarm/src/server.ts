@@ -20,7 +20,7 @@ import { createPostmanRouter } from './api/postman.js';
 import { FileSystemPostmanStorage } from './postman/fileSystemStorage.js';
 import { router } from './api/trpc.js';
 import { filesRouter } from './api/files.js';
-import { connectToZenCore } from 'zen-core/client';
+import { connectToZenCore } from 'zen-core/client-binary';
 import { authRouter } from './api/auth.js';
 import { authMiddleware } from './auth/tokenAuth.js';
 import { createProviderRouter } from './api/providers.js';

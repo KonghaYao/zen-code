@@ -12,7 +12,7 @@ import { getThreadId } from '@langgraph-js/pro';
 import { agentPackage } from './config/index.js';
 import { initChatModel } from './utils/initChatModel.js';
 import { getEnvInfo } from './prompts/coding.js';
-import { downloadRipGrep } from './utils/ripgrep.js';
+import { downloadRipGrep } from '@langgraph-js/agent-middlewares';
 
 /**
  * Options for createCodeGraph

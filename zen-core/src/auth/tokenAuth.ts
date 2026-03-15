@@ -17,7 +17,6 @@ import type { Context, Next } from 'hono';
 
 const TOKEN_DIR = join(homedir(), '.zen-core');
 const TOKEN_FILE = join(TOKEN_DIR, 'token');
-const COOKIE_NAME = 'zen_token';
 
 // 内存缓存，避免每次请求都读文件（token 注册后不会改变）
 let cachedToken: string | null | undefined = undefined; // undefined = 未初始化

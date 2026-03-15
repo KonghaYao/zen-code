@@ -4,14 +4,11 @@ import fsExtra from 'fs-extra';
 import * as os from 'node:os';
 import { dirname, join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
-import { fileURLToPath } from 'node:url';
 import { pathExists } from 'path-exists';
 import { temporaryFile } from 'tempy';
 import { xdgCache } from 'xdg-basedir';
 
 const { mkdir, createWriteStream, move } = fsExtra;
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const REPOSITORY = `microsoft/ripgrep-prebuilt`;
 const VERSION = process.env.RIPGREP_VERSION || 'v15.0.0';
@@ -115,9 +112,9 @@ const downloadRipGrepAndroid = async (platform: string) => {
     return false;
 };
 
-export const rgPath = join(__dirname, `rg${process.platform === 'win32' ? '.exe' : ''}`);
+export let rgPath = join(join(os.homedir(), '.zen-core'), `rg${process.platform === 'win32' ? '.exe' : ''}`);
 
-export const downloadRipGrep = async (overrideBinPath?: string) => {
+export const downloadRipGrep = async () => {
     if (await pathExists(rgPath)) {
         console.log('rg cached');
         return;
@@ -135,7 +132,7 @@ export const downloadRipGrep = async (overrideBinPath?: string) => {
         `https://v6.gh-proxy.org/https://github.com/${REPOSITORY}/releases/download`;
     const url = `${baseUrl}/${VERSION}/ripgrep-${VERSION}-${target}`;
     const downloadPath = `${xdgCache}/vscode-ripgrep/ripgrep-${VERSION}-${target}`;
-    const binPath = overrideBinPath ?? __dirname;
+    const binPath = join(os.homedir(), '.zen-core');
     if (!(await pathExists(downloadPath))) {
         await downloadFile(url, downloadPath);
     } else {

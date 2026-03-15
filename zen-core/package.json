@@ -7,7 +7,8 @@
     },
     "exports": {
         ".": "./src/server.ts",
-        "./client": "./src/client.ts"
+        "./client": "./src/client.ts",
+        "./client-binary": "./src/client-binary.ts"
     },
     "scripts": {
         "start": "bun run src/server.ts",
