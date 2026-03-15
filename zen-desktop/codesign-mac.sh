@@ -16,9 +16,9 @@ if [ -z "$SIGN_IDENTITY" ]; then
 fi
 
 BINARIES=(
-  "neutralino-mac_arm64"
-  "neutralino-mac_x64"
-  "neutralino-mac_universal"
+  "neutralino-mac_arm64.app"
+  "neutralino-mac_x64.app"
+  "neutralino-mac_universal.app"
 )
 
 for bin in "${BINARIES[@]}"; do
@@ -36,4 +36,4 @@ for bin in "${BINARIES[@]}"; do
 done
 
 echo ""
-echo "Done. Verify with: codesign -dv dist/neutralino/neutralino-mac_universal"
+echo "Done. Verify with: codesign -dv dist/neutralino/neutralino-mac_universal.app"
