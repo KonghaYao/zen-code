@@ -17,6 +17,95 @@ import type { IRemoteSkillStore, RemoteSkillItem } from '../../interfaces/IRemot
 import type { IRemotePromptStore, RemotePromptItem } from '../../interfaces/IRemotePromptStore.js';
 
 // ========================================
+// Tencent SkillHub CDN Cache
+// ========================================
+
+const SKILLHUB_CDN_URL = 'https://cloudcache.tencentcs.com/qcloud/tea/app/data/skills.2d46363b.json';
+
+interface SkillHubCdnItem {
+    slug: string;
+    name?: string;
+    description?: string;
+    description_zh?: string;
+    downloads?: number;
+    installs?: number;
+    homepage?: string;
+    owner?: string;
+    score?: number;
+    stars?: number;
+    tags?: string[];
+    updated_at?: number;
+    version?: string;
+}
+
+interface SkillHubCdnData {
+    skills: SkillHubCdnItem[];
+    categories?: Record<string, string[]>;
+    featured?: string[];
+    generated_at?: string;
+}
+
+interface CdnCache {
+    data: SkillHubCdnItem[];
+    etag?: string;
+    lastModified?: string;
+    fetchedAt: number;
+}
+
+/** 内存缓存，进程内复用（TTL 1 小时） */
+let cdnCache: CdnCache | null = null;
+const CDN_CACHE_TTL_MS = 60 * 60 * 1000;
+
+async function fetchSkillHubCdnData(): Promise<SkillHubCdnItem[]> {
+    const now = Date.now();
+
+    // 缓存未过期直接返回
+    if (cdnCache && now - cdnCache.fetchedAt < CDN_CACHE_TTL_MS) {
+        return cdnCache.data;
+    }
+
+    const headers: Record<string, string> = {
+        Accept: '*/*',
+        Origin: 'https://skillhub.tencent.com',
+        Referer: 'https://skillhub.tencent.com/',
+    };
+
+    // 条件请求：有缓存则带 If-None-Match / If-Modified-Since
+    if (cdnCache?.etag) headers['If-None-Match'] = cdnCache.etag;
+    if (cdnCache?.lastModified) headers['If-Modified-Since'] = cdnCache.lastModified;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30_000);
+
+    try {
+        const res = await fetch(SKILLHUB_CDN_URL, { headers, signal: controller.signal });
+
+        if (res.status === 304 && cdnCache) {
+            // 未变化，刷新计时
+            cdnCache.fetchedAt = now;
+            return cdnCache.data;
+        }
+
+        if (!res.ok) {
+            // 有旧缓存就用旧的，否则报错
+            if (cdnCache) return cdnCache.data;
+            throw new Error(`SkillHub CDN fetch failed: ${res.status} ${res.statusText}`);
+        }
+
+        const json = (await res.json()) as SkillHubCdnData;
+        cdnCache = {
+            data: json.skills ?? [],
+            etag: res.headers.get('etag') ?? undefined,
+            lastModified: res.headers.get('last-modified') ?? undefined,
+            fetchedAt: now,
+        };
+        return cdnCache.data;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+// ========================================
 // ClawhHub API Response Types
 // ========================================
 
@@ -100,17 +189,31 @@ export class ClawhHubStore extends BaseRemoteStore implements IRemoteSkillStore,
     // ── IRemoteSkillStore ──────────────────────────────────────────────────
 
     async listRemoteSkills(options?: { page?: number; limit?: number }): Promise<RemoteSkillItem[]> {
-        const params: Record<string, string> = {
-            limit: String(options?.limit ?? 20),
-            sort: 'downloads',
-        };
-        const res = await this.get<ClawhHubListResponse>('/api/v1/skills', params);
-        return (res.items ?? []).map(this.mapListItem);
+        const limit = options?.limit ?? 20;
+        const page = options?.page ?? 0;
+        const all = await this.getFilteredSortedSkills();
+        const start = page * limit;
+        return all.slice(start, start + limit).map(this.mapCdnItem);
     }
 
     async searchRemoteSkills(query: string): Promise<RemoteSkillItem[]> {
-        const res = await this.get<ClawhHubSearchResponse>('/api/v1/search', { q: query });
-        return (res.results ?? []).map(this.mapSearchItem);
+        const all = await this.getFilteredSortedSkills();
+        const q = query.toLowerCase();
+        const matched = all.filter(
+            (s) =>
+                s.slug.includes(q) ||
+                s.name?.toLowerCase().includes(q) ||
+                s.description?.toLowerCase().includes(q) ||
+                s.description_zh?.toLowerCase().includes(q) ||
+                s.tags?.some((t) => t.toLowerCase().includes(q)),
+        );
+        return matched.slice(0, 50).map(this.mapCdnItem);
+    }
+
+    /** 过滤低下载量（< 100）并按下载量降序排列 */
+    private async getFilteredSortedSkills(): Promise<SkillHubCdnItem[]> {
+        const all = await fetchSkillHubCdnData();
+        return all.filter((s) => (s.downloads ?? 0) >= 100).sort((a, b) => (b.downloads ?? 0) - (a.downloads ?? 0));
     }
 
     async fetchRemoteSkill(slug: string): Promise<RemoteSkillItem | null> {
@@ -140,7 +243,7 @@ export class ClawhHubStore extends BaseRemoteStore implements IRemoteSkillStore,
     }
 
     async installRemoteSkill(slug: string, destDir: string): Promise<void> {
-        const url = new URL('/api/v1/download', this.baseUrl);
+        const url = new URL('https://wry-manatee-359.convex.site/api/v1/download');
         url.searchParams.set('slug', slug);
 
         const controller = new AbortController();
@@ -243,6 +346,20 @@ export class ClawhHubStore extends BaseRemoteStore implements IRemoteSkillStore,
             clearTimeout(timer);
         }
     }
+
+    private mapCdnItem = (raw: SkillHubCdnItem): RemoteSkillItem => {
+        return {
+            name: raw.name || raw.slug,
+            description: raw.description_zh || raw.description,
+            content: '',
+            tags: raw.tags?.length ? raw.tags : undefined,
+            author: raw.owner,
+            source_url: raw.homepage ?? `${CLAWHUB_BASE_URL}/skills/${raw.slug}`,
+            version: raw.version,
+            downloads: raw.downloads,
+            stars: raw.stars,
+        };
+    };
 
     private mapListItem = (raw: ClawhHubListItem): RemoteSkillItem => {
         return {

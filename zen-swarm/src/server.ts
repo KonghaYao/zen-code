@@ -7,6 +7,8 @@
  *   - /api/auth/* 由本地 auth handler 处理
  *   - /api/trpc/postman.* 由本地 tRPC handler 处理
  *   - /api/trpc/providers.* 由本地 tRPC handler 处理
+ *   - /api/trpc/store.* 由本地 tRPC handler 处理
+ *   - /api/trpc/files.* 由本地 tRPC handler 处理
  */
 
 import { Hono } from 'hono';
@@ -25,6 +27,9 @@ import { authRouter } from './api/auth.js';
 import { authMiddleware } from './auth/tokenAuth.js';
 import { createProviderRouter } from './api/providers.js';
 import { ProviderStorage } from './services/provider/storage.js';
+import { createStoreRouter } from './api/store.js';
+import { RemoteStoreStorage } from './services/remote-store/index.js';
+import Database from 'bun:sqlite';
 import { homedir } from 'os';
 import { join } from 'path';
 import { mkdirSync } from 'fs';
@@ -50,8 +55,13 @@ export async function startServer() {
 
     const zenCoreDataDir = join(homedir(), '.zen-core');
     mkdirSync(zenCoreDataDir, { recursive: true });
-    const providerStorage = new ProviderStorage(join(zenCoreDataDir, 'data.db'));
+    const zenCoreDb = new Database(join(zenCoreDataDir, 'data.db'), { create: true });
+
+    const providerStorage = new ProviderStorage(zenCoreDb);
     await providerStorage.initialize();
+
+    const remoteStoreStorage = new RemoteStoreStorage(zenCoreDb);
+    await remoteStoreStorage.initialize();
 
     const ZEN_CORE_URL = process.env.ZEN_CORE_URL || 'http://127.0.0.1:8125';
 
@@ -73,6 +83,10 @@ export async function startServer() {
 
     const providerTrpcRouter = router({
         providers: createProviderRouter(providerStorage, { getAllModels: getAllModelsFromZenCore }),
+    });
+
+    const storeTrpcRouter = router({
+        store: createStoreRouter(remoteStoreStorage),
     });
 
     const filesTrpcRouter = router({
@@ -109,6 +123,17 @@ export async function startServer() {
             req: c.req.raw,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             router: providerTrpcRouter as any,
+            createContext: () => ({}),
+        });
+    });
+
+    // 本地处理 store tRPC（远程仓库管理，不走代理）
+    app.all('/api/trpc/store.*', (c) => {
+        return fetchRequestHandler({
+            endpoint: '/api/trpc',
+            req: c.req.raw,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            router: storeTrpcRouter as any,
             createContext: () => ({}),
         });
     });
