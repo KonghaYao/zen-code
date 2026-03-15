@@ -5,7 +5,7 @@
     "defaultMode": "window",
     "port": 0,
     "documentRoot": "/resources/",
-    "url": "http://127.0.0.1:8124/ui",
+    "url": "/",
     "enableServer": true,
     "enableNativeAPI": true,
     "tokenSecurity": "one-time",
@@ -13,7 +13,17 @@
         "enabled": true,
         "writeToLogFile": true
     },
-    "nativeAllowList": ["app.*", "os.*", "debug.log"],
+    "nativeAllowList": [
+        "app.*",
+        "os.*",
+        "debug.log",
+        "fetch",
+        "filesystem.readFile",
+        "filesystem.writeFile",
+        "filesystem.writeBinaryFile",
+        "filesystem.createDirectory",
+        "filesystem.getStats"
+    ],
     "modes": {
         "window": {
             "title": "Zen Code",
