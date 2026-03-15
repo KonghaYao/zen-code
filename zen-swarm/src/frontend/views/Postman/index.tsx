@@ -253,73 +253,63 @@ export function PostmanView() {
     const headerCount = activeRequest.headers.filter((h) => h.enabled && h.key).length;
     const hasBody = activeRequest.body.type !== 'none' && activeRequest.body.content;
 
+    // tab 右侧工具栏
+    const tabToolbar = (
+        <>
+            {/* Active environment badge */}
+            <button
+                onClick={() => setShowEnvManager(true)}
+                className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border transition-colors flex-shrink-0 ${
+                    activeEnvQuery.data
+                        ? 'border-success/40 bg-success-light text-success hover:bg-success/20'
+                        : 'border-border-subtle text-text-muted hover:bg-bg-hover'
+                }`}
+            >
+                <span
+                    className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${activeEnvQuery.data ? 'bg-success' : 'bg-neutral-300'}`}
+                />
+                <span className="max-w-20 truncate">{activeEnvQuery.data ? activeEnvQuery.data.name : 'No Env'}</span>
+            </button>
+
+            {/* Save button */}
+            {activeRequest.isDirty && (
+                <button
+                    onClick={handleSave}
+                    disabled={updateRequestMutation.isPending}
+                    className="px-2 py-0.5 text-xs bg-bg-tertiary hover:bg-bg-hover border border-border-subtle rounded text-text-secondary transition-colors disabled:opacity-50 flex-shrink-0"
+                    title="保存 (Cmd+S)"
+                >
+                    {updateRequestMutation.isPending ? '...' : 'Save'}
+                </button>
+            )}
+
+            {/* Import menu */}
+            <ImportMenu onImport={handleImport} />
+
+            {/* New request */}
+            <button
+                onClick={openNewTab}
+                className="px-2 py-0.5 text-xs bg-bg-tertiary hover:bg-bg-hover border border-border-subtle rounded text-text-secondary transition-colors flex-shrink-0"
+                title="新建标签页 (Cmd+T)"
+            >
+                + New
+            </button>
+        </>
+    );
+
     return (
         <div className="h-full flex flex-col overflow-hidden bg-bg-primary">
-            {/* ── Top bar ───────────────────────────────────────── */}
-            <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 border-b border-border-subtle bg-bg-secondary">
-                {/* Request name */}
-                <input
-                    type="text"
-                    value={activeRequest.name}
-                    onChange={(e) => updateActiveRequest({ name: e.target.value })}
-                    className="text-sm font-medium bg-transparent focus:outline-none text-text-primary min-w-0 w-40 border-b border-transparent focus:border-border-default"
-                    placeholder="Request name"
-                />
-                {activeRequest.isDirty && (
-                    <span className="text-xs text-amber-500 flex-shrink-0" title="Unsaved changes">
-                        ●
-                    </span>
-                )}
-
-                <div className="flex-1" />
-
-                {/* Active environment badge */}
-                <button
-                    onClick={() => setShowEnvManager(true)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full border transition-colors ${
-                        activeEnvQuery.data
-                            ? 'border-success/40 bg-success-light text-success hover:bg-success/20'
-                            : 'border-border-subtle text-text-muted hover:bg-bg-hover'
-                    }`}
-                >
-                    <span
-                        className={`w-1.5 h-1.5 rounded-full ${activeEnvQuery.data ? 'bg-success' : 'bg-neutral-300'}`}
-                    />
-                    {activeEnvQuery.data ? activeEnvQuery.data.name : 'No Environment'}
-                </button>
-
-                {/* Save button */}
-                {activeRequest.isDirty && (
-                    <button
-                        onClick={handleSave}
-                        disabled={updateRequestMutation.isPending}
-                        className="px-3 py-1 text-xs bg-bg-tertiary hover:bg-bg-hover border border-border-subtle rounded-lg text-text-secondary transition-colors disabled:opacity-50"
-                        title="保存 (Cmd+S)"
-                    >
-                        {updateRequestMutation.isPending ? 'Saving...' : 'Save'}
-                    </button>
-                )}
-
-                {/* Import menu */}
-                <ImportMenu onImport={handleImport} />
-
-                {/* New request */}
-                <button
-                    onClick={openNewTab}
-                    className="px-3 py-1 text-xs bg-bg-tertiary hover:bg-bg-hover border border-border-subtle rounded-lg text-text-secondary transition-colors"
-                    title="新建标签页 (Cmd+T)"
-                >
-                    + New
-                </button>
-            </div>
-
-            {/* ── Tab bar ───────────────────────────────────────── */}
+            {/* ── Tab bar（含右侧工具栏）────────────────────────── */}
             <RequestTabs
                 tabs={tabs}
                 activeTabId={activeTabId}
                 onSelect={setActiveTabId}
                 onClose={closeTab}
                 onNew={openNewTab}
+                onRename={(id, name) => {
+                    if (id === activeTabId) updateActiveRequest({ name });
+                }}
+                toolbar={tabToolbar}
             />
 
             {/* ── Main layout ───────────────────────────────────── */}
