@@ -26,12 +26,13 @@ export function TerminalPane({ pane, workspaceId, isActive, onActivate, onCreate
         }
     }, [isActive, onActivate, pane.id]);
 
-    // 当 attach 失败（服务端找不到该 session）时，清除 pane 绑定，显示空终端
+    // 当 attach 失败（服务端找不到该 session，如进程重启后）时，自动重新创建终端
     const handleAttachError = useCallback(
         (_sessionId: string) => {
             setPaneSession(workspaceId, pane.id, null);
+            onCreateSession(pane.id);
         },
-        [setPaneSession, workspaceId, pane.id],
+        [setPaneSession, workspaceId, pane.id, onCreateSession],
     );
 
     return (

@@ -42,6 +42,7 @@ function IconBtn({
             onClick={onClick}
             title={title}
             disabled={disabled}
+            style={{ padding: 0 }}
             className={`
                 flex items-center justify-center w-7 h-7 rounded-md transition-colors
                 ${colorMap[variant]}

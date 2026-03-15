@@ -202,15 +202,18 @@ export const Terminal = forwardRef<TerminalRef, TerminalProps>(function Terminal
         const handleResize = () => {
             if (fitAddonRef.current && xtermRef.current) {
                 fitAddonRef.current.fit();
-                const dims = fitAddonRef.current.proposeDimensions();
-                if (dims) {
-                    resize(sessionId, dims.cols, dims.rows);
+                // 只有 attach 成功后才向服务端发送 resize，避免用无效 sessionId 触发报错
+                if (hasAttachedRef.current) {
+                    const dims = fitAddonRef.current.proposeDimensions();
+                    if (dims) {
+                        resize(sessionId, dims.cols, dims.rows);
+                    }
                 }
             }
         };
 
-        // 初始调整
-        handleResize();
+        // 初始调整（仅调整 canvas，不发送 resize，attach 回调里会做完整同步）
+        fitAddonRef.current.fit();
 
         // 监听窗口大小变化
         const resizeObserver = new ResizeObserver(handleResize);
