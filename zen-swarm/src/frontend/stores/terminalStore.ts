@@ -1,6 +1,6 @@
 /**
  * 终端状态管理 Store
- * 使用 Zustand 管理多终端会话状态 + 工作区网格布局
+ * 使用 Zustand 管理多终端会话状态 + 工作区平铺布局
  */
 
 import { create } from 'zustand';
@@ -28,86 +28,9 @@ function createDefaultWorkspace(index: number): TerminalWorkspace {
     return {
         id: generateId(),
         name: `工作区 ${index}`,
-        layout: { panes: [pane] },
+        panes: [pane],
         activePaneId: pane.id,
     };
-}
-
-/** 统计工作区内 pane 总数（递归） */
-function countPanes(pane: TerminalPane): number {
-    if (pane.split) {
-        return countPanes(pane.split.children[0]) + countPanes(pane.split.children[1]);
-    }
-    return 1;
-}
-
-/** 收集所有叶子 pane（递归） */
-function collectLeafPanes(pane: TerminalPane): TerminalPane[] {
-    if (pane.split) {
-        return [...collectLeafPanes(pane.split.children[0]), ...collectLeafPanes(pane.split.children[1])];
-    }
-    return [pane];
-}
-
-/** 在 pane 树中找到目标 pane 并分割，返回新树 */
-function splitPaneInTree(root: TerminalPane, targetId: string, direction: 'horizontal' | 'vertical'): TerminalPane {
-    if (root.id === targetId) {
-        const newPane = createDefaultPane();
-        return {
-            ...root,
-            split: {
-                direction,
-                children: [{ id: root.id, sessionId: root.sessionId }, newPane],
-            },
-            id: root.id,
-        };
-    }
-    if (root.split) {
-        return {
-            ...root,
-            split: {
-                ...root.split,
-                children: [
-                    splitPaneInTree(root.split.children[0], targetId, direction),
-                    splitPaneInTree(root.split.children[1], targetId, direction),
-                ],
-            },
-        };
-    }
-    return root;
-}
-
-/** 在 pane 树中关闭目标 pane（用兄弟节点替换父节点），返回新树或 null 表示整棵树被删除 */
-function closePaneInTree(root: TerminalPane, targetId: string): TerminalPane | null {
-    if (!root.split) {
-        return root.id === targetId ? null : root;
-    }
-    const [left, right] = root.split.children;
-    if (left.id === targetId) return right;
-    if (right.id === targetId) return left;
-    const newLeft = closePaneInTree(left, targetId);
-    const newRight = closePaneInTree(right, targetId);
-    if (!newLeft) return newRight;
-    if (!newRight) return newLeft;
-    return { ...root, split: { ...root.split, children: [newLeft, newRight] } };
-}
-
-/** 更新 pane 树中指定 pane 的 sessionId */
-function updateSessionInTree(root: TerminalPane, paneId: string, sessionId: string | null): TerminalPane {
-    if (root.id === paneId) return { ...root, sessionId };
-    if (root.split) {
-        return {
-            ...root,
-            split: {
-                ...root.split,
-                children: [
-                    updateSessionInTree(root.split.children[0], paneId, sessionId),
-                    updateSessionInTree(root.split.children[1], paneId, sessionId),
-                ],
-            },
-        };
-    }
-    return root;
 }
 
 // ---- Store 类型 ----
@@ -148,8 +71,8 @@ interface TerminalStore {
     setActiveWorkspace: (id: string) => void;
 
     // Pane 操作
-    splitPane: (paneId: string, direction: 'horizontal' | 'vertical') => void;
-    closePane: (paneId: string) => void;
+    addPane: (workspaceId: string) => void;
+    removePane: (workspaceId: string, paneId: string) => void;
     setActivePaneInWorkspace: (workspaceId: string, paneId: string) => void;
     setPaneSession: (workspaceId: string, paneId: string, sessionId: string | null) => void;
 
@@ -297,63 +220,30 @@ export const useTerminalStore = create<TerminalStore>()(
 
             // ---- Pane 操作 ----
 
-            splitPane: (paneId: string, direction: 'horizontal' | 'vertical') => {
+            // 向工作区追加一个空 pane（最多 4 个）
+            addPane: (workspaceId: string) => {
                 set((state) => {
-                    const ws = state.workspaces.find((w) => w.id === state.activeWorkspaceId);
-                    if (!ws) return state;
-
-                    const rootPane = ws.layout.panes[0];
-                    if (!rootPane) return state;
-
-                    const total = countPanes(rootPane);
-                    if (total >= 4) return state; // 最多 4 个 pane
-
-                    const newRoot = splitPaneInTree(rootPane, paneId, direction);
-                    // 新分割后，激活新创建的 pane（最后一个叶子节点）
-                    const leaves = collectLeafPanes(newRoot);
-                    const newPane = leaves[leaves.length - 1];
-
+                    const ws = state.workspaces.find((w) => w.id === workspaceId);
+                    if (!ws || ws.panes.length >= 4) return state;
+                    const newPane = createDefaultPane();
                     return {
                         workspaces: state.workspaces.map((w) =>
-                            w.id === state.activeWorkspaceId
-                                ? {
-                                      ...w,
-                                      layout: { panes: [newRoot] },
-                                      activePaneId: newPane.id,
-                                  }
-                                : w,
+                            w.id === workspaceId ? { ...w, panes: [...w.panes, newPane], activePaneId: newPane.id } : w,
                         ),
                     };
                 });
             },
 
-            closePane: (paneId: string) => {
+            // 从工作区移除指定 pane（至少保留 1 个）
+            removePane: (workspaceId: string, paneId: string) => {
                 set((state) => {
-                    const ws = state.workspaces.find((w) => w.id === state.activeWorkspaceId);
-                    if (!ws) return state;
-
-                    const rootPane = ws.layout.panes[0];
-                    if (!rootPane) return state;
-
-                    const total = countPanes(rootPane);
-                    if (total <= 1) return state; // 至少保留 1 个
-
-                    const newRoot = closePaneInTree(rootPane, paneId);
-                    if (!newRoot) return state;
-
-                    // 激活第一个叶子 pane
-                    const leaves = collectLeafPanes(newRoot);
-                    const newActivePaneId = ws.activePaneId === paneId ? leaves[0].id : ws.activePaneId;
-
+                    const ws = state.workspaces.find((w) => w.id === workspaceId);
+                    if (!ws || ws.panes.length <= 1) return state;
+                    const newPanes = ws.panes.filter((p) => p.id !== paneId);
+                    const newActivePaneId = ws.activePaneId === paneId ? newPanes[0].id : ws.activePaneId;
                     return {
                         workspaces: state.workspaces.map((w) =>
-                            w.id === state.activeWorkspaceId
-                                ? {
-                                      ...w,
-                                      layout: { panes: [newRoot] },
-                                      activePaneId: newActivePaneId,
-                                  }
-                                : w,
+                            w.id === workspaceId ? { ...w, panes: newPanes, activePaneId: newActivePaneId } : w,
                         ),
                     };
                 });
@@ -368,18 +258,16 @@ export const useTerminalStore = create<TerminalStore>()(
             },
 
             setPaneSession: (workspaceId: string, paneId: string, sessionId: string | null) => {
-                set((state) => {
-                    const ws = state.workspaces.find((w) => w.id === workspaceId);
-                    if (!ws) return state;
-                    const rootPane = ws.layout.panes[0];
-                    if (!rootPane) return state;
-                    const newRoot = updateSessionInTree(rootPane, paneId, sessionId);
-                    return {
-                        workspaces: state.workspaces.map((w) =>
-                            w.id === workspaceId ? { ...w, layout: { panes: [newRoot] } } : w,
-                        ),
-                    };
-                });
+                set((state) => ({
+                    workspaces: state.workspaces.map((w) =>
+                        w.id === workspaceId
+                            ? {
+                                  ...w,
+                                  panes: w.panes.map((p) => (p.id === paneId ? { ...p, sessionId } : p)),
+                              }
+                            : w,
+                    ),
+                }));
             },
 
             // 辅助
@@ -392,27 +280,46 @@ export const useTerminalStore = create<TerminalStore>()(
                 const state = get();
                 const ws = state.workspaces.find((w) => w.id === state.activeWorkspaceId);
                 if (!ws) return undefined;
-                const leaves = ws.layout.panes[0] ? collectLeafPanes(ws.layout.panes[0]) : [];
-                return leaves.find((p) => p.id === ws.activePaneId);
+                return ws.panes.find((p) => p.id === ws.activePaneId);
             },
 
             getPaneCount: () => {
                 const state = get();
                 const ws = state.workspaces.find((w) => w.id === state.activeWorkspaceId);
-                if (!ws || !ws.layout.panes[0]) return 0;
-                return countPanes(ws.layout.panes[0]);
+                return ws?.panes.length ?? 0;
             },
         }),
         {
             name: 'terminal-store',
+            version: 2,
             // 只持久化 workspaces 布局和 activeWorkspaceId，不持久化 transient 状态
             partialize: (state) => ({
                 workspaces: state.workspaces,
                 activeWorkspaceId: state.activeWorkspaceId,
             }),
+            // 迁移旧数据结构（layout.panes[0] 树形 → panes 平铺数组）
+            migrate: (persistedState: unknown, version: number) => {
+                if (version < 2) {
+                    const old = persistedState as Record<string, unknown>;
+                    const oldWorkspaces = (old?.workspaces ?? []) as Array<Record<string, unknown>>;
+                    const newWorkspaces = oldWorkspaces.map((ws) => {
+                        if (Array.isArray(ws.panes)) return ws; // 已是新结构
+                        // 旧结构：ws.layout.panes[0] 是根 pane（可能有 split）
+                        const pane = createDefaultPane();
+                        return {
+                            id: ws.id ?? generateId(),
+                            name: ws.name ?? '工作区',
+                            panes: [pane],
+                            activePaneId: pane.id,
+                        };
+                    });
+                    return {
+                        workspaces: newWorkspaces.length > 0 ? newWorkspaces : [createDefaultWorkspace(1)],
+                        activeWorkspaceId: old?.activeWorkspaceId ?? newWorkspaces[0]?.id,
+                    };
+                }
+                return persistedState;
+            },
         },
     ),
 );
-
-// 导出辅助函数供组件使用
-export { collectLeafPanes, countPanes };

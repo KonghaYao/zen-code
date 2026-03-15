@@ -11,12 +11,14 @@ import { useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, X, Terminal as TerminalIcon } from '../ui/Icons.js';
 import { useTerminalStore } from '../../stores/terminalStore.js';
+import { useTerminal } from '../../hooks/useTerminal.js';
 import type { TerminalWorkspace } from './types.js';
 import { IconButton } from '../ui/IconButton.js';
 
 export function TerminalWorkspaceTabs() {
     const { workspaces, activeWorkspaceId, setActiveWorkspace, createWorkspace, deleteWorkspace, renameWorkspace } =
         useTerminalStore();
+    const { destroySession } = useTerminal();
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
 
@@ -43,9 +45,18 @@ export function TerminalWorkspaceTabs() {
     const handleClose = useCallback(
         (e: React.MouseEvent, id: string) => {
             e.stopPropagation();
+            // 删除工作区前，先销毁该工作区所有 pane 绑定的后端 session
+            const ws = workspaces.find((w) => w.id === id);
+            if (ws) {
+                for (const pane of ws.panes) {
+                    if (pane.sessionId) {
+                        destroySession(pane.sessionId);
+                    }
+                }
+            }
             deleteWorkspace(id);
         },
-        [deleteWorkspace],
+        [deleteWorkspace, destroySession, workspaces],
     );
 
     return (

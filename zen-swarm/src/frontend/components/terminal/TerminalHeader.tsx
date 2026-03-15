@@ -4,7 +4,6 @@
  */
 
 import { useTerminalStore } from '../../stores/terminalStore.js';
-import { collectLeafPanes } from '../../stores/terminalStore.js';
 import type { WebSocketStatus } from './types.js';
 
 function StatusDot({ status }: { status: WebSocketStatus }) {
@@ -35,9 +34,7 @@ export function TerminalHeader() {
     const activePaneId = ws?.activePaneId;
 
     // 找到当前激活 pane 绑定的 session
-    const rootPane = ws?.layout.panes[0];
-    const leaves = rootPane ? collectLeafPanes(rootPane) : [];
-    const activePane = leaves.find((p) => p.id === activePaneId);
+    const activePane = ws?.panes.find((p) => p.id === activePaneId);
     const session = sessions.find((s) => s.sessionId === activePane?.sessionId);
 
     const cwd = session?.cwd ?? '—';

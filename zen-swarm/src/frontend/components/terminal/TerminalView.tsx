@@ -1,16 +1,15 @@
 /**
- * TerminalView 主视图组件（重构版）
+ * TerminalView 主视图组件（平铺重构版）
  *
  * 布局：
  *   ┌──────────┬───────────────────────────────────┐
  *   │ 左侧 Tab  │ Header (cwd / status)              │
  *   │  工作区   ├───────────────────────────────────┤
- *   │  列表     │ TerminalGrid (最多 2×2 分割)       │
+ *   │  列表     │ TerminalGrid (最多 2×2 平铺)       │
  *   └──────────┴───────────────────────────────────┘
  *
  * 关键特性：
- * - 每个工作区 Tab 包含独立的网格布局
- * - 快捷键 Cmd+D / Cmd+Shift+D 分割 pane
+ * - 每个工作区 Tab 包含独立的平铺布局（panes 数组，1-4 个）
  * - 会话持久化：关闭浏览器/断联不会销毁会话
  */
 
@@ -20,7 +19,7 @@ import { TerminalHeader } from './TerminalHeader.js';
 import { TerminalGrid } from './TerminalGrid.js';
 import { useTerminalKeyboard } from './useTerminalKeyboard.js';
 import { useTerminal } from '../../hooks/useTerminal.js';
-import { useTerminalStore, collectLeafPanes } from '../../stores/terminalStore.js';
+import { useTerminalStore } from '../../stores/terminalStore.js';
 import { TerminalToolbar } from './TerminalToolbar.js';
 
 // 终端默认尺寸（fallback）
@@ -56,7 +55,7 @@ export function TerminalView() {
     const terminalAreaRef = useRef<HTMLDivElement>(null);
 
     const { wsStatus, createSession, destroySession, connect } = useTerminal();
-    const { activeWorkspaceId, setPaneSession, splitPane, closePane, getActiveWorkspace, getPaneCount } =
+    const { activeWorkspaceId, setPaneSession, addPane, removePane, getActiveWorkspace, getPaneCount } =
         useTerminalStore();
 
     // 为指定 pane 新建 terminal session
@@ -73,70 +72,57 @@ export function TerminalView() {
         [wsStatus, createSession, setPaneSession, activeWorkspaceId],
     );
 
-    // 工具栏：新建终端 → 在当前激活 pane 创建（若已有 session 则先分割再建）
+    // 工具栏：新建终端
+    // - 若当前激活 pane 没有 session，直接在该 pane 创建
+    // - 否则追加一个新 pane（最多 4 个）并在新 pane 创建 session
     const handleNewTerminal = useCallback(() => {
         const ws = getActiveWorkspace();
         if (!ws) return;
-        const rootPane = ws.layout.panes[0];
-        const leaves = rootPane ? collectLeafPanes(rootPane) : [];
-        const activePane = leaves.find((p) => p.id === ws.activePaneId);
+        const activePane = ws.panes.find((p) => p.id === ws.activePaneId);
         if (!activePane) return;
 
         if (activePane.sessionId == null) {
             handleCreateSession(activePane.id);
         } else if (getPaneCount() < 4) {
-            splitPane(activePane.id, 'vertical');
-            // 等 store 更新完成后再在新 pane 上创建 session
+            addPane(activeWorkspaceId);
+            // 等 store 更新后在新 pane 上创建 session
             setTimeout(() => {
                 const freshWs = useTerminalStore.getState().workspaces.find((w) => w.id === activeWorkspaceId);
                 if (!freshWs) return;
-                const freshRoot = freshWs.layout.panes[0];
-                const freshLeaves = freshRoot ? collectLeafPanes(freshRoot) : [];
-                const newActivePane = freshLeaves.find((p) => p.id === freshWs.activePaneId);
+                const newActivePane = freshWs.panes.find((p) => p.id === freshWs.activePaneId);
                 if (newActivePane && newActivePane.sessionId == null) {
                     handleCreateSession(newActivePane.id);
                 }
             }, 0);
         }
-    }, [getActiveWorkspace, handleCreateSession, getPaneCount, splitPane, activeWorkspaceId]);
+    }, [getActiveWorkspace, handleCreateSession, getPaneCount, addPane, activeWorkspaceId]);
 
-    // 工具栏：关闭当前激活 pane 的 session（并移除 pane）
-    const handleCloseTerminal = useCallback(() => {
-        const ws = getActiveWorkspace();
-        if (!ws) return;
-        const rootPane = ws.layout.panes[0];
-        const leaves = rootPane ? collectLeafPanes(rootPane) : [];
-        const activePane = leaves.find((p) => p.id === ws.activePaneId);
-        if (!activePane) return;
-        if (activePane.sessionId) {
-            destroySession(activePane.sessionId);
-            setPaneSession(activeWorkspaceId, activePane.id, null);
-        }
-        if (leaves.length > 1) {
-            closePane(activePane.id);
-        }
-    }, [getActiveWorkspace, destroySession, setPaneSession, activeWorkspaceId, closePane]);
+    // 关闭指定 pane（按 paneId 查找），若未指定则关闭当前激活 pane
+    const handleCloseTerminal = useCallback(
+        (paneId?: string) => {
+            const ws = getActiveWorkspace();
+            if (!ws) return;
+            const targetPane = ws.panes.find((p) => p.id === (paneId ?? ws.activePaneId));
+            if (!targetPane) return;
+            if (targetPane.sessionId) {
+                destroySession(targetPane.sessionId);
+            }
+            if (ws.panes.length > 1) {
+                removePane(activeWorkspaceId, targetPane.id);
+            } else {
+                // 最后一个 pane，只清空 session 绑定
+                setPaneSession(activeWorkspaceId, targetPane.id, null);
+            }
+        },
+        [getActiveWorkspace, destroySession, setPaneSession, activeWorkspaceId, removePane],
+    );
 
-    // 清空：暂时 noop（clear 需要通过 TerminalGrid → TerminalPane → Terminal ref 传递，可后续扩展）
+    // 清空：暂时 noop
     const handleClear = useCallback(() => {
         // TODO: forward clear to active pane's Terminal ref
     }, []);
 
-    // 垂直分割（左右）当前激活 pane
-    const handleSplitVertical = useCallback(() => {
-        const ws = getActiveWorkspace();
-        if (!ws || getPaneCount() >= 4) return;
-        splitPane(ws.activePaneId, 'vertical');
-    }, [getActiveWorkspace, getPaneCount, splitPane]);
-
-    // 水平分割（上下）当前激活 pane
-    const handleSplitHorizontal = useCallback(() => {
-        const ws = getActiveWorkspace();
-        if (!ws || getPaneCount() >= 4) return;
-        splitPane(ws.activePaneId, 'horizontal');
-    }, [getActiveWorkspace, getPaneCount, splitPane]);
-
-    // 全局快捷键（仅保留 pane 导航 + 工作区管理，分割改为按钮）
+    // 全局快捷键
     useTerminalKeyboard({ onCreateSession: handleCreateSession });
 
     return (
@@ -152,8 +138,6 @@ export function TerminalView() {
                     onCloseTerminal={handleCloseTerminal}
                     onClear={handleClear}
                     onReconnect={connect}
-                    onSplitVertical={handleSplitVertical}
-                    onSplitHorizontal={handleSplitHorizontal}
                 />
 
                 {/* Header：cwd / 连接状态 */}

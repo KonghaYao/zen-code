@@ -4,17 +4,15 @@
  */
 
 import { motion } from 'motion/react';
-import { Plus, Trash2, Wifi, WifiOff, RefreshCw, PanelsLeftRight, PanelsTopBottom } from '../ui/Icons.js';
+import { Plus, Trash2, Wifi, WifiOff, RefreshCw } from '../ui/Icons.js';
 import { useTerminalStore } from '../../stores/terminalStore.js';
 import type { WebSocketStatus } from './types.js';
 
 interface TerminalToolbarProps {
     onNewTerminal: () => void;
-    onCloseTerminal: () => void;
+    onCloseTerminal: (paneId?: string) => void;
     onClear: () => void;
     onReconnect?: () => void;
-    onSplitVertical?: () => void;
-    onSplitHorizontal?: () => void;
 }
 
 function IconBtn({
@@ -68,19 +66,10 @@ const wsStatusLabel: Record<WebSocketStatus, string> = {
     error: '连接错误',
 };
 
-export function TerminalToolbar({
-    onNewTerminal,
-    onCloseTerminal,
-    onClear,
-    onReconnect,
-    onSplitVertical,
-    onSplitHorizontal,
-}: TerminalToolbarProps) {
+export function TerminalToolbar({ onNewTerminal, onCloseTerminal, onClear, onReconnect }: TerminalToolbarProps) {
     const { wsStatus, activeSessionId, sessions } = useTerminalStore();
-    const paneCount = useTerminalStore((s) => s.getPaneCount());
 
     const hasActiveSession = activeSessionId && sessions.length > 0;
-    const canSplit = paneCount < 4;
 
     return (
         <div className="flex items-center justify-between px-2 py-1.5 bg-black/30 border-b border-white/10">
@@ -89,27 +78,6 @@ export function TerminalToolbar({
                 {/* 新建终端 */}
                 <IconBtn onClick={onNewTerminal} title="新建终端" variant="blue">
                     <Plus size={15} />
-                </IconBtn>
-
-                {/* 分割线 */}
-                <div className="w-px h-4 bg-white/10 mx-1" />
-
-                {/* 垂直分割（左右） */}
-                <IconBtn
-                    onClick={onSplitVertical ?? (() => {})}
-                    title="垂直分割（左右）"
-                    disabled={!canSplit || !onSplitVertical}
-                >
-                    <PanelsLeftRight size={15} />
-                </IconBtn>
-
-                {/* 水平分割（上下） */}
-                <IconBtn
-                    onClick={onSplitHorizontal ?? (() => {})}
-                    title="水平分割（上下）"
-                    disabled={!canSplit || !onSplitHorizontal}
-                >
-                    <PanelsTopBottom size={15} />
                 </IconBtn>
 
                 {hasActiveSession && (
@@ -122,7 +90,7 @@ export function TerminalToolbar({
                         </IconBtn>
 
                         {/* 关闭当前 pane */}
-                        <IconBtn onClick={onCloseTerminal} title="关闭当前面板" variant="red">
+                        <IconBtn onClick={() => onCloseTerminal()} title="关闭当前面板" variant="red">
                             <Trash2 size={15} />
                         </IconBtn>
                     </>

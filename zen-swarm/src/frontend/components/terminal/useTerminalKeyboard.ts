@@ -11,7 +11,7 @@
  */
 
 import { useEffect } from 'react';
-import { useTerminalStore, collectLeafPanes } from '../../stores/terminalStore.js';
+import { useTerminalStore } from '../../stores/terminalStore.js';
 
 interface UseTerminalKeyboardOptions {
     /** 创建一个新 terminal session 并绑定到当前 pane */
@@ -19,7 +19,7 @@ interface UseTerminalKeyboardOptions {
 }
 
 export function useTerminalKeyboard({ onCreateSession }: UseTerminalKeyboardOptions) {
-    const { workspaces, activeWorkspaceId, setActivePaneInWorkspace, closePane, createWorkspace, deleteWorkspace } =
+    const { workspaces, activeWorkspaceId, setActivePaneInWorkspace, removePane, createWorkspace, deleteWorkspace } =
         useTerminalStore();
 
     useEffect(() => {
@@ -30,10 +30,9 @@ export function useTerminalKeyboard({ onCreateSession }: UseTerminalKeyboardOpti
             const ws = workspaces.find((w) => w.id === activeWorkspaceId);
             if (!ws) return;
 
-            const rootPane = ws.layout.panes[0];
-            const leaves = rootPane ? collectLeafPanes(rootPane) : [];
+            const panes = ws.panes;
             const activePaneId = ws.activePaneId;
-            const activeIdx = leaves.findIndex((p) => p.id === activePaneId);
+            const activeIdx = panes.findIndex((p) => p.id === activePaneId);
 
             // Cmd+T — 新建工作区
             if (e.key === 't' && !e.shiftKey) {
@@ -52,8 +51,8 @@ export function useTerminalKeyboard({ onCreateSession }: UseTerminalKeyboardOpti
             // Cmd+W — 关闭当前 pane（至少保留 1 个）
             if (e.key === 'w' && !e.shiftKey) {
                 e.preventDefault();
-                if (leaves.length > 1) {
-                    closePane(activePaneId);
+                if (panes.length > 1) {
+                    removePane(activeWorkspaceId, activePaneId);
                 }
                 return;
             }
@@ -62,7 +61,7 @@ export function useTerminalKeyboard({ onCreateSession }: UseTerminalKeyboardOpti
             if (e.key === '[') {
                 e.preventDefault();
                 if (activeIdx > 0) {
-                    setActivePaneInWorkspace(activeWorkspaceId, leaves[activeIdx - 1].id);
+                    setActivePaneInWorkspace(activeWorkspaceId, panes[activeIdx - 1].id);
                 }
                 return;
             }
@@ -70,17 +69,17 @@ export function useTerminalKeyboard({ onCreateSession }: UseTerminalKeyboardOpti
             // Cmd+] — 切换到右侧 pane（索引 + 1）
             if (e.key === ']') {
                 e.preventDefault();
-                if (activeIdx < leaves.length - 1) {
-                    setActivePaneInWorkspace(activeWorkspaceId, leaves[activeIdx + 1].id);
+                if (activeIdx < panes.length - 1) {
+                    setActivePaneInWorkspace(activeWorkspaceId, panes[activeIdx + 1].id);
                 }
                 return;
             }
 
-            // Cmd+↑ — 切换到上方 pane（简单实现：索引 - 1，与 [ 等效）
+            // Cmd+↑ — 切换到上方 pane（索引 - 1）
             if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 if (activeIdx > 0) {
-                    setActivePaneInWorkspace(activeWorkspaceId, leaves[activeIdx - 1].id);
+                    setActivePaneInWorkspace(activeWorkspaceId, panes[activeIdx - 1].id);
                 }
                 return;
             }
@@ -88,8 +87,8 @@ export function useTerminalKeyboard({ onCreateSession }: UseTerminalKeyboardOpti
             // Cmd+↓ — 切换到下方 pane（索引 + 1）
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                if (activeIdx < leaves.length - 1) {
-                    setActivePaneInWorkspace(activeWorkspaceId, leaves[activeIdx + 1].id);
+                if (activeIdx < panes.length - 1) {
+                    setActivePaneInWorkspace(activeWorkspaceId, panes[activeIdx + 1].id);
                 }
                 return;
             }
@@ -101,7 +100,7 @@ export function useTerminalKeyboard({ onCreateSession }: UseTerminalKeyboardOpti
         workspaces,
         activeWorkspaceId,
         setActivePaneInWorkspace,
-        closePane,
+        removePane,
         createWorkspace,
         deleteWorkspace,
         onCreateSession,
