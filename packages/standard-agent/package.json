@@ -13,6 +13,10 @@
         "./storage/sqlite": {
             "import": "./src/storage/sqlite.ts",
             "default": "./src/storage/sqlite.ts"
+        },
+        "./storage/merged": {
+            "import": "./src/storage/merged.ts",
+            "default": "./src/storage/merged.ts"
         }
     },
     "scripts": {
