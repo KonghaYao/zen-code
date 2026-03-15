@@ -1,0 +1,44 @@
+{
+    "$schema": "https://raw.githubusercontent.com/neutralinojs/neutralinojs/main/schemas/neutralino.config.schema.json",
+    "applicationId": "io.codegraph.zendesktop",
+    "version": "1.0.0",
+    "defaultMode": "window",
+    "port": 0,
+    "documentRoot": "/resources/",
+    "url": "http://127.0.0.1:8124/ui",
+    "enableServer": true,
+    "enableNativeAPI": true,
+    "tokenSecurity": "one-time",
+    "logging": {
+        "enabled": true,
+        "writeToLogFile": true
+    },
+    "nativeAllowList": ["app.*", "os.*", "debug.log"],
+    "modes": {
+        "window": {
+            "title": "Zen Code",
+            "width": 1280,
+            "height": 800,
+            "minWidth": 800,
+            "minHeight": 600,
+            "center": true,
+            "fullScreen": false,
+            "alwaysOnTop": false,
+            "icon": "/resources/icons/appIcon.png",
+            "enableInspector": false,
+            "borderless": false,
+            "maximize": true,
+            "hidden": false,
+            "resizable": true,
+            "exitProcessOnClose": true
+        }
+    },
+    "cli": {
+        "binaryName": "neutralino",
+        "resourcesPath": "/resources/",
+        "extensionsPath": "/extensions/",
+        "clientLibrary": "/resources/js/neutralino.js",
+        "binaryVersion": "6.5.0",
+        "clientVersion": "6.5.0"
+    }
+}

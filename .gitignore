@@ -154,3 +154,4 @@ claude-blog-cn
 
 *.py
 build
+.tmp
