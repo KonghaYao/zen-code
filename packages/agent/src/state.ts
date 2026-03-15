@@ -21,7 +21,7 @@ export const CodeSchema = new StateSchema({
     provider_type: z.string().default('openai'),
     model_id: z.string().default('qwen-plus'),
     agent_name: z.string().default('Code Agent'),
-    switch_command: z.string().optional(),
+    active_agent: z.string().optional(),
     enable_thinking: z.boolean().default(true),
     /** 是否启用流式输出（默认 false） */
     streaming: z.boolean().default(false),

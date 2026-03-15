@@ -54,7 +54,7 @@ export interface AppConfig {
     /** 是否启用流式输出（默认 true，设为 false 则等待完整响应后再显示） */
     streaming?: boolean;
     /** 切换命令 */
-    switch_command?: string;
+    active_agent?: string;
     /** 紧凑模式 */
     compact_mode?: boolean;
     /** 显示详细信息（系统资源等） */

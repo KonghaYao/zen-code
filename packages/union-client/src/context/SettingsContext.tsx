@@ -15,7 +15,7 @@ interface SettingsContextType {
         provider_id: string;
         model_id: string;
         mcp_config?: MCPConfig;
-        switch_command?: string;
+        active_agent?: string;
     };
     AVAILABLE_MODELS: ModelConfig[];
     manager: ConfigManager;
@@ -52,9 +52,9 @@ export const SettingsProvider = ({ manager, get_allowed_models, children }: Sett
             model_id: config?.model_id || availableModelsRef.current[0]?.id,
             mcp_config: config?.mcp_config,
             enable_thinking: config?.enable_thinking ?? true,
-            switch_command: config?.switch_command || '',
+            active_agent: config?.active_agent || '',
         };
-    }, [config?.provider_id, config?.model_id, config?.mcp_config, config?.enable_thinking, config?.switch_command]);
+    }, [config?.provider_id, config?.model_id, config?.mcp_config, config?.enable_thinking, config?.active_agent]);
 
     const compactMode = useMemo(() => {
         return config?.compact_mode ?? false;

@@ -5,7 +5,7 @@ export default {
         name: 'Zen Swarm',
         identifier: 'com.zenswarm.desktop',
         version: '1.0.0',
-        iconPath: '../zen-swarm/src/frontend/assets/icon.png',
+        iconPath: '../public/logo.webp',
     },
     build: {
         bun: {

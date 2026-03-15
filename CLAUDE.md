@@ -1,193 +1,194 @@
-# CLAUDE.md
+# 仓库指南
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Monorepo：LangGraph 后端（`packages/agent/`）+ 配置系统（`packages/config/`）+ 共享库（`packages/standard-agent/`、`packages/agent-middlewares/`）+ 客户端（`zen-code/`、`zen-swarm/`、`zen-core/`、`zen-desktop/`）
 
-# Repository Guidelines
-
-Monorepo: LangGraph backend (`packages/agent/`) + Config system (`packages/config/`) + Shared libraries
-(`packages/standard-agent/`, `packages/agent-middlewares/`) + Clients (`zen-code/`, `zen-swarm/`)
-
-## Project Structure
+## 项目结构
 
 ```
 code-graph/
-├── packages/                    # Monorepo packages
-│   ├── agent/                  # LangGraph backend core (application layer)
-│   ├── config/                 # Configuration system (LowDB-based)
-│   ├── ink-pro/                # Shared Ink components (TUI)
-│   ├── union-client/           # Shared client logic
-│   ├── standard-agent/         # Agent system library (AgentPackage, middleware base)
-│   └── agent-middlewares/      # Reusable middleware implementations
-├── zen-code/                   # TUI CLI tool
-├── zen-swarm/                  # Web UI server + tRPC API
+├── packages/                    # Monorepo 包
+│   ├── agent/                  # LangGraph 后端核心（应用层）
+│   ├── config/                 # 配置系统（基于 LowDB）
+│   ├── ink-pro/                # 共享 Ink 组件（TUI）
+│   ├── union-client/           # 共享客户端逻辑
+│   ├── standard-agent/         # Agent 系统库（AgentPackage、中间件基类）
+│   └── agent-middlewares/      # 可复用中间件实现
+├── zen-core/                   # 统一后端服务（端口 8125）
+├── zen-code/                   # TUI CLI 工具
+├── zen-swarm/                  # Web UI 代理服务器（端口 8124）
+├── zen-desktop/                # 桌面应用（Electrobun）
 ├── .claude/
-│   └── skills/                 # Project-level skills
-└── specs/                      # Feature documentation
+│   └── skills/                 # 项目级 Skills
+└── specs/                      # 功能文档
 ```
 
-**Reference**: See individual package directories for detailed structure
+**参考**：各包目录内有详细结构说明
 
-## Development Commands
+## 开发命令
 
 ```bash
-# Backend
-bun run dev:server          # LangGraph server (port 8123) - deprecated, use dev:swarm
+# 后端（推荐流程）
+bun run dev:core            # zen-core 统一服务（端口 8125）
+bun run dev:swarm           # Web UI 代理服务器（端口 8124），需先启动 zen-core
 
-# Frontend
-bun run dev:tui             # TUI app (zen-code)
-bun run dev:swarm           # Web UI server (zen-swarm, port 8124)
-bun run dev:all             # Server + Web in parallel
+# TUI
+bun run dev:tui             # TUI 应用（zen-code）
+bun run dev:all             # zen-core + TUI 并行启动（推荐）
 
-# Build
-bun run build                  # Build all packages
-bun run build:packages         # Build packages only
-bun run build:zen-code         # Build TUI only
-bun run build:zen-worker       # Build Web UI worker (deprecated)
+# 桌面
+bun run dev:desktop         # zen-desktop（Electrobun）
 
-# Testing
-bun test                       # Run all tests
-bun run test:run               # Run tests once
-bun run test:coverage          # Generate coverage report
-bun run test:watch             # Watch mode
+# 构建
+bun run build               # 构建所有包
+bun run build:packages      # 仅构建 packages
+bun run build:zen-code      # 仅构建 TUI
+
+# 测试
+bun test                    # 运行所有测试
+bun run test:run            # 单次运行测试
+bun run test:coverage       # 生成覆盖率报告
+bun run test:watch          # 监听模式
 ```
 
-**Test Configuration**:
+**测试配置**：
 
-- Framework: Vitest with happy-dom environment
-- Config: `vitest.config.ts` in root
-- Coverage: v8 provider with text/json/html reporters
-- Setup: `zen-code/src/__tests__/setup.ts`
+- 框架：Vitest，happy-dom 环境
+- 配置：根目录 `vitest.config.ts`
+- 覆盖率：v8 provider，text/json/html 报告
+- 初始化：`zen-code/src/__tests__/setup.ts`
 
-**Test Location Patterns**:
+**测试文件位置规则**：
 
-- Packages: `packages/**/*.test.ts`
-- zen-code: `zen-code/src/**/*.{test,testx}.{ts,tsx}`
-- zen-swarm: `zen-swarm/src/**/*.test.ts`
+- Packages：`packages/**/*.test.ts`
+- zen-code：`zen-code/src/**/*.{test,testx}.{ts,tsx}`
+- zen-swarm：`zen-swarm/src/**/*.test.ts`
 
-**Coverage Exclusions**:
+**覆盖率排除项**：
 
 - `**/__tests__/**`
 - `**/*.test.{ts,tsx}`
 - `**/dist/**`
 - `**/node_modules/**`
 
-## Configuration
+## 配置
 
-**User Config**: `~/.zen-code/settings.json` (LowDB persistence)
+**用户配置**：`~/.zen-code/settings.json`
 
-**Config System**: `packages/config/src/implementations/FileSystemConfigStore.ts`
+**配置系统**：`packages/config/src/implementations/FileSystemConfigStore.ts`
 
-**Architecture**:
+**架构**：
 
-- FileSystemConfigStore: LowDB-based persistence
-- ConfigManager: Unified config access with auto-sync to environment variables
-- ConfigServer: Hono-based REST API for remote config management
-- Auto-syncs to `process.env`: `MODEL_PROVIDER`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`
+- FileSystemConfigStore
+- ConfigManager：统一配置访问，自动同步到环境变量
+- ConfigServer：基于 Hono 的 REST API，用于远程配置管理
+- 自动同步到 `process.env`：`MODEL_PROVIDER`、`OPENAI_API_KEY`、`ANTHROPIC_API_KEY`
 
-**Multi-Provider Architecture**:
+**多 Provider 架构**：
 
-- Format: `provider_id` + `model_id` + `providers[]` array
-- Automatic migration from legacy format
-- Environment variables synced based on current `provider_id`
+- 格式：`provider_id` + `model_id` + `providers[]` 数组
+- 自动从旧格式迁移
+- 根据当前 `provider_id` 同步环境变量
 
-**Environment Variables** (can override config):
+**环境变量**（可覆盖配置文件）：
 
 ```bash
 MODEL_PROVIDER=openai|anthropic
 OPENAI_API_KEY=...
 ANTHROPIC_API_KEY=...
-YOLO_MODE=true              # Disable HITL (dangerous)
+YOLO_MODE=true              # 禁用 HITL（危险）
 ```
 
-**Provider Management**:
+**Provider 管理**：
 
-- Command: `/provider` opens configuration panel
-- UI: `zen-code/src/chat/components/ProviderPanel.tsx`
+- 命令：`/provider` 打开配置面板
+- UI：`zen-code/src/chat/components/ProviderPanel.tsx`
 
-## State Management
+## 状态管理
 
-**Core Principle**: Library vs Application Separation
+**核心原则**：库与应用层分离
 
-**Architecture**: TanStack Query hooks implemented **only in zen-code application layer**
+**架构**：TanStack Query hooks **仅在 zen-code 应用层**实现
 
-**Rationale**:
+**原因**：
 
-- `packages/` are shared libraries used by other applications
-- Minimal impact scope, easy to rollback
-- Clear responsibility: libraries provide basic APIs, application handles state management
+- `packages/` 是被多个应用共享的库
+- 影响范围小，易于回滚
+- 职责清晰：库提供基础 API，应用层负责状态管理
 
-**Key Files**:
+**关键文件**：
 
-- Hooks: `zen-code/src/chat/hooks/`
-- Query keys: `zen-code/src/chat/query-keys.ts`
-- Query Client: `zen-code/src/chat/QueryClientProvider.tsx`
-- Context: `zen-code/src/chat/context/SettingsContext.tsx`
+- Hooks：`zen-code/src/chat/hooks/`
+- Query keys：`zen-code/src/chat/query-keys.ts`
+- Query Client：`zen-code/src/chat/QueryClientProvider.tsx`
+- Context：`zen-code/src/chat/context/SettingsContext.tsx`
 
-**Implementation Guidelines**:
+**实现规范**：
 
-1. All TanStack Query hooks must be in `zen-code/src/chat/hooks/`
-2. `packages/` provide basic CRUD operations only
-3. Import from app layer: `../context/SettingsContext` (not `@codegraph/union-client`)
-4. Define query keys in `zen-code/src/chat/query-keys.ts`
+1. 所有 TanStack Query hooks 必须放在 `zen-code/src/chat/hooks/`
+2. `packages/` 仅提供基础 CRUD 操作
+3. 从应用层导入：`../context/SettingsContext`（不用 `@codegraph/union-client`）
+4. 在 `zen-code/src/chat/query-keys.ts` 中定义 query keys
 
-**Performance Optimizations**:
+**性能优化**：
 
-- UniversalPanel: Use `useRef` + `useMemo` to stabilize references
-- Component: Use `useMemo` + `useCallback` with minimal dependencies
-- See: `packages/ink-pro/src/components/Panel/usePanelNavigation.ts`
+- UniversalPanel：用 `useRef` + `useMemo` 稳定引用
+- 组件：用 `useMemo` + `useCallback`，最小化依赖
+- 参考：`packages/ink-pro/src/components/Panel/usePanelNavigation.ts`
 
-**Migrated Components**:
+**已迁移组件**：
 
-- `ModelPanel.tsx`, `TaskPanel.tsx`, `HistoryPanel.tsx`, `KnowledgePanel.tsx`, `ProviderPanel.tsx`
+- `ModelPanel.tsx`、`TaskPanel.tsx`、`HistoryPanel.tsx`、`KnowledgePanel.tsx`、`ProviderPanel.tsx`
 
-**Available Hooks**:
+**可用 Hooks**：
 
-- `useConfig`, `useUpdateConfig` - Configuration management
-- `useSkills`, `useSaveSkill`, `useDeleteSkill` - Skills management
-- `useModels` - Model list fetching (30s timeout, retry on network/timeout errors)
-- `useTasks`, `useDeleteTask`, `useUpdateTaskStatus` - Task management
-- `useHistory` - Chat history queries
-- `useKnowledge` - Knowledge base (memories + skills)
-- `useProviders` - Providers list queries
-- `useAgents` - Agents list queries
+- `useConfig`、`useUpdateConfig` - 配置管理
+- `useSkills`、`useSaveSkill`、`useDeleteSkill` - Skills 管理
+- `useModels` - 模型列表获取（30s 超时，网络/超时错误重试）
+- `useTasks`、`useDeleteTask`、`useUpdateTaskStatus` - 任务管理
+- `useHistory` - 聊天历史查询
+- `useKnowledge` - 知识库（memories + skills）
+- `useProviders` - Provider 列表查询
+- `useAgents` - Agent 列表查询
 
-## Architecture
+## 架构
 
-### Three-Layer Architecture
+### 三层架构
 
-The codebase follows a strict three-layer separation:
+代码库严格遵循三层分离：
 
-1. **Framework Layer** (`packages/standard-agent/`, `packages/agent-middlewares/`)
-    - Generic, reusable components
-    - No application-specific dependencies
-    - Published as standalone packages
+1. **框架层**（`packages/standard-agent/`、`packages/agent-middlewares/`）
+    - 通用、可复用组件
+    - 无应用层特定依赖
+    - 作为独立包发布
 
-2. **Application Layer** (`packages/agent/`, `packages/config/`)
-    - Project-specific business logic
-    - Depends on framework layer
-    - Implements domain-specific functionality
+2. **应用层**（`packages/agent/`、`packages/config/`）
+    - 项目特定业务逻辑
+    - 依赖框架层
+    - 实现领域特定功能
 
-3. **Client Layer** (`zen-code/`, `zen-swarm/`)
-    - User interfaces
-    - Depends on application layer
-    - TUI and Web implementations
+3. **客户端层**（`zen-code/`、`zen-swarm/`、`zen-core/`、`zen-desktop/`）
+    - 用户界面与服务入口
+    - `zen-core/`：统一后端服务（所有业务逻辑、数据存储）
+    - `zen-swarm/`：Web UI 代理（鉴权 + 前端，委托给 zen-core）
+    - `zen-code/`：TUI CLI，通过 `ZenCoreContext` 连接 zen-core
+    - `zen-desktop/`：桌面应用（Electrobun）
 
-### Standard Agent Package
+### Standard Agent 包
 
-**Package**: `@langgraph-js/standard-agent`
+**包名**：`@langgraph-js/standard-agent`
 
-**Purpose**: Unified agent package system for tools, middlewares, and storage
+**用途**：统一的 agent 包系统，用于工具、中间件和存储
 
-**Key Components**:
+**核心组件**：
 
-- **AgentPackage**: Central coordinator for repository, validator, serializer, and runtime registries
-- **AgentRepository**: CRUD operations for models, prompts, tools, middlewares, agents
-- **AgentValidator**: Validates agent configurations against available tools/middlewares
-- **AgentSerializer**: JSON import/export for agent configurations
-- **Storage Abstractions**: Memory, SQLite (platform-dependent)
-- **Runtime Registries**: ToolRegistry, MiddlewareRegistry for dynamic discovery
+- **AgentPackage**：中央协调器，管理 repository、validator、serializer 和运行时注册表
+- **AgentRepository**：models、prompts、tools、middlewares、agents 的 CRUD 操作
+- **AgentValidator**：根据可用工具/中间件验证 agent 配置
+- **AgentSerializer**：agent 配置的 JSON 导入/导出
+- **Storage 抽象**：内存存储、SQLite（平台相关）
+- **运行时注册表**：ToolRegistry、MiddlewareRegistry，用于动态发现
 
-**Usage Pattern**:
+**使用示例**：
 
 ```typescript
 import { AgentPackage } from '@langgraph-js/standard-agent';
@@ -196,10 +197,10 @@ import { MemoryStorage } from '@langgraph-js/standard-agent/storage/memory';
 const storage = new MemoryStorage();
 const pkg = await AgentPackage.fromStorage(storage);
 
-// Register runtime tools
+// 注册运行时工具
 pkg.tools.register('my_tool', myToolImplementation);
 
-// Create agent with registered tools and middlewares
+// 使用已注册工具和中间件创建 agent
 const agent = await createAgent({
     pkg,
     model,
@@ -207,355 +208,316 @@ const agent = await createAgent({
 });
 ```
 
-**Reference**: `packages/standard-agent/src/package.ts`
+**参考**：`packages/standard-agent/src/package.ts`
 
-### Zen Swarm (Web UI)
+### Zen Core（统一服务）
 
-**Server**: `zen-swarm/src/server.ts` (port 8124)
+**服务**：`zen-core/src/server.ts`（端口 8125）
 
-**Architecture**:
+**架构**：
 
-- LangGraph-based multi-agent collaboration server
-- tRPC API for type-safe client-server communication
-- React + Vite frontend with Motion animations
-- Cron scheduler for scheduled tasks
-- Workspace-based multi-project support
+- 基于 Hono 的 HTTP 服务器，提供所有后端服务
+- tRPC API：`AppRouter` 从 `zen-core/src/router.ts` 导出
+- 无鉴权（本地服务，直接信任所有本地请求）
+- LangGraph 流式传输：`/api/langgraph`
+- Terminal WebSocket：`/ws/terminal`
 
-**Key Features**:
+**主要路由**（`zen-core/src/routes/`）：
 
-- **Finder**: File explorer with ripgrep search
-- **Workspace Management**: Multiple workspaces with isolated storage
-- **Agent Registry**: Dynamic agent loading and configuration
-- **Cron System**: Scheduled task execution
-- **Four-Panel Layout**: Finder, Workspace, Chat, Tasks
+- `config`、`models`、`skills`、`tasks`、`agents`、`knowledge`、`processes`
+- `mcp`、`workspaces`、`cron`、`prompts`、`middlewares`
 
-**API Endpoints**:
+**运行时数据**：
 
-- `/api/langgraph` - LangGraph streaming API
-- `/api/trpc` - tRPC router
-- `/health` - Health check endpoint
-- `/ui` - Web interface
+- **数据库**：`~/.zen-core/data.db`（SQLite via Kysely）
+- **配置**：`~/.zen-code/settings.json`
+- **PID 文件**：`~/.zen-core/zen-core.pid`（防孤儿进程）
 
-**Reference**: `zen-swarm/src/graphBuilder.ts`
+**参考**：`zen-core/src/bootstrap.ts`（服务容器单例）
 
-### Graph System
+### Zen Swarm（Web UI 代理）
 
-**Dynamic Agent Routing** via `switch_command`
+**服务**：`zen-swarm/src/server.ts`（端口 8124）
 
-**Reference**: `packages/agent/src/graphBuilder.ts`
+**架构**：
 
-**Available Branches**:
+- **纯代理模式**：启动时通过 `connectToZenCore` 确保 zen-core 运行
+- 大部分 `/api/*` 请求转发到 `http://127.0.0.1:8125`
+- 本地处理：`/api/auth/*`、`/api/trpc/postman.*`、`/api/trpc/providers.*`、`/api/trpc/files.*`
+- Terminal WebSocket `/ws/terminal` 本地处理
+- React + Vite 前端，`/ui` 提供静态文件
 
-- Agent routing via `switch_command`
+**前端 tRPC**：`zen-swarm/src/frontend/api.ts` 使用本地
+`FullAppRouter`（包含 providers、store、postman 等），长期应迁移到 zen-core 的 `AppRouter`
 
-**Available Agents** (configured in `subagents/config.ts`):
+**主要功能**：
 
-- `default` - "Jarvis" with full capabilities (code implementation assistant)
-- `manager` - Task administrator (task management focus)
+- **Finder**：文件浏览器，支持 ripgrep 搜索
+- **工作区管理**：多工作区隔离存储
+- **四面板布局**：Finder、工作区、聊天、任务
 
-**Key Difference**: `default` enables all middleware including MCP, `manager` disables MCP
+**参考**：`zen-swarm/src/server.ts`、`zen-swarm/src/frontend/api.ts`
 
-### Middleware System
+### 图系统
 
-**Dynamic Composition** (no longer fixed chain)
+**动态 Agent 路由**，通过 `active_agent` 实现
 
-**Reference**: `packages/agent/src/subagents/factory-v2.ts`
+**参考**：`packages/agent/src/graphBuilder.ts`
 
-**Two-Layer Architecture**:
+**可用 Agent**（配置于 `subagents/config.ts`）：
 
-1. **`packages/standard-agent/`** - Framework layer with reusable middleware base classes
-2. **`packages/agent-middlewares/`** - Concrete implementations (FilesystemMiddleware, TerminalMiddleware)
-3. **`packages/agent/`** - Application layer with project-specific middleware
+- `default` - "Jarvis"，全能力（代码实现助手）
+- `manager` - 任务管理员（专注任务管理）
 
-**Available Middleware**:
+**关键区别**：`default` 启用包括 MCP 在内的所有中间件，`manager` 禁用 MCP
 
-**From `@langgraph-js/standard-agent`** (framework layer):
+### 中间件系统
 
-- `SubAgentsMiddleware` - Task delegation to specialized sub-agents (generic, dependency injection)
-- `MCPMiddleware` - Unified MCP server connection and tool execution
-- `MemoriesMiddleware` - Progressive disclosure from `.claude/memories/`
-- `SkillsMiddleware` - Progressive disclosure from `.claude/skills/`
-- `AgentsMdMiddleware` - AGENTS.md loader for project guidelines
-- `HumanInTheLoopMiddleware` - User approval for sensitive operations
-- `AnthropicCacheMiddleware` - Prompt caching (Anthropic only)
+**动态组合**（不再是固定链）
 
-**From `@langgraph-js/agent-middlewares`** (concrete implementations):
+**参考**：`packages/agent/src/subagents/factory-v2.ts`
 
-- `FilesystemMiddleware` - File and directory operations (read, write, edit, glob, grep, folder)
-- `TerminalMiddleware` - Terminal command execution (cross-platform Bash/CMD support)
+**分层架构**：
 
-**Key Features**:
+1. **`packages/standard-agent/`** - 框架层，可复用中间件基类
+2. **`packages/agent-middlewares/`** - 具体实现（FilesystemMiddleware、TerminalMiddleware）
+3. **`packages/agent/`** - 应用层，项目特定中间件
 
-- Dynamic tool and middleware loading via AgentPackage
-- Sub-agents don't enable subagents middleware (avoid infinite nesting)
-- MCP always enabled as separate middleware
-- HITL always enabled unless `YOLO_MODE=true`
-- **Migration Pattern**: Application layer middleware → standard-agent framework → agent-middlewares implementations
+**可用中间件**：
 
-### Skills System
+**来自 `@langgraph-js/standard-agent`**（框架层）：
 
-**Locations**:
+- `SubAgentsMiddleware` - 任务委托给专用子 agent（通用，依赖注入）
+- `MCPMiddleware` - 统一 MCP 服务器连接与工具执行
+- `MemoriesMiddleware` - 渐进式加载 `.claude/memories/`
+- `SkillsMiddleware` - 渐进式加载 `.claude/skills/`
+- `AgentsMdMiddleware` - 加载 AGENTS.md 项目指引
+- `HumanInTheLoopMiddleware` - 敏感操作需用户确认
+- `AnthropicCacheMiddleware` - 提示词缓存（仅 Anthropic）
 
-- Project skills: `./.claude/skills/`
-- User skills: `~/.claude/code/skills/`
+**来自 `@langgraph-js/agent-middlewares`**（具体实现）：
 
-**Format**: YAML frontmatter + Markdown
+- `FilesystemMiddleware` - 文件与目录操作（read、write、edit、glob、grep、folder）
+- `TerminalMiddleware` - 终端命令执行（跨平台 Bash/CMD）
 
-**Progressive Disclosure**:
+**关键特性**：
 
-- Skills NOT loaded into system prompt by default
-- SkillsMiddleware injects them only when relevant
-- Each skill has `name` and `description` for matching
+- 通过 AgentPackage 动态加载工具和中间件
+- 子 agent 不启用 subagents 中间件（避免无限嵌套）
+- MCP 始终作为独立中间件启用
+- HITL 始终启用，除非设置 `YOLO_MODE=true`
 
-**Available Skills**:
+### Skills 系统
 
-- `codebase-exploration` - Deep contextual grep for codebases
-- `tanstack-query` - Manage server state in React with TanStack Query v5
-- `find-skills` - Discover and install agent skills
-- `skill-creator` - Guide for creating effective skills
-- `brainstorming` - Must use before any creative work
-- `langgraph-development` - Building agents with LangChain/LangGraph
-- `tui-development` - Building TUI (Terminal UI) applications
-- `crafting-effective-readmes` - Writing or improving README files
-- `humanizer` - Remove signs of AI-generated writing from text
+**位置**：
 
-### SubAgent System
+- 项目级 Skills：`./.claude/skills/`
+- 用户级 Skills：`~/.claude/code/skills/`
 
-**Configuration-Driven**
+**格式**：YAML frontmatter + Markdown
 
-**Reference**: `packages/agent/src/subagents/config.ts`
+**渐进式加载**：
 
-**Current Agents**:
+- Skills 默认不加载到系统提示词
+- SkillsMiddleware 仅在相关时注入
+- 每个 skill 有 `name` 和 `description` 用于匹配
 
-- `default` - Full capabilities (tools: read, write, glob, grep, terminal, interaction, task; middleware: all)
-- `manager` - Task administration (same tools; middleware: agents_md, skills, subagents - **no mcp**)
+**可用 Skills**：
 
-**Key Differences**:
+- `codebase-exploration` - 代码库深度搜索
+- `tanstack-query` - React TanStack Query v5 服务端状态管理
+- `find-skills` - 发现并安装 agent skills
+- `skill-creator` - 创建 skills 的指引
+- `brainstorming` - 创意工作前必须使用
+- `langgraph-development` - 用 LangChain/LangGraph 构建 agent
+- `tui-development` - 构建 TUI（终端 UI）应用
+- `crafting-effective-readmes` - 编写或改进 README
+- `humanizer` - 消除 AI 写作痕迹
 
-- `default` agent enables all middleware including MCP
-- `manager` agent disables MCP (specialized for task management)
+### 子 Agent 系统
 
-**Architecture**:
+**配置驱动**
 
-- Application layer (`packages/agent/`) provides `createAgent` callback
-- Framework layer (`packages/standard-agent/`) provides generic `SubAgentsMiddleware`
-- Uses dependency injection pattern: `createAgent: async (taskId, args, state) => Agent`
-- Data structure: `SubAgentInfo[]` array (simple JSON, no AgentPackage dependency)
+**参考**：`packages/agent/src/subagents/config.ts`
 
-**Future Extensions**:
+**当前 Agent**：
 
-- Add specialized agents via `AgentConfig`
-- Load from `~/.zen-code/settings.json`
-- Load from database
-- Remote configuration service
+- `default` - 全能力（工具：read、write、glob、grep、terminal、interaction、task；中间件：全部）
+- `manager` - 任务管理（相同工具；中间件：agents_md、skills、subagents - **禁用 mcp**）
 
-### Tool System
+**关键区别**：
 
-**Two-Layer Architecture**:
+- `default` agent 启用包括 MCP 在内的所有中间件
+- `manager` agent 禁用 MCP（专注任务管理）
 
-1. **`packages/agent-middlewares/`** - Reusable tool implementations (framework layer)
-    - `filesystem_tools/`: read, write, replace, glob, grep, folder
-    - `bash_tools/`: terminal command execution
-    - Base type: `BaseAgentStateType` (generic state with `cwd` field)
+**架构**：
 
-2. **`packages/agent/`** - Application-specific tools (application layer)
-    - `interaction` - ask_user_with_options (user approval and input)
-    - `task_tools` - todo list management (todo_write, add_task, commit_task)
-    - `memory` - memory storage and retrieval (triggered via smart_memory)
+- 应用层（`packages/agent/`）提供 `createAgent` 回调
+- 框架层（`packages/standard-agent/`）提供通用 `SubAgentsMiddleware`
+- 依赖注入模式：`createAgent: async (taskId, args, state) => Agent`
+- 数据结构：`SubAgentInfo[]` 数组（简单 JSON，无 AgentPackage 依赖）
 
-**Command System** (additional capabilities):
+**未来扩展**：
 
-- `batch_command` - Execute multiple tools in one call
-- `list_available_commands` - Query all available tools at runtime
+- 通过 `AgentConfig` 添加专用 agent
+- 从 `~/.zen-code/settings.json` 加载
+- 从数据库加载
+- 远程配置服务
 
-**Tool Registration**:
+### 工具系统
 
-- CommandSystem does **not** automatically register all tools
-- Tools manually registered via `commandSystem.registerTools(commandTools)`
-- Currently registered: `read_tool`, `glob_tool` + MCP tools (if enabled)
+**分层架构**：
 
-**Reference**: `packages/agent/src/subagents/factory-v2.ts`
+1. **`packages/agent-middlewares/`** - 可复用工具实现（框架层）
+    - `filesystem_tools/`：read、write、replace、glob、grep、folder
+    - `bash_tools/`：终端命令执行
+    - 基础类型：`BaseAgentStateType`（含 `cwd` 字段的通用状态）
 
-**MCP Integration**:
+2. **`packages/agent/`** - 应用特定工具（应用层）
+    - `interaction` - ask_user_with_options（用户确认与输入）
+    - `task_tools` - todo 列表管理（todo_write、add_task、commit_task）
+    - `memory` - 记忆存储与检索（通过 smart_memory 触发）
 
-- MCP tools exposed through CommandSystemMiddleware
-- MCPManager singleton manages connections and tool caching
-- Configured via `mcp_config` in settings
+**命令系统**（额外能力）：
 
-**Migration History** (2025-01-23):
+- `batch_command` - 一次调用执行多个工具
+- `list_available_commands` - 运行时查询所有可用工具
 
-- **Before**: Tools lived in `packages/agent/src/tools/`
-- **After**: Filesystem and bash tools migrated to `packages/agent-middlewares/`
-- **Benefit**: Shared between zen-code and zen-swarm, reduced duplication
+**工具注册**：
 
-## Coding Standards
+- CommandSystem **不会**自动注册所有工具
+- 通过 `commandSystem.registerTools(commandTools)` 手动注册
+- 当前已注册：`read_tool`、`glob_tool` + MCP 工具（若启用）
 
-- **TypeScript**: Strict mode, `.js` extensions, explicit return types
-- **Imports**: Relative imports preferred (`./module` over `../module`)
-- **Functions**: Pure functions, async/await, Zod schemas
-- **Naming**: PascalCase classes, kebab-case files, `is/has/should` booleans
-- **Architecture**: Single responsibility, dependency injection, composition
-- **File Structure**: Group by feature (middlewares/, tools/, subagents/)
+**参考**：`packages/agent/src/subagents/factory-v2.ts`
 
-## Adding Features
+**MCP 集成**：
 
-### Add New Tool
+- MCP 工具通过 CommandSystemMiddleware 暴露
+- MCPManager 单例管理连接和工具缓存
+- 通过 settings 中的 `mcp_config` 配置
 
-**Decision**: Is this tool reusable or application-specific?
+## 编码规范
 
-**Reusable tools** (add to `packages/agent-middlewares/`):
+- **TypeScript**：严格模式，`.js` 扩展名，显式返回类型
+- **导入**：优先相对路径（`./module` 而非 `../module`）
+- **函数**：纯函数、async/await、Zod schema
+- **命名**：类用 PascalCase，文件用 kebab-case，布尔值用 `is/has/should` 前缀
+- **架构**：单一职责、依赖注入、组合优于继承
+- **文件结构**：按功能分组（middlewares/、tools/、subagents/）
 
-- File operations, terminal commands, etc.
-- Must use `BaseAgentStateType` from `packages/agent-middlewares/src/index.ts`
+## 添加功能
 
-- Export via middleware class (e.g., `FilesystemMiddleware`)
-- Reference: `packages/agent-middlewares/src/filesystem.ts`
+### 添加新工具
 
-**Application-specific tools** (add to `packages/agent/src/tools/`):
+**决策**：该工具是可复用的还是应用特定的？
 
-- Interaction, task management, memory, etc.
-- Can use project-specific state types
-- Reference: `packages/agent/src/tools/`
+**可复用工具**（添加到 `packages/agent-middlewares/`）：
 
-**Registration**: Register in AgentPackage via `pkg.createTool()`
+- 文件操作、终端命令等
+- 必须使用 `packages/agent-middlewares/src/index.ts` 中的 `BaseAgentStateType`
+- 通过中间件类导出（如 `FilesystemMiddleware`）
+- 参考：`packages/agent-middlewares/src/filesystem.ts`
 
-### Add New Middleware
+**应用特定工具**（添加到 `packages/agent/src/tools/`）：
 
-**Decision**: Is this middleware framework-level or application-specific?
+- 交互、任务管理、记忆等
+- 可使用项目特定状态类型
+- 参考：`packages/agent/src/tools/`
 
-**Framework middleware** (add to `packages/standard-agent/src/middlewares/`):
+**注册**：通过 `pkg.createTool()` 在 AgentPackage 中注册
 
-- Generic, reusable across projects
-- Use dependency injection for application-specific logic
-- Reference: `packages/standard-agent/src/middlewares/subagents/`
+### 添加新中间件
 
-**Concrete middleware** (add to `packages/agent-middlewares/`):
+**决策**：是框架级还是应用特定中间件？
 
-- Filesystem, terminal, etc.
-- Export as class implementing `AgentMiddleware`
-- Reference: `packages/agent-middlewares/src/filesystem.ts`
+**框架中间件**（添加到 `packages/standard-agent/src/middlewares/`）：
 
-**Application middleware** (add to `packages/agent/src/middlewares/`):
+- 通用，跨项目可复用
+- 对应用特定逻辑使用依赖注入
+- 参考：`packages/standard-agent/src/middlewares/subagents/`
 
-- Project-specific business logic
-- Can depend on application-layer types
-- Reference: `packages/agent/src/middlewares/`
+**具体中间件**（添加到 `packages/agent-middlewares/`）：
 
-**Registration**: Register in AgentPackage via `pkg.createMiddleware()`
+- 文件系统、终端等
+- 实现 `AgentMiddleware` 接口并导出为类
+- 参考：`packages/agent-middlewares/src/filesystem.ts`
 
-### Add New SubAgent
+**应用中间件**（添加到 `packages/agent/src/middlewares/`）：
 
-**Reference**: `packages/agent/src/subagents/config.ts`
+- 项目特定业务逻辑
+- 可依赖应用层类型
+- 参考：`packages/agent/src/middlewares/`
 
-**Process**:
+**注册**：通过 `pkg.createMiddleware()` 在 AgentPackage 中注册
 
-1. Add agent config to `loadAgentsList()`
-2. Register prompt in AgentPackage via `pkg.createPrompt()`
-3. Configure tools and middleware
+### 添加新子 Agent
 
-### Add New Skill
+**参考**：`packages/agent/src/subagents/config.ts`
 
-**Process**:
+**流程**：
+
+1. 在 `loadAgentsList()` 中添加 agent 配置
+2. 通过 `pkg.createPrompt()` 在 AgentPackage 中注册提示词
+3. 配置工具和中间件
+
+### 添加新 Skill
+
+**流程**：
 
 ```bash
 mkdir -p .claude/skills/my-skill
 cat > .claude/skills/my-skill/SKILL.md << 'EOF'
 ---
 name: 'my-skill'
-description: 'What this skill does'
+description: '该 skill 的功能描述'
 ---
 
 # My Skill
 
-Instructions...
+说明内容...
 EOF
 ```
 
-## Runtime Data
+## 运行时数据
 
-- **Memory**: `.langgraph_api/memory.md`
-- **Database**: `.langgraph_api/langgraph.db` (SQLite)
-- **Logs**: Terminal output
-- **Config**: `~/.zen-code/settings.json` (user), `.zen-code/config.json` (project)
+- **记忆**：`.langgraph_api/memory.md`
+- **数据库**：`~/.zen-core/data.db`（SQLite via Kysely，zen-core 统一数据库）
+- **配置**：`~/.zen-code/settings.json`（用户），`.zen-code/config.json`（项目）
+- **zen-code stop** - 通过 PID 文件停止 zen-core 进程
+- **zen-code status** - 查询 `/health` 打印运行状态
 
-## Security
+## 安全
 
-**User Approval Required** (HITL):
+**需要用户确认**（HITL）：
 
-- package.json changes (adding dependencies)
-- lint/test/type-check commands
-- documentation/test file generation
-- service execution
-- file writes outside workspace (configurable)
+- package.json 变更（添加依赖）
+- lint/test/类型检查命令
+- 文档/测试文件生成
+- 服务启动
+- 工作区外的文件写入（可配置）
 
-**YOLO Mode**: Set `YOLO_MODE=true` to disable HITL (not recommended)
+**YOLO 模式**：设置 `YOLO_MODE=true` 禁用 HITL（不推荐）
 
-## Migration Notes
+## 迁移记录
 
-### 2025 Q1 Refactor
+### 2026 Q1：Zen Core 统一服务层
 
-**From Old Structure** (`agents/code/`):
+**架构变更**：
 
-- Fixed middleware chain → Dynamic agent configuration (AgentPackage + factory-v2)
-- Hardcoded subagents → Config-driven routing (switchBranch + AgentConfig)
-- Single backend package → Monorepo (agent, config, ink-pro, union-client)
-- Mixed concerns → Separated agent/config/client layers
+- 原 zen-swarm 的所有后端逻辑迁入独立的 `zen-core/`（端口 8125）
+- zen-swarm 改为纯代理：大部分 `/api/*` 转发到 zen-core，仅保留 auth/providers/files/postman 本地路由
+- 数据库从 `.langgraph_api/langgraph.db` 迁移到 `~/.zen-core/data.db`
+- zen-code 通过 `ZenCoreContext`（`zen-code/src/chat/context/ZenCoreContext.tsx`）连接 zen-core
+- `packages/union-client/src/zen-core-client.ts` 提供 `connectToZenCore` 函数
 
-**Key Improvements**:
+**待完成**：
 
-- Flexible agent specialization via `AgentConfig` and `AgentPackage`
-- Separate config system supporting local + remote
-- Shared client logic for TUI and Web (union-client)
-- Shared Ink components (ink-pro)
-- Better separation of concerns
-- Easier to add new agents and middleware
-- Dynamic tool and middleware loading
+- zen-swarm 前端 hooks 迁移到使用 tRPC（目前仍有部分使用旧 API）
+- zen-swarm `FullAppRouter` 类型长期应从 zen-core `AppRouter` 导入
 
-**Compatibility**:
+### 历史迁移（已稳定）
 
-- AGENTS.md still loaded by `AgentsMdMiddleware`
-- Skills format unchanged (YAML frontmatter + Markdown)
-- Memory system unchanged
-- MCP integration unchanged
-
-### 2025-01-23: Agent Middlewares Package Migration
-
-**From Old Structure**:
-
-- Tools in `packages/agent/src/tools/filesystem_tools/` and `bash_tools/`
-- Application-specific middleware implementations
-
-**To New Structure**:
-
-- `packages/agent-middlewares/` - Reusable FilesystemMiddleware and TerminalMiddleware
-- `BaseAgentStateType` - Generic state type for cross-project compatibility
-- Vite build with `vite-plugin-dts` for type declarations
-
-**Key Changes**:
-
-- FilesystemMiddleware: read, write, edit, glob, grep, folder operations
-- TerminalMiddleware: Cross-platform Bash/CMD execution
-- Shared between zen-code and zen-swarm
-- Reduced code duplication
-
-**Reference**: `.claude/memories/agent-middlewares-package-architecture/MEMORY.md`
-
-### 2025-01-17: SubAgentsMiddleware Migration
-
-**From Old Structure**:
-
-- `packages/agent/src/middlewares/subTasks.ts` with application-layer dependencies
-
-**To New Structure**:
-
-- `packages/standard-agent/src/middlewares/subagents/` - Generic framework
-- Dependency injection: `createAgent` callback provided by application layer
-- Data structure: `SubAgentInfo[]` instead of `AgentPackage` dependency
-
-**Key Changes**:
-
-- Application layer provides `createAgent` implementation
-- Framework layer provides generic `SubAgentsMiddleware`
-- `getAgentListFromPackage` for type-safe conversion
-
-**Reference**: `.claude/memories/subagents-middleware-migration/MEMORY.md`
+- Agent Middlewares Package（2025-01-23）：工具迁移到 `packages/agent-middlewares/`
+- SubAgentsMiddleware 迁移（2025-01-17）：迁移到 `packages/standard-agent/src/middlewares/subagents/`
+- 参考：`.claude/memories/` 目录下的各迁移备忘录

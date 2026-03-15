@@ -63,7 +63,7 @@ const WelcomeHeader: React.FC = () => {
     const isConfigured = hasProviderKey;
 
     const modelId = extraParams?.model_id || config?.model_id || '—';
-    const agentName = extraParams?.switch_command || 'default';
+    const agentName = extraParams?.active_agent || 'default';
     const cwd = process.cwd();
 
     // 快捷键分 4 列两行

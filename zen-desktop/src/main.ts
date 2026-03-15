@@ -15,13 +15,16 @@ console.log('[zen-desktop] zen-core ready.');
 const { startServer } = await import('zen-swarm/src/server.js');
 await startServer();
 
-// ── 3. 等待 zen-swarm 就绪 ────────────────────────────────────────────────────
-await waitForServer(ZEN_SWARM_HEALTH);
-
 // ── 4. 创建主窗口 ─────────────────────────────────────────────────────────────
 const win = new BrowserWindow({
     title: 'Zen Swarm',
     url: ZEN_SWARM_URL,
+    frame: {
+        width: 1200,
+        height: 800,
+        x: 100,
+        y: 100,
+    },
 });
 
 // ── 5. 系统托盘 ───────────────────────────────────────────────────────────────
@@ -43,22 +46,3 @@ Electrobun.events.on('before-quit', async () => {
     console.log('[zen-desktop] Shutting down...');
     // zen-core 由 connectToZenCore 管理，通过 PID 文件处理
 });
-
-// ── 工具函数 ──────────────────────────────────────────────────────────────────
-async function isServerReady(healthUrl: string, timeout = 500): Promise<boolean> {
-    try {
-        const res = await fetch(healthUrl, { signal: AbortSignal.timeout(timeout) });
-        return res.ok;
-    } catch {
-        return false;
-    }
-}
-
-async function waitForServer(healthUrl: string, timeout = 5000): Promise<void> {
-    const start = Date.now();
-    while (Date.now() - start < timeout) {
-        if (await isServerReady(healthUrl)) return;
-        await Bun.sleep(200);
-    }
-    throw new Error(`zen-swarm server not ready after ${timeout}ms`);
-}

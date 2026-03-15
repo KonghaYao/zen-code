@@ -23,7 +23,7 @@ interface AgentPanelProps {
 const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
     const { config, updateConfig } = useSettings();
     const trpc = useTrpc();
-    const currentAgentId = config?.switch_command || 'default';
+    const currentAgentId = config?.active_agent || 'default';
 
     // 修复：使用 useCallback 保持 dataSource 引用稳定
     const dataSource = useCallback(async () => {
@@ -59,7 +59,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
     const handleSelect = useCallback(
         async (agent: AgentConfig) => {
             const switchCommand = agent.id === 'default' ? '' : agent.id;
-            updateConfig({ switch_command: switchCommand });
+            updateConfig({ active_agent: switchCommand });
             onClose();
         },
         [updateConfig, onClose],

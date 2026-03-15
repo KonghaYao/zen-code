@@ -84,7 +84,7 @@ const StatusBar: React.FC = () => {
                     </Text>
                     <Text color="yellow" bold>
                         {' '}
-                        @{extraParams.switch_command || 'default'}
+                        @{extraParams.active_agent || 'default'}
                     </Text>
                     {!compactMode && (
                         <Text color="blue" bold>

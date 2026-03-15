@@ -17,7 +17,7 @@
 ║                                                                  ║
 ║  ┌── createCodeGraph() ──────────────── createSwarmGraph() ──┐  ║
 ║  │   graphBuilder.ts                    graphBuilder.ts       │  ║
-║  │   switch_command → agentId           agent_id → agentId    │  ║
+║  │   active_agent → agentId           agent_id → agentId    │  ║
 ║  └──────────────┬───────────────────────────┬────────────────┘  ║
 ╠═════════════════╪═══════════════════════════╪════════════════════╣
 ║  APPLICATION LAYER                          │                    ║

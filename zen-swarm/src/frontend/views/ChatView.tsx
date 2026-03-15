@@ -259,7 +259,7 @@ export function ChatView() {
     return (
         <ChatProvider
             apiUrl={new URL('/api/langgraph', location.href).toString()}
-            defaultAgent="swarm"
+            defaultAgent="code"
             defaultHeaders={getAuthHeaders()}
             withCredentials={false}
             showHistory={false}

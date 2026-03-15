@@ -19,6 +19,7 @@ import { handleTerminalMessage, handleTerminalClose, handleTerminalOpen } from '
 import { createPostmanRouter } from './api/postman.js';
 import { FileSystemPostmanStorage } from './postman/fileSystemStorage.js';
 import { router } from './api/trpc.js';
+import { filesRouter } from './api/files.js';
 import { connectToZenCore } from '@codegraph/union-client';
 import { authRouter } from './api/auth.js';
 import { authMiddleware } from './auth/tokenAuth.js';
@@ -74,6 +75,10 @@ export async function startServer() {
         providers: createProviderRouter(providerStorage, { getAllModels: getAllModelsFromZenCore }),
     });
 
+    const filesTrpcRouter = router({
+        files: filesRouter,
+    });
+
     const app = new Hono();
     app.use(logger());
 
@@ -104,6 +109,17 @@ export async function startServer() {
             req: c.req.raw,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             router: providerTrpcRouter as any,
+            createContext: () => ({}),
+        });
+    });
+
+    // 本地处理 files tRPC（文件系统操作，不走代理）
+    app.all('/api/trpc/files.*', (c) => {
+        return fetchRequestHandler({
+            endpoint: '/api/trpc',
+            req: c.req.raw,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            router: filesTrpcRouter as any,
             createContext: () => ({}),
         });
     });

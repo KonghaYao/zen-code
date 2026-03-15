@@ -44,8 +44,8 @@ describe('CodeState fields', () => {
         expect(CodeSchema.fields.agent_name).toBeDefined();
     });
 
-    it('should have switch_command field as optional', () => {
-        expect(CodeSchema.fields.switch_command).toBeDefined();
+    it('should have active_agent field as optional', () => {
+        expect(CodeSchema.fields.active_agent).toBeDefined();
     });
 
     it('should have enable_thinking field with default true', () => {

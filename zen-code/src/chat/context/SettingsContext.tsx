@@ -25,7 +25,7 @@ interface SettingsContextType {
         provider_id: string;
         model_id: string;
         mcp_config?: MCPConfig;
-        switch_command?: string;
+        active_agent?: string;
     };
     AVAILABLE_MODELS: ModelConfig[];
     compactMode: boolean;
@@ -70,7 +70,7 @@ export const SettingsProvider = ({ children }: SettingsProviderProps) => {
             mcp_config: config?.mcp_config,
             enable_thinking: config?.enable_thinking ?? true,
             streaming: config?.streaming ?? false,
-            switch_command: config?.switch_command || '',
+            active_agent: config?.active_agent || '',
             cwd: process.cwd(),
         };
     }, [
@@ -80,7 +80,7 @@ export const SettingsProvider = ({ children }: SettingsProviderProps) => {
         config?.mcp_config,
         config?.enable_thinking,
         config?.streaming,
-        config?.switch_command,
+        config?.active_agent,
         config?.providers,
         AVAILABLE_MODELS,
     ]);

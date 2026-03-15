@@ -47,7 +47,7 @@ async function invokeAgent(
         context: runtime.context as any,
     });
     return {
-        switch_command: '',
+        active_agent: '',
         // @ts-ignore
         task_store: response.task_store,
         messages: response.messages,
@@ -62,12 +62,12 @@ await downloadRipGrep();
 export function createCodeGraph(externalPkg?: AgentPackage, options?: CodeGraphOptions) {
     return new StateGraph(CodeState)
         .addNode('graph', async (state: CodeStateType, runtime: Runtime) => {
-            const { switch_command: cmd } = state;
+            const { active_agent: cmd } = state;
 
             // Load agent package (external injection takes priority over internal singleton)
             const pkg = externalPkg ?? agentPackage;
 
-            // Determine agent ID: switch_command (runtime override) > agent_id (initial config) > default
+            // Determine agent ID: active_agent (runtime override) > agent_id (initial config) > default
             const availableAgents = await getAvailableAgentIds(pkg);
 
             const agentId = (cmd && cmd !== 'default' ? cmd : null) ?? state.agent_id ?? 'agents/default';

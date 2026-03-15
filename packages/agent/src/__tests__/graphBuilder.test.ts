@@ -40,7 +40,7 @@ describe('error handling', () => {
         const g = createCodeGraph();
         const state = {
             messages: [],
-            switch_command: 'unknown_agent',
+            active_agent: 'unknown_agent',
         };
 
         await expect(g.invoke(state, { recursionLimit: 10 })).rejects.toThrow('Unknown agent');
@@ -50,7 +50,7 @@ describe('error handling', () => {
         const g = createCodeGraph();
         const state = {
             messages: [],
-            switch_command: 'smart_memory',
+            active_agent: 'smart_memory',
         };
 
         // smart_memory branch has been removed
