@@ -149,7 +149,7 @@ export function StorePanel({ onClose }: StorePanelProps) {
     };
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full w-full min-w-0">
             {/* Header */}
             <header className="flex-shrink-0 bg-transparent px-4 py-3 flex items-center justify-between border-b border-border-subtle">
                 <div className="flex items-center gap-3">
@@ -218,18 +218,26 @@ export function StorePanel({ onClose }: StorePanelProps) {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-auto p-4 space-y-3">
+            <div className="flex-1 overflow-auto min-w-0 min-h-0">
                 {stores.length === 0 && (
-                    <EmptyState message="No remote stores configured. Add a store on the left sidebar." />
+                    <div className="p-4">
+                        <EmptyState message="No remote stores configured. Add a store on the left sidebar." />
+                    </div>
                 )}
 
-                {stores.length > 0 && !currentStoreId && <EmptyState message="Select a remote store to browse." />}
+                {stores.length > 0 && !currentStoreId && (
+                    <div className="p-4">
+                        <EmptyState message="Select a remote store to browse." />
+                    </div>
+                )}
 
                 {error && (
-                    <ErrorDisplay
-                        error={(error as any).message}
-                        onRetry={() => (activeTab === 'prompts' ? refetchPrompts() : refetchSkills())}
-                    />
+                    <div className="p-4">
+                        <ErrorDisplay
+                            error={(error as any).message}
+                            onRetry={() => (activeTab === 'prompts' ? refetchPrompts() : refetchSkills())}
+                        />
+                    </div>
                 )}
 
                 {isLoading && <div className="flex justify-center py-12 text-gray-400 text-sm">Loading...</div>}
@@ -239,9 +247,11 @@ export function StorePanel({ onClose }: StorePanelProps) {
                     activeTab === 'prompts' &&
                     (displayPrompts as any[]).length === 0 &&
                     currentStoreId && (
-                        <EmptyState
-                            message={isSearchMode ? `No prompts found for "${searchQuery}".` : 'No prompts found.'}
-                        />
+                        <div className="p-4">
+                            <EmptyState
+                                message={isSearchMode ? `No prompts found for "${searchQuery}".` : 'No prompts found.'}
+                            />
+                        </div>
                     )}
 
                 {!isLoading &&
@@ -249,40 +259,68 @@ export function StorePanel({ onClose }: StorePanelProps) {
                     activeTab === 'skills' &&
                     (displaySkills as any[]).length === 0 &&
                     currentStoreId && (
-                        <EmptyState
-                            message={isSearchMode ? `No skills found for "${searchQuery}".` : 'No skills found.'}
-                        />
+                        <div className="p-4">
+                            <EmptyState
+                                message={isSearchMode ? `No skills found for "${searchQuery}".` : 'No skills found.'}
+                            />
+                        </div>
                     )}
 
                 {!isLoading &&
                     !error &&
-                    activeTab === 'prompts' &&
-                    (displayPrompts as any[]).map((prompt: any) => (
-                        <StoreCard
-                            key={prompt.id}
-                            item={prompt}
-                            type="prompt"
-                            isImported={importedIds.has(prompt.id)}
-                            isImporting={importingId === prompt.id}
-                            onPreview={() => handlePreview(prompt)}
-                            onImport={() => handleImportPrompt(prompt.id)}
-                        />
-                    ))}
+                    currentStoreId &&
+                    (activeTab === 'prompts' ? (displayPrompts as any[]) : (displaySkills as any[])).length > 0 && (
+                        <table className="w-full table-fixed text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-gray-200 bg-gray-50 sticky top-0">
+                                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-48">
+                                        Name
+                                    </th>
+                                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                        Description
+                                    </th>
 
-                {!isLoading &&
-                    !error &&
-                    activeTab === 'skills' &&
-                    (displaySkills as any[]).map((skill: any) => (
-                        <StoreCard
-                            key={skill.name}
-                            item={skill}
-                            type="skill"
-                            isImported={importedIds.has(skill.name) || installedSkillNames.has(skill.name)}
-                            isImporting={importingId === skill.name}
-                            onPreview={() => handlePreview(skill)}
-                            onImport={() => handleImportSkill(skill.name)}
-                        />
-                    ))}
+                                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-32 hidden lg:table-cell">
+                                        Info
+                                    </th>
+                                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-28 hidden lg:table-cell">
+                                        Author
+                                    </th>
+                                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide w-36 text-right">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {activeTab === 'prompts' &&
+                                    (displayPrompts as any[]).map((prompt: any) => (
+                                        <StoreCard
+                                            key={prompt.id}
+                                            item={prompt}
+                                            type="prompt"
+                                            isImported={importedIds.has(prompt.id)}
+                                            isImporting={importingId === prompt.id}
+                                            onPreview={() => handlePreview(prompt)}
+                                            onImport={() => handleImportPrompt(prompt.id)}
+                                        />
+                                    ))}
+                                {activeTab === 'skills' &&
+                                    (displaySkills as any[]).map((skill: any) => (
+                                        <StoreCard
+                                            key={skill.name}
+                                            item={skill}
+                                            type="skill"
+                                            isImported={
+                                                importedIds.has(skill.name) || installedSkillNames.has(skill.name)
+                                            }
+                                            isImporting={importingId === skill.name}
+                                            onPreview={() => handlePreview(skill)}
+                                            onImport={() => handleImportSkill(skill.name)}
+                                        />
+                                    ))}
+                            </tbody>
+                        </table>
+                    )}
             </div>
 
             {/* Preview Modal */}

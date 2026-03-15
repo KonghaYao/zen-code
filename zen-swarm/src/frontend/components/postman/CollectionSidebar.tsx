@@ -84,6 +84,17 @@ function RequestRow({ req, depth, isActive, searchQuery, onSelect, onContextMenu
                 {req.method}
             </span>
             <span className="text-xs truncate flex-1">{highlightMatch(req.name, searchQuery)}</span>
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onContextMenu(e, req);
+                }}
+                title="More actions"
+                className="opacity-0 group-hover:opacity-100 w-4 h-4 flex-shrink-0 flex items-center justify-center text-text-muted hover:text-text-primary rounded transition-opacity text-xs leading-none"
+            >
+                ···
+            </button>
         </div>
     );
 }

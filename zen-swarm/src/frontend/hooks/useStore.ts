@@ -68,7 +68,7 @@ export function useDeleteStore() {
 export function useRemotePrompts(storeId: string, page?: number) {
     return useQuery({
         queryKey: storeKeys.remotePrompts(storeId, page),
-        queryFn: () => storeApi.listRemotePrompts.query({ storeId, page }),
+        queryFn: () => storeApi.listRemotePrompts.query({ storeId, page, limit: 100 }),
         enabled: !!storeId,
     });
 }
@@ -84,7 +84,7 @@ export function useSearchRemotePrompts(storeId: string, query: string) {
 export function useRemoteSkills(storeId: string, page?: number) {
     return useQuery({
         queryKey: storeKeys.remoteSkills(storeId, page),
-        queryFn: () => storeApi.listRemoteSkills.query({ storeId, page }),
+        queryFn: () => storeApi.listRemoteSkills.query({ storeId, page, limit: 100 }),
         enabled: !!storeId,
     });
 }

@@ -168,7 +168,7 @@ export function StoreView() {
             </aside>
 
             {/* 右侧：浏览面板 */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 min-w-0 overflow-hidden">
                 <StorePanel />
             </div>
 

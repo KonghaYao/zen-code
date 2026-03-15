@@ -109,6 +109,22 @@ async function buildZenCode() {
         console.log('  ✓ zen-core.js moved');
     }
 
+    // Fix import paths in zen-core.js: replace absolute paths pointing to dist chunks with relative paths
+    if (await fileExists(zenCoreDestPath)) {
+        let content = await fs.readFile(zenCoreDestPath, 'utf-8');
+        // Match any absolute-style path that references the dist directory (e.g. "../../code-graph/zen-code/chunk-xxx.js")
+        // and replace with a relative "./chunk-xxx.js"
+        const fixed = content.replace(/["']([^"']*\/)(chunk-[^"'/]+\.js)["']/g, (match, _prefix, filename) => {
+            // Preserve the original quote character
+            const quote = match[0];
+            return `${quote}./${filename}${quote}`;
+        });
+        if (fixed !== content) {
+            await fs.writeFile(zenCoreDestPath, fixed, 'utf-8');
+            console.log('  ✓ zen-core.js import paths fixed');
+        }
+    }
+
     // Make sure all entry files are logged
     const entryFiles = ['cli.js', 'app.js', 'zen-keyboard.js', 'nonInteractive.js'];
 
