@@ -21,20 +21,20 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    - os: ubuntu-latest
-                      label: linux-x64
-                      neu_platform: linux_x64
-                      artifact_name: zen-desktop-linux-x64
-
                     - os: macos-latest
                       label: darwin-arm64
                       neu_platform: mac_arm64
                       artifact_name: zen-desktop-darwin-arm64
 
-                    - os: windows-latest
-                      label: windows-x64
+                    - os: macos-latest
+                      label: linux-x64
+                      neu_platform: linux_x64
+                      artifact_name: zen-desktop-linux-x64
+
+                    - os: macos-latest
+                      label: win-x64
                       neu_platform: win_x64
-                      artifact_name: zen-desktop-windows-x64
+                      artifact_name: zen-desktop-win-x64
 
         runs-on: ${{ matrix.os }}
 
@@ -51,55 +51,18 @@ jobs:
             - name: Install neu CLI
               run: bun add -g @neutralinojs/neu
 
-            # 下载 Neutralinojs 二进制（neu update）
-            - name: Download Neutralinojs binaries
-              working-directory: zen-desktop
-              run: neu update
-
             # 构建 Neutralinojs 应用资源包（resources.neu）
+            # 不执行 neu update，使用仓库内已预置的 dist/neutralino/ 二进制
             - name: Build Neutralinojs app
               working-directory: zen-desktop
               run: neu build --release
 
-            # 定位并重命名产物（Unix）
-            - name: Prepare artifact (Unix)
-              if: matrix.os != 'windows-latest'
-              working-directory: zen-desktop
-              run: |
-                  ls -lh dist/
-                  BIN=$(find dist -name "neutralino-${{ matrix.neu_platform }}" -o -name "neutralino" | head -1)
-                  cp "$BIN" dist/${{ matrix.artifact_name }}
-                  echo "Artifact: $(ls -lh dist/${{ matrix.artifact_name }})"
-
-            - name: Prepare artifact (Windows)
-              if: matrix.os == 'windows-latest'
-              working-directory: zen-desktop
-              shell: pwsh
-              run: |
-                  Get-ChildItem dist/
-                  $bin = Get-ChildItem dist/ -Filter "neutralino*.exe" | Select-Object -First 1
-                  Copy-Item $bin.FullName "dist/${{ matrix.artifact_name }}.exe"
-                  Write-Host "Artifact: $(Get-Item "dist/${{ matrix.artifact_name }}.exe")"
-
-            # 同时上传 resources.neu（必须随二进制一起分发）
-            - name: Upload binary artifact (Unix)
-              if: matrix.os != 'windows-latest'
+            - name: Upload binary artifact
               uses: actions/upload-artifact@v4
               with:
                   name: ${{ matrix.artifact_name }}
                   path: |
-                      zen-desktop/dist/${{ matrix.artifact_name }}
-                      zen-desktop/dist/resources.neu
-                  retention-days: 7
-                  if-no-files-found: error
-
-            - name: Upload binary artifact (Windows)
-              if: matrix.os == 'windows-latest'
-              uses: actions/upload-artifact@v4
-              with:
-                  name: ${{ matrix.artifact_name }}
-                  path: |
-                      zen-desktop/dist/${{ matrix.artifact_name }}.exe
-                      zen-desktop/dist/resources.neu
+                      zen-desktop/dist/neutralino/neutralino-${{ matrix.neu_platform }}${{ matrix.neu_platform == 'win_x64' && '.exe' || '' }}
+                      zen-desktop/dist/neutralino/resources.neu
                   retention-days: 7
                   if-no-files-found: error
