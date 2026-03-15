@@ -16,27 +16,8 @@ permissions:
 
 jobs:
     build:
-        name: Build (${{ matrix.label }})
-        strategy:
-            fail-fast: false
-            matrix:
-                include:
-                    - os: macos-latest
-                      label: darwin-arm64
-                      neu_platform: mac_arm64
-                      artifact_name: zen-desktop-darwin-arm64
-
-                    - os: macos-latest
-                      label: linux-x64
-                      neu_platform: linux_x64
-                      artifact_name: zen-desktop-linux-x64
-
-                    - os: macos-latest
-                      label: win-x64
-                      neu_platform: win_x64
-                      artifact_name: zen-desktop-win-x64
-
-        runs-on: ${{ matrix.os }}
+        name: Build
+        runs-on: macos-latest
 
         steps:
             - name: Checkout repository
@@ -57,12 +38,10 @@ jobs:
               working-directory: zen-desktop
               run: neu build --release
 
-            - name: Upload binary artifact
+            - name: Upload artifacts
               uses: actions/upload-artifact@v4
               with:
-                  name: ${{ matrix.artifact_name }}
-                  path: |
-                      zen-desktop/dist/neutralino/neutralino-${{ matrix.neu_platform }}${{ matrix.neu_platform == 'win_x64' && '.exe' || '' }}
-                      zen-desktop/dist/neutralino/resources.neu
+                  name: zen-desktop
+                  path: zen-desktop/dist/neutralino/
                   retention-days: 7
                   if-no-files-found: error
