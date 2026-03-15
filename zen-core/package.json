@@ -11,7 +11,7 @@
     },
     "scripts": {
         "start": "bun run src/server.ts",
-        "dev": "bun --watch run src/server.ts"
+        "dev": "bun run src/server.ts"
     },
     "devDependencies": {
         "@types/mime-types": "^3",
@@ -20,9 +20,10 @@
     "dependencies": {
         "@codegraph/agent": "workspace:^",
         "@codegraph/config": "workspace:^",
+        "@hono/node-server": "^1.19.11",
         "@langgraph-js/agent-middlewares": "workspace:^",
-        "@langgraph-js/standard-agent": "workspace:^",
         "@langgraph-js/pure-graph": "^3.3.0",
+        "@langgraph-js/standard-agent": "workspace:^",
         "@trpc/client": "^11",
         "@trpc/server": "^11",
         "fs-extra": "^11.3.3",

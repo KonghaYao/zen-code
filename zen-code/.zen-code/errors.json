@@ -1,6 +1,77 @@
 [
     {
         "level": "error",
+        "source": "Unknown",
+        "message": "(node:12248) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/konghayao/code/ai/code-graph/zen-code/dist/cli.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /Users/konghayao/code/ai/code-graph/zen-code/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)",
+        "id": "a4c92810-8fa1-4d27-a248-9786063b7fda",
+        "timestamp": "2026-03-15T02:58:34.725Z"
+    },
+    {
+        "level": "error",
+        "source": "Unknown",
+        "message": "(node:12134) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/konghayao/code/ai/code-graph/zen-code/dist/cli.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /Users/konghayao/code/ai/code-graph/zen-code/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)",
+        "id": "29f17998-f6d8-4b3c-b207-09d5f22642cd",
+        "timestamp": "2026-03-15T02:58:21.194Z"
+    },
+    {
+        "level": "error",
+        "source": "Unknown",
+        "message": "(node:12020) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/konghayao/code/ai/code-graph/zen-code/dist/cli.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /Users/konghayao/code/ai/code-graph/zen-code/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)",
+        "id": "3626a291-0f73-40ff-bac9-4a56aa52bd5e",
+        "timestamp": "2026-03-15T02:58:10.425Z"
+    },
+    {
+        "level": "warning",
+        "source": "Unknown",
+        "message": "DEV MODE",
+        "id": "bb9b867e-81fa-471e-9dc4-58765551d0f9",
+        "timestamp": "2026-03-15T02:51:10.284Z"
+    },
+    {
+        "level": "error",
+        "source": "Unknown",
+        "message": "(node:9237) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/konghayao/code/ai/code-graph/zen-code/dist/cli.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /Users/konghayao/code/ai/code-graph/zen-code/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)",
+        "id": "56ffd2fa-77ad-41a7-8501-6c5f271d2130",
+        "timestamp": "2026-03-15T02:47:09.962Z"
+    },
+    {
+        "level": "error",
+        "source": "Unknown",
+        "message": "(node:8619) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/konghayao/code/ai/code-graph/zen-code/dist/cli.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /Users/konghayao/code/ai/code-graph/zen-code/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)",
+        "id": "7265666a-e161-479b-b54c-6302b8d47058",
+        "timestamp": "2026-03-15T02:45:21.497Z"
+    },
+    {
+        "level": "error",
+        "source": "Unknown",
+        "message": "(node:8413) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/konghayao/code/ai/code-graph/zen-code/dist/cli.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /Users/konghayao/code/ai/code-graph/zen-code/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)",
+        "id": "fe7c0e69-9f0e-4e04-adce-1d1162f27bdb",
+        "timestamp": "2026-03-15T02:45:00.236Z"
+    },
+    {
+        "level": "error",
+        "source": "Agent",
+        "message": "[Agent:DataLayer] useTrpc must be used within ZenCoreProvider",
+        "file": "/Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-5fe27s34.js",
+        "line": 1,
+        "column": 181,
+        "stack": "Error: useTrpc must be used within ZenCoreProvider\n    at c (/Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-5fe27s34.js:1:181)\n    at N (/Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-1d47g6nc.js:1:773)\n    at react_stack_bottom_frame (/Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:187:245)\n    at NG (/Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:102:804)\n    at aG (/Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:104:2359)\n    at MA (/Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:60:137)\n    at nJ (/Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:126:37869)\n    at oJ (/Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:126:36573)\n    at Nw (/Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:126:36412)\n    at cJ (/Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:126:29986)",
+        "id": "6d23ccb9-e40c-448c-af1b-845cc5403677",
+        "timestamp": "2026-03-15T02:41:14.618Z"
+    },
+    {
+        "level": "error",
+        "source": "Agent",
+        "message": "[Agent:DataLayer] useTrpc must be used within ZenCoreProvider",
+        "file": "file:///Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-5fe27s34.js",
+        "line": 1,
+        "column": 181,
+        "stack": "Error: useTrpc must be used within ZenCoreProvider\n    at c (file:///Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-5fe27s34.js:1:181)\n    at N (file:///Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-1d47g6nc.js:1:773)\n    at Object.react_stack_bottom_frame (file:///Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:187:245)\n    at NG (file:///Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:102:804)\n    at aG (file:///Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:104:2359)\n    at Aw (file:///Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:113:10513)\n    at MA (file:///Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:60:109)\n    at nJ (file:///Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:126:37870)\n    at oJ (file:///Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:126:36574)\n    at Nw (file:///Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-h7ypcqp3.js:126:36413)",
+        "id": "3aae03d8-0d8f-4f12-b318-b57e12e0d53b",
+        "timestamp": "2026-03-15T02:41:02.870Z"
+    },
+    {
+        "level": "error",
         "source": "Agent",
         "message": "❌ 执行失败: Bun is not defined",
         "file": "file:///Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-ggp0rwwb.js",

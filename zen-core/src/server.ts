@@ -5,7 +5,7 @@
 
 import { Hono } from 'hono';
 import { logger } from 'hono/logger';
-import { serve } from 'bun';
+import { serve } from '@hono/node-server';
 import { writeFileSync, unlinkSync, existsSync, readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
@@ -77,7 +77,6 @@ serve({
     fetch(req, server) {
         return app.fetch(req, server);
     },
-    idleTimeout: 120,
     port: PORT,
 });
 

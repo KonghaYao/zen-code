@@ -41,14 +41,27 @@ export async function checkZenCoreVersion(baseUrl: string): Promise<string | nul
 
 // ─── 启动 zen-core ──────────────────────────────────
 async function spawnZenCore(port: number): Promise<void> {
-    // 查找 zen-core 入口（相对于当前文件 zen-core/src/client.ts）
-    const zenCorePath = new URL('../bin/zen-core.ts', import.meta.url).pathname;
+    const { spawn } = await import('node:child_process');
+    const { existsSync } = await import('node:fs');
 
-    Bun.spawn(['bun', zenCorePath, '--port', String(port)], {
+    // ts 源文件优先（开发模式），否则回退到编译产物
+    const tsPath = new URL('../bin/zen-core.ts', import.meta.url).pathname;
+    const jsPath = new URL('./zen-core.js', import.meta.url).pathname;
+
+    let entryPath: string;
+    if (existsSync(tsPath)) {
+        console.warn('DEV MODE');
+        entryPath = tsPath;
+    } else {
+        entryPath = jsPath;
+    }
+
+    const child = spawn(process.argv[0], [entryPath], {
         detached: true,
-        stdio: ['ignore', 'ignore', 'ignore'],
+        stdio: 'ignore',
         env: { ...process.env, ZEN_CORE_PORT: String(port) },
     });
+    child.unref();
 }
 
 // ─── 等待就绪 ────────────────────────────────────────

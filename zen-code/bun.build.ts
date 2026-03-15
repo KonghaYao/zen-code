@@ -38,7 +38,13 @@ async function buildZenCode() {
     console.log('  Building with code splitting...');
 
     const result = await build({
-        entrypoints: ['./src/cli.ts', './src/app.tsx', './src/zen-keyboard.tsx', './src/nonInteractive.ts'],
+        entrypoints: [
+            './src/cli.ts',
+            './src/app.tsx',
+            './src/zen-keyboard.tsx',
+            './src/nonInteractive.ts',
+            '../zen-core/src/server.ts',
+        ],
         outdir: './dist',
         target: 'node',
         format: 'esm',
@@ -94,6 +100,15 @@ async function buildZenCode() {
         process.exit(1);
     }
 
+    // Move zen-core server output to dist/zen-core.js
+    const zenCoreServerPath = path.join('../', 'zen-core', 'src', 'server.js');
+    const zenCoreDestPath = path.join('./dist', 'zen-core.js');
+    if (await fileExists(zenCoreServerPath)) {
+        await fs.rename(zenCoreServerPath, zenCoreDestPath);
+        await fs.rm(path.join('./dist', 'zen-core'), { recursive: true, force: true });
+        console.log('  ✓ zen-core.js moved');
+    }
+
     // Make sure all entry files are logged
     const entryFiles = ['cli.js', 'app.js', 'zen-keyboard.js', 'nonInteractive.js'];
 
@@ -103,13 +118,6 @@ async function buildZenCode() {
             console.log(`  ✓ ${file} built`);
         }
     }
-
-    // Clean up the mock module
-    // try {
-    //     await fs.rm('../node_modules/react-devtools-core', { recursive: true, force: true });
-    // } catch (e) {
-    //     // Ignore cleanup errors
-    // }
 
     // Show build summary
     const distFilesFinal = await fs.readdir('./dist');

@@ -308,6 +308,7 @@
       "dependencies": {
         "@codegraph/agent": "workspace:^",
         "@codegraph/config": "workspace:^",
+        "@hono/node-server": "^1.19.11",
         "@langgraph-js/agent-middlewares": "workspace:^",
         "@langgraph-js/pure-graph": "^3.3.0",
         "@langgraph-js/standard-agent": "workspace:^",
@@ -512,7 +513,7 @@
 
     "@google/generative-ai": ["@google/generative-ai@0.24.1", "https://registry.npmmirror.com/@google/generative-ai/-/generative-ai-0.24.1.tgz", {}, "sha512-MqO+MLfM6kjxcKoy0p1wRzG3b4ZZXtPI+z2IE26UogS2Cm/XHO+7gGRBh6gcJsOiIVoH93UwKvW4HdgiOZCy9Q=="],
 
-    "@hono/node-server": ["@hono/node-server@1.19.9", "https://registry.npmmirror.com/@hono/node-server/-/node-server-1.19.9.tgz", { "peerDependencies": { "hono": "^4" } }, "sha512-vHL6w3ecZsky+8P5MD+eFfaGTyCeOHUIFYMGpQGbrBTSmNNoxv0if69rEZ5giu36weC5saFuznL411gRX7bJDw=="],
+    "@hono/node-server": ["@hono/node-server@1.19.11", "", { "peerDependencies": { "hono": "^4" } }, "sha512-dr8/3zEaB+p0D2n/IUrlPF1HZm586qgJNXK1a9fhg/PzdtkK7Ksd5l312tJX2yBuALqDYBlG20QEbayqPyxn+g=="],
 
     "@hono/zod-validator": ["@hono/zod-validator@0.7.6", "https://registry.npmmirror.com/@hono/zod-validator/-/zod-validator-0.7.6.tgz", { "peerDependencies": { "hono": ">=3.9.0", "zod": "^3.25.0 || ^4.0.0" } }, "sha512-Io1B6d011Gj1KknV4rXYz4le5+5EubcWEU/speUjuw9XMMIaP3n78yXLhjd2A3PXaXaUwEAluOiAyLqhBEJgsw=="],
 
@@ -2160,6 +2161,8 @@
 
     "@langgraph-js/pro/@langchain/openai": ["@langchain/openai@1.2.8", "https://registry.npmmirror.com/@langchain/openai/-/openai-1.2.8.tgz", { "dependencies": { "js-tiktoken": "^1.0.12", "openai": "^6.18.0", "zod": "^3.25.76 || ^4" }, "peerDependencies": { "@langchain/core": "^1.0.0" } }, "sha512-qliwC7sb7/Kw0tsl/EiMchMThKt62rZbyofKXtxPwYBte3BMzMXo2HKaEFvAN2QHVOuDi4voqQ7ZlRXc/o2e8w=="],
 
+    "@modelcontextprotocol/sdk/@hono/node-server": ["@hono/node-server@1.19.9", "https://registry.npmmirror.com/@hono/node-server/-/node-server-1.19.9.tgz", { "peerDependencies": { "hono": "^4" } }, "sha512-vHL6w3ecZsky+8P5MD+eFfaGTyCeOHUIFYMGpQGbrBTSmNNoxv0if69rEZ5giu36weC5saFuznL411gRX7bJDw=="],
+
     "@redis/graph/@redis/client": ["@redis/client@1.6.1", "https://registry.npmmirror.com/@redis/client/-/client-1.6.1.tgz", { "dependencies": { "cluster-key-slot": "1.1.2", "generic-pool": "3.9.0", "yallist": "4.0.0" } }, "sha512-/KCsg3xSlR+nCK8/8ZYSknYxvXHwubJrU82F3Lm1Fp6789VQ0/3RJKfsmRXjqfaTA++23CvC3hqmqe/2GEt6Kw=="],
 
     "@tailwindcss/oxide-wasm32-wasi/@emnapi/core": ["@emnapi/core@1.8.1", "", { "dependencies": { "@emnapi/wasi-threads": "1.1.0", "tslib": "^2.4.0" }, "bundled": true }, "sha512-AvT9QFpxK0Zd8J0jopedNm+w/2fIzvtPKPjqyw9jwvBaReTTqPBk9Hixaz7KbjimP+QNz605/XnjFcDAL2pqBg=="],
@@ -2297,6 +2300,8 @@
     "zen-code/@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.71.2", "https://registry.npmmirror.com/@anthropic-ai/sdk/-/sdk-0.71.2.tgz", { "dependencies": { "json-schema-to-ts": "^3.1.1" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-TGNDEUuEstk/DKu0/TflXAEt+p+p/WhTlFzEnoosvbaDU2LTjm42igSdlL0VijrKpWejtOKxX0b8A7uc+XiSAQ=="],
 
     "zen-code/openai": ["openai@6.27.0", "", { "peerDependencies": { "ws": "^8.18.0", "zod": "^3.25 || ^4.0" }, "optionalPeers": ["ws", "zod"], "bin": { "openai": "bin/cli" } }, "sha512-osTKySlrdYrLYTt0zjhY8yp0JUBmWDCN+Q+QxsV4xMQnnoVFpylgKGgxwN8sSdTNw0G4y+WUXs4eCMWpyDNWZQ=="],
+
+    "zen-tunnel/@hono/node-server": ["@hono/node-server@1.19.9", "https://registry.npmmirror.com/@hono/node-server/-/node-server-1.19.9.tgz", { "peerDependencies": { "hono": "^4" } }, "sha512-vHL6w3ecZsky+8P5MD+eFfaGTyCeOHUIFYMGpQGbrBTSmNNoxv0if69rEZ5giu36weC5saFuznL411gRX7bJDw=="],
 
     "@babel/helper-compilation-targets/lru-cache/yallist": ["yallist@3.1.1", "https://registry.npmmirror.com/yallist/-/yallist-3.1.1.tgz", {}, "sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g=="],
 
