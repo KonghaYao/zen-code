@@ -65,11 +65,13 @@ export function TerminalView() {
             const { cols, rows } = terminalAreaRef.current
                 ? measureTerminalDimensions(terminalAreaRef.current)
                 : { cols: DEFAULT_COLS, rows: DEFAULT_ROWS };
-            createSession(cols, rows, undefined, (sessionId: string) => {
+            const ws = getActiveWorkspace();
+            const cwd = ws?.cwd;
+            createSession(cols, rows, cwd, (sessionId: string) => {
                 setPaneSession(activeWorkspaceId, paneId, sessionId);
             });
         },
-        [wsStatus, createSession, setPaneSession, activeWorkspaceId],
+        [wsStatus, createSession, setPaneSession, activeWorkspaceId, getActiveWorkspace],
     );
 
     // 工具栏：新建终端

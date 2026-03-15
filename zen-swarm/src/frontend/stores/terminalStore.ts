@@ -68,6 +68,7 @@ interface TerminalStore {
     createWorkspace: (name?: string) => void;
     deleteWorkspace: (id: string) => void;
     renameWorkspace: (id: string, name: string) => void;
+    setWorkspaceCwd: (id: string, cwd: string) => void;
     setActiveWorkspace: (id: string) => void;
 
     // Pane 操作
@@ -214,6 +215,12 @@ export const useTerminalStore = create<TerminalStore>()(
                 }));
             },
 
+            setWorkspaceCwd: (id: string, cwd: string) => {
+                set((state) => ({
+                    workspaces: state.workspaces.map((w) => (w.id === id ? { ...w, cwd } : w)),
+                }));
+            },
+
             setActiveWorkspace: (id: string) => {
                 set({ activeWorkspaceId: id });
             },
@@ -239,8 +246,14 @@ export const useTerminalStore = create<TerminalStore>()(
                 set((state) => {
                     const ws = state.workspaces.find((w) => w.id === workspaceId);
                     if (!ws || ws.panes.length <= 1) return state;
+                    const removedIndex = ws.panes.findIndex((p) => p.id === paneId);
                     const newPanes = ws.panes.filter((p) => p.id !== paneId);
-                    const newActivePaneId = ws.activePaneId === paneId ? newPanes[0].id : ws.activePaneId;
+                    let newActivePaneId = ws.activePaneId;
+                    if (ws.activePaneId === paneId) {
+                        // 激活被删除 pane 的前一个，若无则取后一个
+                        const neighborIndex = removedIndex > 0 ? removedIndex - 1 : 0;
+                        newActivePaneId = newPanes[neighborIndex].id;
+                    }
                     return {
                         workspaces: state.workspaces.map((w) =>
                             w.id === workspaceId ? { ...w, panes: newPanes, activePaneId: newActivePaneId } : w,

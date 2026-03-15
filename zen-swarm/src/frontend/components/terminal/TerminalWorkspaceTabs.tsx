@@ -16,11 +16,20 @@ import type { TerminalWorkspace } from './types.js';
 import { IconButton } from '../ui/IconButton.js';
 
 export function TerminalWorkspaceTabs() {
-    const { workspaces, activeWorkspaceId, setActiveWorkspace, createWorkspace, deleteWorkspace, renameWorkspace } =
-        useTerminalStore();
+    const {
+        workspaces,
+        activeWorkspaceId,
+        setActiveWorkspace,
+        createWorkspace,
+        deleteWorkspace,
+        renameWorkspace,
+        setWorkspaceCwd,
+    } = useTerminalStore();
     const { destroySession } = useTerminal();
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
+    const [editingCwdId, setEditingCwdId] = useState<string | null>(null);
+    const [cwdValue, setCwdValue] = useState('');
 
     const handleTabClick = useCallback(
         (id: string) => {
@@ -41,6 +50,19 @@ export function TerminalWorkspaceTabs() {
         setEditingId(null);
         setEditValue('');
     }, [editingId, editValue, renameWorkspace]);
+
+    const handleCwdEdit = useCallback((ws: TerminalWorkspace) => {
+        setEditingCwdId(ws.id);
+        setCwdValue(ws.cwd ?? '');
+    }, []);
+
+    const handleCwdComplete = useCallback(() => {
+        if (editingCwdId) {
+            setWorkspaceCwd(editingCwdId, cwdValue.trim());
+        }
+        setEditingCwdId(null);
+        setCwdValue('');
+    }, [editingCwdId, cwdValue, setWorkspaceCwd]);
 
     const handleClose = useCallback(
         (e: React.MouseEvent, id: string) => {
@@ -73,8 +95,8 @@ export function TerminalWorkspaceTabs() {
                         exit={{ opacity: 0, x: -20, scale: 0.9 }}
                         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                         className={`
-                            group relative flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer
-                            transition-all duration-150 select-none
+                            group relative flex flex-col rounded-lg cursor-pointer
+                            transition-all duration-150 select-none overflow-hidden
                             ${
                                 ws.id === activeWorkspaceId
                                     ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
@@ -82,47 +104,81 @@ export function TerminalWorkspaceTabs() {
                             }
                         `}
                         onClick={() => handleTabClick(ws.id)}
-                        onDoubleClick={() => handleDoubleClick(ws)}
                         title={ws.name}
                     >
                         {/* 激活指示条 */}
                         {ws.id === activeWorkspaceId && (
-                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-blue-400 rounded-r" />
+                            <div className="absolute left-0 top-3 w-0.5 h-5 bg-blue-400 rounded-r" />
                         )}
 
-                        <TerminalIcon size={14} className="flex-shrink-0" />
+                        {/* 名称行 */}
+                        <div className="flex items-center gap-2 px-2 py-2" onDoubleClick={() => handleDoubleClick(ws)}>
+                            <TerminalIcon size={14} className="flex-shrink-0" />
 
-                        {/* 名称 / 编辑框 */}
-                        {editingId === ws.id ? (
-                            <input
-                                type="text"
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onBlur={handleRenameComplete}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleRenameComplete();
-                                    if (e.key === 'Escape') {
-                                        setEditingId(null);
-                                        setEditValue('');
-                                    }
-                                }}
-                                className="flex-1 min-w-0 bg-transparent border-none outline-none text-white text-xs"
-                                autoFocus
-                                onClick={(e) => e.stopPropagation()}
-                            />
-                        ) : (
-                            <span className="flex-1 min-w-0 truncate text-xs">{ws.name}</span>
-                        )}
+                            {editingId === ws.id ? (
+                                <input
+                                    type="text"
+                                    value={editValue}
+                                    onChange={(e) => setEditValue(e.target.value)}
+                                    onBlur={handleRenameComplete}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleRenameComplete();
+                                        if (e.key === 'Escape') {
+                                            setEditingId(null);
+                                            setEditValue('');
+                                        }
+                                    }}
+                                    className="flex-1 min-w-0 bg-transparent border-none outline-none text-white text-xs"
+                                    autoFocus
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                            ) : (
+                                <span className="flex-1 min-w-0 truncate text-xs">{ws.name}</span>
+                            )}
 
-                        {/* 关闭按钮（多于 1 个时显示） */}
-                        {workspaces.length > 1 && (
-                            <IconButton
-                                onClick={(e) => handleClose(e, ws.id)}
-                                title="删除工作区"
-                                className="opacity-0 group-hover:opacity-100 w-5 h-5 flex-shrink-0 hover:!bg-red-500/30 !text-white/50 hover:!text-white"
-                            >
-                                <X size={12} />
-                            </IconButton>
+                            {/* 关闭按钮（多于 1 个时显示） */}
+                            {workspaces.length > 1 && (
+                                <IconButton
+                                    onClick={(e) => handleClose(e, ws.id)}
+                                    title="删除工作区"
+                                    className="opacity-0 group-hover:opacity-100 w-5 h-5 flex-shrink-0 hover:!bg-red-500/30 !text-white/50 hover:!text-white"
+                                >
+                                    <X size={12} />
+                                </IconButton>
+                            )}
+                        </div>
+
+                        {/* cwd 编辑区（激活工作区显示） */}
+                        {ws.id === activeWorkspaceId && (
+                            <div className="px-2 pb-2" onClick={(e) => e.stopPropagation()}>
+                                {editingCwdId === ws.id ? (
+                                    <input
+                                        type="text"
+                                        value={cwdValue}
+                                        onChange={(e) => setCwdValue(e.target.value)}
+                                        onBlur={handleCwdComplete}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleCwdComplete();
+                                            if (e.key === 'Escape') {
+                                                setEditingCwdId(null);
+                                                setCwdValue('');
+                                            }
+                                        }}
+                                        className="w-full px-2 py-1.5 rounded bg-black/50 border border-blue-500/50 outline-none text-white/80 text-xs font-mono"
+                                        placeholder="/path/to/dir"
+                                        autoFocus
+                                    />
+                                ) : (
+                                    <button
+                                        className="w-full text-left px-2 py-1.5 rounded bg-black/30 hover:bg-black/50 border border-white/10 hover:border-blue-500/30 text-xs font-mono truncate transition-colors"
+                                        style={{ color: ws.cwd ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)' }}
+                                        title={ws.cwd ? `cwd: ${ws.cwd}` : '点击设置工作目录'}
+                                        onClick={() => handleCwdEdit(ws)}
+                                    >
+                                        {ws.cwd || '~ 默认目录'}
+                                    </button>
+                                )}
+                            </div>
                         )}
                     </motion.div>
                 ))}

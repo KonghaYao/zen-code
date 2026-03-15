@@ -99,4 +99,5 @@ export interface TerminalWorkspace {
     name: string;
     panes: TerminalPane[]; // 平铺数组，长度 1-4
     activePaneId: string;
+    cwd?: string; // 新建 session 时使用的初始工作目录
 }
