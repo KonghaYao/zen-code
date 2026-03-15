@@ -4,7 +4,7 @@
  */
 
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
-import type { AppRouter } from '../../../zen-core/src/router.js';
+import type { AppRouter } from './router.js';
 
 export interface ZenCoreConnection {
     trpc: ReturnType<typeof createTRPCClient<AppRouter>>;
@@ -41,8 +41,8 @@ export async function checkZenCoreVersion(baseUrl: string): Promise<string | nul
 
 // ─── 启动 zen-core ──────────────────────────────────
 async function spawnZenCore(port: number): Promise<void> {
-    // 查找 zen-core 入口（相对于当前可执行文件）
-    const zenCorePath = new URL('../../../zen-core/bin/zen-core.ts', import.meta.url).pathname;
+    // 查找 zen-core 入口（相对于当前文件 zen-core/src/client.ts）
+    const zenCorePath = new URL('../bin/zen-core.ts', import.meta.url).pathname;
 
     Bun.spawn(['bun', zenCorePath, '--port', String(port)], {
         detached: true,

@@ -27,13 +27,13 @@ async function main() {
     initDatabaseUri('~/.zen-code/data/sessions.db');
     if (args[0] === 'stop') {
         // 停止后台 zen-core 服务
-        const { stopZenCore } = await import('@codegraph/union-client');
+        const { stopZenCore } = await import('zen-core/client');
         const result = await stopZenCore();
         console.log(result.message);
         process.exit(result.stopped ? 0 : 1);
     } else if (args.includes('--restart')) {
         // 重启 zen-core：先停止，再重新启动 TUI
-        const { stopZenCore, connectToZenCore } = await import('@codegraph/union-client');
+        const { stopZenCore, connectToZenCore } = await import('zen-core/client');
         const stopResult = await stopZenCore();
         console.log(stopResult.message);
         // 等待旧进程释放端口
@@ -47,7 +47,7 @@ async function main() {
         await import('./app');
     } else if (args[0] === 'status') {
         // 查看后台 zen-core 状态
-        const { checkZenCoreVersion } = await import('@codegraph/union-client');
+        const { checkZenCoreVersion } = await import('zen-core/client');
         const port = Number(process.env.ZEN_CORE_PORT || 8125);
         const baseUrl = `http://127.0.0.1:${port}`;
         try {
@@ -82,7 +82,7 @@ async function main() {
         } else {
             // 默认：启动 TUI（连接 zen-core）
             console.log('Starting zen-core...');
-            const { connectToZenCore } = await import('@codegraph/union-client');
+            const { connectToZenCore } = await import('zen-core/client');
             const connection = await connectToZenCore({
                 spawnIfNotRunning: true,
                 timeout: 15_000,

@@ -14,6 +14,3 @@ export * from './utils/index.js';
 
 // Contexts
 export * from './context/index.js';
-
-// zen-core 连接客户端
-export * from './zen-core-client.js';

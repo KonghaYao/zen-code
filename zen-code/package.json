@@ -83,6 +83,7 @@
         "vitest": "^4.0.18",
         "xdg-basedir": "^5.1.0",
         "yaml": "^2.8.2",
+        "zen-core": "workspace:^",
         "zod": "^4.3.5"
     },
     "babel": {

@@ -1,0 +1,20 @@
+[
+    {
+        "level": "error",
+        "source": "Agent",
+        "message": "❌ 执行失败: Bun is not defined",
+        "file": "file:///Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-ggp0rwwb.js",
+        "line": 1,
+        "column": 24715,
+        "stack": "ReferenceError: Bun is not defined\n    at A0 (file:///Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-ggp0rwwb.js:1:24715)\n    at QX (file:///Users/konghayao/code/ai/code-graph/zen-code/dist/chunk-ggp0rwwb.js:1:25962)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async L (file:///Users/konghayao/code/ai/code-graph/zen-code/dist/cli.js:2:1912)",
+        "id": "f25a4910-5cb0-4821-998a-6ad77532991b",
+        "timestamp": "2026-03-15T02:29:06.251Z"
+    },
+    {
+        "level": "error",
+        "source": "Unknown",
+        "message": "(node:2932) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/konghayao/code/ai/code-graph/zen-code/dist/cli.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /Users/konghayao/code/ai/code-graph/zen-code/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)",
+        "id": "285e7f50-59ee-47d5-8efd-1794b291907d",
+        "timestamp": "2026-03-15T02:29:06.249Z"
+    }
+]

@@ -5,6 +5,10 @@
     "bin": {
         "zen-core": "./bin/zen-core.ts"
     },
+    "exports": {
+        ".": "./src/server.ts",
+        "./client": "./src/client.ts"
+    },
     "scripts": {
         "start": "bun run src/server.ts",
         "dev": "bun --watch run src/server.ts"
@@ -19,6 +23,7 @@
         "@langgraph-js/agent-middlewares": "workspace:^",
         "@langgraph-js/standard-agent": "workspace:^",
         "@langgraph-js/pure-graph": "^3.3.0",
+        "@trpc/client": "^11",
         "@trpc/server": "^11",
         "fs-extra": "^11.3.3",
         "hono": "^4",
