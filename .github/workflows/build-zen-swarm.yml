@@ -107,7 +107,7 @@ jobs:
     release:
         name: Attach to GitHub Release
         needs: build
-        if: startsWith(github.ref, 'refs/tags/zen-swarm/v')
+        if: startsWith(github.ref_name, 'zen-swarm/') || (github.event_name == 'workflow_dispatch' && startsWith(github.event.inputs.version, 'zen-swarm/'))
         runs-on: ubuntu-latest
 
         steps:
