@@ -15,6 +15,7 @@ import { createContext } from './context.js';
 import { registerLangGraphRoutes } from './langgraph/handler.js';
 import { healthHandler } from './health.js';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import { registerMcpSyncRoute } from './routes/mcp-sync.js';
 const PORT = Number(process.env.ZEN_CORE_PORT || 8125);
 const PID_FILE = join(homedir(), '.zen-code', 'zen-core.pid');
 
@@ -58,6 +59,9 @@ app.use(logger());
 // /health 端点（公开）
 app.get('/health', healthHandler(services));
 
+// mcp-sync 端点（zen-swarm 推送 MCP 配置到 zen-core 内存）
+registerMcpSyncRoute(app);
+
 // tRPC 路由
 app.all('/api/trpc/*', async (c) => {
     return fetchRequestHandler({
@@ -89,7 +93,6 @@ console.log(`   Terminal:  ws://127.0.0.1:${PORT}/ws/terminal`);
 // ─── 优雅关闭 ────────────────────────────────────────────────
 async function gracefulShutdown(signal: string): Promise<void> {
     console.log(`\n[zen-core] Received ${signal}, shutting down...`);
-    await services.cronScheduler.stop();
     process.exit(0);
 }
 

@@ -3,12 +3,18 @@
  * 纯前端服务 + API 代理到 zen-core
  *
  * 所有 /api/* 请求转发到 zen-core (默认 8125 端口)
- * 例外：
- *   - /api/auth/* 由本地 auth handler 处理
- *   - /api/trpc/postman.* 由本地 tRPC handler 处理
- *   - /api/trpc/providers.* 由本地 tRPC handler 处理
- *   - /api/trpc/store.* 由本地 tRPC handler 处理
- *   - /api/trpc/files.* 由本地 tRPC handler 处理
+ * 例外（本地处理，不转发）：
+ *   - /api/auth/*
+ *   - /api/trpc/postman.*
+ *   - /api/trpc/providers.*
+ *   - /api/trpc/store.*
+ *   - /api/trpc/files.*
+ *   - /api/trpc/agents.*
+ *   - /api/trpc/prompts.*
+ *   - /api/trpc/middlewares.*
+ *   - /api/trpc/mcp.*
+ *   - /api/trpc/workspaces.*
+ *   - /api/trpc/cron.*
  */
 
 import { Hono } from 'hono';
@@ -20,19 +26,20 @@ import dashboard from './index.html';
 import { handleTerminalMessage, handleTerminalClose, handleTerminalOpen } from './api/terminalWebSocket.js';
 import { createPostmanRouter } from './api/postman.js';
 import { FileSystemPostmanStorage } from './postman/fileSystemStorage.js';
-import { router } from './api/trpc.js';
+import { router, createContext } from './api/trpc.js';
 import { filesRouter } from './api/files.js';
 import { connectToZenCore } from 'zen-core/client-binary';
 import { authRouter } from './api/auth.js';
 import { authMiddleware } from './auth/tokenAuth.js';
 import { createProviderRouter } from './api/providers.js';
-import { ProviderStorage } from './services/provider/storage.js';
 import { createStoreRouter } from './api/store.js';
-import { RemoteStoreStorage } from './services/remote-store/index.js';
-import Database from 'bun:sqlite';
-import { homedir } from 'os';
-import { join } from 'path';
-import { mkdirSync } from 'fs';
+import { agentsRouter } from './api/agents.js';
+import { promptsRouter } from './api/prompts.js';
+import { middlewaresRouter } from './api/middlewares.js';
+import { mcpRouter } from './api/mcp.js';
+import { workspacesRouter } from './api/workspaces.js';
+import { cronRouter } from './api/cron.js';
+import { bootstrapLocal } from './bootstrap.js';
 
 export async function startServer() {
     // ── 确保 zen-core 运行 ───────────────────────────────────────────────────────
@@ -41,27 +48,14 @@ export async function startServer() {
     await connectToZenCore({ spawnIfNotRunning: true, timeout: 15_000 });
     console.log('zen-core is ready.');
 
+    // ── 初始化本地 SQLite 服务 ───────────────────────────────────────────────────
+
+    const localServices = await bootstrapLocal();
+
     // ── Postman 本地 tRPC ────────────────────────────────────────────────────────
 
     const postmanStorage = new FileSystemPostmanStorage();
     await postmanStorage.initialize();
-
-    const postmanTrpcRouter = router({
-        postman: createPostmanRouter(postmanStorage),
-    });
-
-    // ── Provider 本地 tRPC ───────────────────────────────────────────────────────
-    // 连接到 zen-core 共享数据库（provider 数据由 zen-core 管理，zen-swarm 只读写路由层）
-
-    const zenCoreDataDir = join(homedir(), '.zen-core');
-    mkdirSync(zenCoreDataDir, { recursive: true });
-    const zenCoreDb = new Database(join(zenCoreDataDir, 'data.db'), { create: true });
-
-    const providerStorage = new ProviderStorage(zenCoreDb);
-    await providerStorage.initialize();
-
-    const remoteStoreStorage = new RemoteStoreStorage(zenCoreDb);
-    await remoteStoreStorage.initialize();
 
     const ZEN_CORE_URL = process.env.ZEN_CORE_URL || 'http://127.0.0.1:8125';
 
@@ -81,17 +75,36 @@ export async function startServer() {
         }
     }
 
-    const providerTrpcRouter = router({
-        providers: createProviderRouter(providerStorage, { getAllModels: getAllModelsFromZenCore }),
-    });
+    // ── 统一本地 tRPC 路由（包含所有本地持有的存储路由）────────────────────────
 
-    const storeTrpcRouter = router({
-        store: createStoreRouter(remoteStoreStorage),
-    });
-
-    const filesTrpcRouter = router({
+    const localTrpcRouter = router({
+        agents: agentsRouter,
+        prompts: promptsRouter,
+        middlewares: middlewaresRouter,
+        mcp: mcpRouter,
+        workspaces: workspacesRouter,
+        cron: cronRouter,
+        providers: createProviderRouter(localServices.providerStorage, { getAllModels: getAllModelsFromZenCore }),
+        store: createStoreRouter(localServices.remoteStoreStorage),
+        postman: createPostmanRouter(postmanStorage),
         files: filesRouter,
     });
+
+    /** 构建本地 tRPC context（传入所有本地服务） */
+    function makeLocalContext(req: Request) {
+        return createContext(
+            req,
+            localServices.agentPackage,
+            localServices.mergedStorage,
+            localServices.mcpStorage,
+            localServices.workspaceStorage,
+            localServices.cronStorage,
+            localServices.cronScheduler,
+            localServices.providerStorage,
+            localServices.remoteStoreStorage,
+            postmanStorage,
+        );
+    }
 
     const app = new Hono();
     app.use(logger());
@@ -105,14 +118,75 @@ export async function startServer() {
         return authMiddleware(c, next);
     });
 
+    // 本地处理 tRPC（agents/prompts/middlewares/mcp/workspaces/cron/providers/store/postman/files 均本地）
+    app.all('/api/trpc/agents.*', (c) => {
+        return fetchRequestHandler({
+            endpoint: '/api/trpc',
+            req: c.req.raw,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            router: localTrpcRouter as any,
+            createContext: ({ req }) => makeLocalContext(req),
+        });
+    });
+
+    app.all('/api/trpc/prompts.*', (c) => {
+        return fetchRequestHandler({
+            endpoint: '/api/trpc',
+            req: c.req.raw,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            router: localTrpcRouter as any,
+            createContext: ({ req }) => makeLocalContext(req),
+        });
+    });
+
+    app.all('/api/trpc/middlewares.*', (c) => {
+        return fetchRequestHandler({
+            endpoint: '/api/trpc',
+            req: c.req.raw,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            router: localTrpcRouter as any,
+            createContext: ({ req }) => makeLocalContext(req),
+        });
+    });
+
+    app.all('/api/trpc/mcp.*', (c) => {
+        return fetchRequestHandler({
+            endpoint: '/api/trpc',
+            req: c.req.raw,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            router: localTrpcRouter as any,
+            createContext: ({ req }) => makeLocalContext(req),
+        });
+    });
+
+    app.all('/api/trpc/workspaces.*', (c) => {
+        return fetchRequestHandler({
+            endpoint: '/api/trpc',
+            req: c.req.raw,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            router: localTrpcRouter as any,
+            createContext: ({ req }) => makeLocalContext(req),
+        });
+    });
+
+    app.all('/api/trpc/cron.*', (c) => {
+        return fetchRequestHandler({
+            endpoint: '/api/trpc',
+            req: c.req.raw,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            router: localTrpcRouter as any,
+            createContext: ({ req }) => makeLocalContext(req),
+        });
+    });
+
     // 本地处理 postman tRPC（不走代理）
     app.all('/api/trpc/postman.*', (c) => {
         return fetchRequestHandler({
             endpoint: '/api/trpc',
             req: c.req.raw,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            router: postmanTrpcRouter as any,
-            createContext: () => ({}),
+            router: localTrpcRouter as any,
+            createContext: ({ req }) => makeLocalContext(req),
         });
     });
 
@@ -122,8 +196,8 @@ export async function startServer() {
             endpoint: '/api/trpc',
             req: c.req.raw,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            router: providerTrpcRouter as any,
-            createContext: () => ({}),
+            router: localTrpcRouter as any,
+            createContext: ({ req }) => makeLocalContext(req),
         });
     });
 
@@ -133,8 +207,8 @@ export async function startServer() {
             endpoint: '/api/trpc',
             req: c.req.raw,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            router: storeTrpcRouter as any,
-            createContext: () => ({}),
+            router: localTrpcRouter as any,
+            createContext: ({ req }) => makeLocalContext(req),
         });
     });
 
@@ -144,8 +218,8 @@ export async function startServer() {
             endpoint: '/api/trpc',
             req: c.req.raw,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            router: filesTrpcRouter as any,
-            createContext: () => ({}),
+            router: localTrpcRouter as any,
+            createContext: ({ req }) => makeLocalContext(req),
         });
     });
 

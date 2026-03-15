@@ -24,13 +24,12 @@ export const UpdateMiddlewareSchema = MiddlewareInputSchema.partial().extend({
 export const middlewaresRouter = router({
     // 列出所有 Middlewares
     list: publicProcedure.query(async ({ ctx }) => {
-        const middlewares = await ctx.agentPackage.storage.getAllMiddlewares();
-        return middlewares;
+        return await ctx.mergedStorage.getAllMiddlewares();
     }),
 
     // 获取单个 Middleware
     get: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
-        const middleware = await ctx.agentPackage.storage.getMiddleware(input.id);
+        const middleware = await ctx.mergedStorage.getMiddleware(input.id);
         if (!middleware) {
             handleNotFound('Middleware', input.id);
         }
@@ -39,31 +38,31 @@ export const middlewaresRouter = router({
 
     // 创建 Middleware
     create: publicProcedure.input(MiddlewareInputSchema).mutation(async ({ ctx, input }) => {
-        await ctx.agentPackage.storage.insertMiddleware(input);
+        await ctx.mergedStorage.insertMiddleware(input);
         return { id: input.id };
     }),
 
     // 更新 Middleware
     update: publicProcedure.input(UpdateMiddlewareSchema).mutation(async ({ ctx, input }) => {
-        const existing = await ctx.agentPackage.storage.getMiddleware(input.id);
+        const existing = await ctx.mergedStorage.getMiddleware(input.id);
         if (!existing) {
             handleNotFound('Middleware', input.id);
         }
 
         const updateData = { ...existing, ...input } as any;
-        await ctx.agentPackage.storage.updateMiddleware(updateData);
+        await ctx.mergedStorage.updateMiddleware(updateData);
         return { id: input.id };
     }),
 
     // 删除 Middleware
     delete: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
-        await ctx.agentPackage.storage.deleteMiddleware(input.id);
+        await ctx.mergedStorage.deleteMiddleware(input.id);
         return { id: input.id };
     }),
 
     // 批量创建 Middlewares
     createMany: publicProcedure.input(z.array(MiddlewareInputSchema)).mutation(async ({ ctx, input }) => {
-        await Promise.all(input.map((data) => ctx.agentPackage.storage.insertMiddleware(data)));
+        await Promise.all(input.map((data) => ctx.mergedStorage.insertMiddleware(data)));
         return { count: input.length, ids: input.map((m) => m.id) };
     }),
 });

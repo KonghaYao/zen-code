@@ -31,7 +31,7 @@ export const CreateVersionSchema = z.object({
 export const promptsRouter = router({
     // 列出所有 Prompts (with current version content)
     list: publicProcedure.query(async ({ ctx }) => {
-        const prompts = await ctx.agentPackage.storage.getAllPromptsWithCurrentVersion();
+        const prompts = await ctx.mergedStorage.getAllPromptsWithCurrentVersion();
         return prompts.map((p) => ({
             id: p.id,
             name: p.name,
@@ -44,9 +44,9 @@ export const promptsRouter = router({
         }));
     }),
 
-    // 获取单个 Prompt (with current version content)
+    // 获取单个 Prompt
     get: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
-        const prompt = await ctx.agentPackage.storage.getPromptWithCurrentVersion(input.id);
+        const prompt = await ctx.mergedStorage.getPromptWithCurrentVersion(input.id);
         if (!prompt) {
             handleNotFound('Prompt', input.id);
         }
@@ -62,9 +62,9 @@ export const promptsRouter = router({
         };
     }),
 
-    // 按名称获取 Prompt (with current version content)
+    // 按名称获取 Prompt
     getByName: publicProcedure.input(z.object({ name: z.string() })).query(async ({ ctx, input }) => {
-        const prompt = await ctx.agentPackage.storage.getPromptWithCurrentVersionByName(input.name);
+        const prompt = await ctx.mergedStorage.getPromptWithCurrentVersionByName(input.name);
         if (!prompt) {
             handleNotFound('Prompt', input.name);
         }
@@ -83,7 +83,7 @@ export const promptsRouter = router({
     // 创建 Prompt
     create: publicProcedure.input(PromptInputSchema).mutation(async ({ ctx, input }) => {
         try {
-            await ctx.agentPackage.storage.insertPrompt(input, input.content, input.change_note);
+            await ctx.mergedStorage.insertPrompt(input, input.content, input.change_note);
         } catch (error) {
             if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
                 handleConflict(`Prompt with name '${input.name}' already exists`);
@@ -93,17 +93,17 @@ export const promptsRouter = router({
         return { id: input.id };
     }),
 
-    // 更新 Prompt (仅更新元数据，内容更新使用 createVersion)
+    // 更新 Prompt（仅元数据，内容更新使用 createVersion）
     update: publicProcedure.input(UpdatePromptSchema).mutation(async ({ ctx, input }) => {
-        const existing = await ctx.agentPackage.storage.getPrompt(input.id);
+        const existing = await ctx.mergedStorage.getPrompt(input.id);
         if (!existing) {
             handleNotFound('Prompt', input.id);
-            return; // TypeScript 需要这个 return
+            return;
         }
 
         const updateData = { id: input.id, name: input.name ?? existing.name };
         try {
-            await ctx.agentPackage.storage.updatePrompt(updateData);
+            await ctx.mergedStorage.updatePrompt(updateData);
         } catch (error) {
             if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
                 handleConflict(`Prompt with name '${input.name}' already exists`);
@@ -116,7 +116,7 @@ export const promptsRouter = router({
     // 删除 Prompt
     delete: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
         try {
-            await ctx.agentPackage.storage.deletePrompt(input.id);
+            await ctx.mergedStorage.deletePrompt(input.id);
         } catch (error) {
             if (error instanceof Error && error.message.includes('Cannot delete prompt')) {
                 throw new Error(error.message);
@@ -128,9 +128,7 @@ export const promptsRouter = router({
 
     // 批量创建 Prompts
     createMany: publicProcedure.input(z.array(PromptInputSchema)).mutation(async ({ ctx, input }) => {
-        await Promise.all(
-            input.map((data) => ctx.agentPackage.storage.insertPrompt(data, data.content, data.change_note)),
-        );
+        await Promise.all(input.map((data) => ctx.mergedStorage.insertPrompt(data, data.content, data.change_note)));
         return { count: input.length, ids: input.map((p) => p.id) };
     }),
 
@@ -140,7 +138,7 @@ export const promptsRouter = router({
 
     // 获取 Prompt 的所有版本
     getVersions: publicProcedure.input(z.object({ promptId: z.string() })).query(async ({ ctx, input }) => {
-        const versions = await ctx.agentPackage.storage.getPromptVersions(input.promptId);
+        const versions = await ctx.mergedStorage.getPromptVersions(input.promptId);
         return versions.map((v) => ({
             id: v.id,
             prompt_id: v.prompt_id,
@@ -156,7 +154,7 @@ export const promptsRouter = router({
     getVersion: publicProcedure
         .input(z.object({ promptId: z.string(), version: z.number() }))
         .query(async ({ ctx, input }) => {
-            const version = await ctx.agentPackage.storage.getPromptVersion(input.promptId, input.version);
+            const version = await ctx.mergedStorage.getPromptVersion(input.promptId, input.version);
             if (!version) {
                 handleNotFound('Prompt version', `${input.promptId}@v${input.version}`);
             }
@@ -174,7 +172,7 @@ export const promptsRouter = router({
     // 创建新版本
     createVersion: publicProcedure.input(CreateVersionSchema).mutation(async ({ ctx, input }) => {
         try {
-            const newVersion = await ctx.agentPackage.storage.createPromptVersion(
+            const newVersion = await ctx.mergedStorage.createPromptVersion(
                 input.promptId,
                 input.content,
                 input.changeNote,
@@ -200,9 +198,8 @@ export const promptsRouter = router({
         .input(z.object({ promptId: z.string(), targetVersion: z.number() }))
         .mutation(async ({ ctx, input }) => {
             try {
-                await ctx.agentPackage.storage.rollbackPromptVersion(input.promptId, input.targetVersion);
-                // 返回更新后的 prompt
-                const prompt = await ctx.agentPackage.storage.getPromptWithCurrentVersion(input.promptId);
+                await ctx.mergedStorage.rollbackPromptVersion(input.promptId, input.targetVersion);
+                const prompt = await ctx.mergedStorage.getPromptWithCurrentVersion(input.promptId);
                 return {
                     id: prompt!.id,
                     name: prompt!.name,

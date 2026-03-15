@@ -2,12 +2,12 @@
  * MCP Config API Routes
  *
  * 提供 MCP 配置的 CRUD 操作
+ * 写操作后自动通过 /api/mcp-sync 将配置推送到 zen-core 内存
  */
 
 import { router, publicProcedure, handleNotFound } from './trpc.js';
 import { z } from 'zod';
-import { mcpStorage } from '../config/loader.js';
-import { McpConfigData } from '../config/storage.js';
+import type { McpConfigData } from '../config/storage.js';
 import { v7 as uuidv7 } from 'uuid';
 
 /**
@@ -18,7 +18,26 @@ function randomId(prefix: string): string {
 }
 
 /**
- * MCP Config Input Schema (zod v4: two-parameter record)
+ * 推送 MCP 配置到 zen-core 内存
+ */
+async function syncMcpToZenCore(mcpStorage: {
+    getMcpConfigAsObject: () => Promise<Record<string, unknown>>;
+}): Promise<void> {
+    const ZEN_CORE_URL = process.env.ZEN_CORE_URL || 'http://127.0.0.1:8125';
+    try {
+        const servers = await mcpStorage.getMcpConfigAsObject();
+        await fetch(`${ZEN_CORE_URL}/api/mcp-sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ servers }),
+        });
+    } catch (err) {
+        console.warn('[mcp] Failed to sync MCP config to zen-core:', err);
+    }
+}
+
+/**
+ * MCP Config Input Schema
  */
 export const McpConfigInputSchema = z.object({
     id: z.string().optional(),
@@ -41,8 +60,8 @@ export const mcpRouter = router({
     /**
      * List all MCP configs
      */
-    list: publicProcedure.query(async () => {
-        const rows = await mcpStorage.getAllMcpConfigs();
+    list: publicProcedure.query(async ({ ctx }) => {
+        const rows = await ctx.mcpStorage.getAllMcpConfigs();
         return rows.map((row) => ({
             id: row.id,
             name: row.name,
@@ -56,8 +75,8 @@ export const mcpRouter = router({
     /**
      * Get MCP config by ID
      */
-    get: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
-        const row = await mcpStorage.getMcpConfig(input.id);
+    get: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+        const row = await ctx.mcpStorage.getMcpConfig(input.id);
         if (!row) {
             throw handleNotFound('MCP config', input.id);
         }
@@ -74,8 +93,8 @@ export const mcpRouter = router({
     /**
      * Get MCP config by name
      */
-    getByName: publicProcedure.input(z.object({ name: z.string() })).query(async ({ input }) => {
-        const row = await mcpStorage.getMcpConfigByName(input.name);
+    getByName: publicProcedure.input(z.object({ name: z.string() })).query(async ({ ctx, input }) => {
+        const row = await ctx.mcpStorage.getMcpConfigByName(input.name);
         if (!row) {
             throw handleNotFound('MCP config', input.name);
         }
@@ -92,14 +111,14 @@ export const mcpRouter = router({
     /**
      * Get enabled MCP configs (as object format)
      */
-    getEnabled: publicProcedure.query(async () => {
-        return await mcpStorage.getMcpConfigAsObject();
+    getEnabled: publicProcedure.query(async ({ ctx }) => {
+        return await ctx.mcpStorage.getMcpConfigAsObject();
     }),
 
     /**
      * Create MCP config
      */
-    create: publicProcedure.input(McpConfigInputSchema).mutation(async ({ input }) => {
+    create: publicProcedure.input(McpConfigInputSchema).mutation(async ({ ctx, input }) => {
         const id = input.id || randomId('mcp');
         const data: McpConfigData = {
             id,
@@ -108,14 +127,15 @@ export const mcpRouter = router({
             enabled: input.enabled ?? true,
         };
 
-        await mcpStorage.insertMcpConfig(data);
+        await ctx.mcpStorage.insertMcpConfig(data);
+        await syncMcpToZenCore(ctx.mcpStorage);
         return data;
     }),
 
     /**
      * Update MCP config
      */
-    update: publicProcedure.input(UpdateMcpConfigSchema).mutation(async ({ input }) => {
+    update: publicProcedure.input(UpdateMcpConfigSchema).mutation(async ({ ctx, input }) => {
         const data: McpConfigData = {
             id: input.id,
             name: input.name,
@@ -123,15 +143,17 @@ export const mcpRouter = router({
             enabled: input.enabled ?? true,
         };
 
-        await mcpStorage.updateMcpConfig(data);
+        await ctx.mcpStorage.updateMcpConfig(data);
+        await syncMcpToZenCore(ctx.mcpStorage);
         return data;
     }),
 
     /**
      * Delete MCP config
      */
-    delete: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
-        await mcpStorage.deleteMcpConfig(input.id);
+    delete: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+        await ctx.mcpStorage.deleteMcpConfig(input.id);
+        await syncMcpToZenCore(ctx.mcpStorage);
         return { success: true };
     }),
 });

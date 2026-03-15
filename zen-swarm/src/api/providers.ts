@@ -177,6 +177,21 @@ export function createProviderRouter(
             }));
         }),
 
+        // 供 zen-core Agent 执行时内部调用（返回解密 apiKey）
+        resolveForAgent: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+            const provider = await providerStorage.getById(input.id);
+            if (!provider) return null;
+            const apiKey = await providerStorage.getDecryptedApiKey(input.id);
+            if (!apiKey) return null;
+            return {
+                id: provider.id,
+                type: provider.type,
+                name: provider.name,
+                baseUrl: provider.baseUrl,
+                apiKey,
+            };
+        }),
+
         // 验证 API Key 格式
         validateApiKey: publicProcedure.input(ProviderValidateSchema).query(({ input }) => {
             const { type, apiKey } = input;

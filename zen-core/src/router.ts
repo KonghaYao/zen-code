@@ -1,5 +1,8 @@
 /**
  * tRPC AppRouter 聚合
+ *
+ * 仅包含 zen-core 本地 FS 存储路由。
+ * agents/prompts/middlewares/mcp/workspaces/cron 等 SQLite 路由已迁至 zen-swarm 本地处理。
  */
 
 import { router } from './trpc.js';
@@ -7,15 +10,8 @@ import { configRouter } from './routes/config.js';
 import { modelsRouter } from './routes/models.js';
 import { skillsRouter } from './routes/skills.js';
 import { tasksRouter } from './routes/tasks.js';
-import { agentsRouter } from './routes/agents.js';
 import { knowledgeRouter } from './routes/knowledge.js';
 import { processesRouter } from './routes/processes.js';
-// zen-swarm 迁入路由
-import { mcpRouter } from './routes/mcp.js';
-import { workspacesRouter } from './routes/workspaces.js';
-import { cronRouter } from './routes/cron.js';
-import { promptsRouter } from './routes/prompts.js';
-import { middlewaresRouter } from './routes/middlewares.js';
 
 export { router, procedure } from './trpc.js';
 
@@ -24,15 +20,8 @@ export const appRouter = router({
     models: modelsRouter,
     skills: skillsRouter,
     tasks: tasksRouter,
-    agents: agentsRouter,
     knowledge: knowledgeRouter,
     processes: processesRouter,
-    // zen-swarm 迁入路由
-    mcp: mcpRouter,
-    workspaces: workspacesRouter,
-    cron: cronRouter,
-    prompts: promptsRouter,
-    middlewares: middlewaresRouter,
 });
 
 export type AppRouter = typeof appRouter;

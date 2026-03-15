@@ -20,3 +20,4 @@ export * from './abstract.js';
 // Re-export storage implementations
 export * from './memory.js';
 export * from './sqlite.js';
+export * from './merged.js';

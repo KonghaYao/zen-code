@@ -4,11 +4,14 @@
 
 import { initTRPC, TRPCError } from '@trpc/server';
 import type { AgentPackage } from '@langgraph-js/standard-agent';
+import type { MergedStorage } from '@langgraph-js/standard-agent/storage/merged';
 import type { CronStorage } from '../cron/storage.js';
 import type { CronScheduler } from '../cron/scheduler.js';
 import type { ProviderStorage } from '../services/provider/index.js';
 import type { RemoteStoreStorage } from '../services/remote-store/index.js';
 import type { PostmanStorage } from '../postman/storage.js';
+import type { ZenSwarmMcpStorage } from '../config/storage.js';
+import type { WorkspaceStorage } from '../config/workspace-storage.js';
 import { validateToken } from '../auth/tokenAuth.js';
 
 // ========================================
@@ -17,6 +20,9 @@ import { validateToken } from '../auth/tokenAuth.js';
 
 export interface Context {
     agentPackage: AgentPackage;
+    mergedStorage: MergedStorage;
+    mcpStorage: ZenSwarmMcpStorage;
+    workspaceStorage: WorkspaceStorage;
     cronStorage: CronStorage;
     cronScheduler: CronScheduler;
     providerStorage: ProviderStorage;
@@ -47,6 +53,9 @@ function extractToken(req: Request): string | null {
 export async function createContext(
     req: Request,
     agentPackage: AgentPackage,
+    mergedStorage: MergedStorage,
+    mcpStorage: ZenSwarmMcpStorage,
+    workspaceStorage: WorkspaceStorage,
     cronStorage: CronStorage,
     cronScheduler: CronScheduler,
     providerStorage: ProviderStorage,
@@ -54,10 +63,8 @@ export async function createContext(
     postmanStorage: PostmanStorage,
 ): Promise<Context> {
     // 纵深防御：在 tRPC 层再次校验 token
-    // 即使 Hono 中间件被绕过（SSRF、内网直连等），tRPC 层仍能阻断未授权访问
     const token = extractToken(req);
     if (token) {
-        // 有 token 但无效时拒绝（无 token 则信任 Hono 层已通过校验）
         const valid = await validateToken(token);
         if (!valid) {
             throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid token' });
@@ -66,6 +73,9 @@ export async function createContext(
 
     return {
         agentPackage,
+        mergedStorage,
+        mcpStorage,
+        workspaceStorage,
         cronStorage,
         cronScheduler,
         providerStorage,
@@ -85,7 +95,6 @@ const t = initTRPC.context<ContextType>().create();
 export const router = t.router;
 export const publicProcedure = t.procedure;
 export const protectedProcedure = t.procedure.use(({ next, ctx }) => {
-    // context 已在 createContext 中完成鉴权，此处可添加更细粒度的角色检查
     return next({ ctx });
 });
 
@@ -93,21 +102,21 @@ export const protectedProcedure = t.procedure.use(({ next, ctx }) => {
 // 错误处理
 // ========================================
 
-export function handleNotFound(entity: string, id: string) {
+export function handleNotFound(entity: string, id: string): never {
     throw new TRPCError({
         code: 'NOT_FOUND',
         message: `${entity} with id ${id} not found`,
     });
 }
 
-export function handleBadRequest(message: string) {
+export function handleBadRequest(message: string): never {
     throw new TRPCError({
         code: 'BAD_REQUEST',
         message,
     });
 }
 
-export function handleConflict(message: string) {
+export function handleConflict(message: string): never {
     throw new TRPCError({
         code: 'CONFLICT',
         message,

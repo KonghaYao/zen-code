@@ -50,7 +50,6 @@ async function spawnZenCore(port: number): Promise<void> {
 
     let entryPath: string;
     if (existsSync(tsPath)) {
-        console.warn('DEV MODE');
         entryPath = tsPath;
     } else {
         entryPath = jsPath;

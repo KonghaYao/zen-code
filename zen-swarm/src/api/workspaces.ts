@@ -9,30 +9,6 @@
 
 import { z } from 'zod';
 import { router, publicProcedure, handleBadRequest, handleNotFound } from './trpc.js';
-import { WorkspaceStorage } from '../config/workspace-storage.js';
-import { sharedDb } from '../config/loader.js';
-
-// ========================================
-// 配置
-// ========================================
-
-// Workspace storage 实例
-let workspaceStorage: WorkspaceStorage | null = null;
-let initializationPromise: Promise<void> | null = null;
-
-async function getStorage(): Promise<WorkspaceStorage> {
-    if (!workspaceStorage) {
-        workspaceStorage = new WorkspaceStorage(sharedDb);
-        initializationPromise = workspaceStorage.initialize();
-    }
-
-    // Ensure initialization is complete before returning
-    if (initializationPromise) {
-        await initializationPromise;
-    }
-
-    return workspaceStorage;
-}
 
 // ========================================
 // Schema 定义
@@ -68,16 +44,14 @@ const ValidatePathInputSchema = z.object({
 
 export const workspacesRouter = router({
     // 获取所有 Workspace（按最后访问时间排序）
-    getAll: publicProcedure.query(async () => {
-        const storage = await getStorage();
-        const workspaces = await storage.getAllWorkspaces();
+    getAll: publicProcedure.query(async ({ ctx }) => {
+        const workspaces = await ctx.workspaceStorage.getAllWorkspaces();
         return { workspaces };
     }),
 
     // 获取单个 Workspace
-    getById: publicProcedure.input(GetWorkspaceInputSchema).query(async ({ input }) => {
-        const storage = await getStorage();
-        const workspace = await storage.getWorkspaceById(input.id);
+    getById: publicProcedure.input(GetWorkspaceInputSchema).query(async ({ ctx, input }) => {
+        const workspace = await ctx.workspaceStorage.getWorkspaceById(input.id);
 
         if (!workspace) {
             handleNotFound('Workspace', input.id);
@@ -87,16 +61,13 @@ export const workspacesRouter = router({
     }),
 
     // 创建 Workspace
-    create: publicProcedure.input(CreateWorkspaceInputSchema).mutation(async ({ input }) => {
-        const storage = await getStorage();
-
-        // 验证路径
-        const pathValidation = await storage.validatePath(input.rootPath);
+    create: publicProcedure.input(CreateWorkspaceInputSchema).mutation(async ({ ctx, input }) => {
+        const pathValidation = await ctx.workspaceStorage.validatePath(input.rootPath);
         if (!pathValidation.valid) {
             handleBadRequest(`Invalid path: ${pathValidation.error}`);
         }
 
-        const workspace = await storage.createWorkspace({
+        const workspace = await ctx.workspaceStorage.createWorkspace({
             name: input.name,
             rootPath: input.rootPath,
             description: input.description,
@@ -106,15 +77,13 @@ export const workspacesRouter = router({
     }),
 
     // 更新 Workspace
-    update: publicProcedure.input(UpdateWorkspaceInputSchema).mutation(async ({ input }) => {
-        const storage = await getStorage();
-
-        const existing = await storage.getWorkspaceById(input.id);
+    update: publicProcedure.input(UpdateWorkspaceInputSchema).mutation(async ({ ctx, input }) => {
+        const existing = await ctx.workspaceStorage.getWorkspaceById(input.id);
         if (!existing) {
             handleNotFound('Workspace', input.id);
         }
 
-        const workspace = await storage.updateWorkspace({
+        const workspace = await ctx.workspaceStorage.updateWorkspace({
             id: input.id,
             name: input.name,
             description: input.description,
@@ -124,15 +93,13 @@ export const workspacesRouter = router({
     }),
 
     // 删除 Workspace
-    delete: publicProcedure.input(DeleteWorkspaceInputSchema).mutation(async ({ input }) => {
-        const storage = await getStorage();
-
-        const existing = await storage.getWorkspaceById(input.id);
+    delete: publicProcedure.input(DeleteWorkspaceInputSchema).mutation(async ({ ctx, input }) => {
+        const existing = await ctx.workspaceStorage.getWorkspaceById(input.id);
         if (!existing) {
             handleNotFound('Workspace', input.id);
         }
 
-        await storage.deleteWorkspace(input.id);
+        await ctx.workspaceStorage.deleteWorkspace(input.id);
 
         return { id: input.id, success: true };
     }),
@@ -140,16 +107,14 @@ export const workspacesRouter = router({
     // 更新 Workspace 最近访问时间（切换 workspace 时调用）
     touch: publicProcedure
         .input(z.object({ id: z.string().min(1, 'Workspace ID is required') }))
-        .mutation(async ({ input }) => {
-            const storage = await getStorage();
-            await storage.touchWorkspace(input.id);
+        .mutation(async ({ ctx, input }) => {
+            await ctx.workspaceStorage.touchWorkspace(input.id);
             return { id: input.id, success: true };
         }),
 
     // 验证路径
-    validatePath: publicProcedure.input(ValidatePathInputSchema).query(async ({ input }) => {
-        const storage = await getStorage();
-        const result = await storage.validatePath(input.path);
+    validatePath: publicProcedure.input(ValidatePathInputSchema).query(async ({ ctx, input }) => {
+        const result = await ctx.workspaceStorage.validatePath(input.path);
         return result;
     }),
 });

@@ -3,6 +3,8 @@
  */
 
 import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
+import { AgentSchema } from '@langgraph-js/standard-agent';
 import { router, publicProcedure, handleNotFound } from './trpc.js';
 
 // Schema 定义 - base schema without refinements for partial()
@@ -10,14 +12,13 @@ const AgentInputBaseSchema = z.object({
     id: z.string(),
     name: z.string().min(1),
     description: z.string().min(1),
-    system_prompt: z.string().min(1), // Prompt ID - must be non-empty
-    model: z.string().min(1), // Model ID - must be non-empty
+    system_prompt: z.string().min(1),
+    model: z.string().min(1),
     middlewares: z.record(z.string(), z.union([z.boolean(), z.any()])),
 });
 
 // Schema for create with refinements
 export const AgentInputSchema = AgentInputBaseSchema.superRefine((data, ctx) => {
-    // Validate that middlewares record has at least one key
     if (!data.middlewares || Object.keys(data.middlewares).length === 0) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -27,22 +28,15 @@ export const AgentInputSchema = AgentInputBaseSchema.superRefine((data, ctx) => 
     }
 });
 
-// Schema for update using base schema (allows partial)
+// Schema for update
 export const UpdateAgentSchema = AgentInputBaseSchema.partial()
-    .extend({
-        id: z.string(),
-    })
+    .extend({ id: z.string() })
     .refine(
         (data) => {
-            // When updating, if middlewares are provided, they must not be empty
-            if (data.middlewares && Object.keys(data.middlewares).length === 0) {
-                return false;
-            }
+            if (data.middlewares && Object.keys(data.middlewares).length === 0) return false;
             return true;
         },
-        {
-            message: 'middlewares must have at least one entry when provided',
-        },
+        { message: 'middlewares must have at least one entry when provided' },
     );
 
 // ========================================
@@ -50,44 +44,27 @@ export const UpdateAgentSchema = AgentInputBaseSchema.partial()
 // ========================================
 
 export const agentsRouter = router({
-    // 列出所有 Agents（包含关联的 Middlewares）
+    // 列出所有 Agents
     list: publicProcedure.query(async ({ ctx }) => {
-        const agents = await ctx.agentPackage.storage.getAllAgents();
-
-        // Transform database row format to frontend expected format
-        // DB: system_prompt_id, model_id -> Frontend: system_prompt, model
-        return agents.map((agent) => ({
-            ...agent,
-            system_prompt: agent.system_prompt_id,
-            model: agent.model_id,
-        }));
+        return await ctx.agentPackage.listAgents();
     }),
 
-    // 获取单个 Agent（包含关联的 Middlewares）
+    // 获取单个 Agent
     get: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
-        const agent = await ctx.agentPackage.storage.getAgent(input.id);
+        const agent = await ctx.agentPackage.getAgent(input.id);
         if (!agent) {
-            throw handleNotFound('Agent', input.id);
+            throw new TRPCError({ code: 'NOT_FOUND', message: `Agent '${input.id}' not found` });
         }
-        // Transform database row format to frontend expected format
-        return {
-            ...agent,
-            system_prompt: agent.system_prompt_id,
-            model: agent.model_id,
-        };
+        return agent;
     }),
 
-    // 获取 Agent 及其依赖关系（包含 Model 和 System Prompt 详情）
+    // 获取 Agent 及其依赖关系
     getWithDependencies: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
-        const agentWithDeps = await ctx.agentPackage.storage.getAgentWithDependencies(input.id);
+        const agentWithDeps = await ctx.mergedStorage.getAgentWithDependencies(input.id);
         if (!agentWithDeps) {
             throw handleNotFound('Agent', input.id);
         }
-
-        // 获取完整的 middlewares 配置
-        const agentFull = await ctx.agentPackage.storage.getAgent(input.id);
-
-        // Transform database row format to frontend expected format
+        const agentFull = await ctx.mergedStorage.getAgent(input.id);
         return {
             ...agentWithDeps.agent,
             system_prompt: agentWithDeps.agent.system_prompt_id,
@@ -99,80 +76,38 @@ export const agentsRouter = router({
     }),
 
     // 创建 Agent
-    create: publicProcedure.input(AgentInputSchema).mutation(async ({ ctx, input }) => {
-        // 验证关联的 Model 和 Prompt 是否存在
-        const model = await ctx.agentPackage.storage.getModel(input.model);
-        if (!model) {
-            handleNotFound('Model', input.model);
-        }
-
-        const prompt = await ctx.agentPackage.storage.getPrompt(input.system_prompt);
-        if (!prompt) {
-            handleNotFound('Prompt', input.system_prompt);
-        }
-
-        // 验证关联的 Middlewares 是否存在（跳过空键）
-        for (const midId of Object.keys(input.middlewares)) {
-            if (midId.trim() === '') continue; // Skip empty keys
-            const middleware = await ctx.agentPackage.storage.getMiddleware(midId);
-            if (!middleware) {
-                handleNotFound('Middleware', midId);
-            }
-        }
-
-        await ctx.agentPackage.storage.insertAgent(input);
-        return { id: input.id };
+    create: publicProcedure.input(AgentSchema).mutation(async ({ ctx, input }) => {
+        await ctx.agentPackage.addAgent(input);
+        return { success: true };
     }),
 
-    // 更新 Agent
-    update: publicProcedure.input(UpdateAgentSchema).mutation(async ({ ctx, input }) => {
-        const existing = await ctx.agentPackage.storage.getAgent(input.id);
-        if (!existing) {
-            handleNotFound('Agent', input.id);
-        }
-
-        // 如果更新了 model，验证是否存在
-        if (input.model) {
-            const model = await ctx.agentPackage.storage.getModel(input.model);
-            if (!model) {
-                handleNotFound('Model', input.model);
-            }
-        }
-
-        // 如果更新了 system_prompt，验证是否存在
-        if (input.system_prompt) {
-            const prompt = await ctx.agentPackage.storage.getPrompt(input.system_prompt);
-            if (!prompt) {
-                handleNotFound('Prompt', input.system_prompt);
-            }
-        }
-
-        // 如果更新了 middlewares，验证它们是否存在（跳过空键）
-        if (input.middlewares) {
-            for (const midId of Object.keys(input.middlewares)) {
-                if (midId.trim() === '') continue; // Skip empty keys
-                const middleware = await ctx.agentPackage.storage.getMiddleware(midId);
-                if (!middleware) {
-                    handleNotFound('Middleware', midId);
-                }
-            }
-        }
-
-        const updateData = { ...existing, ...input } as any;
-        await ctx.agentPackage.storage.updateAgent(updateData);
-        return { id: input.id };
+    // 更新 Agent（DB 有则 update，无则 insert 覆盖内置）
+    update: publicProcedure.input(AgentSchema).mutation(async ({ ctx, input }) => {
+        await ctx.mergedStorage.updateAgent(input);
+        return { success: true };
     }),
 
-    // 删除 Agent
+    // 删除 Agent（内置 agent 禁止删除）
     delete: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
-        await ctx.agentPackage.storage.deleteAgent(input.id);
-        return { id: input.id };
+        const isBuiltin = await ctx.mergedStorage.isBuiltin(input.id);
+        if (isBuiltin) {
+            throw new TRPCError({
+                code: 'FORBIDDEN',
+                message: `Cannot delete built-in agent '${input.id}'. Use resetToDefault to restore defaults.`,
+            });
+        }
+        await ctx.mergedStorage.deleteAgent(input.id);
+        return { success: true };
     }),
 
-    // 批量创建 Agents
-    createMany: publicProcedure.input(z.array(AgentInputSchema)).mutation(async ({ ctx, input }) => {
-        await Promise.all(input.map((data) => ctx.agentPackage.storage.insertAgent(data)));
-        return { count: input.length, ids: input.map((a) => a.id) };
+    // 重置 Agent 到内置默认值
+    resetToDefault: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+        const hasOverride = await ctx.mergedStorage.hasDbOverride('agent', input.id);
+        if (!hasOverride) {
+            return { success: true, message: 'Already at default' };
+        }
+        await ctx.mergedStorage.deleteAgent(input.id);
+        return { success: true };
     }),
 
     // 验证 Agent
@@ -187,13 +122,7 @@ export const agentsRouter = router({
         return validation;
     }),
 
-    // 导出 Agent 配置为 JSON
-    export: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
-        const json = await ctx.agentPackage.toJSON();
-        return json;
-    }),
-
-    // 导出所有 Agents 配置为 JSON
+    // 导出所有 Agents 配置
     exportAll: publicProcedure.query(async ({ ctx }) => {
         const json = await ctx.agentPackage.toJSON();
         return json;
