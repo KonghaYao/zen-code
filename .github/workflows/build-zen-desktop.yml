@@ -41,12 +41,13 @@ jobs:
               working-directory: zen-desktop
               run: neu build --release
 
-            - name: Rename macOS binaries to .app
-              working-directory: zen-desktop/dist/neutralino
-              run: |
-                  for f in neutralino-mac_*; do
-                    [ -f "$f" ] && mv "$f" "${f}.app"
-                  done
+            # 无效, 都需要去设置里面解除拦截的
+            # - name: Rename macOS binaries to .app
+            #   working-directory: zen-desktop/dist/neutralino
+            #   run: |
+            #       for f in neutralino-mac_*; do
+            #         [ -f "$f" ] && mv "$f" "${f}.app"
+            #       done
 
             - name: Codesign macOS binaries (ad-hoc)
               working-directory: zen-desktop
