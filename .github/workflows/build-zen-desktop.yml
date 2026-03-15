@@ -36,6 +36,9 @@ jobs:
             # 不执行 neu update，使用仓库内已预置的 dist/neutralino/ 二进制
             - name: Build Neutralinojs app
               working-directory: zen-desktop
+              run: neu update
+            - name: Build Neutralinojs app
+              working-directory: zen-desktop
               run: neu build --release
 
             - name: Upload artifacts
