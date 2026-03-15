@@ -8,7 +8,9 @@
         "build:js": "bun build src/server.ts --target bun --outdir ./dist"
     },
     "dependencies": {
+        "zen-core": "workspace:^",
         "@codegraph/config": "workspace:^",
+        "@codegraph/union-client": "workspace:^",
         "@langgraph-js/pure-graph": "^3.3.0",
         "@langgraph-js/sdk": "^4.6.6",
         "@nanostores/react": "^1.0.0",

@@ -8,7 +8,7 @@ import type { ComponentType, ReactNode } from 'react';
 /**
  * 应用 ID 类型
  */
-export type AppId = 'chat' | 'config' | 'finder' | 'sm' | 'cron' | 'monitor' | 'terminal' | 'store' | 'postman';
+export type AppId = 'chat' | 'config' | 'finder' | 'cron' | 'terminal' | 'store' | 'postman';
 
 /**
  * 通知状态

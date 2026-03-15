@@ -8,7 +8,8 @@
         "packages/*",
         "zen-code",
         "zen-swarm",
-        "zen-core"
+        "zen-core",
+        "zen-desktop"
     ],
     "scripts": {
         "dev:docs": "bunx --bun xyd-js@0.1.0-alpha.5",
@@ -16,6 +17,8 @@
         "devtool": "bunx react-devtools",
         "dev:core": "cd zen-core && bun run dev",
         "dev:swarm": " cd zen-swarm && bun run src/server.ts",
+        "dev:desktop": "bun run --cwd zen-desktop dev",
+        "build:desktop": "bun run --cwd zen-desktop build",
         "dev:all": "bun run dev:core & bun run dev:tui",
         "preview:tui": "node --expose-gc zen-code/dist/cli.js",
         "preview:bun": "bun run zen-code/dist/cli.js",
@@ -43,6 +46,7 @@
         "@langgraph-js/pro": "^2.2.0",
         "@langgraph-js/pure-graph": "^3.3.0",
         "@langgraph-js/sdk": "^4.6.6",
+        "electrobun": "^1.15.1",
         "eventemitter3": "^5.0.1",
         "execa": "^9.6.1",
         "glob": "^11.1.0",

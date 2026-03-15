@@ -47,7 +47,7 @@ async function spawnZenCore(port: number): Promise<void> {
     Bun.spawn(['bun', zenCorePath, '--port', String(port)], {
         detached: true,
         stdio: ['ignore', 'ignore', 'ignore'],
-        env: { ...process.env, ZEN_CORE_PORT: String(port), ZEN_CORE_NO_AUTH: 'true' },
+        env: { ...process.env, ZEN_CORE_PORT: String(port) },
     });
 }
 

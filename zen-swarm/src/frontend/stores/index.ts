@@ -7,9 +7,6 @@ import { useState, useCallback } from 'react';
 import type { Agent, Model, Prompt, Middleware, MCPServer } from '../types/index.js';
 import { apiClient } from '../api.js';
 
-// 导出 Zustand store
-export { useMonitorStore } from './monitorStore.js';
-
 // ========================================
 // Agents Store
 // ========================================

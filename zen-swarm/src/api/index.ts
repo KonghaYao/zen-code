@@ -12,13 +12,9 @@ import { skillsRouter } from './skills.js';
 import { cronRouter } from './cron.js';
 import { filesRouter } from './files.js';
 import { workspacesRouter } from './workspaces.js';
-import { createSMRouter, SMRouter } from './sm.js';
-import { monitorRouter } from './monitor.js';
 import { createProviderRouter } from './providers.js';
 import { createStoreRouter } from './store.js';
 import { createPostmanRouter } from './postman.js';
-import type { StateMachineManager } from '../middlewares/sm/StateMachineManager.js';
-import type { SMDatabase } from '../middlewares/sm/database.js';
 import type { ProviderStorage } from '../services/provider/index.js';
 import type { RemoteStoreStorage } from '../services/remote-store/index.js';
 import type { PostmanStorage } from '../postman/storage.js';
@@ -37,34 +33,29 @@ const baseRoutes = {
     cron: cronRouter,
     files: filesRouter,
     workspaces: workspacesRouter,
-    monitor: monitorRouter,
 };
 
 // ========================================
-// 基础 Router（不含 SM）
+// 基础 Router
 // ========================================
 
 export const appRouter = router(baseRoutes);
 
 // ========================================
-// 合并 Router 工厂（包含 SM 和 Provider）
+// 合并 Router 工厂（包含 Provider）
 // ========================================
 
 export function createMergedRouter(
-    stateMachineManager?: StateMachineManager,
-    smDatabase?: SMDatabase,
     providerStorage?: ProviderStorage,
     remoteStoreStorage?: RemoteStoreStorage,
     postmanStorage?: PostmanStorage,
 ) {
-    const smRouter = stateMachineManager && smDatabase ? createSMRouter(stateMachineManager, smDatabase) : undefined;
     const providerRouter = providerStorage ? createProviderRouter(providerStorage) : undefined;
     const storeRouter = remoteStoreStorage ? createStoreRouter(remoteStoreStorage) : undefined;
     const postmanRouter = postmanStorage ? createPostmanRouter(postmanStorage) : undefined;
 
     return router({
         ...baseRoutes,
-        ...(smRouter ? { sm: smRouter } : {}),
         ...(providerRouter ? { providers: providerRouter } : {}),
         ...(storeRouter ? { store: storeRouter } : {}),
         ...(postmanRouter ? { postman: postmanRouter } : {}),
@@ -84,11 +75,8 @@ export const apiRoutes = {
     workspaces: workspacesRouter,
 };
 
-// 导出 SM Router 工厂（需要依赖注入）
-export { createSMRouter };
-
 // 导出基础类型
 export type AppRouter = typeof appRouter;
 
-// 导出完整类型（包含 SM Router）
+// 导出完整类型（包含 Provider Router）
 export type FullAppRouter = ReturnType<typeof createMergedRouter>;

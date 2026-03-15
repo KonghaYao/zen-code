@@ -8,6 +8,12 @@ import { router, publicProcedure, handleNotFound, handleBadRequest, handleConfli
 import type { ProviderStorage, ProviderType } from '../services/provider/index.js';
 import { DEFAULT_BASE_URLS, PROVIDER_DISPLAY_NAMES } from '../services/provider/storage.js';
 
+export interface ProviderRouterDeps {
+    providerStorage: ProviderStorage;
+    /** 获取所有 models，用于 delete 时检查关联 */
+    getAllModels?: () => Promise<Array<{ provider_id?: string; name?: string; model_name?: string }>>;
+}
+
 // ========================================
 // Schemas
 // ========================================
@@ -45,7 +51,10 @@ export const ProviderValidateSchema = z.object({
 // Router Factory
 // ========================================
 
-export function createProviderRouter(providerStorage: ProviderStorage) {
+export function createProviderRouter(
+    providerStorage: ProviderStorage,
+    deps?: Pick<ProviderRouterDeps, 'getAllModels'>,
+) {
     return router({
         // 列出所有提供商
         list: publicProcedure.query(async () => {
@@ -114,7 +123,8 @@ export function createProviderRouter(providerStorage: ProviderStorage) {
         delete: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
             try {
                 // 检查是否有关联的 Model
-                const models = await ctx.agentPackage.storage.getAllModels();
+                const getAllModels = deps?.getAllModels ?? (() => ctx.agentPackage.storage.getAllModels());
+                const models = await getAllModels();
                 const linkedModels = models.filter((m) => m.provider_id === input.id);
 
                 if (linkedModels.length > 0) {
@@ -148,7 +158,8 @@ export function createProviderRouter(providerStorage: ProviderStorage) {
 
         // 获取 Provider 下的所有 Models
         getModels: publicProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
-            const models = await ctx.agentPackage.storage.getAllModels();
+            const getAllModels = deps?.getAllModels ?? (() => ctx.agentPackage.storage.getAllModels());
+            const models = await getAllModels();
             return models.filter((m) => m.provider_id === input.id);
         }),
 

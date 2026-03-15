@@ -1,6 +1,6 @@
 /**
  * zen-core 主入口
- * Hono HTTP Server + LangGraph + tRPC + 认证 + 终端 WebSocket
+ * Hono HTTP Server + LangGraph + tRPC（无鉴权，本地服务）
  */
 
 import { Hono } from 'hono';
@@ -15,11 +15,7 @@ import { createContext } from './context.js';
 import { registerLangGraphRoutes } from './langgraph/handler.js';
 import { healthHandler } from './health.js';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
-import { authRouter } from './routes/auth.js';
-import { authMiddleware } from './auth/tokenAuth.js';
-
 const PORT = Number(process.env.ZEN_CORE_PORT || 8125);
-const NO_AUTH = process.env.ZEN_CORE_NO_AUTH === 'true';
 const PID_FILE = join(homedir(), '.zen-code', 'zen-core.pid');
 
 // ─── PID 文件机制（孤儿进程清理）────────────────────────────
@@ -62,22 +58,6 @@ app.use(logger());
 // /health 端点（公开）
 app.get('/health', healthHandler(services));
 
-// 认证公开路由：/api/auth/* 不需要鉴权
-app.route('/api/auth', authRouter);
-
-// 认证中间件：保护所有其他 /api/* 路由
-// ZEN_CORE_NO_AUTH=true 时跳过鉴权（zen-code 等本地工具使用场景）
-if (!NO_AUTH) {
-    app.use('/api/*', async (c, next) => {
-        if (c.req.path.startsWith('/api/auth/')) {
-            return next();
-        }
-        return authMiddleware(c, next);
-    });
-} else {
-    console.log('[zen-core] Auth disabled (ZEN_CORE_NO_AUTH=true)');
-}
-
 // tRPC 路由
 app.all('/api/trpc/*', async (c) => {
     return fetchRequestHandler({
@@ -103,7 +83,6 @@ serve({
 
 console.log(`zen-core running on http://127.0.0.1:${PORT}`);
 console.log(`   Health:    http://127.0.0.1:${PORT}/health`);
-console.log(`   Auth:      http://127.0.0.1:${PORT}/api/auth/status`);
 console.log(`   LangGraph: http://127.0.0.1:${PORT}/api/langgraph`);
 console.log(`   tRPC:      http://127.0.0.1:${PORT}/api/trpc`);
 console.log(`   Terminal:  ws://127.0.0.1:${PORT}/ws/terminal`);

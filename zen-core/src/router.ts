@@ -8,7 +8,6 @@ import { modelsRouter } from './routes/models.js';
 import { skillsRouter } from './routes/skills.js';
 import { tasksRouter } from './routes/tasks.js';
 import { agentsRouter } from './routes/agents.js';
-import { providersRouter } from './routes/providers.js';
 import { knowledgeRouter } from './routes/knowledge.js';
 import { processesRouter } from './routes/processes.js';
 // zen-swarm 迁入路由
@@ -26,7 +25,6 @@ export const appRouter = router({
     skills: skillsRouter,
     tasks: tasksRouter,
     agents: agentsRouter,
-    providers: providersRouter,
     knowledge: knowledgeRouter,
     processes: processesRouter,
     // zen-swarm 迁入路由

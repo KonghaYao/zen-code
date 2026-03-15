@@ -12,8 +12,6 @@ import { ConfigView } from '../../views/ConfigView.js';
 // import { WorkspaceView } from '../../views/WorkspaceView.js'; // 已废弃
 import { FinderView } from '../../views/Finder/index.js';
 import { CronView } from '../../views/CronView.js';
-import { SMView } from '../../views/SM/index.js';
-import { MonitorView } from '../../views/MonitorView.js';
 import { TerminalView } from '../../components/terminal/TerminalView.js';
 import { StoreView } from '../../views/StoreView.js';
 import { PostmanView } from '../../views/Postman/index.js';
@@ -22,8 +20,6 @@ import { PostmanView } from '../../views/Postman/index.js';
 import { ChatDockIcon } from '../dock/icons/ChatDockIcon.js';
 import { ConfigDockIcon } from '../dock/icons/ConfigDockIcon.js';
 import { FinderDockIcon } from '../dock/icons/FinderDockIcon.js';
-import { MonitorDockIcon } from '../dock/icons/MonitorDockIcon.js';
-import { SMDockIcon } from '../dock/icons/SMDockIcon.js';
 import { CronDockIcon } from '../dock/icons/CronDockIcon.js';
 import { TerminalDockIcon } from '../dock/icons/TerminalDockIcon.js';
 import { StoreDockIcon } from '../dock/icons/StoreDockIcon.js';
@@ -60,24 +56,6 @@ export const appRegistry: AppRegistryItem[] = [
         description: 'macOS 风格文件管理器',
         viewComponent: FinderView,
         keyboardShortcut: 'Cmd+3',
-        contextMenuActions: ['open', 'help'],
-    },
-    {
-        id: 'monitor',
-        name: 'Monitor',
-        fullIcon: React.createElement(MonitorDockIcon, { className: 'w-full h-full' }),
-        description: '进程监控面板',
-        viewComponent: MonitorView,
-        keyboardShortcut: 'Cmd+4',
-        contextMenuActions: ['open', 'help'],
-    },
-    {
-        id: 'sm',
-        name: 'State Machine',
-        fullIcon: React.createElement(SMDockIcon, { className: 'w-full h-full' }),
-        description: '状态机管理与可视化',
-        viewComponent: SMView,
-        keyboardShortcut: 'Cmd+5',
         contextMenuActions: ['open', 'help'],
     },
     {

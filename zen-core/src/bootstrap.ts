@@ -18,7 +18,6 @@ import { WorkspaceStorage } from './config/workspace-storage.js';
 import { CronStorage } from './cron/storage.js';
 import { CronScheduler } from './cron/scheduler.js';
 import { CronExecutor } from './cron/executor.js';
-import { SMDatabase, StateMachineManager } from './middlewares/sm/index.js';
 import { ProviderStorage } from './services/provider/index.js';
 import { RemoteStoreStorage } from './services/remote-store/index.js';
 
@@ -35,8 +34,6 @@ export interface ZenCoreServices {
     workspaceStorage: WorkspaceStorage;
     cronStorage: CronStorage;
     cronScheduler: CronScheduler;
-    smDatabase: SMDatabase;
-    stateMachineManager: StateMachineManager;
     providerStorage: ProviderStorage;
     remoteStoreStorage: RemoteStoreStorage;
 }
@@ -83,11 +80,6 @@ export async function bootstrap(): Promise<ZenCoreServices> {
     const workspaceStorage = new WorkspaceStorage(sharedDb);
     await workspaceStorage.initialize();
 
-    // ── State Machine ─────────────────────────────────────────
-    const smDatabase = new SMDatabase({ db: sharedDb });
-    const stateMachineManager = new StateMachineManager({ database: smDatabase });
-    await stateMachineManager.initialize();
-
     // ── Provider 存储 ─────────────────────────────────────────
     const providerStorage = new ProviderStorage(sharedDb);
     await providerStorage.initialize();
@@ -108,24 +100,6 @@ export async function bootstrap(): Promise<ZenCoreServices> {
     const cronScheduler = new CronScheduler(cronStorage, cronExecutor);
     await cronScheduler.start();
 
-    // ── SM 中间件注册到 AgentPackage ────────────────────────────
-    const smMiddlewareImpl = {
-        id: 'sm',
-        name: 'state-management',
-        description: 'XState-based state machine management with SQLite persistence',
-        execute: async () => {
-            const { SMMiddleware } = await import('./middlewares/sm/index.js');
-            const m = SMMiddleware.fromManager(stateMachineManager);
-            await m.initialize();
-            return m;
-        },
-    };
-    const existingSm = await agentPackage.getMiddleware('sm');
-    if (!existingSm) {
-        await agentPackage.addMiddleware(smMiddlewareImpl);
-    }
-    agentPackage.middlewares.registerImplementation(smMiddlewareImpl);
-
     _services = {
         agentPackage,
         mergedStorage,
@@ -136,8 +110,6 @@ export async function bootstrap(): Promise<ZenCoreServices> {
         workspaceStorage,
         cronStorage,
         cronScheduler,
-        smDatabase,
-        stateMachineManager,
         providerStorage,
         remoteStoreStorage,
     };
