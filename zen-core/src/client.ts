@@ -5,6 +5,7 @@
 
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import type { AppRouter } from './router.js';
+import { fileURLToPath } from 'url';
 
 export interface ZenCoreConnection {
     trpc: ReturnType<typeof createTRPCClient<AppRouter>>;
@@ -45,8 +46,8 @@ async function spawnZenCore(port: number): Promise<void> {
     const { existsSync } = await import('node:fs');
 
     // ts 源文件优先（开发模式），否则回退到编译产物
-    const tsPath = new URL('../bin/zen-core.ts', import.meta.url).pathname;
-    const jsPath = new URL('./zen-core.js', import.meta.url).pathname;
+    const tsPath = fileURLToPath(new URL('../bin/zen-core.ts', import.meta.url));
+    const jsPath = fileURLToPath(new URL('./zen-core.js', import.meta.url));
 
     let entryPath: string;
     if (existsSync(tsPath)) {
