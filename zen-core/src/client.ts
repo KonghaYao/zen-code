@@ -55,7 +55,6 @@ async function spawnZenCore(port: number): Promise<void> {
     } else {
         entryPath = jsPath;
     }
-
     const child = spawn(process.argv[0], [entryPath], {
         detached: true,
         stdio: 'ignore',
