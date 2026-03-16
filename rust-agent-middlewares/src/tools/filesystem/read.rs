@@ -55,6 +55,22 @@ Parameters (JSON):
         )
     }
 
+    fn parameters(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "file_path": { "type": "string", "description": "Path to the file (absolute or relative to cwd)" },
+                "offset":    { "type": "number", "description": "Line number to start reading from (default 0)" },
+                "limit":     { "type": "number", "description": "Number of lines to read (default 2000)" }
+            },
+            "required": ["file_path"]
+        })
+    }
+
+    async fn parse_input(&self, input: &str) -> Value {
+        super::parse_json_input(input).await
+    }
+
     async fn run(&self, input: Value) -> Result<String, Box<dyn std::error::Error>> {
         let file_path = input["file_path"]
             .as_str()

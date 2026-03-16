@@ -92,9 +92,21 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
             };
 
             if reasoning.needs_tool_call() {
-                // 将 AI 推理过程加入消息历史
-                if !reasoning.thought.is_empty() {
-                    state.add_message(LCMessage::new_ai_message(&reasoning.thought));
+                // 将 AI tool_calls 响应加入消息历史（必须携带 tool_calls 字段）
+                {
+                    let tool_calls_json: Vec<serde_json::Value> = reasoning.tool_calls.iter().map(|tc| {
+                        serde_json::json!({
+                            "id": tc.id,
+                            "type": "function",
+                            "function": {
+                                "name": tc.name,
+                                "arguments": tc.input.to_string()
+                            }
+                        })
+                    }).collect();
+                    let ai_msg = LCMessage::new_ai_message(&reasoning.thought)
+                        .with_tool_calls(serde_json::Value::Array(tool_calls_json));
+                    state.add_message(ai_msg);
                 }
 
                 for tool_call in reasoning.tool_calls {
@@ -145,11 +157,11 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
                         return Err(e);
                     }
 
-                    // 工具结果加入消息历史（HumanMessage 模拟 tool result）
-                    state.add_message(LCMessage::new_human_message(format!(
-                        "[Tool result: {}] {}",
-                        result.tool_name, result.output
-                    )));
+                    // 工具结果加入消息历史（ToolMessage，携带 tool_call_id）
+                    state.add_message(LCMessage::new_tool_message(
+                        &result.output,
+                        &result.tool_call_id,
+                    ));
 
                     all_tool_calls.push((modified_call, result));
                 }

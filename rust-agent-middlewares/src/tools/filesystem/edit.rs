@@ -37,6 +37,23 @@ Parameters (JSON):
             .to_string()
     }
 
+    fn parameters(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "file_path":   { "type": "string",  "description": "Path to the file to modify" },
+                "old_string":  { "type": "string",  "description": "The exact text to replace" },
+                "new_string":  { "type": "string",  "description": "The replacement text" },
+                "replace_all": { "type": "boolean", "description": "Replace all occurrences (default false)" }
+            },
+            "required": ["file_path", "old_string", "new_string"]
+        })
+    }
+
+    async fn parse_input(&self, input: &str) -> Value {
+        super::parse_json_input(input).await
+    }
+
     async fn run(&self, input: Value) -> Result<String, Box<dyn std::error::Error>> {
         let file_path = input["file_path"]
             .as_str()

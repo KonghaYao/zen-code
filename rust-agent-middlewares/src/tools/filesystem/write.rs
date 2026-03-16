@@ -33,6 +33,17 @@ Parameters (JSON):
             .to_string()
     }
 
+    fn parameters(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "file_path": { "type": "string", "description": "Path to the file (absolute or relative to cwd)" },
+                "content":   { "type": "string", "description": "Content to write to the file" }
+            },
+            "required": ["file_path", "content"]
+        })
+    }
+
     async fn run(&self, input: Value) -> Result<String, Box<dyn std::error::Error>> {
         let file_path = input["file_path"]
             .as_str()
@@ -61,5 +72,9 @@ Parameters (JSON):
             )),
             Err(e) => Ok(format!("Error writing file: {e}")),
         }
+    }
+
+    async fn parse_input(&self, input: &str) -> Value {
+        super::parse_json_input(input).await
     }
 }

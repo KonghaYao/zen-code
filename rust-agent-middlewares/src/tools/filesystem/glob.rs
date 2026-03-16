@@ -88,6 +88,21 @@ Parameters (JSON):
             .to_string()
     }
 
+    fn parameters(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "pattern": { "type": "string", "description": "Glob pattern to match files, e.g. \"**/*.rs\"" },
+                "path":    { "type": "string", "description": "Directory to search in (absolute or relative to cwd, default: cwd)" }
+            },
+            "required": ["pattern"]
+        })
+    }
+
+    async fn parse_input(&self, input: &str) -> Value {
+        super::parse_json_input(input).await
+    }
+
     async fn run(&self, input: Value) -> Result<String, Box<dyn std::error::Error>> {
         let pattern = input["pattern"]
             .as_str()

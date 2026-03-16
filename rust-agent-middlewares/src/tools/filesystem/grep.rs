@@ -51,6 +51,25 @@ Parameters (JSON):
             .to_string()
     }
 
+    fn parameters(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Ripgrep arguments array. Format: [OPTIONS..., PATTERN, PATH]. Example: [\"-n\", \"fn main\", \"src/\"]"
+                },
+                "head_limit": { "type": "number", "description": "Limit output to first N lines (default 500)" }
+            },
+            "required": ["args"]
+        })
+    }
+
+    async fn parse_input(&self, input: &str) -> Value {
+        super::parse_json_input(input).await
+    }
+
     async fn run(&self, input: Value) -> Result<String, Box<dyn std::error::Error>> {
         let args_val = input["args"]
             .as_array()

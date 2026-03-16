@@ -156,3 +156,5 @@ claude-blog-cn
 build
 .tmp
 target
+
+.idea/*

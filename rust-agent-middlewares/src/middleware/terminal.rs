@@ -40,6 +40,21 @@ Parameters (JSON):
             .to_string()
     }
 
+    fn parameters(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "command":      { "type": "string", "description": "The shell command to execute" },
+                "timeout_secs": { "type": "number", "description": "Command timeout in seconds (default 120)" }
+            },
+            "required": ["command"]
+        })
+    }
+
+    async fn parse_input(&self, input: &str) -> Value {
+        serde_json::from_str(input).unwrap_or(serde_json::Value::String(input.to_string()))
+    }
+
     async fn run(&self, input: Value) -> Result<String, Box<dyn std::error::Error>> {
         let command = input["command"]
             .as_str()

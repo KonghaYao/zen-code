@@ -107,6 +107,22 @@ Parameters (JSON):
             .to_string()
     }
 
+    fn parameters(&self) -> Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "operation":   { "type": "string",  "enum": ["create", "list", "exists"], "description": "Operation to perform" },
+                "folder_path": { "type": "string",  "description": "Path to the folder (absolute or relative to cwd)" },
+                "recursive":   { "type": "boolean", "description": "Create parent directories if needed (default true)" }
+            },
+            "required": ["operation", "folder_path"]
+        })
+    }
+
+    async fn parse_input(&self, input: &str) -> Value {
+        super::parse_json_input(input).await
+    }
+
     async fn run(&self, input: Value) -> Result<String, Box<dyn std::error::Error>> {
         let operation = input["operation"]
             .as_str()
