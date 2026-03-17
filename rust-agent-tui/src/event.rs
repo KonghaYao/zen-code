@@ -1,5 +1,5 @@
 use anyhow::Result;
-use ratatui::crossterm::event::{self, Event};
+use ratatui::crossterm::event::{self, Event, MouseEventKind};
 use ratatui_textarea::{Input, Key};
 use std::time::Duration;
 
@@ -89,13 +89,18 @@ pub async fn next_event(app: &mut App) -> Result<Option<Action>> {
                     }
                 }
 
-                Input { key: Key::Up, .. }     => app.scroll_up(),
-                Input { key: Key::Down, .. }   => app.scroll_down(),
-                Input { key: Key::PageUp, .. } => { for _ in 0..10 { app.scroll_up(); } }
+                Input { key: Key::PageUp, .. }   => { for _ in 0..10 { app.scroll_up(); } }
                 Input { key: Key::PageDown, .. } => { for _ in 0..10 { app.scroll_down(); } }
 
                 input if !app.loading => { app.textarea.input(input); }
 
+                _ => {}
+            }
+        }
+        Event::Mouse(mouse) => {
+            match mouse.kind {
+                MouseEventKind::ScrollUp   => app.scroll_up(),
+                MouseEventKind::ScrollDown => app.scroll_down(),
                 _ => {}
             }
         }

@@ -14,7 +14,6 @@ serde = { version = "1", features = ["derive"] }
 [dependencies]
 rust-create-agent = { path = "../rust-create-agent" }
 rust-agent-middlewares = { path = "../rust-agent-middlewares" }
-rust-standard-middlewares = { path = "../rust-standard-middlewares" }
 ratatui = ">=0.30"
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0"

@@ -6,8 +6,8 @@ use ratatui_textarea::TextArea;
 use ratatui::style::{Color, Style};
 use rust_agent_middlewares::prelude::*;
 use rust_create_agent::messages::BaseMessage;
-use rust_standard_middlewares::ask_user::{AskUserBatchRequest, AskUserQuestionData};
-use rust_standard_middlewares::prelude::{BatchItem, HitlDecision};
+use rust_agent_middlewares::ask_user::{AskUserBatchRequest, AskUserQuestionData};
+use rust_agent_middlewares::prelude::{BatchItem, HitlDecision};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 

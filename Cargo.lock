@@ -1800,7 +1800,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "dirs-next",
  "glob",
+ "gray_matter",
  "ignore",
  "rust-create-agent",
  "serde",
@@ -1823,7 +1825,6 @@ dependencies = [
  "ratatui-textarea",
  "rust-agent-middlewares",
  "rust-create-agent",
- "rust-standard-middlewares",
  "serde",
  "serde_json",
  "tokio",
@@ -1838,23 +1839,6 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "thiserror 2.0.18",
- "tokio",
- "tokio-test",
-]
-
-[[package]]
-name = "rust-standard-middlewares"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "dirs-next",
- "gray_matter",
- "rust-create-agent",
- "serde",
- "serde_json",
- "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",

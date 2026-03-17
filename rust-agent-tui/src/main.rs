@@ -8,6 +8,7 @@ use ratatui::{
     crossterm::{
         execute,
         terminal::{EnterAlternateScreen, LeaveAlternateScreen, enable_raw_mode, disable_raw_mode},
+        event::{EnableMouseCapture, DisableMouseCapture},
     },
     prelude::*,
 };
@@ -21,7 +22,7 @@ async fn main() -> Result<()> {
     // 初始化终端
     enable_raw_mode()?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen)?;
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
@@ -30,7 +31,7 @@ async fn main() -> Result<()> {
 
     // 恢复终端
     disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;
     terminal.show_cursor()?;
 
     if let Err(e) = result {

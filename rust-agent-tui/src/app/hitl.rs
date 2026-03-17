@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tokio::sync::{mpsc, oneshot};
 
-use rust_standard_middlewares::prelude::{
+use rust_agent_middlewares::prelude::{
     default_requires_approval, AskUserBatchRequest, BatchItem, HitlDecision, HitlHandler,
 };
 
