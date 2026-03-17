@@ -189,6 +189,8 @@ impl App {
 
         let cwd = self.cwd.clone();
 
+        let system_prompt = crate::prompt::default_system_prompt(&cwd);
+
         tokio::spawn(async move {
             let tools: Vec<Arc<dyn rust_create_agent::tools::BaseTool>> =
                 FilesystemMiddleware::build_tools(&cwd)
@@ -197,7 +199,7 @@ impl App {
                     .map(|t| Arc::from(t) as Arc<dyn rust_create_agent::tools::BaseTool>)
                     .collect();
 
-            agent::run_universal_agent(provider, tools, input, cwd, tx).await;
+            agent::run_universal_agent(provider, tools, input, cwd, system_prompt, tx).await;
         });
     }
 

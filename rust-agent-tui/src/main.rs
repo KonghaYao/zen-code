@@ -1,6 +1,7 @@
 mod app;
-mod ui;
 mod event;
+mod prompt;
+mod ui;
 
 use anyhow::Result;
 use ratatui::{
