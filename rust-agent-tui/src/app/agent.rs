@@ -33,7 +33,7 @@ pub async fn run_universal_agent(
         BaseMessage::human(input),
     ];
 
-    for _iter in 0..10 {
+    for _iter in 0..500 {
         let request = LlmRequest::new(messages.clone())
             .with_tools(tool_defs.clone())
             .with_system(system_prompt.clone());
