@@ -1,25 +1,25 @@
 pub mod agent;
+pub mod hitl;
 mod provider;
 
 use ratatui_textarea::TextArea;
 use ratatui::style::{Color, Style};
 use rust_agent_middlewares::prelude::*;
 use rust_create_agent::messages::BaseMessage;
+use rust_standard_middlewares::ask_user::{AskUserBatchRequest, AskUserQuestionData};
+use rust_standard_middlewares::prelude::{BatchItem, HitlDecision};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
 use agent::LlmProvider;
+pub use hitl::{ApprovalEvent, BatchApprovalRequest};
 
 // ─── ChatMessage ──────────────────────────────────────────────────────────────
 
-/// TUI 显示消息 — 以 BaseMessage 为内核，附加 TUI 专属字段
 #[derive(Debug, Clone)]
 pub struct ChatMessage {
-    /// 消息本体（角色 + 内容，复用 rust-create-agent 类型）
     pub inner: BaseMessage,
-    /// Tool 消息的显示名（格式化后，用于 UI 标题）
     pub display_name: Option<String>,
-    /// Tool 消息的原始工具名（用于颜色匹配）
     pub tool_name: Option<String>,
 }
 
@@ -53,7 +53,6 @@ impl ChatMessage {
         Self { inner: BaseMessage::system(content.into()), display_name: None, tool_name: None }
     }
 
-    /// 文本内容（委托给 BaseMessage）
     pub fn content(&self) -> String {
         self.inner.content()
     }
@@ -62,7 +61,6 @@ impl ChatMessage {
         matches!(self.inner, BaseMessage::Ai { .. })
     }
 
-    /// 追加流式 token
     pub fn push_str(&mut self, chunk: &str) {
         if let BaseMessage::Ai { content, .. } = &mut self.inner {
             match content {
@@ -79,14 +77,206 @@ impl ChatMessage {
 
 // ─── AgentEvent ───────────────────────────────────────────────────────────────
 
-/// 后台 agent 实时发回的事件（每步独立）
 pub enum AgentEvent {
     ToolCall { name: String, display: String, is_error: bool },
-    /// 流式 token，追加到当前 assistant 消息
     AssistantChunk(String),
-    /// 流式结束（或无流式时的完整答案）
     Done,
     Error(String),
+    /// HITL 批量审批请求
+    ApprovalNeeded(BatchApprovalRequest),
+    /// AskUser 批量提问请求
+    AskUserBatch(AskUserBatchRequest),
+}
+
+// ─── HitlBatchPrompt ──────────────────────────────────────────────────────────
+
+/// 批量 HITL 弹窗状态：每项独立的批准/拒绝选择
+pub struct HitlBatchPrompt {
+    /// 待审批的工具调用列表
+    pub items: Vec<BatchItem>,
+    /// 每项的当前决策（true=批准，false=拒绝）
+    pub approved: Vec<bool>,
+    /// 当前光标所在的行（工具索引）
+    pub cursor: usize,
+    /// 回复 channel
+    pub response_tx: tokio::sync::oneshot::Sender<Vec<HitlDecision>>,
+}
+
+impl HitlBatchPrompt {
+    pub fn new(items: Vec<BatchItem>, response_tx: tokio::sync::oneshot::Sender<Vec<HitlDecision>>) -> Self {
+        let len = items.len();
+        Self {
+            items,
+            approved: vec![true; len], // 默认全部批准
+            cursor: 0,
+            response_tx,
+        }
+    }
+
+    pub fn move_cursor(&mut self, delta: isize) {
+        let len = self.items.len();
+        if len == 0 { return; }
+        self.cursor = ((self.cursor as isize + delta).rem_euclid(len as isize)) as usize;
+    }
+
+    /// 切换当前项的批准/拒绝状态
+    pub fn toggle_current(&mut self) {
+        if let Some(v) = self.approved.get_mut(self.cursor) {
+            *v = !*v;
+        }
+    }
+
+    /// 全部批准
+    pub fn approve_all(&mut self) {
+        self.approved.iter_mut().for_each(|v| *v = true);
+    }
+
+    /// 全部拒绝
+    pub fn reject_all(&mut self) {
+        self.approved.iter_mut().for_each(|v| *v = false);
+    }
+
+    /// 确认并发送决策
+    pub fn confirm(self) {
+        let decisions: Vec<HitlDecision> = self.approved
+            .iter()
+            .map(|&ok| if ok { HitlDecision::Approve } else { HitlDecision::Reject })
+            .collect();
+        let _ = self.response_tx.send(decisions);
+    }
+}
+
+// ─── AskUserBatchPrompt ───────────────────────────────────────────────────────
+
+/// 单个问题的交互状态
+pub struct QuestionState {
+    pub data: AskUserQuestionData,
+    pub option_cursor: isize,   // 当前光标在第几个选项（最后一项 = 自定义输入行）
+    pub selected: Vec<bool>,
+    pub custom_input: String,
+    pub in_custom_input: bool,
+}
+
+impl QuestionState {
+    fn new(data: AskUserQuestionData) -> Self {
+        let len = data.options.len();
+        Self {
+            data,
+            option_cursor: 0,
+            selected: vec![false; len],
+            custom_input: String::new(),
+            in_custom_input: false,
+        }
+    }
+
+    fn total_rows(&self) -> isize {
+        self.data.options.len() as isize + if self.data.allow_custom_input { 1 } else { 0 }
+    }
+
+    pub fn move_option_cursor(&mut self, delta: isize) {
+        let total = self.total_rows();
+        if total == 0 { return; }
+        self.option_cursor = (self.option_cursor + delta).rem_euclid(total);
+        self.in_custom_input =
+            self.data.allow_custom_input && self.option_cursor == self.data.options.len() as isize;
+    }
+
+    pub fn toggle_current(&mut self) {
+        if self.in_custom_input { return; }
+        let i = self.option_cursor as usize;
+        if i < self.selected.len() {
+            if self.data.multi_select {
+                self.selected[i] = !self.selected[i];
+            } else {
+                self.selected.iter_mut().for_each(|v| *v = false);
+                self.selected[i] = true;
+            }
+        }
+    }
+
+    pub fn push_char(&mut self, c: char) {
+        if self.in_custom_input { self.custom_input.push(c); }
+    }
+
+    pub fn pop_char(&mut self) {
+        if self.in_custom_input { self.custom_input.pop(); }
+    }
+
+    /// 收集当前问题的答案文本
+    pub fn answer(&self) -> String {
+        let mut parts: Vec<String> = self.selected.iter().enumerate()
+            .filter(|(_, &v)| v)
+            .map(|(i, _)| self.data.options[i].label.clone())
+            .collect();
+        let custom = self.custom_input.trim().to_string();
+        if !custom.is_empty() { parts.push(custom); }
+        if parts.is_empty() { self.custom_input.trim().to_string() } else { parts.join(", ") }
+    }
+}
+
+/// 批量 AskUser 弹窗：多个问题用 Tab 切换，Enter 逐题确认，全部确认后提交
+pub struct AskUserBatchPrompt {
+    pub questions: Vec<QuestionState>,
+    /// 当前激活的问题 tab 索引
+    pub active_tab: usize,
+    /// 每个问题是否已按 Enter 确认
+    pub confirmed: Vec<bool>,
+    pub response_tx: tokio::sync::oneshot::Sender<Vec<String>>,
+}
+
+impl AskUserBatchPrompt {
+    pub fn from_request(req: AskUserBatchRequest) -> Self {
+        let len = req.questions.len();
+        let questions = req.questions.into_iter().map(QuestionState::new).collect();
+        Self {
+            questions,
+            active_tab: 0,
+            confirmed: vec![false; len],
+            response_tx: req.response_tx,
+        }
+    }
+
+    pub fn next_tab(&mut self) {
+        if !self.questions.is_empty() {
+            self.active_tab = (self.active_tab + 1) % self.questions.len();
+        }
+    }
+
+    pub fn prev_tab(&mut self) {
+        if !self.questions.is_empty() {
+            self.active_tab = self.active_tab.checked_sub(1).unwrap_or(self.questions.len() - 1);
+        }
+    }
+
+    pub fn current(&mut self) -> &mut QuestionState {
+        &mut self.questions[self.active_tab]
+    }
+
+    /// Enter 确认当前问题：标记已确认，跳到下一未确认的问题。
+    /// 若所有问题都已确认，返回 true（调用方负责调用 confirm()）。
+    pub fn confirm_current(&mut self) -> bool {
+        self.confirmed[self.active_tab] = true;
+
+        if self.confirmed.iter().all(|&c| c) {
+            return true;
+        }
+
+        // 跳到下一个未确认的问题
+        let n = self.questions.len();
+        for offset in 1..=n {
+            let next = (self.active_tab + offset) % n;
+            if !self.confirmed[next] {
+                self.active_tab = next;
+                break;
+            }
+        }
+        false
+    }
+
+    pub fn confirm(self) {
+        let answers: Vec<String> = self.questions.iter().map(|q| q.answer()).collect();
+        let _ = self.response_tx.send(answers);
+    }
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
@@ -95,14 +285,16 @@ pub struct App {
     pub messages: Vec<ChatMessage>,
     pub textarea: TextArea<'static>,
     pub loading: bool,
-    /// 距顶部的绝对行数（0 = 顶部，max_scroll = 底部）
     pub scroll_offset: u16,
-    /// 是否跟随底部：有新内容时自动滚到底
     pub scroll_follow: bool,
     pub cwd: String,
     pub provider_name: String,
     pub model_name: String,
     agent_rx: Option<mpsc::Receiver<AgentEvent>>,
+    /// 当前等待用户确认的批量 HITL 弹窗
+    pub hitl_prompt: Option<HitlBatchPrompt>,
+    /// 当前等待用户输入的 AskUser 批量弹窗
+    pub ask_user_prompt: Option<AskUserBatchPrompt>,
 }
 
 impl App {
@@ -138,6 +330,8 @@ impl App {
             provider_name,
             model_name,
             agent_rx: None,
+            hitl_prompt: None,
+            ask_user_prompt: None,
         };
 
         app.messages.push(ChatMessage::system(format!(
@@ -187,8 +381,31 @@ impl App {
         let (tx, rx) = mpsc::channel(32);
         self.agent_rx = Some(rx);
 
-        let cwd = self.cwd.clone();
+        // YOLO_MODE 时跳过 HITL channel，直接给 agent 一个永远不会被消费的 sender
+        let yolo = std::env::var("YOLO_MODE")
+            .map(|v| v.eq_ignore_ascii_case("true") || v == "1")
+            .unwrap_or(false);
 
+        let (approval_tx, approval_rx) = mpsc::channel::<ApprovalEvent>(4);
+        if !yolo {
+            let tx_hitl = tx.clone();
+            tokio::spawn(async move {
+                let mut approval_rx = approval_rx;
+                while let Some(ev) = approval_rx.recv().await {
+                    match ev {
+                        ApprovalEvent::Batch(req) => {
+                            let _ = tx_hitl.send(AgentEvent::ApprovalNeeded(req)).await;
+                        }
+                        ApprovalEvent::AskUserBatch(req) => {
+                            let _ = tx_hitl.send(AgentEvent::AskUserBatch(req)).await;
+                        }
+                    }
+                }
+            });
+        }
+        // YOLO 时 approval_rx 直接丢弃，approval_tx 随 agent task 结束一起销毁
+
+        let cwd = self.cwd.clone();
         let system_prompt = crate::prompt::default_system_prompt(&cwd);
 
         tokio::spawn(async move {
@@ -199,11 +416,11 @@ impl App {
                     .map(|t| Arc::from(t) as Arc<dyn rust_create_agent::tools::BaseTool>)
                     .collect();
 
-            agent::run_universal_agent(provider, tools, input, cwd, system_prompt, tx).await;
+            agent::run_universal_agent(provider, tools, input, cwd, system_prompt, approval_tx, tx).await;
         });
     }
 
-    /// 每帧调用：把 channel 里所有待处理事件一次性消费完，返回是否有更新
+    /// 每帧调用：消费 channel 事件，返回是否有 UI 更新
     pub fn poll_agent(&mut self) -> bool {
         let Some(rx) = self.agent_rx.as_mut() else { return false; };
 
@@ -217,12 +434,8 @@ impl App {
                 }
                 Ok(AgentEvent::AssistantChunk(chunk)) => {
                     match self.messages.last_mut() {
-                        Some(m) if m.is_assistant() => {
-                            m.push_str(&chunk);
-                        }
-                        _ => {
-                            self.messages.push(ChatMessage::assistant(chunk));
-                        }
+                        Some(m) if m.is_assistant() => m.push_str(&chunk),
+                        _ => self.messages.push(ChatMessage::assistant(chunk)),
                     }
                     updated = true;
                 }
@@ -237,6 +450,16 @@ impl App {
                     self.agent_rx = None;
                     return true;
                 }
+                Ok(AgentEvent::ApprovalNeeded(req)) => {
+                    self.hitl_prompt = Some(HitlBatchPrompt::new(req.items, req.response_tx));
+                    updated = true;
+                    break; // 暂停消费，等待用户确认
+                }
+                Ok(AgentEvent::AskUserBatch(req)) => {
+                    self.ask_user_prompt = Some(AskUserBatchPrompt::from_request(req));
+                    updated = true;
+                    break; // 暂停消费，等待用户输入
+                }
                 Err(mpsc::error::TryRecvError::Empty) => break,
                 Err(mpsc::error::TryRecvError::Disconnected) => {
                     self.messages.push(ChatMessage::tool("error", "agent-error", "Agent 任务意外终止", true));
@@ -248,6 +471,93 @@ impl App {
         }
 
         updated
+    }
+
+    // ─── HITL 操作 ────────────────────────────────────────────────────────────
+
+    /// 上下移动列表光标
+    pub fn hitl_move(&mut self, delta: isize) {
+        if let Some(p) = self.hitl_prompt.as_mut() {
+            p.move_cursor(delta);
+        }
+    }
+
+    /// 切换当前项批准/拒绝
+    pub fn hitl_toggle(&mut self) {
+        if let Some(p) = self.hitl_prompt.as_mut() {
+            p.toggle_current();
+        }
+    }
+
+    /// 全部批准并提交
+    pub fn hitl_approve_all(&mut self) {
+        if let Some(mut p) = self.hitl_prompt.take() {
+            p.approve_all();
+            p.confirm();
+        }
+    }
+
+    /// 全部拒绝并提交
+    pub fn hitl_reject_all(&mut self) {
+        if let Some(mut p) = self.hitl_prompt.take() {
+            p.reject_all();
+            p.confirm();
+        }
+    }
+
+    /// 按当前每项选择确认并提交
+    pub fn hitl_confirm(&mut self) {
+        if let Some(p) = self.hitl_prompt.take() {
+            p.confirm();
+        }
+    }
+
+    // ─── AskUser 操作 ─────────────────────────────────────────────────────────
+
+    pub fn ask_user_next_tab(&mut self) {
+        if let Some(p) = self.ask_user_prompt.as_mut() { p.next_tab(); }
+    }
+
+    pub fn ask_user_prev_tab(&mut self) {
+        if let Some(p) = self.ask_user_prompt.as_mut() { p.prev_tab(); }
+    }
+
+    pub fn ask_user_move(&mut self, delta: isize) {
+        if let Some(p) = self.ask_user_prompt.as_mut() {
+            p.current().move_option_cursor(delta);
+        }
+    }
+
+    pub fn ask_user_toggle(&mut self) {
+        if let Some(p) = self.ask_user_prompt.as_mut() {
+            p.current().toggle_current();
+        }
+    }
+
+    pub fn ask_user_push_char(&mut self, c: char) {
+        if let Some(p) = self.ask_user_prompt.as_mut() {
+            p.current().push_char(c);
+        }
+    }
+
+    pub fn ask_user_pop_char(&mut self) {
+        if let Some(p) = self.ask_user_prompt.as_mut() {
+            p.current().pop_char();
+        }
+    }
+
+    /// Enter：确认当前问题。若全部问题均已确认则提交并关闭弹窗。
+    pub fn ask_user_confirm(&mut self) {
+        let all_done = if let Some(p) = self.ask_user_prompt.as_mut() {
+            p.confirm_current()
+        } else {
+            return;
+        };
+        if all_done {
+            if let Some(p) = self.ask_user_prompt.take() {
+                p.confirm();
+            }
+        }
     }
 }
 

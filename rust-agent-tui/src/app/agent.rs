@@ -2,13 +2,17 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 use serde_json::Value;
 
+use rust_create_agent::agent::react::ToolCall;
 use rust_create_agent::agent::state::{AgentState, State};
+use rust_create_agent::error::AgentError;
 use rust_create_agent::llm::types::{LlmRequest, StopReason};
 use rust_create_agent::messages::{BaseMessage, ContentBlock};
 use rust_create_agent::middleware::r#trait::Middleware;
 use rust_create_agent::tools::BaseTool;
+use rust_standard_middlewares::ask_user::{AskUserBatchRequest, parse_ask_user};
 use rust_standard_middlewares::prelude::*;
 pub(crate) use super::provider::LlmProvider;
+use super::hitl::{ApprovalEvent, TuiAskUserHandler, TuiHitlHandler};
 use super::AgentEvent;
 
 // ─── 主入口 ───────────────────────────────────────────────────────────────────
@@ -19,19 +23,25 @@ pub async fn run_universal_agent(
     input: String,
     cwd: String,
     system_prompt: String,
+    approval_tx: mpsc::Sender<ApprovalEvent>,
     tx: mpsc::Sender<AgentEvent>,
 ) {
     let model = provider.into_model();
 
-    let tool_defs: Vec<_> = tools.iter().map(|t| t.definition()).collect();
+    let mut tool_defs: Vec<_> = tools.iter().map(|t| t.definition()).collect();
     let name_to_tool: std::collections::HashMap<String, Arc<dyn BaseTool>> =
         tools.iter().map(|t| (t.name().to_string(), t.clone())).collect();
 
-    // 用 AgentState 收集中间件注入的系统消息
+    // HITL 中间件
+    let hitl = HumanInTheLoopMiddleware::from_env(TuiHitlHandler::new(approval_tx.clone()));
+
+    // AskUser handler（批量）
+    let ask_user_handler = TuiAskUserHandler::new(approval_tx);
+    tool_defs.push(ask_user_tool_definition());
+
     let mut state = AgentState::new(cwd.clone());
     state.add_message(BaseMessage::human(input));
 
-    // 依次运行认知增强中间件（before_agent）
     let agents_md = AgentsMdMiddleware::new();
     let skills = SkillsMiddleware::new();
     let _ = agents_md.before_agent(&mut state).await;
@@ -53,7 +63,6 @@ pub async fn run_universal_agent(
         };
 
         if response.stop_reason == StopReason::ToolUse {
-            // 提取所有 ToolUse blocks
             let blocks = response.message.content_blocks();
             let tool_use_blocks: Vec<_> = blocks
                 .iter()
@@ -66,36 +75,108 @@ pub async fn run_universal_agent(
                 })
                 .collect();
 
-            // 将 assistant 消息加入历史
             messages.push(response.message);
 
-            // 执行每个工具调用
-            for (tool_id, tool_name, tool_input) in tool_use_blocks {
-                let (observation, is_error) = match name_to_tool.get(&tool_name) {
-                    Some(tool) => match tool.invoke(tool_input.clone()).await {
-                        Ok(out) => (out, false),
-                        Err(e) => (e.to_string(), true),
-                    },
-                    None => (format!("工具未找到: {tool_name}"), true),
+            let tool_calls: Vec<ToolCall> = tool_use_blocks
+                .iter()
+                .map(|(id, name, input)| ToolCall { id: id.clone(), name: name.clone(), input: input.clone() })
+                .collect();
+
+            // ── 1. 分离 ask_user 调用 ─────────────────────────────────────────
+            let mut ask_questions = Vec::new(); // (原始索引, AskUserQuestionData)
+            let mut hitl_calls: Vec<ToolCall> = Vec::new();
+            let mut hitl_indices: Vec<usize> = Vec::new();
+
+            for (i, tc) in tool_calls.iter().enumerate() {
+                match parse_ask_user(tc) {
+                    Ok(Some(q)) => ask_questions.push((i, q)),
+                    Ok(None) => {
+                        hitl_calls.push(tc.clone());
+                        hitl_indices.push(i);
+                    }
+                    Err(e) => {
+                        let _ = tx.send(AgentEvent::Error(e.to_string())).await;
+                        return;
+                    }
+                }
+            }
+
+            // ── 2. 批量 ask_user（一次弹窗，tab 切换）────────────────────────
+            let mut ask_answers: std::collections::HashMap<usize, String> =
+                std::collections::HashMap::new();
+
+            if !ask_questions.is_empty() {
+                let (placeholder_tx, _) = tokio::sync::oneshot::channel();
+                let batch = AskUserBatchRequest {
+                    questions: ask_questions.iter().map(|(_, q)| q.clone()).collect(),
+                    response_tx: placeholder_tx, // ask_batch 内部会替换此 channel
                 };
+                let answers = ask_user_handler.ask_batch(batch).await;
+                for ((orig_idx, _), answer) in ask_questions.iter().zip(answers.into_iter()) {
+                    ask_answers.insert(*orig_idx, answer);
+                }
+            }
 
-                let _ = tx.send(AgentEvent::ToolCall {
-                    name: tool_name.clone(),
-                    display: format_tool_call_display(&tool_name, &tool_input),
-                    is_error,
-                }).await;
+            // ── 3. 批量 HITL 审批 ─────────────────────────────────────────────
+            let hitl_results = hitl.process_batch(&hitl_calls).await;
+            let mut hitl_result_iter = hitl_results.into_iter().zip(hitl_indices.iter());
 
-                if is_error {
-                    messages.push(BaseMessage::tool_error(&tool_id, observation.as_str()));
-                } else {
-                    messages.push(BaseMessage::tool_result(&tool_id, observation.as_str()));
+            // ── 4. 按原始顺序写回消息 ─────────────────────────────────────────
+            for (i, (tool_id, tool_name, _tool_input)) in tool_use_blocks.iter().enumerate() {
+                if let Some(answer) = ask_answers.remove(&i) {
+                    let _ = tx.send(AgentEvent::ToolCall {
+                        name: "ask_user".to_string(),
+                        display: format!("? AskUser({})", truncate(&answer, 40)),
+                        is_error: false,
+                    }).await;
+                    messages.push(BaseMessage::tool_result(tool_id, answer.as_str()));
+                    continue;
+                }
+
+                if let Some((result, _)) = hitl_result_iter.next() {
+                    match result {
+                        Err(AgentError::ToolRejected { reason, .. }) => {
+                            let _ = tx.send(AgentEvent::ToolCall {
+                                name: tool_name.clone(),
+                                display: format!("⊘ {} (拒绝)", to_pascal(tool_name)),
+                                is_error: true,
+                            }).await;
+                            messages.push(BaseMessage::tool_error(
+                                tool_id,
+                                format!("工具调用被用户拒绝：{reason}").as_str(),
+                            ));
+                        }
+                        Err(e) => {
+                            let _ = tx.send(AgentEvent::Error(e.to_string())).await;
+                            return;
+                        }
+                        Ok(approved_call) => {
+                            let (observation, is_error) =
+                                match name_to_tool.get(&approved_call.name) {
+                                    Some(tool) => match tool.invoke(approved_call.input.clone()).await {
+                                        Ok(out) => (out, false),
+                                        Err(e) => (e.to_string(), true),
+                                    },
+                                    None => (format!("工具未找到: {}", approved_call.name), true),
+                                };
+                            let _ = tx.send(AgentEvent::ToolCall {
+                                name: approved_call.name.clone(),
+                                display: format_tool_call_display(&approved_call.name, &approved_call.input),
+                                is_error,
+                            }).await;
+                            if is_error {
+                                messages.push(BaseMessage::tool_error(tool_id, observation.as_str()));
+                            } else {
+                                messages.push(BaseMessage::tool_result(tool_id, observation.as_str()));
+                            }
+                        }
+                    }
                 }
             }
 
             continue;
         }
 
-        // 最终答案：发送文本内容
         let answer = response.message.content();
         let _ = tx.send(AgentEvent::AssistantChunk(answer.to_string())).await;
         let _ = tx.send(AgentEvent::Done).await;

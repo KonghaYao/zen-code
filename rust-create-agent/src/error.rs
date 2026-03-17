@@ -17,6 +17,13 @@ pub enum AgentError {
     #[error("Middleware error: {middleware} - {reason}")]
     MiddlewareError { middleware: String, reason: String },
 
+    #[error("Tool rejected: {tool} - {reason}")]
+    ToolRejected { tool: String, reason: String },
+
+    /// ask_user 工具已获得用户答案，携带答案字符串作为成功工具结果注入
+    #[error("AskUser answered: {answer}")]
+    AskUserAnswered { tool_call_id: String, answer: String },
+
     #[error("State error: {0}")]
     StateError(String),
 
