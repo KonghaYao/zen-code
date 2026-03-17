@@ -28,6 +28,7 @@ pub use hitl::{
     HumanInTheLoopMiddleware,
 };
 pub use skills::SkillsMiddleware;
+pub use tools::{AskUserInvoker, AskUserTool};
 
 /// Prelude - 常用类型一次性导入
 pub mod prelude {
@@ -43,8 +44,8 @@ pub mod prelude {
     pub use crate::middleware::{FilesystemMiddleware, TerminalMiddleware};
     pub use crate::skills::{SkillMetadata, SkillsMiddleware};
     pub use crate::tools::{
-        EditFileTool, FolderOperationsTool, GlobFilesTool, ReadFileTool, SearchFilesRgTool,
-        WriteFileTool,
+        AskUserInvoker, AskUserTool, EditFileTool, FolderOperationsTool, GlobFilesTool,
+        ReadFileTool, SearchFilesRgTool, WriteFileTool,
     };
 
     // 重导出 rust-create-agent 核心类型

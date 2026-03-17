@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use crate::agent::events::{AgentEvent, AgentEventHandler};
 use crate::agent::react::{AgentInput, AgentOutput, ReactLLM, ToolCall, ToolResult};
 use crate::agent::state::State;
 use crate::error::{AgentError, AgentResult};
@@ -17,6 +20,8 @@ where
     tools: HashMap<String, Box<dyn BaseTool>>,
     chain: MiddlewareChain<S>,
     max_iterations: usize,
+    /// 可选事件回调：在工具调用、答案生成等关键节点触发
+    event_handler: Option<Arc<dyn AgentEventHandler>>,
 }
 
 impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
@@ -26,6 +31,7 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
             tools: HashMap::new(),
             chain: MiddlewareChain::new(),
             max_iterations: 10,
+            event_handler: None,
         }
     }
 
@@ -44,6 +50,12 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
         self
     }
 
+    /// 注入事件回调（链式 builder）
+    pub fn with_event_handler(mut self, handler: Arc<dyn AgentEventHandler>) -> Self {
+        self.event_handler = Some(handler);
+        self
+    }
+
     pub fn middleware_names(&self) -> Vec<&str> {
         self.chain.names()
     }
@@ -52,9 +64,15 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
         self.tools.keys().cloned().collect()
     }
 
+    /// 发出事件（无 handler 时静默忽略）
+    fn emit(&self, event: AgentEvent) {
+        if let Some(h) = &self.event_handler {
+            h.on_event(event);
+        }
+    }
+
     /// 执行 Agent（ReAct 循环主入口）
     pub async fn execute(&self, input: AgentInput, state: &mut S) -> AgentResult<AgentOutput> {
-        // 支持 AgentInput 携带 MessageContent（多模态输入）
         let human_msg = BaseMessage::human(input.content);
         state.add_message(human_msg);
 
@@ -80,7 +98,6 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
             };
 
             if reasoning.needs_tool_call() {
-                // AI 消息（含 tool_calls）加入消息历史
                 {
                     let tc_reqs: Vec<ToolCallRequest> = reasoning
                         .tool_calls
@@ -107,6 +124,12 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
                         }
                     };
 
+                    // 工具调用开始事件
+                    self.emit(AgentEvent::ToolStart {
+                        name: modified_call.name.clone(),
+                        input: modified_call.input.clone(),
+                    });
+
                     let tool_result = self.call_tool(&modified_call).await;
 
                     let result = match tool_result {
@@ -128,6 +151,13 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
                         }
                     };
 
+                    // 工具调用结束事件
+                    self.emit(AgentEvent::ToolEnd {
+                        name: modified_call.name.clone(),
+                        output: result.output.clone(),
+                        is_error: result.is_error,
+                    });
+
                     if let Err(e) = self
                         .chain
                         .run_after_tool(state, &modified_call, &result)
@@ -146,12 +176,18 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
 
                     all_tool_calls.push((modified_call, result));
                 }
+
+                // 步骤完成事件
+                self.emit(AgentEvent::StepDone { step });
             } else {
                 let answer = reasoning
                     .final_answer
                     .unwrap_or_else(|| reasoning.thought.clone());
 
                 state.add_message(BaseMessage::ai(answer.as_str()));
+
+                // 最终文字输出事件
+                self.emit(AgentEvent::TextChunk(answer.clone()));
 
                 let output = AgentOutput {
                     text: answer,
@@ -186,4 +222,3 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
             })
     }
 }
-
