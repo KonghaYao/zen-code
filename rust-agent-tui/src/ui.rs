@@ -22,7 +22,7 @@ pub fn render_markdown(content: &str) -> Vec<Line<'static>> {
     }).collect()
 }
 
-pub fn render(f: &mut Frame, app: &App) {
+pub fn render(f: &mut Frame, app: &mut App) {
     let area = f.area();
 
     // 动态输入框高度：行数 + 边框（上下各 1），最少 3 行，最多 40%
@@ -63,7 +63,7 @@ fn render_title(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(title, area);
 }
 
-fn render_messages(f: &mut Frame, app: &App, area: Rect) {
+fn render_messages(f: &mut Frame, app: &mut App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::DarkGray))
@@ -90,12 +90,13 @@ fn render_messages(f: &mut Frame, app: &App, area: Rect) {
     let visible_height = inner.height;
 
     let max_scroll = visual_total.saturating_sub(visible_height);
-    // scroll_follow 或 offset 超出范围时钳制到底部
+    // 计算本帧实际偏移，并写回 scroll_offset 保持同步
     let offset = if app.scroll_follow {
         max_scroll
     } else {
         app.scroll_offset.min(max_scroll)
     };
+    app.scroll_offset = offset;
 
     // 文字区域（留出右侧 1 列给滚动条）
     let text_area = Rect {

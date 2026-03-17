@@ -159,8 +159,7 @@ impl App {
 
     pub fn scroll_down(&mut self) {
         self.scroll_offset = self.scroll_offset.saturating_add(3);
-        // 若用户手动滚到底，重新启用跟随
-        self.scroll_follow = true;
+        self.scroll_follow = false;
     }
 
     pub fn set_loading(&mut self, loading: bool) {

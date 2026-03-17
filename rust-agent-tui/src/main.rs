@@ -43,7 +43,7 @@ async fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Resul
     let mut app = app::App::new();
 
     loop {
-        terminal.draw(|f| ui::render(f, &app))?;
+        terminal.draw(|f| ui::render(f, &mut app))?;
 
         // 轮询后台 agent 结果
         app.poll_agent();
