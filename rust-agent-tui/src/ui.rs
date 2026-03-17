@@ -8,7 +8,8 @@ use ratatui::{
     Frame,
 };
 
-use crate::app::{App, MessageRole};
+use rust_create_agent::messages::BaseMessage;
+use crate::app::App;
 
 pub fn render_markdown(content: &str) -> Vec<Line<'static>> {
     let text = tui_markdown::from_str(content);
@@ -112,30 +113,32 @@ fn render_messages(f: &mut Frame, app: &App, area: Rect) {
     }
 }
 
-fn message_to_lines<'a>(msg: &'a crate::app::ChatMessage, _width: usize) -> Vec<Line<'a>> {
+fn message_to_lines(msg: &crate::app::ChatMessage, _width: usize) -> Vec<Line<'static>> {
     let mut lines = Vec::new();
+    let content = msg.content();
 
-    match &msg.role {
-        MessageRole::User => {
+    match &msg.inner {
+        BaseMessage::Human { .. } => {
             lines.push(Line::from(vec![
                 Span::styled("▶ 你  ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
-                Span::styled(&msg.content, Style::default().fg(Color::White)),
+                Span::styled(content, Style::default().fg(Color::White)),
             ]));
         }
-        MessageRole::Assistant => {
+        BaseMessage::Ai { .. } => {
             lines.push(Line::from(vec![
                 Span::styled("◆ Agent  ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
             ]));
             let md_lines = msg.rendered_md.as_deref()
                 .map(|l| l.to_vec())
-                .unwrap_or_else(|| render_markdown(&msg.content));
+                .unwrap_or_else(|| render_markdown(&content));
             for md_line in md_lines {
                 let mut indented = md_line;
                 indented.spans.insert(0, Span::raw("  "));
                 lines.push(indented);
             }
         }
-        MessageRole::Tool { name, is_error } => {
+        BaseMessage::Tool { is_error, .. } => {
+            let name = msg.display_name.as_deref().unwrap_or("tool").to_string();
             let (icon, color) = if *is_error {
                 ("✗", Color::Red)
             } else {
@@ -144,17 +147,17 @@ fn message_to_lines<'a>(msg: &'a crate::app::ChatMessage, _width: usize) -> Vec<
             lines.push(Line::from(vec![
                 Span::styled(format!("{} {}", icon, name), Style::default().fg(color).add_modifier(Modifier::BOLD)),
             ]));
-            for line in msg.content.lines() {
+            for line in content.lines() {
                 lines.push(Line::from(vec![
                     Span::raw("  │ "),
                     Span::styled(line.to_string(), Style::default().fg(Color::DarkGray)),
                 ]));
             }
         }
-        MessageRole::System => {
+        BaseMessage::System { .. } => {
             lines.push(Line::from(vec![
                 Span::styled("ℹ ", Style::default().fg(Color::Blue)),
-                Span::styled(&msg.content, Style::default().fg(Color::DarkGray)),
+                Span::styled(content, Style::default().fg(Color::DarkGray)),
             ]));
         }
     }

@@ -4,54 +4,84 @@ mod provider;
 use ratatui_textarea::TextArea;
 use ratatui::style::{Color, Style};
 use rust_agent_middlewares::prelude::*;
+use rust_create_agent::messages::BaseMessage;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
 use agent::LlmProvider;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum MessageRole {
-    User,
-    Assistant,
-    Tool { name: String, is_error: bool },
-    System,
-}
+// ─── ChatMessage ──────────────────────────────────────────────────────────────
 
+/// TUI 显示消息 — 以 BaseMessage 为内核，附加 TUI 专属字段
 #[derive(Debug, Clone)]
 pub struct ChatMessage {
-    pub role: MessageRole,
-    pub content: String,
-    /// 仅 Assistant 消息使用：缓存 markdown 渲染结果，避免每帧重复解析
+    /// 消息本体（角色 + 内容，复用 rust-create-agent 类型）
+    pub inner: BaseMessage,
+    /// Tool 消息的显示名（工具名称，区别于 API 层的 tool_call_id）
+    pub display_name: Option<String>,
+    /// Assistant 消息的 markdown 渲染缓存，避免每帧重复解析
     pub rendered_md: Option<Vec<ratatui::text::Line<'static>>>,
 }
 
 impl ChatMessage {
     pub fn user(content: impl Into<String>) -> Self {
-        Self { role: MessageRole::User, content: content.into(), rendered_md: None }
+        Self { inner: BaseMessage::human(content.into()), display_name: None, rendered_md: None }
     }
+
     pub fn assistant(content: impl Into<String>) -> Self {
-        Self { role: MessageRole::Assistant, content: content.into(), rendered_md: None }
+        Self { inner: BaseMessage::ai(content.into()), display_name: None, rendered_md: None }
     }
+
+    /// `name` 是工具显示名，`content` 是工具输出，`is_error` 标记是否失败。
+    /// tool_call_id 在纯显示场景下无意义，用 `name` 作占位符。
     pub fn tool(name: impl Into<String>, content: impl Into<String>, is_error: bool) -> Self {
-        Self { role: MessageRole::Tool { name: name.into(), is_error }, content: content.into(), rendered_md: None }
+        let name = name.into();
+        let msg = if is_error {
+            BaseMessage::tool_error(&name, content.into().as_str())
+        } else {
+            BaseMessage::tool_result(&name, content.into().as_str())
+        };
+        Self { inner: msg, display_name: Some(name), rendered_md: None }
     }
+
     pub fn system(content: impl Into<String>) -> Self {
-        Self { role: MessageRole::System, content: content.into(), rendered_md: None }
+        Self { inner: BaseMessage::system(content.into()), display_name: None, rendered_md: None }
+    }
+
+    /// 文本内容（委托给 BaseMessage）
+    pub fn content(&self) -> String {
+        self.inner.content()
+    }
+
+    pub fn is_assistant(&self) -> bool {
+        matches!(self.inner, BaseMessage::Ai { .. })
     }
 
     /// 追加流式 token，清除旧缓存
     pub fn push_str(&mut self, chunk: &str) {
-        self.content.push_str(chunk);
+        if let BaseMessage::Ai { content, .. } = &mut self.inner {
+            // MessageContent::Text 直接追加；其他变体转为 Text 再追加
+            match content {
+                rust_create_agent::messages::MessageContent::Text(s) => s.push_str(chunk),
+                _ => {
+                    let mut s = content.text_content();
+                    s.push_str(chunk);
+                    *content = rust_create_agent::messages::MessageContent::Text(s);
+                }
+            }
+        }
         self.rendered_md = None;
     }
 
     /// 流式结束后调用，一次性渲染 markdown 并缓存
     pub fn finalize_markdown(&mut self) {
-        if self.role == MessageRole::Assistant {
-            self.rendered_md = Some(crate::ui::render_markdown(&self.content));
+        if self.is_assistant() {
+            self.rendered_md = Some(crate::ui::render_markdown(&self.content()));
         }
     }
 }
+
+// ─── AgentEvent ───────────────────────────────────────────────────────────────
 
 /// 后台 agent 实时发回的事件（每步独立）
 pub enum AgentEvent {
@@ -63,13 +93,14 @@ pub enum AgentEvent {
     Error(String),
 }
 
+// ─── App ──────────────────────────────────────────────────────────────────────
+
 pub struct App {
     pub messages: Vec<ChatMessage>,
     pub textarea: TextArea<'static>,
     pub loading: bool,
     pub scroll_offset: u16,
     pub cwd: String,
-    /// 用于 UI 显示的 provider 名称和模型
     pub provider_name: String,
     pub model_name: String,
     agent_rx: Option<mpsc::Receiver<AgentEvent>>,
@@ -145,7 +176,6 @@ impl App {
             }
         };
 
-        // 缓冲足够大，避免后台任务因 channel 满而阻塞
         let (tx, rx) = mpsc::channel(32);
         self.agent_rx = Some(rx);
 
@@ -177,7 +207,7 @@ impl App {
                 }
                 Ok(AgentEvent::AssistantChunk(chunk)) => {
                     match self.messages.last_mut() {
-                        Some(m) if m.role == MessageRole::Assistant => {
+                        Some(m) if m.is_assistant() => {
                             m.push_str(&chunk);
                         }
                         _ => {
@@ -187,7 +217,6 @@ impl App {
                     updated = true;
                 }
                 Ok(AgentEvent::Done) => {
-                    // 流式结束，渲染最后一条 assistant 消息的 markdown 并缓存
                     if let Some(m) = self.messages.last_mut() {
                         m.finalize_markdown();
                     }
