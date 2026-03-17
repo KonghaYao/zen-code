@@ -90,8 +90,12 @@ fn render_messages(f: &mut Frame, app: &App, area: Rect) {
     let visible_height = inner.height;
 
     let max_scroll = visual_total.saturating_sub(visible_height);
-    let offset = app.scroll_offset.min(max_scroll);
-    let scroll = max_scroll - offset;
+    // scroll_follow 或 offset 超出范围时钳制到底部
+    let offset = if app.scroll_follow {
+        max_scroll
+    } else {
+        app.scroll_offset.min(max_scroll)
+    };
 
     // 文字区域（留出右侧 1 列给滚动条）
     let text_area = Rect {
@@ -99,7 +103,7 @@ fn render_messages(f: &mut Frame, app: &App, area: Rect) {
         ..inner
     };
     let paragraph = Paragraph::new(Text::from(all_lines))
-        .scroll((scroll, 0))
+        .scroll((offset, 0))
         .wrap(Wrap { trim: false });
     f.render_widget(paragraph, text_area);
 

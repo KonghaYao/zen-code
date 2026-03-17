@@ -21,7 +21,7 @@ pub async fn next_event(app: &mut App) -> Result<Option<Action>> {
 
     match ev {
         Event::Resize(_, _) => {
-            app.scroll_offset = 0;
+            // 保持跟随状态不变，offset 由 ui 层重新计算
         }
         Event::Key(_) => {
             let input = Input::from(ev);

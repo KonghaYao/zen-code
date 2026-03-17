@@ -99,7 +99,10 @@ pub struct App {
     pub messages: Vec<ChatMessage>,
     pub textarea: TextArea<'static>,
     pub loading: bool,
+    /// 距顶部的绝对行数（0 = 顶部，max_scroll = 底部）
     pub scroll_offset: u16,
+    /// 是否跟随底部：有新内容时自动滚到底
+    pub scroll_follow: bool,
     pub cwd: String,
     pub provider_name: String,
     pub model_name: String,
@@ -133,7 +136,8 @@ impl App {
             messages: Vec::new(),
             textarea,
             loading: false,
-            scroll_offset: 0,
+            scroll_offset: u16::MAX,
+            scroll_follow: true,
             cwd: cwd.clone(),
             provider_name,
             model_name,
@@ -148,8 +152,16 @@ impl App {
         app
     }
 
-    pub fn scroll_up(&mut self) { self.scroll_offset = self.scroll_offset.saturating_add(3); }
-    pub fn scroll_down(&mut self) { self.scroll_offset = self.scroll_offset.saturating_sub(3); }
+    pub fn scroll_up(&mut self) {
+        self.scroll_offset = self.scroll_offset.saturating_sub(3);
+        self.scroll_follow = false;
+    }
+
+    pub fn scroll_down(&mut self) {
+        self.scroll_offset = self.scroll_offset.saturating_add(3);
+        // 若用户手动滚到底，重新启用跟随
+        self.scroll_follow = true;
+    }
 
     pub fn set_loading(&mut self, loading: bool) {
         self.loading = loading;
@@ -161,7 +173,8 @@ impl App {
 
         self.messages.push(ChatMessage::user(input.clone()));
         self.set_loading(true);
-        self.scroll_offset = 0;
+        self.scroll_offset = u16::MAX;
+        self.scroll_follow = true;
 
         let provider = match LlmProvider::from_env() {
             Some(p) => p,
