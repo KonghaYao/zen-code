@@ -12,6 +12,8 @@ pub struct ChatAnthropic {
     pub model: String,
     pub extended_thinking: bool,
     pub thinking_budget: u32,
+    /// 是否开启 Prompt Caching（anthropic-beta: prompt-caching-2024-07-31），默认开启
+    pub enable_cache: bool,
     client: reqwest::Client,
 }
 
@@ -22,6 +24,7 @@ impl ChatAnthropic {
             model: model.into(),
             extended_thinking: false,
             thinking_budget: 10000,
+            enable_cache: true,
             client: reqwest::Client::new(),
         }
     }
@@ -30,6 +33,12 @@ impl ChatAnthropic {
     pub fn with_extended_thinking(mut self, budget_tokens: u32) -> Self {
         self.extended_thinking = true;
         self.thinking_budget = budget_tokens;
+        self
+    }
+
+    /// 关闭 Prompt Caching
+    pub fn without_cache(mut self) -> Self {
+        self.enable_cache = false;
         self
     }
 
@@ -193,6 +202,38 @@ impl ChatAnthropic {
         (result, system_text)
     }
 
+    /// 对 messages 列表中最后一条消息的最后一个 content block 追加 cache_control
+    ///
+    /// Anthropic Prompt Caching 要求在需要缓存的边界位置加 `cache_control: { type: "ephemeral" }`。
+    fn apply_cache_to_messages(messages: &mut Vec<Value>) {
+        if let Some(last_msg) = messages.last_mut() {
+            if let Some(content) = last_msg.get_mut("content") {
+                match content {
+                    Value::Array(blocks) => {
+                        if let Some(last_block) = blocks.last_mut() {
+                            // 跳过空 text block
+                            let is_empty_text = last_block["type"].as_str() == Some("text")
+                                && last_block["text"].as_str().map(|t| t.trim().is_empty()).unwrap_or(false);
+                            if !is_empty_text {
+                                last_block["cache_control"] = json!({ "type": "ephemeral" });
+                            }
+                        }
+                    }
+                    Value::String(s) if !s.trim().is_empty() => {
+                        // 将纯文本 content 升级为 blocks，以便加 cache_control
+                        let text = s.clone();
+                        *content = json!([{
+                            "type": "text",
+                            "text": text,
+                            "cache_control": { "type": "ephemeral" }
+                        }]);
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
     // ─── 响应 content blocks → BaseMessage ───────────────────────────────────
 
     fn parse_content_blocks(raw_blocks: &[Value]) -> (Vec<ContentBlock>, Vec<ToolCallRequest>) {
@@ -247,9 +288,14 @@ impl BaseModel for ChatAnthropic {
             }))
             .collect();
 
-        let (messages, system_from_msgs) = Self::messages_to_anthropic(&request.messages);
+        let (mut messages, system_from_msgs) = Self::messages_to_anthropic(&request.messages);
         let system = request.system.or(system_from_msgs);
         let max_tokens = request.max_tokens.unwrap_or(4096);
+
+        // 开启缓存时：对最后一条消息的最后一个 block 加 cache_control
+        if self.enable_cache {
+            Self::apply_cache_to_messages(&mut messages);
+        }
 
         let mut body = json!({
             "model": self.model,
@@ -257,7 +303,16 @@ impl BaseModel for ChatAnthropic {
             "messages": messages
         });
 
-        if let Some(sys) = &system {
+        if self.enable_cache {
+            // system 升级为 blocks 数组格式以支持 cache_control
+            if let Some(ref sys_text) = system {
+                body["system"] = json!([{
+                    "type": "text",
+                    "text": sys_text,
+                    "cache_control": { "type": "ephemeral" }
+                }]);
+            }
+        } else if let Some(sys) = &system {
             body["system"] = json!(sys);
         }
 
@@ -277,12 +332,19 @@ impl BaseModel for ChatAnthropic {
             });
         }
 
-        let resp = self
+        let mut req = self
             .client
             .post(chat_url)
             .header("x-api-key", &self.api_key)
             .header("anthropic-version", "2023-06-01")
-            .header("content-type", "application/json")
+            .header("content-type", "application/json");
+
+        // Prompt Caching 需要 beta header
+        if self.enable_cache {
+            req = req.header("anthropic-beta", "prompt-caching-2024-07-31");
+        }
+
+        let resp = req
             .json(&body)
             .send()
             .await
