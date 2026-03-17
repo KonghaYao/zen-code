@@ -2,9 +2,12 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 use serde_json::Value;
 
+use rust_create_agent::agent::state::{AgentState, State};
 use rust_create_agent::llm::types::{LlmRequest, StopReason};
 use rust_create_agent::messages::{BaseMessage, ContentBlock};
+use rust_create_agent::middleware::r#trait::Middleware;
 use rust_create_agent::tools::BaseTool;
+use rust_standard_middlewares::prelude::*;
 pub(crate) use super::provider::LlmProvider;
 use super::AgentEvent;
 
@@ -15,6 +18,7 @@ pub async fn run_universal_agent(
     tools: Vec<Arc<dyn BaseTool>>,
     input: String,
     cwd: String,
+    system_prompt: String,
     tx: mpsc::Sender<AgentEvent>,
 ) {
     let model = provider.into_model();
@@ -23,15 +27,17 @@ pub async fn run_universal_agent(
     let name_to_tool: std::collections::HashMap<String, Arc<dyn BaseTool>> =
         tools.iter().map(|t| (t.name().to_string(), t.clone())).collect();
 
-    let system_prompt = format!(
-        "你是一个 Rust Agent。当前工作目录: {cwd}\n\
-         使用工具时，文件路径请用相对路径（相对于工作目录），或绝对路径。\n\
-         工具参数必须是合法的 JSON，传入对应字段。"
-    );
+    // 用 AgentState 收集中间件注入的系统消息
+    let mut state = AgentState::new(cwd.clone());
+    state.add_message(BaseMessage::human(input));
 
-    let mut messages: Vec<BaseMessage> = vec![
-        BaseMessage::human(input),
-    ];
+    // 依次运行认知增强中间件（before_agent）
+    let agents_md = AgentsMdMiddleware::new();
+    let skills = SkillsMiddleware::new();
+    let _ = agents_md.before_agent(&mut state).await;
+    let _ = skills.before_agent(&mut state).await;
+
+    let mut messages: Vec<BaseMessage> = state.messages().to_vec();
 
     for _iter in 0..500 {
         let request = LlmRequest::new(messages.clone())

@@ -21,17 +21,15 @@ pub struct ChatMessage {
     pub display_name: Option<String>,
     /// Tool 消息的原始工具名（用于颜色匹配）
     pub tool_name: Option<String>,
-    /// Assistant 消息的 markdown 渲染缓存，避免每帧重复解析
-    pub rendered_md: Option<Vec<ratatui::text::Line<'static>>>,
 }
 
 impl ChatMessage {
     pub fn user(content: impl Into<String>) -> Self {
-        Self { inner: BaseMessage::human(content.into()), display_name: None, tool_name: None, rendered_md: None }
+        Self { inner: BaseMessage::human(content.into()), display_name: None, tool_name: None }
     }
 
     pub fn assistant(content: impl Into<String>) -> Self {
-        Self { inner: BaseMessage::ai(content.into()), display_name: None, tool_name: None, rendered_md: None }
+        Self { inner: BaseMessage::ai(content.into()), display_name: None, tool_name: None }
     }
 
     pub fn tool(
@@ -48,11 +46,11 @@ impl ChatMessage {
         } else {
             BaseMessage::tool_result(&raw_name, content.as_str())
         };
-        Self { inner: msg, display_name: Some(display), tool_name: Some(raw_name), rendered_md: None }
+        Self { inner: msg, display_name: Some(display), tool_name: Some(raw_name) }
     }
 
     pub fn system(content: impl Into<String>) -> Self {
-        Self { inner: BaseMessage::system(content.into()), display_name: None, tool_name: None, rendered_md: None }
+        Self { inner: BaseMessage::system(content.into()), display_name: None, tool_name: None }
     }
 
     /// 文本内容（委托给 BaseMessage）
@@ -64,10 +62,9 @@ impl ChatMessage {
         matches!(self.inner, BaseMessage::Ai { .. })
     }
 
-    /// 追加流式 token，清除旧缓存
+    /// 追加流式 token
     pub fn push_str(&mut self, chunk: &str) {
         if let BaseMessage::Ai { content, .. } = &mut self.inner {
-            // MessageContent::Text 直接追加；其他变体转为 Text 再追加
             match content {
                 rust_create_agent::messages::MessageContent::Text(s) => s.push_str(chunk),
                 _ => {
@@ -76,14 +73,6 @@ impl ChatMessage {
                     *content = rust_create_agent::messages::MessageContent::Text(s);
                 }
             }
-        }
-        self.rendered_md = None;
-    }
-
-    /// 流式结束后调用，一次性渲染 markdown 并缓存
-    pub fn finalize_markdown(&mut self) {
-        if self.is_assistant() {
-            self.rendered_md = Some(crate::ui::render_markdown(&self.content()));
         }
     }
 }
@@ -236,9 +225,6 @@ impl App {
                     updated = true;
                 }
                 Ok(AgentEvent::Done) => {
-                    if let Some(m) = self.messages.last_mut() {
-                        m.finalize_markdown();
-                    }
                     self.set_loading(false);
                     self.agent_rx = None;
                     return true;

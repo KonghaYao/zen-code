@@ -2,6 +2,7 @@
 members = [
     "rust-create-agent",
     "rust-agent-middlewares",
+    "rust-standard-middlewares",
     "rust-agent-tui",
 ]
 resolver = "2"

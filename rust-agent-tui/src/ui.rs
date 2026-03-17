@@ -3,24 +3,13 @@ use ratatui::{
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
     widgets::{
-        Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, Wrap,
+        Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, Wrap,
     },
     Frame,
 };
 
 use rust_create_agent::messages::BaseMessage;
 use crate::app::App;
-
-pub fn render_markdown(content: &str) -> Vec<Line<'static>> {
-    let text = tui_markdown::from_str(content);
-    text.lines.into_iter().map(|line| {
-        Line::from(
-            line.spans.into_iter()
-                .map(|s| Span::styled(s.content.into_owned(), s.style))
-                .collect::<Vec<_>>()
-        )
-    }).collect()
-}
 
 pub fn render(f: &mut Frame, app: &mut App) {
     let area = f.area();
@@ -64,18 +53,8 @@ fn render_title(f: &mut Frame, app: &App, area: Rect) {
 }
 
 fn render_messages(f: &mut Frame, app: &mut App, area: Rect) {
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::DarkGray))
-        .title(Span::styled(
-            " 对话 ",
-            Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
-        ));
-
-    let inner = block.inner(area);
-    f.render_widget(block, area);
-
     // 右侧留 1 列给滚动条
+    let inner = area;
     let inner_width = inner.width.saturating_sub(1) as usize;
     let mut all_lines: Vec<Line> = Vec::new();
 
@@ -138,13 +117,11 @@ fn message_to_lines(msg: &crate::app::ChatMessage, _width: usize) -> Vec<Line<'s
             lines.push(Line::from(vec![
                 Span::styled("◆ Agent  ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
             ]));
-            let md_lines = msg.rendered_md.as_deref()
-                .map(|l| l.to_vec())
-                .unwrap_or_else(|| render_markdown(&content));
-            for md_line in md_lines {
-                let mut indented = md_line;
-                indented.spans.insert(0, Span::raw("  "));
-                lines.push(indented);
+            for text_line in content.lines() {
+                lines.push(Line::from(vec![
+                    Span::raw("  "),
+                    Span::styled(text_line.to_string(), Style::default().fg(Color::White)),
+                ]));
             }
         }
         BaseMessage::Tool { is_error, .. } => {
