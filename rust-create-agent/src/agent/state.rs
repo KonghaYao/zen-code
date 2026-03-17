@@ -12,12 +12,7 @@ pub trait State: Send + Sync + Clone + 'static {
     fn add_message(&mut self, message: BaseMessage);
 
     /// 将消息前插到消息历史开头（系统消息置于最前）
-    ///
-    /// 默认为空实现（no-op），具体状态类型应覆盖此方法以提供正确行为。
-    /// `AgentState` 已提供高效实现（Vec::insert(0, ...)）。
-    fn prepend_message(&mut self, message: BaseMessage) {
-        let _ = message;
-    }
+    fn prepend_message(&mut self, message: BaseMessage);
 
     fn current_step(&self) -> usize;
     fn set_current_step(&mut self, step: usize);

@@ -24,10 +24,21 @@ pub struct AskUserQuestionData {
 }
 
 /// 批量问题请求（所有问题打包，带统一回复 channel）
+///
+/// 通过 [`AskUserBatchRequest::new`] 构建，自动创建 oneshot channel，
+/// 返回 `(request, receiver)` 二元组。调用方持有 `receiver` 以 await 答案，
+/// 将 `request` 发送给 UI 层处理。
 pub struct AskUserBatchRequest {
     pub questions: Vec<AskUserQuestionData>,
     /// UI 层按问题顺序填写答案后通过此 sender 回复
     pub response_tx: oneshot::Sender<Vec<String>>,
+}
+
+impl AskUserBatchRequest {
+    pub fn new(questions: Vec<AskUserQuestionData>) -> (Self, oneshot::Receiver<Vec<String>>) {
+        let (response_tx, response_rx) = oneshot::channel();
+        (Self { questions, response_tx }, response_rx)
+    }
 }
 
 // ─── 解析辅助 ──────────────────────────────────────────────────────────────────

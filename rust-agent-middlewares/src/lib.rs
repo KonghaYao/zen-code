@@ -24,7 +24,8 @@ pub use ask_user::{
     AskUserQuestionData,
 };
 pub use hitl::{
-    default_requires_approval, BatchItem, HitlDecision, HitlHandler, HumanInTheLoopMiddleware,
+    default_requires_approval, is_yolo_mode, BatchItem, HitlDecision, HitlHandler,
+    HumanInTheLoopMiddleware,
 };
 pub use skills::SkillsMiddleware;
 
@@ -36,7 +37,8 @@ pub mod prelude {
         AskUserOption, AskUserQuestionData,
     };
     pub use crate::hitl::{
-        default_requires_approval, BatchItem, HitlDecision, HitlHandler, HumanInTheLoopMiddleware,
+        default_requires_approval, is_yolo_mode, BatchItem, HitlDecision, HitlHandler,
+        HumanInTheLoopMiddleware,
     };
     pub use crate::middleware::{FilesystemMiddleware, TerminalMiddleware};
     pub use crate::skills::{SkillMetadata, SkillsMiddleware};

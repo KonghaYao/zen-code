@@ -187,38 +187,3 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
     }
 }
 
-/// Builder
-pub struct AgentExecutorBuilder<L, S>
-where
-    L: ReactLLM,
-    S: State,
-{
-    executor: AgentExecutor<L, S>,
-}
-
-impl<L: ReactLLM, S: State> AgentExecutorBuilder<L, S> {
-    pub fn new(llm: L) -> Self {
-        Self {
-            executor: AgentExecutor::new(llm),
-        }
-    }
-
-    pub fn max_iterations(mut self, n: usize) -> Self {
-        self.executor = self.executor.max_iterations(n);
-        self
-    }
-
-    pub fn tool(mut self, tool: Box<dyn BaseTool>) -> Self {
-        self.executor = self.executor.register_tool(tool);
-        self
-    }
-
-    pub fn middleware(mut self, mw: Box<dyn Middleware<S>>) -> Self {
-        self.executor = self.executor.add_middleware(mw);
-        self
-    }
-
-    pub fn build(self) -> AgentExecutor<L, S> {
-        self.executor
-    }
-}

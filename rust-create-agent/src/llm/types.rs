@@ -74,9 +74,3 @@ impl StopReason {
     }
 }
 
-/// 流式事件
-#[derive(Debug, Clone)]
-pub enum StreamEvent {
-    TextDelta(String),
-    Done,
-}

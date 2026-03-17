@@ -2,6 +2,7 @@ use rust_create_agent::tools::BaseTool;
 use serde_json::Value;
 use std::path::Path;
 use std::process::Stdio;
+use std::sync::OnceLock;
 use tokio::process::Command;
 use tokio::time::{timeout, Duration};
 
@@ -117,20 +118,25 @@ impl BaseTool for SearchFilesRgTool {
     }
 }
 
-fn which_rg() -> String {
-    for candidate in &[
-        "rg",
-        "/usr/local/bin/rg",
-        "/opt/homebrew/bin/rg",
-        "/usr/bin/rg",
-    ] {
-        if std::process::Command::new(candidate)
-            .arg("--version")
-            .output()
-            .is_ok()
-        {
-            return candidate.to_string();
+fn which_rg() -> &'static str {
+    static RG_PATH: OnceLock<&'static str> = OnceLock::new();
+    *RG_PATH.get_or_init(|| {
+        for candidate in &[
+            "rg",
+            "/usr/local/bin/rg",
+            "/opt/homebrew/bin/rg",
+            "/usr/bin/rg",
+        ] {
+            if std::process::Command::new(candidate)
+                .arg("--version")
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .is_ok()
+            {
+                return *candidate;
+            }
         }
-    }
-    "rg".to_string()
+        "rg"
+    })
 }

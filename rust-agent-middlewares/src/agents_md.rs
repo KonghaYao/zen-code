@@ -75,12 +75,17 @@ impl<S: State> Middleware<S> for AgentsMdMiddleware {
             return Ok(());
         };
 
-        let content = std::fs::read_to_string(&path).map_err(|e| {
-            rust_create_agent::error::AgentError::MiddlewareError {
+        let path_display = path.display().to_string();
+        let content = tokio::task::spawn_blocking(move || std::fs::read_to_string(&path))
+            .await
+            .map_err(|e| rust_create_agent::error::AgentError::MiddlewareError {
                 middleware: "AgentsMdMiddleware".to_string(),
-                reason: format!("读取 {} 失败: {e}", path.display()),
-            }
-        })?;
+                reason: format!("spawn_blocking 失败: {e}"),
+            })?
+            .map_err(|e| rust_create_agent::error::AgentError::MiddlewareError {
+                middleware: "AgentsMdMiddleware".to_string(),
+                reason: format!("读取 {} 失败: {e}", path_display),
+            })?;
 
         if content.trim().is_empty() {
             return Ok(());

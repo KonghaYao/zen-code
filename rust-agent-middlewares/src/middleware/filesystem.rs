@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use rust_create_agent::agent::state::State;
-use rust_create_agent::error::AgentResult;
 use rust_create_agent::middleware::r#trait::Middleware;
 use rust_create_agent::tools::BaseTool;
 
@@ -50,14 +49,5 @@ impl Default for FilesystemMiddleware {
 impl<S: State> Middleware<S> for FilesystemMiddleware {
     fn name(&self) -> &str {
         "FilesystemMiddleware"
-    }
-
-    async fn before_agent(&self, state: &mut S) -> AgentResult<()> {
-        let tools = Self::tool_names().join(", ");
-        println!(
-            "[FilesystemMiddleware] cwd: {} | tools: {tools}",
-            state.cwd()
-        );
-        Ok(())
     }
 }

@@ -13,10 +13,7 @@ pub mod tools;
 /// Prelude - 常用类型一次性导入
 pub mod prelude {
     pub use crate::agent::{
-        executor::AgentExecutorBuilder,
-        react::{
-            AgentInput, AgentOutput, ReactLLM, Reasoning, ToolCall, ToolRegistry, ToolResult,
-        },
+        react::{AgentInput, AgentOutput, ReactLLM, Reasoning, ToolCall, ToolResult},
         state::{AgentState, State},
         AgentExecutor,
     };

@@ -157,37 +157,4 @@ pub trait ReactLLM: Send + Sync {
     ) -> crate::error::AgentResult<Reasoning>;
 }
 
-/// 工具注册表
-pub struct ToolRegistry {
-    tools: HashMap<String, Box<dyn BaseTool>>,
-}
 
-impl ToolRegistry {
-    pub fn new() -> Self {
-        Self {
-            tools: HashMap::new(),
-        }
-    }
-
-    pub fn register(&mut self, tool: Box<dyn BaseTool>) {
-        self.tools.insert(tool.name().to_string(), tool);
-    }
-
-    pub fn get(&self, name: &str) -> Option<&dyn BaseTool> {
-        self.tools.get(name).map(|t| t.as_ref())
-    }
-
-    pub fn all(&self) -> Vec<&dyn BaseTool> {
-        self.tools.values().map(|t| t.as_ref()).collect()
-    }
-
-    pub fn tool_names(&self) -> Vec<&str> {
-        self.tools.keys().map(|s| s.as_str()).collect()
-    }
-}
-
-impl Default for ToolRegistry {
-    fn default() -> Self {
-        Self::new()
-    }
-}

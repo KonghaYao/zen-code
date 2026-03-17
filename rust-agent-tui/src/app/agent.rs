@@ -9,7 +9,7 @@ use rust_create_agent::llm::types::{LlmRequest, StopReason};
 use rust_create_agent::messages::{BaseMessage, ContentBlock};
 use rust_create_agent::middleware::r#trait::Middleware;
 use rust_create_agent::tools::BaseTool;
-use rust_agent_middlewares::ask_user::{AskUserBatchRequest, parse_ask_user};
+use rust_agent_middlewares::ask_user::parse_ask_user;
 use rust_agent_middlewares::prelude::*;
 pub(crate) use super::provider::LlmProvider;
 use super::hitl::{ApprovalEvent, TuiAskUserHandler, TuiHitlHandler};
@@ -106,12 +106,8 @@ pub async fn run_universal_agent(
                 std::collections::HashMap::new();
 
             if !ask_questions.is_empty() {
-                let (placeholder_tx, _) = tokio::sync::oneshot::channel();
-                let batch = AskUserBatchRequest {
-                    questions: ask_questions.iter().map(|(_, q)| q.clone()).collect(),
-                    response_tx: placeholder_tx, // ask_batch 内部会替换此 channel
-                };
-                let answers = ask_user_handler.ask_batch(batch).await;
+                let questions = ask_questions.iter().map(|(_, q)| q.clone()).collect();
+                let answers = ask_user_handler.ask_batch(questions).await;
                 for ((orig_idx, _), answer) in ask_questions.iter().zip(answers.into_iter()) {
                     ask_answers.insert(*orig_idx, answer);
                 }

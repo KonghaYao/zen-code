@@ -382,9 +382,7 @@ impl App {
         self.agent_rx = Some(rx);
 
         // YOLO_MODE 时跳过 HITL channel，直接给 agent 一个永远不会被消费的 sender
-        let yolo = std::env::var("YOLO_MODE")
-            .map(|v| v.eq_ignore_ascii_case("true") || v == "1")
-            .unwrap_or(false);
+        let yolo = rust_agent_middlewares::is_yolo_mode();
 
         let (approval_tx, approval_rx) = mpsc::channel::<ApprovalEvent>(4);
         if !yolo {

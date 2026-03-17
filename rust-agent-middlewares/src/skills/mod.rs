@@ -88,7 +88,12 @@ impl<S: State> Middleware<S> for SkillsMiddleware {
 
     async fn before_agent(&self, state: &mut S) -> AgentResult<()> {
         let dirs = self.resolve_dirs(state.cwd());
-        let skills = list_skills(&dirs);
+        let skills = tokio::task::spawn_blocking(move || list_skills(&dirs))
+            .await
+            .map_err(|e| rust_create_agent::error::AgentError::MiddlewareError {
+                middleware: "SkillsMiddleware".to_string(),
+                reason: format!("spawn_blocking 失败: {e}"),
+            })?;
 
         if skills.is_empty() {
             return Ok(());

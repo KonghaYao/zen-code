@@ -56,6 +56,15 @@ pub trait HitlHandler: Send + Sync {
     }
 }
 
+// ─── YOLO 模式检测 ─────────────────────────────────────────────────────────────
+
+/// 检测是否处于 YOLO 模式（`YOLO_MODE=true` 或 `YOLO_MODE=1`）
+pub fn is_yolo_mode() -> bool {
+    std::env::var("YOLO_MODE")
+        .map(|v| v.eq_ignore_ascii_case("true") || v == "1")
+        .unwrap_or(false)
+}
+
 // ─── 默认规则 ──────────────────────────────────────────────────────────────────
 
 /// 默认敏感工具判断规则（无注入时使用）
@@ -65,13 +74,9 @@ pub trait HitlHandler: Send + Sync {
 /// - `edit_*`：文件编辑
 /// - `folder_operations`：目录操作
 pub fn default_requires_approval(tool_name: &str) -> bool {
-    matches!(
-        tool_name,
-        "bash"
-            | "write_file"
-            | "edit_file"
-            | "folder_operations"
-    ) || tool_name.starts_with("write_")
+    tool_name == "bash"
+        || tool_name == "folder_operations"
+        || tool_name.starts_with("write_")
         || tool_name.starts_with("edit_")
         || tool_name.starts_with("delete_")
         || tool_name.starts_with("rm_")
@@ -109,11 +114,7 @@ impl HumanInTheLoopMiddleware {
 
     /// 从环境变量决定是否启用（`YOLO_MODE=true` 则禁用）
     pub fn from_env(handler: Arc<dyn HitlHandler>) -> Self {
-        let yolo = std::env::var("YOLO_MODE")
-            .map(|v| v.eq_ignore_ascii_case("true") || v == "1")
-            .unwrap_or(false);
-
-        if yolo {
+        if is_yolo_mode() {
             Self::disabled()
         } else {
             Self::new(handler)

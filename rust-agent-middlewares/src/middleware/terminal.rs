@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use rust_create_agent::agent::state::State;
-use rust_create_agent::error::AgentResult;
 use rust_create_agent::middleware::r#trait::Middleware;
 use rust_create_agent::tools::BaseTool;
 use serde_json::Value;
@@ -128,13 +127,5 @@ impl Default for TerminalMiddleware {
 impl<S: State> Middleware<S> for TerminalMiddleware {
     fn name(&self) -> &str {
         "TerminalMiddleware"
-    }
-
-    async fn before_agent(&self, state: &mut S) -> AgentResult<()> {
-        println!(
-            "[TerminalMiddleware] cwd: {} | tools: bash",
-            state.cwd()
-        );
-        Ok(())
     }
 }

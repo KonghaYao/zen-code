@@ -4,7 +4,8 @@ use async_trait::async_trait;
 use tokio::sync::{mpsc, oneshot};
 
 use rust_agent_middlewares::prelude::{
-    default_requires_approval, AskUserBatchRequest, BatchItem, HitlDecision, HitlHandler,
+    default_requires_approval, AskUserBatchRequest, AskUserQuestionData, BatchItem, HitlDecision,
+    HitlHandler,
 };
 
 // ─── ApprovalRequest ──────────────────────────────────────────────────────────
@@ -79,14 +80,10 @@ impl TuiAskUserHandler {
     }
 
     /// 发送批量问题到 TUI，等待所有答案
-    pub async fn ask_batch(&self, req: AskUserBatchRequest) -> Vec<String> {
-        let n = req.questions.len();
-        let (response_tx, response_rx) = oneshot::channel::<Vec<String>>();
-        let batch = AskUserBatchRequest {
-            questions: req.questions,
-            response_tx,
-        };
-        if self.tx.send(ApprovalEvent::AskUserBatch(batch)).await.is_err() {
+    pub async fn ask_batch(&self, questions: Vec<AskUserQuestionData>) -> Vec<String> {
+        let n = questions.len();
+        let (req, response_rx) = AskUserBatchRequest::new(questions);
+        if self.tx.send(ApprovalEvent::AskUserBatch(req)).await.is_err() {
             return vec!["[UI 已断开]".to_string(); n];
         }
         response_rx
