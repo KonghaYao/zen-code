@@ -147,7 +147,8 @@ fn message_to_lines(msg: &crate::app::ChatMessage, _width: usize) -> Vec<Line<'s
             let (icon, color) = if *is_error {
                 ("✗", Color::Red)
             } else {
-                ("⚙", Color::Yellow)
+                let raw = msg.tool_name.as_deref().unwrap_or(&name);
+                ("⚙", tool_color(raw))
             };
             lines.push(Line::from(vec![
                 Span::styled(format!("{} {}", icon, name), Style::default().fg(color).add_modifier(Modifier::BOLD)),
@@ -168,6 +169,21 @@ fn message_to_lines(msg: &crate::app::ChatMessage, _width: usize) -> Vec<Line<'s
     }
 
     lines
+}
+
+/// 按工具名分配颜色
+fn tool_color(name: &str) -> Color {
+    match name {
+        "bash"                        => Color::Rgb(255, 165,   0), // 橙
+        "read_file"                   => Color::Rgb( 97, 214, 214), // 青
+        "write_file"                  => Color::Rgb(105, 240, 174), // 绿
+        "edit_file"                   => Color::Rgb(179, 157, 219), // 紫
+        "glob_files"                  => Color::Rgb(255, 213,  79), // 黄
+        "search_files_rg"             => Color::Rgb(100, 181, 246), // 蓝
+        "folder_operations"           => Color::Rgb(240, 128, 128), // 玫红
+        _ if name.contains("error")   => Color::Red,
+        _                             => Color::Yellow,
+    }
 }
 
 /// 估算一条 Line 在给定宽度下占用的视觉行数（含自动换行）

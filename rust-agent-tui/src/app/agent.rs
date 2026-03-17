@@ -74,6 +74,7 @@ pub async fn run_universal_agent(
                 };
 
                 let _ = tx.send(AgentEvent::ToolCall {
+                    name: tool_name.clone(),
                     display: format_tool_call_display(&tool_name, &tool_input),
                     is_error,
                 }).await;

@@ -17,35 +17,42 @@ use agent::LlmProvider;
 pub struct ChatMessage {
     /// 消息本体（角色 + 内容，复用 rust-create-agent 类型）
     pub inner: BaseMessage,
-    /// Tool 消息的显示名（工具名称，区别于 API 层的 tool_call_id）
+    /// Tool 消息的显示名（格式化后，用于 UI 标题）
     pub display_name: Option<String>,
+    /// Tool 消息的原始工具名（用于颜色匹配）
+    pub tool_name: Option<String>,
     /// Assistant 消息的 markdown 渲染缓存，避免每帧重复解析
     pub rendered_md: Option<Vec<ratatui::text::Line<'static>>>,
 }
 
 impl ChatMessage {
     pub fn user(content: impl Into<String>) -> Self {
-        Self { inner: BaseMessage::human(content.into()), display_name: None, rendered_md: None }
+        Self { inner: BaseMessage::human(content.into()), display_name: None, tool_name: None, rendered_md: None }
     }
 
     pub fn assistant(content: impl Into<String>) -> Self {
-        Self { inner: BaseMessage::ai(content.into()), display_name: None, rendered_md: None }
+        Self { inner: BaseMessage::ai(content.into()), display_name: None, tool_name: None, rendered_md: None }
     }
 
-    /// `name` 是工具显示名，`content` 是工具输出，`is_error` 标记是否失败。
-    /// tool_call_id 在纯显示场景下无意义，用 `name` 作占位符。
-    pub fn tool(name: impl Into<String>, content: impl Into<String>, is_error: bool) -> Self {
-        let name = name.into();
+    pub fn tool(
+        raw_name: impl Into<String>,
+        display: impl Into<String>,
+        content: impl Into<String>,
+        is_error: bool,
+    ) -> Self {
+        let raw_name = raw_name.into();
+        let display = display.into();
+        let content = content.into();
         let msg = if is_error {
-            BaseMessage::tool_error(&name, content.into().as_str())
+            BaseMessage::tool_error(&raw_name, content.as_str())
         } else {
-            BaseMessage::tool_result(&name, content.into().as_str())
+            BaseMessage::tool_result(&raw_name, content.as_str())
         };
-        Self { inner: msg, display_name: Some(name), rendered_md: None }
+        Self { inner: msg, display_name: Some(display), tool_name: Some(raw_name), rendered_md: None }
     }
 
     pub fn system(content: impl Into<String>) -> Self {
-        Self { inner: BaseMessage::system(content.into()), display_name: None, rendered_md: None }
+        Self { inner: BaseMessage::system(content.into()), display_name: None, tool_name: None, rendered_md: None }
     }
 
     /// 文本内容（委托给 BaseMessage）
@@ -85,7 +92,7 @@ impl ChatMessage {
 
 /// 后台 agent 实时发回的事件（每步独立）
 pub enum AgentEvent {
-    ToolCall { display: String, is_error: bool },
+    ToolCall { name: String, display: String, is_error: bool },
     /// 流式 token，追加到当前 assistant 消息
     AssistantChunk(String),
     /// 流式结束（或无流式时的完整答案）
@@ -179,7 +186,7 @@ impl App {
             Some(p) => p,
             None => {
                 self.messages.push(ChatMessage::tool(
-                    "config-error",
+                    "error", "config-error",
                     "请设置 ANTHROPIC_API_KEY 或 OPENAI_API_KEY 环境变量后重启",
                     true,
                 ));
@@ -213,8 +220,8 @@ impl App {
 
         loop {
             match rx.try_recv() {
-                Ok(AgentEvent::ToolCall { display, is_error }) => {
-                    self.messages.push(ChatMessage::tool(display, "", is_error));
+                Ok(AgentEvent::ToolCall { name, display, is_error }) => {
+                    self.messages.push(ChatMessage::tool(name, display, "", is_error));
                     updated = true;
                 }
                 Ok(AgentEvent::AssistantChunk(chunk)) => {
@@ -237,14 +244,14 @@ impl App {
                     return true;
                 }
                 Ok(AgentEvent::Error(e)) => {
-                    self.messages.push(ChatMessage::tool("agent-error", e, true));
+                    self.messages.push(ChatMessage::tool("error", "agent-error", e, true));
                     self.set_loading(false);
                     self.agent_rx = None;
                     return true;
                 }
                 Err(mpsc::error::TryRecvError::Empty) => break,
                 Err(mpsc::error::TryRecvError::Disconnected) => {
-                    self.messages.push(ChatMessage::tool("agent-error", "Agent 任务意外终止", true));
+                    self.messages.push(ChatMessage::tool("error", "agent-error", "Agent 任务意外终止", true));
                     self.set_loading(false);
                     self.agent_rx = None;
                     return true;
