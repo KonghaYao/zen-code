@@ -1,18 +1,13 @@
-mod llm;
+pub mod agent;
+mod provider;
 
-use langchain_rust::{
-    agent::{Agent, OpenAiToolAgentBuilder},
-    language_models::llm::LLM,
-    memory::SimpleMemory,
-    prompt_args,
-    schemas::{agent::AgentEvent as LCAgentEvent, BaseMemory, Message},
-};
 use ratatui_textarea::TextArea;
 use ratatui::style::{Color, Style};
 use rust_agent_middlewares::prelude::*;
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 use tokio::sync::mpsc;
-use futures_util::StreamExt;
+
+use agent::LlmProvider;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MessageRole {
@@ -74,8 +69,9 @@ pub struct App {
     pub loading: bool,
     pub scroll_offset: u16,
     pub cwd: String,
-    pub api_key: Option<String>,
-    pub api_base: Option<String>,
+    /// 用于 UI 显示的 provider 名称和模型
+    pub provider_name: String,
+    pub model_name: String,
     agent_rx: Option<mpsc::Receiver<AgentEvent>>,
 }
 
@@ -86,14 +82,21 @@ impl App {
             .to_string_lossy()
             .to_string();
 
-        let api_key = std::env::var("OPENAI_API_KEY").ok();
-        let api_base = std::env::var("OPENAI_API_BASE")
-            .or_else(|_| std::env::var("OPENAI_BASE_URL"))
-            .ok();
-
-        let has_key = api_key.is_some();
-
         let textarea = build_textarea(false);
+
+        let (provider_name, model_name, status_msg) = match LlmProvider::from_env() {
+            Some(p) => {
+                let name = p.display_name().to_string();
+                let model = p.model_name().to_string();
+                let msg = format!("{} ({}) 已就绪", name, model);
+                (name, model, msg)
+            }
+            None => (
+                "未配置".to_string(),
+                "无".to_string(),
+                "警告: 未设置任何 API Key（ANTHROPIC_API_KEY 或 OPENAI_API_KEY）".to_string(),
+            ),
+        };
 
         let mut app = Self {
             messages: Vec::new(),
@@ -101,15 +104,14 @@ impl App {
             loading: false,
             scroll_offset: 0,
             cwd: cwd.clone(),
-            api_key,
-            api_base,
+            provider_name,
+            model_name,
             agent_rx: None,
         };
 
-        let status = if has_key { "OpenAI 已就绪" } else { "警告: 未设置 OPENAI_API_KEY" };
         app.messages.push(ChatMessage::system(format!(
             "Rust Agent TUI 已启动 | {} | 工作目录: {} | 工具: read_file, write_file, glob_files, search_files_rg, bash",
-            status, cwd
+            status_msg, cwd
         )));
 
         app
@@ -130,14 +132,17 @@ impl App {
         self.set_loading(true);
         self.scroll_offset = 0;
 
-        let Some(key) = self.api_key.clone() else {
-            self.messages.push(ChatMessage::tool(
-                "config-error",
-                "请设置 OPENAI_API_KEY 环境变量后重启",
-                true,
-            ));
-            self.set_loading(false);
-            return;
+        let provider = match LlmProvider::from_env() {
+            Some(p) => p,
+            None => {
+                self.messages.push(ChatMessage::tool(
+                    "config-error",
+                    "请设置 ANTHROPIC_API_KEY 或 OPENAI_API_KEY 环境变量后重启",
+                    true,
+                ));
+                self.set_loading(false);
+                return;
+            }
         };
 
         // 缓冲足够大，避免后台任务因 channel 满而阻塞
@@ -145,10 +150,16 @@ impl App {
         self.agent_rx = Some(rx);
 
         let cwd = self.cwd.clone();
-        let api_base = self.api_base.clone();
 
         tokio::spawn(async move {
-            run_agent(key, api_base, cwd, input, tx).await;
+            let tools: Vec<Arc<dyn rust_create_agent::tools::BaseTool>> =
+                FilesystemMiddleware::build_tools(&cwd)
+                    .into_iter()
+                    .chain(TerminalMiddleware::build_tools(&cwd))
+                    .map(|t| Arc::from(t) as Arc<dyn rust_create_agent::tools::BaseTool>)
+                    .collect();
+
+            agent::run_universal_agent(provider, tools, input, cwd, tx).await;
         });
     }
 
@@ -220,185 +231,4 @@ pub fn build_textarea(disabled: bool) -> TextArea<'static> {
             )),
     );
     ta
-}
-
-/// 后台任务：通过 tx 实时发送每一步结果
-async fn run_agent(
-    api_key: String,
-    api_base: Option<String>,
-    cwd: String,
-    input: String,
-    tx: mpsc::Sender<AgentEvent>,
-) {
-    let llm = llm::build_openai_llm(&api_key, api_base.as_deref());
-
-    let tools: Vec<Arc<dyn langchain_rust::tools::Tool>> =
-        FilesystemMiddleware::build_tools(&cwd)
-            .into_iter()
-            .chain(TerminalMiddleware::build_tools(&cwd))
-            .map(|t| Arc::from(t) as Arc<dyn langchain_rust::tools::Tool>)
-            .collect();
-
-    let agent = match OpenAiToolAgentBuilder::new()
-        .tools(&tools)
-        .prefix(format!(
-            "你是一个 Rust Agent。当前工作目录: {cwd}\n\
-             使用工具时，文件路径请用相对路径（相对于工作目录），或绝对路径。"
-        ))
-        .build(llm)
-    {
-        Ok(a) => a,
-        Err(e) => {
-            let _ = tx.send(AgentEvent::Error(format!("构建 Agent 失败: {e}"))).await;
-            return;
-        }
-    };
-
-    let name_to_tools: HashMap<String, Arc<dyn langchain_rust::tools::Tool>> = tools
-        .iter()
-        .map(|t| (t.name().trim().replace(' ', "_"), t.clone()))
-        .collect();
-
-    let mut steps: Vec<(langchain_rust::schemas::agent::AgentAction, String)> = Vec::new();
-    let chat_history = serde_json::json!(SimpleMemory::new().messages());
-
-    for _ in 0..10 {
-        let inputs = prompt_args! {
-            "input"        => input.clone(),
-            "chat_history" => chat_history.clone()
-        };
-
-        let event = match agent.plan(&steps, inputs).await {
-            Ok(e) => e,
-            Err(e) => {
-                let _ = tx.send(AgentEvent::Error(format!("Agent plan 出错: {e}"))).await;
-                return;
-            }
-        };
-
-        match event {
-            LCAgentEvent::Action(actions) => {
-                for action in actions {
-                    let (observation, is_error) = match name_to_tools.get(&action.tool) {
-                        Some(tool) => match tool.call(&action.tool_input).await {
-                            Ok(out) => (out, false),
-                            Err(e)  => (e.to_string(), true),
-                        },
-                        None => (format!("工具未找到: {}", action.tool), true),
-                    };
-
-                    // 实时发送工具调用结果
-                    let _ = tx.send(AgentEvent::ToolCall {
-                        display: format_tool_call(&action.tool, &action.tool_input),
-                        is_error,
-                    }).await;
-
-                    steps.push((action, observation));
-                }
-            }
-            LCAgentEvent::Finish(_) => {
-                // 最终答案：用 stream() 流式输出 token
-                let mut messages: Vec<Message> = vec![
-                    Message::new_system_message(format!(
-                        "你是一个 Rust Agent。当前工作目录: {cwd}\n\
-                         使用工具时，文件路径请用相对路径（相对于工作目录），或绝对路径。"
-                    )),
-                    Message::new_human_message(&input),
-                ];
-                for (action, observation) in &steps {
-                    let tools: Vec<langchain_rust::schemas::FunctionCallResponse> =
-                        serde_json::from_str(&action.log).ok()
-                            .and_then(|log: serde_json::Value| {
-                                serde_json::from_str(log["tools"].as_str()?).ok()
-                            })
-                            .unwrap_or_default();
-                    messages.push(
-                        Message::new_ai_message("").with_tool_calls(serde_json::json!(tools))
-                    );
-                    messages.push(Message::new_human_message(observation));
-                }
-
-                let llm = llm::build_openai_llm(&api_key, api_base.as_deref());
-                match llm.stream(&messages).await {
-                    Ok(mut stream) => {
-                        while let Some(chunk) = stream.next().await {
-                            match chunk {
-                                Ok(data) if !data.content.is_empty() => {
-                                    if tx.send(AgentEvent::AssistantChunk(data.content)).await.is_err() {
-                                        return;
-                                    }
-                                }
-                                Err(_) => break,
-                                _ => {}
-                            }
-                        }
-                    }
-                    Err(_) => {
-                        if let LCAgentEvent::Finish(f) = event {
-                            let _ = tx.send(AgentEvent::AssistantChunk(f.output)).await;
-                        }
-                    }
-                }
-                let _ = tx.send(AgentEvent::Done).await;
-                return;
-            }
-        }
-    }
-
-    let _ = tx.send(AgentEvent::AssistantChunk("已达最大迭代次数".to_string())).await;
-    let _ = tx.send(AgentEvent::Done).await;
-}
-
-/// 将工具名 + JSON 参数格式化为可读的一行，如 `Bash(cargo check 2>&1)`
-fn format_tool_call(tool: &str, input_json: &str) -> String {
-    let arg = extract_main_arg(tool, input_json);
-    let name = to_pascal(tool);
-    match arg {
-        Some(a) => format!("{}({})", name, truncate(&a, 60)),
-        None    => name,
-    }
-}
-
-/// 根据工具名从 JSON 中提取最能代表此次调用的参数值
-fn extract_main_arg(tool: &str, input_json: &str) -> Option<String> {
-    let v: serde_json::Value = serde_json::from_str(input_json).ok()?;
-    let key = match tool {
-        "bash"              => "command",
-        "read_file"         => "file_path",
-        "write_file"        => "file_path",
-        "edit_file"         => "file_path",
-        "glob_files"        => "pattern",
-        "search_files_rg"   => return v["args"].as_array().map(|a| {
-            a.iter().filter_map(|x| x.as_str()).collect::<Vec<_>>().join(" ")
-        }),
-        "folder_operations" => return Some(format!(
-            "{} {}",
-            v["operation"].as_str().unwrap_or("?"),
-            v["folder_path"].as_str().unwrap_or("?")
-        )),
-        _                   => return None,
-    };
-    v[key].as_str().map(|s| s.to_string())
-}
-
-/// snake_case → PascalCase
-fn to_pascal(s: &str) -> String {
-    s.split('_')
-     .map(|w| {
-         let mut c = w.chars();
-         match c.next() {
-             None    => String::new(),
-             Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-         }
-     })
-     .collect()
-}
-
-/// 超出长度时截断并加省略号
-fn truncate(s: &str, max: usize) -> String {
-    if s.chars().count() <= max {
-        s.to_string()
-    } else {
-        format!("{}…", s.chars().take(max).collect::<String>())
-    }
 }

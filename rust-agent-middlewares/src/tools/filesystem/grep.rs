@@ -1,4 +1,4 @@
-use langchain_rust::tools::Tool;
+use rust_create_agent::tools::BaseTool;
 use serde_json::Value;
 use std::path::Path;
 use std::process::Stdio;
@@ -6,8 +6,6 @@ use tokio::process::Command;
 use tokio::time::{timeout, Duration};
 
 /// search_files_rg tool - 与 TypeScript grep_tool 对齐
-///
-/// 包装 ripgrep (rg) 命令，提供快速文本搜索。
 pub struct SearchFilesRgTool {
     pub cwd: String,
 }
@@ -18,7 +16,6 @@ impl SearchFilesRgTool {
     }
 }
 
-/// 解析最后一个路径参数（非 flag），基于 cwd 解析相对路径
 fn resolve_last_path_arg(args: &mut Vec<String>, cwd: &str) {
     if let Some(last) = args.last_mut() {
         if !last.starts_with('-') {
@@ -31,24 +28,13 @@ fn resolve_last_path_arg(args: &mut Vec<String>, cwd: &str) {
 }
 
 #[async_trait::async_trait]
-impl Tool for SearchFilesRgTool {
-    fn name(&self) -> String {
-        "search_files_rg".to_string()
+impl BaseTool for SearchFilesRgTool {
+    fn name(&self) -> &str {
+        "search_files_rg"
     }
 
-    fn description(&self) -> String {
-        r#"Ripgrep (rg) - A fast text search tool that recursively searches directories for regex patterns.
-
-IMPORTANT: MUST always specify a search path at the end of args array.
-
-Parameters (JSON):
-  args: string[] (required) - ripgrep arguments array. Format: [OPTIONS...] PATTERN [PATH...]
-    Examples:
-      ["PATTERN", "./"]
-      ["-n", "-i", "function", "./"]
-      ["--type", "rs", "fn main", "src/"]
-  head_limit: number (optional) - limit output to first N lines (default 500)"#
-            .to_string()
+    fn description(&self) -> &str {
+        "Ripgrep (rg) - A fast text search tool. Parameters (JSON): args: string[] (required) - ripgrep arguments array e.g. [\"-n\", \"pattern\", \"./\"], head_limit: number (optional)"
     }
 
     fn parameters(&self) -> Value {
@@ -66,11 +52,7 @@ Parameters (JSON):
         })
     }
 
-    async fn parse_input(&self, input: &str) -> Value {
-        super::parse_json_input(input).await
-    }
-
-    async fn run(&self, input: Value) -> Result<String, Box<dyn std::error::Error>> {
+    async fn invoke(&self, input: Value) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let args_val = input["args"]
             .as_array()
             .ok_or("Missing args parameter (array of strings)")?;
@@ -86,13 +68,10 @@ Parameters (JSON):
 
         let head_limit = input["head_limit"].as_u64().unwrap_or(500) as usize;
 
-        // 解析最后的路径参数
         resolve_last_path_arg(&mut args, &self.cwd);
 
-        // 查找 rg 可执行文件
         let rg_bin = which_rg();
 
-        // 15 秒超时执行 rg
         let output = timeout(
             Duration::from_secs(15),
             Command::new(&rg_bin)
@@ -121,7 +100,6 @@ Parameters (JSON):
                     return Ok(format!("Error executing ripgrep: {stderr}"));
                 }
 
-                // 应用行数限制
                 let result = if stdout.is_empty() {
                     "No matches found.".to_string()
                 } else {
@@ -139,9 +117,7 @@ Parameters (JSON):
     }
 }
 
-/// 查找 rg 路径（优先使用 PATH 中的，找不到时报错）
 fn which_rg() -> String {
-    // 尝试常见路径
     for candidate in &[
         "rg",
         "/usr/local/bin/rg",

@@ -12,13 +12,12 @@ path = "src/main.rs"
 serde = { version = "1", features = ["derive"] }
 
 [dependencies]
+rust-create-agent = { path = "../rust-create-agent" }
 rust-agent-middlewares = { path = "../rust-agent-middlewares" }
 ratatui = ">=0.30"
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0"
 serde_json = "1.0"
-langchain-rust = "4.6.0"
-futures-util = "0.3"
 async-trait = "0.1"
 dotenvy = "0.15"
 ratatui-textarea = "0.8"

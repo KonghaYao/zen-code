@@ -1,57 +1,17 @@
 //! # rust-create-agent
 //!
-//! Rust Agent framework with middleware system, built on top of `langchain-rust`.
+//! Rust Agent framework with middleware system.
 //! Aligned with `@langgraph-js/standard-agent` (TypeScript).
-//!
-//! ## Architecture
-//!
-//! ```text
-//! ┌─────────────────────────────────────┐
-//! │     Application Layer               │  (具体应用)
-//! ├─────────────────────────────────────┤
-//! │     rust-create-agent (本库)         │
-//! │  ┌──────────────────────────────┐  │
-//! │  │   AgentExecutor (ReAct Loop) │  │
-//! │  ├──────────────────────────────┤  │
-//! │  │   MiddlewareChain            │  │
-//! │  ├──────────────────────────────┤  │
-//! │  │   langchain-rust Tool/LLM    │  │  ← 直接使用 langchain-rust
-//! │  └──────────────────────────────┘  │
-//! ├─────────────────────────────────────┤
-//! │     langchain-rust                  │  (基础库)
-//! └─────────────────────────────────────┘
-//! ```
-//!
-//! ## Quick Start
-//!
-//! ```rust,no_run
-//! use rust_create_agent::prelude::*;
-//!
-//! #[tokio::main]
-//! async fn main() -> anyhow::Result<()> {
-//!     let llm = MockLLM::always_answer("Hello!");
-//!     let agent = AgentExecutor::new(llm)
-//!         .max_iterations(10)
-//!         .add_middleware(Box::new(LoggingMiddleware::new()));
-//!
-//!     let mut state = AgentState::new("/workspace");
-//!     let output = agent.execute(AgentInput::text("Say hello"), &mut state).await?;
-//!     println!("{}", output.text);
-//!     Ok(())
-//! }
-//! ```
 
 pub mod agent;
 pub mod error;
 pub mod llm;
+pub mod messages;
 pub mod middleware;
+pub mod tools;
 
 /// Prelude - 常用类型一次性导入
 pub mod prelude {
-    // langchain-rust 核心类型（直接重导出）
-    pub use langchain_rust::schemas::{Message as LCMessage, MessageType};
-    pub use langchain_rust::tools::Tool;
-
     pub use crate::agent::{
         executor::AgentExecutorBuilder,
         react::{
@@ -61,9 +21,13 @@ pub mod prelude {
         AgentExecutor,
     };
     pub use crate::error::{AgentError, AgentResult};
-    pub use crate::llm::{LangChainLLM, MockLLM};
+    pub use crate::llm::{BaseModel, BaseModelReactLLM, ChatAnthropic, ChatOpenAI, MockLLM};
+    pub use crate::messages::{
+        BaseMessage, ContentBlock, DocumentSource, ImageSource, MessageContent, ToolCallRequest,
+    };
     pub use crate::middleware::{
         r#trait::Middleware,
         LoggingMiddleware, MetricsMiddleware, MiddlewareChain, NoopMiddleware,
     };
+    pub use crate::tools::{BaseTool, ToolDefinition};
 }

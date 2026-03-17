@@ -38,21 +38,24 @@ pub fn render(f: &mut Frame, app: &App) {
         ])
         .split(area);
 
-    render_title(f, chunks[0]);
+    render_title(f, app, chunks[0]);
     render_messages(f, app, chunks[1]);
     f.render_widget(&app.textarea, chunks[2]);
     render_help(f, app, chunks[3]);
 }
 
-fn render_title(f: &mut Frame, area: Rect) {
+fn render_title(f: &mut Frame, app: &App, area: Rect) {
+    let subtitle = format!(
+        "  —  {} · {} | FilesystemMiddleware + TerminalMiddleware",
+        app.provider_name, app.model_name
+    );
     let title = Paragraph::new(
         Line::from(vec![
             Span::styled(" 🦀 ", Style::default().fg(Color::Red)),
             Span::styled("Rust Agent TUI", Style::default()
                 .fg(Color::Cyan)
                 .add_modifier(Modifier::BOLD)),
-            Span::styled("  —  MockLLM + FilesystemMiddleware + TerminalMiddleware",
-                Style::default().fg(Color::DarkGray)),
+            Span::styled(subtitle, Style::default().fg(Color::DarkGray)),
         ])
     )
     .style(Style::default().bg(Color::Black));

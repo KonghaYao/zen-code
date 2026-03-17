@@ -1,10 +1,8 @@
-use langchain_rust::tools::Tool;
+use rust_create_agent::tools::BaseTool;
 use serde_json::Value;
 use std::path::Path;
 
 /// folder_operations tool - 与 TypeScript folder_tool 对齐
-///
-/// 支持 create / list / exists 三种文件夹操作。
 pub struct FolderOperationsTool {
     pub cwd: String,
 }
@@ -23,7 +21,7 @@ fn resolve_path(cwd: &str, folder_path: &str) -> std::path::PathBuf {
     }
 }
 
-fn list_folder(resolved: &Path) -> Result<String, Box<dyn std::error::Error>> {
+fn list_folder(resolved: &Path) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let entries = std::fs::read_dir(resolved)?;
 
     let mut folders: Vec<String> = Vec::new();
@@ -39,7 +37,6 @@ fn list_folder(resolved: &Path) -> Result<String, Box<dyn std::error::Error>> {
             .and_then(|t| {
                 t.duration_since(std::time::UNIX_EPOCH).ok().map(|d| {
                     let secs = d.as_secs();
-                    // 简单格式化：M/D/YYYY
                     let days = secs / 86400;
                     let years = 1970 + days / 365;
                     let rem_days = days % 365;
@@ -86,25 +83,13 @@ fn list_folder(resolved: &Path) -> Result<String, Box<dyn std::error::Error>> {
 }
 
 #[async_trait::async_trait]
-impl Tool for FolderOperationsTool {
-    fn name(&self) -> String {
-        "folder_operations".to_string()
+impl BaseTool for FolderOperationsTool {
+    fn name(&self) -> &str {
+        "folder_operations"
     }
 
-    fn description(&self) -> String {
-        r#"Unified folder operations tool supporting create, list, and existence check.
-Relative paths are resolved based on the current working directory (cwd).
-
-Operations:
-- create: Create a folder (supports nested directory creation)
-- list: List all files and subdirectories with metadata
-- exists: Check if a folder exists
-
-Parameters (JSON):
-  operation: "create" | "list" | "exists" (required)
-  folder_path: string (required) - path to the folder
-  recursive: bool (optional, default true) - for create: create parent directories if needed"#
-            .to_string()
+    fn description(&self) -> &str {
+        "Unified folder operations tool supporting create, list, and existence check. Parameters (JSON): operation: \"create\"|\"list\"|\"exists\" (required), folder_path: string (required), recursive: bool (optional)"
     }
 
     fn parameters(&self) -> Value {
@@ -119,11 +104,7 @@ Parameters (JSON):
         })
     }
 
-    async fn parse_input(&self, input: &str) -> Value {
-        super::parse_json_input(input).await
-    }
-
-    async fn run(&self, input: Value) -> Result<String, Box<dyn std::error::Error>> {
+    async fn invoke(&self, input: Value) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let operation = input["operation"]
             .as_str()
             .ok_or("Missing operation parameter")?;

@@ -1,29 +1,21 @@
-use langchain_rust::schemas::Message as LCMessage;
-use langchain_rust::tools::Tool;
-
 use crate::agent::react::{AgentInput, AgentOutput, ReactLLM, ToolCall, ToolResult};
 use crate::agent::state::State;
 use crate::error::{AgentError, AgentResult};
+use crate::messages::{BaseMessage, ToolCallRequest};
 use crate::middleware::chain::MiddlewareChain;
 use crate::middleware::r#trait::Middleware;
+use crate::tools::BaseTool;
 use std::collections::HashMap;
 
 /// Agent 执行器 - 管理 ReAct 循环
-/// 与 TypeScript AgentPackage 职责对应
-///
-/// 使用 langchain-rust 的 Tool trait 作为工具接口
 pub struct AgentExecutor<L, S>
 where
     L: ReactLLM,
     S: State,
 {
-    /// ReAct LLM（包装 langchain-rust LLM）
     llm: L,
-    /// 已注册工具（名称 -> langchain-rust Tool）
-    tools: HashMap<String, Box<dyn Tool>>,
-    /// 中间件链
+    tools: HashMap<String, Box<dyn BaseTool>>,
     chain: MiddlewareChain<S>,
-    /// 最大 ReAct 迭代次数
     max_iterations: usize,
 }
 
@@ -42,9 +34,8 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
         self
     }
 
-    /// 注册 langchain-rust Tool
-    pub fn register_tool(mut self, tool: Box<dyn Tool>) -> Self {
-        self.tools.insert(tool.name(), tool);
+    pub fn register_tool(mut self, tool: Box<dyn BaseTool>) -> Self {
+        self.tools.insert(tool.name().to_string(), tool);
         self
     }
 
@@ -63,22 +54,19 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
 
     /// 执行 Agent（ReAct 循环主入口）
     pub async fn execute(&self, input: AgentInput, state: &mut S) -> AgentResult<AgentOutput> {
-        // 将用户输入加入消息历史（langchain-rust HumanMessage）
-        state.add_message(LCMessage::new_human_message(&input.text));
+        // 支持 AgentInput 携带 MessageContent（多模态输入）
+        let human_msg = BaseMessage::human(input.content);
+        state.add_message(human_msg);
 
-        // 收集 langchain-rust Tool 引用（传给 ReactLLM）
-        let tool_refs: Vec<&dyn Tool> = self.tools.values().map(|t| t.as_ref()).collect();
+        let tool_refs: Vec<&dyn BaseTool> = self.tools.values().map(|t| t.as_ref()).collect();
 
-        // 1. before_agent 中间件
         self.chain.run_before_agent(state).await?;
 
         let mut all_tool_calls: Vec<(ToolCall, ToolResult)> = Vec::new();
 
-        // 2. ReAct 循环
         for step in 0..self.max_iterations {
             state.set_current_step(step);
 
-            // 生成推理（传入 langchain-rust 标准消息 + 工具列表）
             let reasoning = match self
                 .llm
                 .generate_reasoning(state.messages(), &tool_refs)
@@ -92,25 +80,21 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
             };
 
             if reasoning.needs_tool_call() {
-                // 将 AI tool_calls 响应加入消息历史（必须携带 tool_calls 字段）
+                // AI 消息（含 tool_calls）加入消息历史
                 {
-                    let tool_calls_json: Vec<serde_json::Value> = reasoning.tool_calls.iter().map(|tc| {
-                        serde_json::json!({
-                            "id": tc.id,
-                            "type": "function",
-                            "function": {
-                                "name": tc.name,
-                                "arguments": tc.input.to_string()
-                            }
+                    let tc_reqs: Vec<ToolCallRequest> = reasoning
+                        .tool_calls
+                        .iter()
+                        .map(|tc| {
+                            ToolCallRequest::new(tc.id.clone(), tc.name.clone(), tc.input.clone())
                         })
-                    }).collect();
-                    let ai_msg = LCMessage::new_ai_message(&reasoning.thought)
-                        .with_tool_calls(serde_json::Value::Array(tool_calls_json));
+                        .collect();
+                    let ai_msg =
+                        BaseMessage::ai_with_tool_calls(reasoning.thought.clone(), tc_reqs);
                     state.add_message(ai_msg);
                 }
 
                 for tool_call in reasoning.tool_calls {
-                    // before_tool 中间件
                     let modified_call = match self
                         .chain
                         .run_before_tool(state, tool_call.clone())
@@ -123,15 +107,12 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
                         }
                     };
 
-                    // 执行 langchain-rust Tool
                     let tool_result = self.call_tool(&modified_call).await;
 
                     let result = match tool_result {
-                        Ok(output) => ToolResult::success(
-                            &modified_call.id,
-                            &modified_call.name,
-                            output,
-                        ),
+                        Ok(output) => {
+                            ToolResult::success(&modified_call.id, &modified_call.name, output)
+                        }
                         Err(AgentError::ToolNotFound(ref name)) => {
                             let e = AgentError::ToolNotFound(name.clone());
                             self.chain.run_on_error(state, &e).await?;
@@ -147,7 +128,6 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
                         }
                     };
 
-                    // after_tool 中间件
                     if let Err(e) = self
                         .chain
                         .run_after_tool(state, &modified_call, &result)
@@ -157,21 +137,21 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
                         return Err(e);
                     }
 
-                    // 工具结果加入消息历史（ToolMessage，携带 tool_call_id）
-                    state.add_message(LCMessage::new_tool_message(
-                        &result.output,
-                        &result.tool_call_id,
-                    ));
+                    let tool_msg = if result.is_error {
+                        BaseMessage::tool_error(&result.tool_call_id, result.output.as_str())
+                    } else {
+                        BaseMessage::tool_result(&result.tool_call_id, result.output.as_str())
+                    };
+                    state.add_message(tool_msg);
 
                     all_tool_calls.push((modified_call, result));
                 }
             } else {
-                // 生成最终答案
                 let answer = reasoning
                     .final_answer
                     .unwrap_or_else(|| reasoning.thought.clone());
 
-                state.add_message(LCMessage::new_ai_message(&answer));
+                state.add_message(BaseMessage::ai(answer.as_str()));
 
                 let output = AgentOutput {
                     text: answer,
@@ -179,7 +159,6 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
                     tool_calls: all_tool_calls,
                 };
 
-                // after_agent 中间件
                 return match self.chain.run_after_agent(state, output).await {
                     Ok(o) => Ok(o),
                     Err(e) => {
@@ -193,15 +172,13 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
         Err(AgentError::MaxIterationsExceeded(self.max_iterations))
     }
 
-    /// 调用 langchain-rust Tool
     async fn call_tool(&self, tool_call: &ToolCall) -> AgentResult<String> {
         let tool = self
             .tools
             .get(&tool_call.name)
             .ok_or_else(|| AgentError::ToolNotFound(tool_call.name.clone()))?;
 
-        // langchain-rust Tool::run 接受 serde_json::Value
-        tool.run(tool_call.input.clone())
+        tool.invoke(tool_call.input.clone())
             .await
             .map_err(|e| AgentError::ToolExecutionFailed {
                 tool: tool_call.name.clone(),
@@ -210,7 +187,7 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
     }
 }
 
-/// Builder - 便捷构建 AgentExecutor
+/// Builder
 pub struct AgentExecutorBuilder<L, S>
 where
     L: ReactLLM,
@@ -231,7 +208,7 @@ impl<L: ReactLLM, S: State> AgentExecutorBuilder<L, S> {
         self
     }
 
-    pub fn tool(mut self, tool: Box<dyn Tool>) -> Self {
+    pub fn tool(mut self, tool: Box<dyn BaseTool>) -> Self {
         self.executor = self.executor.register_tool(tool);
         self
     }

@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use std::error::Error;
 use std::sync::{Arc, Mutex};
 use rust_create_agent::prelude::*;
 
@@ -16,11 +15,11 @@ impl CounterTool {
 }
 
 #[async_trait]
-impl Tool for CounterTool {
-    fn name(&self) -> String { "counter".to_string() }
-    fn description(&self) -> String { "Increments a counter".to_string() }
+impl BaseTool for CounterTool {
+    fn name(&self) -> &str { "counter" }
+    fn description(&self) -> &str { "Increments a counter" }
     fn parameters(&self) -> serde_json::Value { serde_json::json!({}) }
-    async fn run(&self, _input: serde_json::Value) -> Result<String, Box<dyn Error>> {
+    async fn invoke(&self, _input: serde_json::Value) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let mut c = self.count.lock().unwrap();
         *c += 1;
         Ok(format!("count = {}", *c))

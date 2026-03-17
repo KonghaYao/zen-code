@@ -1,10 +1,8 @@
-use langchain_rust::tools::Tool;
+use rust_create_agent::tools::BaseTool;
 use serde_json::Value;
 use std::path::Path;
 
 /// edit_file tool (replace) - 与 TypeScript replace_tool 对齐
-///
-/// 对文件执行精确字符串替换。
 pub struct EditFileTool {
     pub cwd: String,
 }
@@ -16,25 +14,13 @@ impl EditFileTool {
 }
 
 #[async_trait::async_trait]
-impl Tool for EditFileTool {
-    fn name(&self) -> String {
-        "edit_file".to_string()
+impl BaseTool for EditFileTool {
+    fn name(&self) -> &str {
+        "edit_file"
     }
 
-    fn description(&self) -> String {
-        r#"Performs exact string replacements in files. Relative paths are resolved based on the current working directory (cwd).
-
-Usage:
-- You must use your Read tool at least once before editing.
-- The edit will FAIL if old_string is not unique in the file. Either provide more context or use replace_all.
-- Use replace_all for replacing and renaming strings across the file.
-
-Parameters (JSON):
-  file_path: string (required) - path to the file to modify
-  old_string: string (required) - the text to replace
-  new_string: string (required) - the text to replace it with
-  replace_all: bool (optional, default false) - replace all occurrences"#
-            .to_string()
+    fn description(&self) -> &str {
+        "Performs exact string replacements in files. Parameters (JSON): file_path: string (required), old_string: string (required), new_string: string (required), replace_all: bool (optional)"
     }
 
     fn parameters(&self) -> Value {
@@ -50,11 +36,7 @@ Parameters (JSON):
         })
     }
 
-    async fn parse_input(&self, input: &str) -> Value {
-        super::parse_json_input(input).await
-    }
-
-    async fn run(&self, input: Value) -> Result<String, Box<dyn std::error::Error>> {
+    async fn invoke(&self, input: Value) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let file_path = input["file_path"]
             .as_str()
             .ok_or("Missing file_path parameter")?;
@@ -109,7 +91,6 @@ Parameters (JSON):
                     occurrences
                 ));
             }
-            // 精确一处
             let new_content = content.replacen(old_string, new_string, 1);
             std::fs::write(&resolved, new_content)?;
             Ok(format!(

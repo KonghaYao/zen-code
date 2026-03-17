@@ -1,23 +1,22 @@
 //! # tool_integration
 //!
 //! 演示工具注册和 ReAct 循环中的工具调用
-//! 工具使用 langchain-rust 的 Tool trait（run 方法返回 Box<dyn Error>）
+//! 工具使用自主的 BaseTool trait（invoke 方法）
 
 use async_trait::async_trait;
 use rust_create_agent::prelude::*;
-use std::error::Error;
 
-/// 简单计算器工具（实现 langchain-rust Tool trait）
+/// 简单计算器工具（实现 BaseTool trait）
 struct CalculatorTool;
 
 #[async_trait]
-impl Tool for CalculatorTool {
-    fn name(&self) -> String {
-        "calculator".to_string()
+impl BaseTool for CalculatorTool {
+    fn name(&self) -> &str {
+        "calculator"
     }
 
-    fn description(&self) -> String {
-        "执行基本数学运算。支持 add、sub、mul、div 操作。".to_string()
+    fn description(&self) -> &str {
+        "执行基本数学运算。支持 add、sub、mul、div 操作。"
     }
 
     fn parameters(&self) -> serde_json::Value {
@@ -35,7 +34,7 @@ impl Tool for CalculatorTool {
         })
     }
 
-    async fn run(&self, input: serde_json::Value) -> Result<String, Box<dyn Error>> {
+    async fn invoke(&self, input: serde_json::Value) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let op = input["operation"].as_str().unwrap_or("add");
         let a = input["a"].as_f64().unwrap_or(0.0);
         let b = input["b"].as_f64().unwrap_or(0.0);

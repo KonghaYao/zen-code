@@ -1,12 +1,9 @@
-use langchain_rust::tools::Tool;
+use rust_create_agent::tools::BaseTool;
 use serde_json::Value;
 use std::path::Path;
 
 /// read_file tool - 与 TypeScript read_tool 对齐
-///
-/// 从本地文件系统读取文件内容，相对路径基于调用时传入的 cwd 解析。
 pub struct ReadFileTool {
-    /// 当前工作目录（来自 AgentState.cwd）
     pub cwd: String,
 }
 
@@ -18,7 +15,6 @@ impl ReadFileTool {
 
 const MAX_LINES: usize = 2000;
 
-/// 二进制文件扩展名
 fn is_binary_extension(ext: &str) -> bool {
     matches!(
         ext,
@@ -32,27 +28,13 @@ fn is_binary_extension(ext: &str) -> bool {
 }
 
 #[async_trait::async_trait]
-impl Tool for ReadFileTool {
-    fn name(&self) -> String {
-        "read_file".to_string()
+impl BaseTool for ReadFileTool {
+    fn name(&self) -> &str {
+        "read_file"
     }
 
-    fn description(&self) -> String {
-        format!(
-            r#"Reads a file from the local filesystem. Relative paths are resolved based on the current working directory (cwd).
-
-Usage:
-- The file_path parameter can be either an absolute path or a relative path
-- Relative paths are resolved relative to the current working directory (cwd)
-- By default, it reads up to {MAX_LINES} lines starting from the beginning of the file
-- You can optionally specify a line offset and limit (especially handy for long files)
-- Results are returned using cat -n format, with line numbers starting at 1
-
-Parameters (JSON):
-  file_path: string (required) - path to the file
-  offset: number (optional, default 0) - line number to start reading from
-  limit: number (optional, default {MAX_LINES}) - number of lines to read"#
-        )
+    fn description(&self) -> &str {
+        "Reads a file from the local filesystem. Relative paths are resolved based on the current working directory (cwd). Parameters (JSON): file_path: string (required), offset: number (optional), limit: number (optional)"
     }
 
     fn parameters(&self) -> Value {
@@ -67,11 +49,7 @@ Parameters (JSON):
         })
     }
 
-    async fn parse_input(&self, input: &str) -> Value {
-        super::parse_json_input(input).await
-    }
-
-    async fn run(&self, input: Value) -> Result<String, Box<dyn std::error::Error>> {
+    async fn invoke(&self, input: Value) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let file_path = input["file_path"]
             .as_str()
             .ok_or("Missing file_path parameter")?;
@@ -79,14 +57,12 @@ Parameters (JSON):
         let offset = input["offset"].as_u64().unwrap_or(0) as usize;
         let limit = input["limit"].as_u64().unwrap_or(MAX_LINES as u64) as usize;
 
-        // 解析路径
         let resolved = if Path::new(file_path).is_absolute() {
             Path::new(file_path).to_path_buf()
         } else {
             Path::new(&self.cwd).join(file_path)
         };
 
-        // 检查扩展名是否为二进制
         if let Some(ext) = resolved.extension().and_then(|e| e.to_str()) {
             if is_binary_extension(&ext.to_lowercase()) {
                 return Ok(format!(
@@ -96,7 +72,6 @@ Parameters (JSON):
             }
         }
 
-        // 读取文件
         let content = match std::fs::read_to_string(&resolved) {
             Ok(c) => c,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -105,7 +80,6 @@ Parameters (JSON):
             Err(e) => return Err(e.into()),
         };
 
-        // 按行切割，应用 offset 和 limit，添加行号（cat -n 格式）
         let lines: Vec<&str> = content.split('\n').collect();
         let start = offset;
         let end = (start + limit).min(lines.len());

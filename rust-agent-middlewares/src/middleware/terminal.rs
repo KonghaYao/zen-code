@@ -1,8 +1,8 @@
 use async_trait::async_trait;
-use langchain_rust::tools::Tool;
 use rust_create_agent::agent::state::State;
 use rust_create_agent::error::AgentResult;
 use rust_create_agent::middleware::r#trait::Middleware;
+use rust_create_agent::tools::BaseTool;
 use serde_json::Value;
 use std::process::Stdio;
 use tokio::process::Command;
@@ -20,24 +20,13 @@ impl BashTool {
 }
 
 #[async_trait::async_trait]
-impl Tool for BashTool {
-    fn name(&self) -> String {
-        "bash".to_string()
+impl BaseTool for BashTool {
+    fn name(&self) -> &str {
+        "bash"
     }
 
-    fn description(&self) -> String {
-        r#"Execute shell commands in a persistent working directory context.
-
-Usage:
-- Commands run with the current working directory (cwd) as the base
-- Supports chaining commands with && or ;
-- Timeout: 120 seconds per command
-- Prefer non-interactive commands
-
-Parameters (JSON):
-  command: string (required) - the shell command to execute
-  timeout_secs: number (optional, default 120) - command timeout in seconds"#
-            .to_string()
+    fn description(&self) -> &str {
+        "Execute shell commands in a persistent working directory context. Parameters (JSON): command: string (required), timeout_secs: number (optional, default 120)"
     }
 
     fn parameters(&self) -> Value {
@@ -51,18 +40,13 @@ Parameters (JSON):
         })
     }
 
-    async fn parse_input(&self, input: &str) -> Value {
-        serde_json::from_str(input).unwrap_or(serde_json::Value::String(input.to_string()))
-    }
-
-    async fn run(&self, input: Value) -> Result<String, Box<dyn std::error::Error>> {
+    async fn invoke(&self, input: Value) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let command = input["command"]
             .as_str()
             .ok_or("Missing command parameter")?;
 
         let timeout_secs = input["timeout_secs"].as_u64().unwrap_or(120);
 
-        // 选择 shell（macOS/Linux 用 bash，Windows 用 cmd）
         let (shell, flag) = if cfg!(target_os = "windows") {
             ("cmd", "/C")
         } else {
@@ -118,8 +102,6 @@ Parameters (JSON):
 }
 
 /// TerminalMiddleware - 与 TypeScript TerminalMiddleware 对齐
-///
-/// 提供终端命令执行能力（bash/cmd）。
 pub struct TerminalMiddleware;
 
 impl TerminalMiddleware {
@@ -127,8 +109,7 @@ impl TerminalMiddleware {
         Self
     }
 
-    /// 构建终端工具列表
-    pub fn build_tools(cwd: &str) -> Vec<Box<dyn Tool>> {
+    pub fn build_tools(cwd: &str) -> Vec<Box<dyn BaseTool>> {
         vec![Box::new(BashTool::new(cwd))]
     }
 

@@ -1,19 +1,18 @@
 use async_trait::async_trait;
 use rust_create_agent::prelude::*;
-use std::error::Error;
 
-// ── 辅助工具（实现 langchain-rust Tool trait） ─────────────────────────────────
+// ── 辅助工具（实现 BaseTool trait） ────────────────────────────────────────────
 
 struct EchoTool;
 
 #[async_trait]
-impl Tool for EchoTool {
-    fn name(&self) -> String { "echo".to_string() }
-    fn description(&self) -> String { "Echoes the input back".to_string() }
+impl BaseTool for EchoTool {
+    fn name(&self) -> &str { "echo" }
+    fn description(&self) -> &str { "Echoes the input back" }
     fn parameters(&self) -> serde_json::Value {
         serde_json::json!({ "type": "object", "properties": { "text": { "type": "string" } } })
     }
-    async fn run(&self, input: serde_json::Value) -> Result<String, Box<dyn Error>> {
+    async fn invoke(&self, input: serde_json::Value) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         Ok(format!("echo: {}", input["text"].as_str().unwrap_or("")))
     }
 }
@@ -21,11 +20,11 @@ impl Tool for EchoTool {
 struct FailingTool;
 
 #[async_trait]
-impl Tool for FailingTool {
-    fn name(&self) -> String { "fail".to_string() }
-    fn description(&self) -> String { "Always fails".to_string() }
+impl BaseTool for FailingTool {
+    fn name(&self) -> &str { "fail" }
+    fn description(&self) -> &str { "Always fails" }
     fn parameters(&self) -> serde_json::Value { serde_json::json!({}) }
-    async fn run(&self, _input: serde_json::Value) -> Result<String, Box<dyn Error>> {
+    async fn invoke(&self, _input: serde_json::Value) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         Err("intentional failure".into())
     }
 }

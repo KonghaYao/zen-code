@@ -1,4 +1,4 @@
-use langchain_rust::tools::Tool;
+use rust_create_agent::tools::BaseTool;
 use serde_json::Value;
 use std::path::Path;
 
@@ -13,7 +13,6 @@ impl GlobFilesTool {
     }
 }
 
-/// 跳过常见构建/依赖目录
 fn should_skip_dir(name: &str) -> bool {
     matches!(
         name,
@@ -36,14 +35,12 @@ fn should_skip_dir(name: &str) -> bool {
     )
 }
 
-/// 简单 glob 匹配（支持 * 和 **）
 fn glob_match(pattern: &str, path: &str) -> bool {
     glob::Pattern::new(pattern)
         .map(|p| p.matches(path))
         .unwrap_or(false)
 }
 
-/// 递归遍历目录，收集匹配文件的绝对路径
 fn collect_files(base: &Path, pattern: &str, results: &mut Vec<String>) {
     let walker = walkdir::WalkDir::new(base)
         .follow_links(true)
@@ -60,7 +57,6 @@ fn collect_files(base: &Path, pattern: &str, results: &mut Vec<String>) {
     for entry in walker.flatten() {
         if entry.file_type().is_file() {
             let abs_path = entry.path().to_string_lossy().to_string();
-            // 用相对于 base 的路径做匹配
             if let Ok(rel) = entry.path().strip_prefix(base) {
                 let rel_str = rel.to_string_lossy().replace('\\', "/");
                 if glob_match(pattern, &rel_str) {
@@ -72,20 +68,13 @@ fn collect_files(base: &Path, pattern: &str, results: &mut Vec<String>) {
 }
 
 #[async_trait::async_trait]
-impl Tool for GlobFilesTool {
-    fn name(&self) -> String {
-        "glob_files".to_string()
+impl BaseTool for GlobFilesTool {
+    fn name(&self) -> &str {
+        "glob_files"
     }
 
-    fn description(&self) -> String {
-        r#"Fast file pattern matching tool that works with any codebase size.
-Supports glob patterns like "**/*.rs" or "src/**/*.ts".
-Returns matching file paths sorted by modification time.
-
-Parameters (JSON):
-  pattern: string (required) - the glob pattern to match files against
-  path: string (optional) - directory to search in (absolute or relative to cwd)"#
-            .to_string()
+    fn description(&self) -> &str {
+        "Fast file pattern matching tool. Supports glob patterns like \"**/*.rs\". Parameters (JSON): pattern: string (required), path: string (optional)"
     }
 
     fn parameters(&self) -> Value {
@@ -99,11 +88,7 @@ Parameters (JSON):
         })
     }
 
-    async fn parse_input(&self, input: &str) -> Value {
-        super::parse_json_input(input).await
-    }
-
-    async fn run(&self, input: Value) -> Result<String, Box<dyn std::error::Error>> {
+    async fn invoke(&self, input: Value) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let pattern = input["pattern"]
             .as_str()
             .ok_or("Missing pattern parameter")?;
@@ -128,14 +113,9 @@ Parameters (JSON):
         let mut results = Vec::new();
         collect_files(&search_root, pattern, &mut results);
 
-        // 按修改时间排序
         results.sort_by(|a, b| {
-            let ta = std::fs::metadata(a)
-                .and_then(|m| m.modified())
-                .ok();
-            let tb = std::fs::metadata(b)
-                .and_then(|m| m.modified())
-                .ok();
+            let ta = std::fs::metadata(a).and_then(|m| m.modified()).ok();
+            let tb = std::fs::metadata(b).and_then(|m| m.modified()).ok();
             tb.cmp(&ta)
         });
 
