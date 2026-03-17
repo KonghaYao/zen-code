@@ -80,9 +80,14 @@ fn render_messages(f: &mut Frame, app: &mut App, area: Rect) {
     let mut all_lines: Vec<Line> = Vec::new();
 
     for msg in &app.messages {
-        let lines = message_to_lines(msg, inner_width);
-        all_lines.extend(lines);
-        all_lines.push(Line::from(""));
+        let is_conversational = matches!(msg.inner, BaseMessage::Human { .. } | BaseMessage::Ai { .. });
+        if is_conversational {
+            all_lines.push(Line::from(""));
+        }
+        all_lines.extend(message_to_lines(msg, inner_width));
+        if is_conversational {
+            all_lines.push(Line::from(""));
+        }
     }
 
     // 计算每条 Line 经过自动换行后的实际视觉行数
