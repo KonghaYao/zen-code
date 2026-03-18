@@ -3,7 +3,7 @@ use ratatui::crossterm::event::{self, Event, MouseEventKind};
 use ratatui_textarea::{Input, Key};
 use std::time::Duration;
 
-use crate::app::App;
+use crate::app::{App, ChatMessage};
 use crate::app::model_panel::ModelPanelMode;
 
 pub enum Action {
@@ -90,12 +90,21 @@ pub async fn next_event(app: &mut App) -> Result<Option<Action>> {
                 Input { key: Key::Char('s'), ctrl: true, .. } if !app.loading => {
                     let text = app.textarea.lines().join("\n");
                     let text = text.trim().to_string();
-                    if text == "/model" {
+                    if !text.is_empty() {
                         app.textarea = crate::app::build_textarea(false);
-                        app.open_model_panel();
-                    } else if !text.is_empty() {
-                        app.textarea = crate::app::build_textarea(false);
-                        return Ok(Some(Action::Submit(text)));
+                        if text.starts_with('/') {
+                            // 命令模式：取出 registry 避免借用冲突
+                            let registry = std::mem::take(&mut app.command_registry);
+                            let known = registry.dispatch(app, &text);
+                            app.command_registry = registry;
+                            if !known {
+                                app.messages.push(ChatMessage::system(
+                                    format!("未知命令: {}  （输入 /help 查看可用命令）", text)
+                                ));
+                            }
+                        } else {
+                            return Ok(Some(Action::Submit(text)));
+                        }
                     }
                 }
 

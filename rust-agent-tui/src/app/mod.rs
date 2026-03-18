@@ -13,6 +13,7 @@ use tokio::sync::mpsc;
 use agent::LlmProvider;
 pub use hitl::{ApprovalEvent, BatchApprovalRequest};
 pub use model_panel::ModelPanel;
+use crate::command::CommandRegistry;
 use crate::config::ZenConfig;
 
 // ─── ChatMessage ──────────────────────────────────────────────────────────────
@@ -316,6 +317,8 @@ pub struct App {
     pub zen_config: Option<ZenConfig>,
     /// /model 面板状态
     pub model_panel: Option<ModelPanel>,
+    /// 命令注册表
+    pub command_registry: CommandRegistry,
 }
 
 impl App {
@@ -360,6 +363,7 @@ impl App {
             todo_message_index: None,
             zen_config,
             model_panel: None,
+            command_registry: crate::command::default_registry(),
         };
 
         app.messages.push(ChatMessage::system(format!(

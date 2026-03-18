@@ -1,4 +1,5 @@
 mod app;
+mod command;
 mod config;
 mod event;
 mod prompt;
