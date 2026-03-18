@@ -1,4 +1,5 @@
 use rust_create_agent::llm::{BaseModel, ChatAnthropic, ChatOpenAI};
+use crate::config::ZenConfig;
 
 #[derive(Clone)]
 pub enum LlmProvider {
@@ -49,6 +50,42 @@ impl LlmProvider {
                     .unwrap_or_else(|_| "gpt-4o".to_string());
                 Some(Self::OpenAi { api_key, base_url, model })
             }
+        }
+    }
+
+    /// 从 ZenConfig 构造 LlmProvider（按 provider_id 查找对应 ProviderConfig）
+    pub fn from_config(cfg: &ZenConfig) -> Option<Self> {
+        let app = &cfg.config;
+        let provider = app.providers.iter().find(|p| p.id == app.provider_id)?;
+
+        if provider.api_key.is_empty() {
+            return None;
+        }
+
+        let model = if !app.model_id.is_empty() {
+            app.model_id.clone()
+        } else {
+            // fallback：根据 provider 类型给默认值
+            match provider.provider_type.as_str() {
+                "anthropic" => "claude-sonnet-4-6".to_string(),
+                _ => "gpt-4o".to_string(),
+            }
+        };
+
+        match provider.provider_type.as_str() {
+            "anthropic" => Some(Self::Anthropic {
+                api_key: provider.api_key.clone(),
+                model,
+            }),
+            _ => Some(Self::OpenAi {
+                api_key: provider.api_key.clone(),
+                base_url: if provider.base_url.is_empty() {
+                    "https://api.openai.com/v1".to_string()
+                } else {
+                    provider.base_url.clone()
+                },
+                model,
+            }),
         }
     }
 

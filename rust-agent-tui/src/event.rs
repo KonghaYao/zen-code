@@ -4,6 +4,7 @@ use ratatui_textarea::{Input, Key};
 use std::time::Duration;
 
 use crate::app::App;
+use crate::app::model_panel::ModelPanelMode;
 
 pub enum Action {
     Quit,
@@ -22,6 +23,12 @@ pub async fn next_event(app: &mut App) -> Result<Option<Action>> {
         Event::Resize(_, _) => {}
         Event::Key(_) => {
             let input = Input::from(ev);
+
+            // /model 面板优先处理
+            if app.model_panel.is_some() {
+                handle_model_panel(app, input);
+                return Ok(Some(Action::Redraw));
+            }
 
             // AskUser 批量弹窗
             if app.ask_user_prompt.is_some() {
@@ -83,7 +90,10 @@ pub async fn next_event(app: &mut App) -> Result<Option<Action>> {
                 Input { key: Key::Char('s'), ctrl: true, .. } if !app.loading => {
                     let text = app.textarea.lines().join("\n");
                     let text = text.trim().to_string();
-                    if !text.is_empty() {
+                    if text == "/model" {
+                        app.textarea = crate::app::build_textarea(false);
+                        app.open_model_panel();
+                    } else if !text.is_empty() {
                         app.textarea = crate::app::build_textarea(false);
                         return Ok(Some(Action::Submit(text)));
                     }
@@ -108,4 +118,70 @@ pub async fn next_event(app: &mut App) -> Result<Option<Action>> {
     }
 
     Ok(Some(Action::Redraw))
+}
+
+// ─── /model 面板键盘处理 ──────────────────────────────────────────────────────
+
+fn handle_model_panel(app: &mut App, input: Input) {
+    use crate::app::model_panel::EditField;
+
+    let Some(panel) = app.model_panel.as_mut() else { return };
+
+    match panel.mode.clone() {
+        ModelPanelMode::Browse => match input {
+            Input { key: Key::Char('c'), ctrl: true, .. } => {}
+            Input { key: Key::Esc, .. } => { app.close_model_panel(); }
+            Input { key: Key::Up, .. } | Input { key: Key::Char('k'), .. } => {
+                app.model_panel.as_mut().unwrap().move_cursor(-1);
+            }
+            Input { key: Key::Down, .. } | Input { key: Key::Char('j'), .. } => {
+                app.model_panel.as_mut().unwrap().move_cursor(1);
+            }
+            Input { key: Key::Enter, .. } => { app.model_panel_confirm_select(); }
+            Input { key: Key::Char('e'), .. } => {
+                app.model_panel.as_mut().unwrap().enter_edit();
+            }
+            Input { key: Key::Char('n'), .. } => {
+                app.model_panel.as_mut().unwrap().enter_new();
+            }
+            Input { key: Key::Char('d'), .. } => {
+                app.model_panel.as_mut().unwrap().request_delete();
+            }
+            _ => {}
+        },
+        ModelPanelMode::Edit | ModelPanelMode::New => match input {
+            Input { key: Key::Esc, .. } => {
+                app.model_panel.as_mut().unwrap().mode = ModelPanelMode::Browse;
+            }
+            Input { key: Key::Tab, shift: false, .. } => {
+                app.model_panel.as_mut().unwrap().field_next();
+            }
+            Input { key: Key::Tab, shift: true, .. } => {
+                app.model_panel.as_mut().unwrap().field_prev();
+            }
+            Input { key: Key::Char(' '), .. } => {
+                // 在 ProviderType 字段循环切换
+                if app.model_panel.as_ref().unwrap().edit_field == EditField::ProviderType {
+                    app.model_panel.as_mut().unwrap().cycle_type();
+                } else {
+                    app.model_panel.as_mut().unwrap().push_char(' ');
+                }
+            }
+            Input { key: Key::Enter, .. } => { app.model_panel_apply_edit(); }
+            Input { key: Key::Backspace, .. } => {
+                app.model_panel.as_mut().unwrap().pop_char();
+            }
+            Input { key: Key::Char(c), ctrl: false, alt: false, .. } => {
+                app.model_panel.as_mut().unwrap().push_char(c);
+            }
+            _ => {}
+        },
+        ModelPanelMode::ConfirmDelete => match input {
+            Input { key: Key::Char('y'), .. } => { app.model_panel_confirm_delete(); }
+            Input { key: Key::Char('n'), .. } | Input { key: Key::Esc, .. } => {
+                app.model_panel.as_mut().unwrap().cancel_delete();
+            }
+            _ => {}
+        },
+    }
 }

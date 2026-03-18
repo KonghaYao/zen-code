@@ -10,6 +10,7 @@ use ratatui::{
 
 use rust_create_agent::messages::BaseMessage;
 use crate::app::App;
+use crate::app::model_panel::{EditField, ModelPanelMode, PROVIDER_TYPES};
 
 pub fn render(f: &mut Frame, app: &mut App) {
     let area = f.area();
@@ -41,6 +42,11 @@ pub fn render(f: &mut Frame, app: &mut App) {
     // AskUser 弹窗（覆盖层）
     if app.ask_user_prompt.is_some() {
         render_ask_user_popup(f, app);
+    }
+
+    // /model 面板（覆盖层）
+    if app.model_panel.is_some() {
+        render_model_panel(f, app);
     }
 }
 
@@ -450,6 +456,208 @@ fn render_ask_user_popup(f: &mut Frame, app: &App) {
         Paragraph::new(Text::from(lines)).wrap(Wrap { trim: false }),
         content_area,
     );
+}
+
+/// /model 面板渲染
+fn render_model_panel(f: &mut Frame, app: &App) {
+    let Some(panel) = &app.model_panel else { return };
+
+    let area = f.area();
+    let popup_width = (area.width * 4 / 5).max(60).min(area.width.saturating_sub(4));
+    let popup_height = 20u16.min(area.height.saturating_sub(4));
+    let x = (area.width.saturating_sub(popup_width)) / 2;
+    let y = (area.height.saturating_sub(popup_height)) / 2;
+    let popup_area = Rect::new(x, y, popup_width, popup_height);
+
+    f.render_widget(Clear, popup_area);
+
+    // 根据模式选颜色
+    let (border_color, title) = match &panel.mode {
+        ModelPanelMode::Browse        => (Color::Cyan,   " /model — Provider 配置 "),
+        ModelPanelMode::Edit          => (Color::Yellow, " /model — 编辑 Provider "),
+        ModelPanelMode::New           => (Color::Green,  " /model — 新建 Provider "),
+        ModelPanelMode::ConfirmDelete => (Color::Red,    " /model — 确认删除 "),
+    };
+
+    let block = Block::default()
+        .title(Span::styled(title, Style::default().fg(border_color).add_modifier(Modifier::BOLD)))
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(border_color));
+    f.render_widget(&block, popup_area);
+
+    let inner = block.inner(popup_area);
+    let half = inner.height / 2;
+
+    // ── 上半：provider 列表 ──────────────────────────────────────────────────
+    let list_area = Rect { height: half.max(3), ..inner };
+    let form_area = Rect {
+        y: inner.y + list_area.height,
+        height: inner.height.saturating_sub(list_area.height),
+        ..inner
+    };
+
+    let mut list_lines: Vec<Line> = Vec::new();
+    for (i, p) in panel.providers.iter().enumerate() {
+        let is_cursor = i == panel.cursor;
+        let is_active = p.id == panel.active_id;
+
+        let bullet = if is_active { "●" } else { "○" };
+        let cursor_char = if is_cursor { "▶" } else { " " };
+        let name = p.display_name().to_string();
+        let type_tag = format!("({})", p.provider_type);
+
+        let row_style = if is_cursor {
+            Style::default().fg(Color::Black).bg(Color::Cyan)
+        } else if is_active {
+            Style::default().fg(Color::Cyan)
+        } else {
+            Style::default().fg(Color::White)
+        };
+
+        list_lines.push(Line::from(vec![
+            Span::styled(format!("{} {} ", cursor_char, bullet), row_style),
+            Span::styled(format!("{} ", name), row_style.add_modifier(Modifier::BOLD)),
+            Span::styled(type_tag, row_style.fg(if is_cursor { Color::Black } else { Color::DarkGray })),
+        ]));
+    }
+    if panel.providers.is_empty() {
+        list_lines.push(Line::from(Span::styled(
+            "  （无 provider，按 n 新建）",
+            Style::default().fg(Color::DarkGray),
+        )));
+    }
+    f.render_widget(Paragraph::new(Text::from(list_lines)), list_area);
+
+    // ── 下半：表单 or 确认删除 ────────────────────────────────────────────────
+    match &panel.mode {
+        ModelPanelMode::Browse => {
+            // 显示当前选中 provider 的信息（只读）
+            if let Some(p) = panel.providers.get(panel.cursor) {
+                let model_display = app.zen_config.as_ref()
+                    .map(|c| if c.config.provider_id == p.id { c.config.model_id.as_str() } else { "—" })
+                    .unwrap_or("—");
+                let key_masked = mask_api_key(&p.api_key);
+                let mut info_lines = vec![
+                    Line::from(vec![
+                        Span::styled("  Model   ", Style::default().fg(Color::DarkGray)),
+                        Span::styled(model_display.to_string(), Style::default().fg(Color::White)),
+                    ]),
+                    Line::from(vec![
+                        Span::styled("  API Key ", Style::default().fg(Color::DarkGray)),
+                        Span::styled(key_masked, Style::default().fg(Color::White)),
+                    ]),
+                    Line::from(vec![
+                        Span::styled("  Base URL", Style::default().fg(Color::DarkGray)),
+                        Span::styled(format!(" {}", p.base_url), Style::default().fg(Color::White)),
+                    ]),
+                    Line::from(""),
+                    Line::from(vec![
+                        Span::styled(" Enter", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                        Span::styled(":选择  ", Style::default().fg(Color::DarkGray)),
+                        Span::styled("e", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                        Span::styled(":编辑  ", Style::default().fg(Color::DarkGray)),
+                        Span::styled("n", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+                        Span::styled(":新建  ", Style::default().fg(Color::DarkGray)),
+                        Span::styled("d", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
+                        Span::styled(":删除  ", Style::default().fg(Color::DarkGray)),
+                        Span::styled("Esc", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                        Span::styled(":关闭", Style::default().fg(Color::DarkGray)),
+                    ]),
+                ];
+                // 剪裁到可用高度
+                info_lines.truncate(form_area.height as usize);
+                f.render_widget(Paragraph::new(Text::from(info_lines)), form_area);
+            }
+        }
+        ModelPanelMode::Edit | ModelPanelMode::New => {
+            let fields = [
+                (EditField::Name,         &panel.buf_name),
+                (EditField::ProviderType, &panel.buf_type),
+                (EditField::ModelId,      &panel.buf_model),
+                (EditField::ApiKey,       &panel.buf_api_key),
+                (EditField::BaseUrl,      &panel.buf_base_url),
+            ];
+            let mut form_lines: Vec<Line> = Vec::new();
+            for (field, buf) in &fields {
+                let is_active = *field == panel.edit_field;
+                let label = field.label();
+
+                // 特殊处理 ProviderType：显示可选值列表
+                let value_display = if *field == EditField::ProviderType {
+                    PROVIDER_TYPES.iter()
+                        .map(|t| if *t == buf.as_str() { format!("[{}]", t) } else { t.to_string() })
+                        .collect::<Vec<_>>()
+                        .join("  ")
+                } else if is_active {
+                    format!("{}█", buf)
+                } else {
+                    let display = if *field == EditField::ApiKey { mask_api_key(buf) } else { buf.to_string() };
+                    display
+                };
+
+                let (label_style, value_style) = if is_active {
+                    (
+                        Style::default().fg(Color::Black).bg(Color::Cyan).add_modifier(Modifier::BOLD),
+                        Style::default().fg(Color::Black).bg(Color::Cyan),
+                    )
+                } else {
+                    (
+                        Style::default().fg(Color::DarkGray),
+                        Style::default().fg(Color::White),
+                    )
+                };
+                form_lines.push(Line::from(vec![
+                    Span::styled(format!("  {} ", label), label_style),
+                    Span::styled(format!(" {}", value_display), value_style),
+                ]));
+            }
+            form_lines.push(Line::from(""));
+            form_lines.push(Line::from(vec![
+                Span::styled(" Tab", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::styled(":切换字段  ", Style::default().fg(Color::DarkGray)),
+                Span::styled("Space", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::styled(":切换类型  ", Style::default().fg(Color::DarkGray)),
+                Span::styled("Enter", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::styled(":保存  ", Style::default().fg(Color::DarkGray)),
+                Span::styled("Esc", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::styled(":取消", Style::default().fg(Color::DarkGray)),
+            ]));
+            form_lines.truncate(form_area.height as usize);
+            f.render_widget(Paragraph::new(Text::from(form_lines)), form_area);
+        }
+        ModelPanelMode::ConfirmDelete => {
+            if let Some(p) = panel.providers.get(panel.cursor) {
+                let confirm_lines = vec![
+                    Line::from(""),
+                    Line::from(vec![
+                        Span::styled("  确认删除 ", Style::default().fg(Color::White)),
+                        Span::styled(p.display_name().to_string(), Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
+                        Span::styled(" ？", Style::default().fg(Color::White)),
+                    ]),
+                    Line::from(""),
+                    Line::from(vec![
+                        Span::styled(" y", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
+                        Span::styled(":确认删除  ", Style::default().fg(Color::DarkGray)),
+                        Span::styled("n/Esc", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+                        Span::styled(":取消", Style::default().fg(Color::DarkGray)),
+                    ]),
+                ];
+                f.render_widget(Paragraph::new(Text::from(confirm_lines)), form_area);
+            }
+        }
+    }
+}
+
+/// 遮盖 API Key 中间部分
+fn mask_api_key(key: &str) -> String {
+    let chars: Vec<char> = key.chars().collect();
+    let len = chars.len();
+    if len <= 8 {
+        return "*".repeat(len);
+    }
+    let prefix: String = chars[..4].iter().collect();
+    let suffix: String = chars[len - 4..].iter().collect();
+    format!("{}****{}", prefix, suffix)
 }
 
 /// 将工具参数格式化为单行预览

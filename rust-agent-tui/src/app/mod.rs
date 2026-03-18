@@ -1,5 +1,6 @@
 pub mod agent;
 pub mod hitl;
+pub mod model_panel;
 mod provider;
 
 use ratatui_textarea::TextArea;
@@ -11,6 +12,8 @@ use tokio::sync::mpsc;
 
 use agent::LlmProvider;
 pub use hitl::{ApprovalEvent, BatchApprovalRequest};
+pub use model_panel::ModelPanel;
+use crate::config::ZenConfig;
 
 // ─── ChatMessage ──────────────────────────────────────────────────────────────
 
@@ -309,6 +312,10 @@ pub struct App {
     pub ask_user_prompt: Option<AskUserBatchPrompt>,
     /// 消息列表中 todo 状态消息的下标（用于替换更新而非追加）
     pub todo_message_index: Option<usize>,
+    /// 内存中的配置快照（来自 ~/.zen-code/settings.json）
+    pub zen_config: Option<ZenConfig>,
+    /// /model 面板状态
+    pub model_panel: Option<ModelPanel>,
 }
 
 impl App {
@@ -320,7 +327,11 @@ impl App {
 
         let textarea = build_textarea(false);
 
-        let (provider_name, model_name, status_msg) = match LlmProvider::from_env() {
+        // 优先从 ~/.zen-code/settings.json 加载配置，失败时 fallback 到环境变量
+        let zen_config = crate::config::load().ok();
+
+        let provider_from_config = zen_config.as_ref().and_then(LlmProvider::from_config);
+        let (provider_name, model_name, status_msg) = match provider_from_config.or_else(LlmProvider::from_env) {
             Some(p) => {
                 let name = p.display_name().to_string();
                 let model = p.model_name().to_string();
@@ -347,6 +358,8 @@ impl App {
             hitl_prompt: None,
             ask_user_prompt: None,
             todo_message_index: None,
+            zen_config,
+            model_panel: None,
         };
 
         app.messages.push(ChatMessage::system(format!(
@@ -381,12 +394,14 @@ impl App {
         self.scroll_follow = true;
         self.todo_message_index = None;
 
-        let provider = match LlmProvider::from_env() {
+        let provider = match self.zen_config.as_ref().and_then(LlmProvider::from_config)
+            .or_else(LlmProvider::from_env)
+        {
             Some(p) => p,
             None => {
                 self.messages.push(ChatMessage::tool(
                     "error", "config-error",
-                    "请设置 ANTHROPIC_API_KEY 或 OPENAI_API_KEY 环境变量后重启",
+                    "请设置 ANTHROPIC_API_KEY 或 OPENAI_API_KEY 环境变量后重启，或输入 /model 配置 provider",
                     true,
                 ));
                 self.set_loading(false);
@@ -586,6 +601,52 @@ impl App {
             if let Some(p) = self.ask_user_prompt.take() {
                 p.confirm();
             }
+        }
+    }
+
+    // ─── Model 面板操作 ───────────────────────────────────────────────────────
+
+    /// 打开 /model 面板
+    pub fn open_model_panel(&mut self) {
+        let cfg = self.zen_config.get_or_insert_with(ZenConfig::default);
+        self.model_panel = Some(ModelPanel::from_config(cfg));
+    }
+
+    /// 关闭 /model 面板（不保存）
+    pub fn close_model_panel(&mut self) {
+        self.model_panel = None;
+    }
+
+    /// 在面板中确认选择当前 provider，保存配置，更新 provider_name/model_name
+    pub fn model_panel_confirm_select(&mut self) {
+        let Some(panel) = self.model_panel.as_mut() else { return };
+        let Some(cfg) = self.zen_config.as_mut() else { return };
+        panel.confirm_select(cfg);
+        let _ = crate::config::save(cfg);
+        if let Some(p) = LlmProvider::from_config(cfg) {
+            self.provider_name = p.display_name().to_string();
+            self.model_name = p.model_name().to_string();
+        }
+        self.model_panel = None;
+    }
+
+    /// 在面板中保存编辑/新建，写回配置
+    pub fn model_panel_apply_edit(&mut self) {
+        let Some(panel) = self.model_panel.as_mut() else { return };
+        let Some(cfg) = self.zen_config.as_mut() else { return };
+        panel.apply_edit(cfg);
+        let _ = crate::config::save(cfg);
+    }
+
+    /// 删除光标处的 provider
+    pub fn model_panel_confirm_delete(&mut self) {
+        let Some(panel) = self.model_panel.as_mut() else { return };
+        let Some(cfg) = self.zen_config.as_mut() else { return };
+        panel.confirm_delete(cfg);
+        let _ = crate::config::save(cfg);
+        if let Some(p) = LlmProvider::from_config(cfg) {
+            self.provider_name = p.display_name().to_string();
+            self.model_name = p.model_name().to_string();
         }
     }
 }
