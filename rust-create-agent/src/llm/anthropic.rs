@@ -291,20 +291,7 @@ impl ChatAnthropic {
 impl BaseModel for ChatAnthropic {
     async fn invoke(&self, request: LlmRequest) -> AgentResult<LlmResponse> {
         let chat_url = match &self.base_url {
-            Some(base) => {
-                let base = base.trim_end_matches('/');
-                if base.ends_with("/messages") {
-                    // 已包含完整路径，直接用
-                    base.to_string()
-                } else if base.ends_with("/v1") {
-                    // 已包含版本号，拼 /messages
-                    format!("{}/messages", base)
-                } else {
-                    // 代理 base（如 https://proxy.com/anthropic），直接拼 /messages
-                    // 代理通常自己处理版本，不需要加 /v1
-                    format!("{}/messages", base)
-                }
-            }
+            Some(base) => format!("{}/v1/messages", base.trim_end_matches('/')),
             None => "https://api.anthropic.com/v1/messages".to_string(),
         };
 
