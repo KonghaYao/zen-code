@@ -34,6 +34,9 @@ pub fn render(f: &mut Frame, app: &mut App) {
     f.render_widget(&app.textarea, chunks[2]);
     render_help(f, app, chunks[3]);
 
+    // 命令提示条（浮动在输入框上方）
+    render_command_hint(f, app, chunks[2]);
+
     // HITL 弹窗（覆盖层）
     if app.hitl_prompt.is_some() {
         render_hitl_popup(f, app);
@@ -456,6 +459,65 @@ fn render_ask_user_popup(f: &mut Frame, app: &App) {
         Paragraph::new(Text::from(lines)).wrap(Wrap { trim: false }),
         content_area,
     );
+}
+
+/// 命令提示条：当输入以 / 开头时，在输入框上方浮动显示匹配命令
+fn render_command_hint(f: &mut Frame, app: &App, input_area: Rect) {
+    // 取输入框第一行内容
+    let first_line = app.textarea.lines().first().map(|s| s.as_str()).unwrap_or("");
+    if !first_line.starts_with('/') {
+        return;
+    }
+
+    let prefix = first_line.trim_start_matches('/');
+    let candidates = app.command_registry.match_prefix(prefix);
+
+    // 无候选：不显示
+    if candidates.is_empty() {
+        return;
+    }
+
+    // 提示条高度 = 每行一条 + 边框(2)，最多显示 6 条
+    let show_count = candidates.len().min(6) as u16;
+    let hint_height = show_count + 2;
+
+    // 紧贴输入框顶部向上偏移
+    let y = input_area.y.saturating_sub(hint_height);
+    let hint_area = Rect {
+        x: input_area.x + 1,
+        y,
+        width: input_area.width.saturating_sub(2).min(50),
+        height: hint_height,
+    };
+
+    f.render_widget(Clear, hint_area);
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::DarkGray))
+        .title(Span::styled(" 命令 ", Style::default().fg(Color::DarkGray)));
+    f.render_widget(&block, hint_area);
+
+    let inner = block.inner(hint_area);
+
+    let lines: Vec<Line> = candidates
+        .iter()
+        .take(6)
+        .map(|(name, desc)| {
+            // 高亮已输入的前缀部分
+            let typed_len = prefix.len();
+            let (matched, rest) = name.split_at(typed_len.min(name.len()));
+            Line::from(vec![
+                Span::raw(" /"),
+                Span::styled(matched.to_string(), Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                Span::styled(rest.to_string(), Style::default().fg(Color::White)),
+                Span::raw("  "),
+                Span::styled(desc.to_string(), Style::default().fg(Color::DarkGray)),
+            ])
+        })
+        .collect();
+
+    f.render_widget(Paragraph::new(Text::from(lines)), inner);
 }
 
 /// /model 面板渲染

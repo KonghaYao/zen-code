@@ -61,4 +61,14 @@ impl CommandRegistry {
     pub fn list(&self) -> Vec<(&str, &str)> {
         self.commands.iter().map(|c| (c.name(), c.description())).collect()
     }
+
+    /// 按前缀匹配命令，返回匹配的 (name, description) 列表
+    /// prefix 不含 /，如 "mo" 匹配 "model"
+    pub fn match_prefix(&self, prefix: &str) -> Vec<(&str, &str)> {
+        self.commands
+            .iter()
+            .filter(|c| c.name().starts_with(prefix))
+            .map(|c| (c.name(), c.description()))
+            .collect()
+    }
 }
