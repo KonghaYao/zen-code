@@ -24,6 +24,12 @@ pub async fn next_event(app: &mut App) -> Result<Option<Action>> {
         Event::Key(_) => {
             let input = Input::from(ev);
 
+            // Thread 浏览面板优先处理
+            if app.thread_browser.is_some() {
+                handle_thread_browser(app, input);
+                return Ok(Some(Action::Redraw));
+            }
+
             // /model 面板优先处理
             if app.model_panel.is_some() {
                 handle_model_panel(app, input);
@@ -163,6 +169,39 @@ pub async fn next_event(app: &mut App) -> Result<Option<Action>> {
     }
 
     Ok(Some(Action::Redraw))
+}
+
+// ─── Thread 浏览面板键盘处理 ──────────────────────────────────────────────────
+
+fn handle_thread_browser(app: &mut App, input: Input) {
+    match input {
+        Input { key: Key::Char('c'), ctrl: true, .. } => {}
+        Input { key: Key::Esc, .. } => {
+            // Esc 直接新建（跳过历史选择）
+            app.new_thread();
+        }
+        Input { key: Key::Up, .. } | Input { key: Key::Char('k'), .. } => {
+            if let Some(b) = app.thread_browser.as_mut() { b.move_cursor(-1); }
+        }
+        Input { key: Key::Down, .. } | Input { key: Key::Char('j'), .. } => {
+            if let Some(b) = app.thread_browser.as_mut() { b.move_cursor(1); }
+        }
+        Input { key: Key::Enter, .. } => {
+            if let Some(b) = app.thread_browser.as_mut() {
+                if b.is_new() {
+                    app.new_thread();
+                } else if let Some(id) = b.selected_id().cloned() {
+                    app.open_thread(id);
+                }
+            }
+        }
+        Input { key: Key::Char('d'), .. } => {
+            if let Some(b) = app.thread_browser.as_mut() {
+                b.delete_selected();
+            }
+        }
+        _ => {}
+    }
 }
 
 // ─── /model 面板键盘处理 ──────────────────────────────────────────────────────

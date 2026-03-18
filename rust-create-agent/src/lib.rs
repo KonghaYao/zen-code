@@ -10,6 +10,7 @@ pub mod hitl;
 pub mod llm;
 pub mod messages;
 pub mod middleware;
+pub mod thread;
 pub mod tools;
 
 /// Prelude - 常用类型一次性导入

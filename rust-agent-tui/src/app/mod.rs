@@ -13,8 +13,10 @@ use tokio::sync::mpsc;
 use agent::LlmProvider;
 pub use hitl::{ApprovalEvent, BatchApprovalRequest};
 pub use model_panel::ModelPanel;
+use std::sync::Arc;
 use crate::command::CommandRegistry;
 use crate::config::ZenConfig;
+use crate::thread::{FilesystemThreadStore, ThreadBrowser, ThreadId, ThreadMeta, ThreadStore};
 
 // ─── ChatMessage ──────────────────────────────────────────────────────────────
 
@@ -319,6 +321,14 @@ pub struct App {
     pub skills: Vec<SkillMetadata>,
     /// 提示浮层（命令/Skills）当前光标位置
     pub hint_cursor: Option<usize>,
+    /// Thread 持久化存储
+    pub thread_store: Arc<dyn ThreadStore>,
+    /// 当前会话的 thread id（选择或新建后设置）
+    pub current_thread_id: Option<ThreadId>,
+    /// 启动时的历史浏览面板（选择后关闭）
+    pub thread_browser: Option<ThreadBrowser>,
+    /// 已持久化到 thread 的消息数量（用于增量追加）
+    persisted_count: usize,
 }
 
 impl App {
@@ -347,6 +357,12 @@ impl App {
                 "警告: 未设置任何 API Key（ANTHROPIC_API_KEY 或 OPENAI_API_KEY）".to_string(),
             ),
         };
+
+        // 初始化 thread 存储（失败时 fallback 到临时目录）
+        let thread_store: Arc<dyn ThreadStore> = Arc::new(
+            FilesystemThreadStore::default_path()
+                .unwrap_or_else(|_| FilesystemThreadStore::new(std::env::temp_dir().join("zen-threads"))),
+        );
 
         let mut app = Self {
             messages: Vec::new(),
@@ -377,6 +393,10 @@ impl App {
                 }
                 rust_agent_middlewares::skills::list_skills(&dirs)
             },
+            thread_store,
+            current_thread_id: None,
+            thread_browser: None,
+            persisted_count: 0,
         };
 
         app.messages.push(ChatMessage::system(format!(
@@ -385,6 +405,44 @@ impl App {
         )));
 
         app
+    }
+
+    /// 把自上次持久化之后的新消息追加到 thread
+    fn persist_pending_messages(&mut self) {
+        let Some(id) = self.current_thread_id.clone() else { return };
+        let new_msgs: Vec<BaseMessage> = self.messages[self.persisted_count..]
+            .iter()
+            // 跳过纯 UI 用途的 todo_status 和 system 消息
+            .filter(|m| !matches!(m.inner, BaseMessage::System { .. }))
+            .filter(|m| m.tool_name.as_deref() != Some("__todo_status__"))
+            .map(|m| m.inner.clone())
+            .collect();
+        let new_count = self.messages.len();
+        if new_msgs.is_empty() {
+            self.persisted_count = new_count;
+            return;
+        }
+        let store = self.thread_store.clone();
+        tokio::spawn(async move {
+            let _ = store.append_messages(&id, &new_msgs).await;
+        });
+        self.persisted_count = new_count;
+    }
+
+    /// 获取或新建当前 thread id（同步，block_in_place）
+    fn ensure_thread_id(&mut self) -> ThreadId {
+        if let Some(id) = &self.current_thread_id {
+            return id.clone();
+        }
+        let meta = ThreadMeta::new(&self.cwd);
+        let store = self.thread_store.clone();
+        let id = tokio::task::block_in_place(|| {
+            tokio::runtime::Handle::current()
+                .block_on(store.create_thread(meta))
+                .unwrap_or_else(|_| uuid::Uuid::now_v7().to_string())
+        });
+        self.current_thread_id = Some(id.clone());
+        id
     }
 
     pub fn scroll_up(&mut self) {
@@ -496,6 +554,17 @@ impl App {
         let cwd = self.cwd.clone();
         let system_prompt = crate::prompt::default_system_prompt(&cwd);
 
+        // 确保当前 thread 存在，持久化用户消息
+        let thread_id = self.ensure_thread_id();
+        let user_msg = BaseMessage::human(input.clone());
+        let store = self.thread_store.clone();
+        let tid = thread_id.clone();
+        tokio::spawn(async move {
+            let _ = store.append_messages(&tid, &[user_msg]).await;
+        });
+        // 用户消息已追加到 self.messages，更新已持久化计数
+        self.persisted_count = self.messages.len();
+
         tokio::spawn(async move {
             agent::run_universal_agent(provider, input, cwd, system_prompt, approval_tx, tx).await;
         });
@@ -523,12 +592,15 @@ impl App {
                 Ok(AgentEvent::Done) => {
                     self.set_loading(false);
                     self.agent_rx = None;
+                    // 持久化本轮所有 AI/Tool 消息（Done 时批量追加）
+                    self.persist_pending_messages();
                     return true;
                 }
                 Ok(AgentEvent::Error(e)) => {
                     self.messages.push(ChatMessage::tool("error", "agent-error", e, true));
                     self.set_loading(false);
                     self.agent_rx = None;
+                    self.persist_pending_messages();
                     return true;
                 }
                 Ok(AgentEvent::ApprovalNeeded(req)) => {
@@ -661,6 +733,49 @@ impl App {
                 p.confirm();
             }
         }
+    }
+
+    // ─── Thread 操作 ──────────────────────────────────────────────────────────
+
+    /// 恢复历史 thread：加载消息，关闭 browser
+    pub fn open_thread(&mut self, thread_id: ThreadId) {
+        let store = self.thread_store.clone();
+        let tid = thread_id.clone();
+        let base_msgs = tokio::task::block_in_place(|| {
+            tokio::runtime::Handle::current()
+                .block_on(store.load_messages(&tid))
+                .unwrap_or_default()
+        });
+        self.messages.clear();
+        for msg in base_msgs {
+            self.messages.push(ChatMessage {
+                inner: msg,
+                display_name: None,
+                tool_name: None,
+            });
+        }
+        self.persisted_count = self.messages.len();
+        self.current_thread_id = Some(thread_id);
+        self.thread_browser = None;
+    }
+
+    /// 新建 thread：清空消息，关闭 browser（thread id 在首次发送时创建）
+    pub fn new_thread(&mut self) {
+        self.messages.clear();
+        self.current_thread_id = None;
+        self.persisted_count = 0;
+        self.thread_browser = None;
+    }
+
+    /// 打开 thread 浏览面板（通过命令触发）
+    pub fn open_thread_browser(&mut self) {
+        let store = self.thread_store.clone();
+        let threads = tokio::task::block_in_place(|| {
+            tokio::runtime::Handle::current()
+                .block_on(store.list_threads())
+                .unwrap_or_default()
+        });
+        self.thread_browser = Some(ThreadBrowser::new(threads, self.thread_store.clone()));
     }
 
     // ─── Model 面板操作 ───────────────────────────────────────────────────────

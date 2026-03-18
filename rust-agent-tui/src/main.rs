@@ -3,6 +3,7 @@ mod command;
 mod config;
 mod event;
 mod prompt;
+mod thread;
 mod ui;
 
 use anyhow::Result;
