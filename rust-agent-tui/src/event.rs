@@ -87,7 +87,13 @@ pub async fn next_event(app: &mut App) -> Result<Option<Action>> {
                 Input { key: Key::Char('c'), ctrl: true, .. } => return Ok(Some(Action::Quit)),
                 Input { key: Key::Esc, .. } if !app.loading => return Ok(Some(Action::Quit)),
 
-                Input { key: Key::Char('s'), ctrl: true, .. } if !app.loading => {
+                // Alt+Enter：插入换行
+                Input { key: Key::Enter, alt: true, .. } if !app.loading => {
+                    app.textarea.input(Input { key: Key::Enter, ctrl: false, alt: false, shift: false });
+                }
+
+                // Enter：提交
+                Input { key: Key::Enter, .. } if !app.loading => {
                     let text = app.textarea.lines().join("\n");
                     let text = text.trim().to_string();
                     if !text.is_empty() {
@@ -111,7 +117,8 @@ pub async fn next_event(app: &mut App) -> Result<Option<Action>> {
                 Input { key: Key::PageUp, .. }   => { for _ in 0..10 { app.scroll_up(); } }
                 Input { key: Key::PageDown, .. } => { for _ in 0..10 { app.scroll_down(); } }
 
-                input if !app.loading => { app.textarea.input(input); }
+                // 拦截普通 Enter，避免 textarea 默认换行
+                input if !app.loading && input.key != Key::Enter => { app.textarea.input(input); }
 
                 _ => {}
             }
