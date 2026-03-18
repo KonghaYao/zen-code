@@ -41,11 +41,11 @@ pub mod prelude {
         default_requires_approval, is_yolo_mode, BatchItem, HitlDecision, HitlHandler,
         HumanInTheLoopMiddleware,
     };
-    pub use crate::middleware::{FilesystemMiddleware, TerminalMiddleware};
+    pub use crate::middleware::{FilesystemMiddleware, TerminalMiddleware, TodoMiddleware};
     pub use crate::skills::{SkillMetadata, SkillsMiddleware};
     pub use crate::tools::{
         AskUserInvoker, AskUserTool, EditFileTool, FolderOperationsTool, GlobFilesTool,
-        ReadFileTool, SearchFilesRgTool, WriteFileTool,
+        ReadFileTool, SearchFilesRgTool, TodoItem, TodoStatus, TodoWriteTool, WriteFileTool,
     };
 
     // 重导出 rust-create-agent 核心类型

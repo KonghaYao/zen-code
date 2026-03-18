@@ -7,7 +7,7 @@ use rust_create_agent::agent::AgentExecutor;
 use rust_create_agent::llm::BaseModelReactLLM;
 use rust_create_agent::agent::react::AgentInput;
 use rust_agent_middlewares::prelude::*;
-use rust_agent_middlewares::tools::{AskUserInvoker, AskUserTool};
+use rust_agent_middlewares::tools::{AskUserInvoker, AskUserTool, TodoItem};
 pub(crate) use super::provider::LlmProvider;
 use super::hitl::{ApprovalEvent, TuiAskUserHandler, TuiHitlHandler};
 use super::AgentEvent;
@@ -23,6 +23,15 @@ pub async fn run_universal_agent(
     tx: mpsc::Sender<AgentEvent>,
 ) {
     let model = BaseModelReactLLM::new(provider.into_model()).with_system(system_prompt);
+
+    // Todo channel：TodoMiddleware → TUI
+    let (todo_tx, mut todo_rx) = mpsc::channel::<Vec<TodoItem>>(8);
+    let tx_todo = tx.clone();
+    tokio::spawn(async move {
+        while let Some(todos) = todo_rx.recv().await {
+            let _ = tx_todo.send(AgentEvent::TodoUpdate(todos)).await;
+        }
+    });
 
     // HITL 中间件
     let hitl = HumanInTheLoopMiddleware::from_env(TuiHitlHandler::new(approval_tx.clone()));
@@ -70,6 +79,7 @@ pub async fn run_universal_agent(
         .add_middleware(Box::new(SkillsMiddleware::new()))
         .add_middleware(Box::new(FilesystemMiddleware::new()))
         .add_middleware(Box::new(TerminalMiddleware::new()))
+        .add_middleware(Box::new(TodoMiddleware::new(todo_tx)))
         .add_middleware(Box::new(hitl))
         .with_event_handler(Arc::new(handler))
         .register_tool(Box::new(ask_user_tool));

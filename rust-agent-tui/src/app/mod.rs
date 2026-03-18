@@ -5,7 +5,7 @@ mod provider;
 use ratatui_textarea::TextArea;
 use ratatui::style::{Color, Style};
 use rust_agent_middlewares::ask_user::{AskUserBatchRequest, AskUserQuestionData};
-use rust_agent_middlewares::prelude::{BatchItem, HitlDecision};
+use rust_agent_middlewares::prelude::{BatchItem, HitlDecision, TodoItem, TodoStatus};
 use rust_create_agent::messages::BaseMessage;
 use tokio::sync::mpsc;
 
@@ -51,6 +51,18 @@ impl ChatMessage {
         Self { inner: BaseMessage::system(content.into()), display_name: None, tool_name: None }
     }
 
+    pub fn todo_status(content: impl Into<String>) -> Self {
+        Self {
+            inner: BaseMessage::system(content.into()),
+            display_name: None,
+            tool_name: Some("__todo_status__".to_string()),
+        }
+    }
+
+    pub fn is_todo_status(&self) -> bool {
+        self.tool_name.as_deref() == Some("__todo_status__")
+    }
+
     pub fn content(&self) -> String {
         self.inner.content()
     }
@@ -84,6 +96,8 @@ pub enum AgentEvent {
     ApprovalNeeded(BatchApprovalRequest),
     /// AskUser 批量提问请求
     AskUserBatch(AskUserBatchRequest),
+    /// Todo 列表更新
+    TodoUpdate(Vec<TodoItem>),
 }
 
 // ─── HitlBatchPrompt ──────────────────────────────────────────────────────────
@@ -293,6 +307,8 @@ pub struct App {
     pub hitl_prompt: Option<HitlBatchPrompt>,
     /// 当前等待用户输入的 AskUser 批量弹窗
     pub ask_user_prompt: Option<AskUserBatchPrompt>,
+    /// 消息列表中 todo 状态消息的下标（用于替换更新而非追加）
+    pub todo_message_index: Option<usize>,
 }
 
 impl App {
@@ -330,6 +346,7 @@ impl App {
             agent_rx: None,
             hitl_prompt: None,
             ask_user_prompt: None,
+            todo_message_index: None,
         };
 
         app.messages.push(ChatMessage::system(format!(
@@ -362,6 +379,7 @@ impl App {
         self.set_loading(true);
         self.scroll_offset = u16::MAX;
         self.scroll_follow = true;
+        self.todo_message_index = None;
 
         let provider = match LlmProvider::from_env() {
             Some(p) => p,
@@ -448,6 +466,19 @@ impl App {
                     self.ask_user_prompt = Some(AskUserBatchPrompt::from_request(req));
                     updated = true;
                     break; // 暂停消费，等待用户输入
+                }
+                Ok(AgentEvent::TodoUpdate(todos)) => {
+                    let rendered = render_todos(&todos);
+                    match self.todo_message_index {
+                        Some(idx) if idx < self.messages.len() => {
+                            self.messages[idx] = ChatMessage::todo_status(rendered);
+                        }
+                        _ => {
+                            self.messages.push(ChatMessage::todo_status(rendered));
+                            self.todo_message_index = Some(self.messages.len() - 1);
+                        }
+                    }
+                    updated = true;
                 }
                 Err(mpsc::error::TryRecvError::Empty) => break,
                 Err(mpsc::error::TryRecvError::Disconnected) => {
@@ -557,6 +588,20 @@ impl App {
             }
         }
     }
+}
+
+/// 将 todo 列表渲染为可读文本
+pub fn render_todos(todos: &[TodoItem]) -> String {
+    let mut lines = vec![format!("📋 Todo ({})", todos.len())];
+    for item in todos {
+        let icon = match item.status {
+            TodoStatus::Completed => "✓",
+            TodoStatus::InProgress => "→",
+            TodoStatus::Pending => "○",
+        };
+        lines.push(format!("  {} {}", icon, item.content));
+    }
+    lines.join("\n")
 }
 
 pub fn build_textarea(disabled: bool) -> TextArea<'static> {
