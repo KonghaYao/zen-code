@@ -6,7 +6,7 @@ mod provider;
 use ratatui_textarea::TextArea;
 use ratatui::style::{Color, Style};
 use rust_agent_middlewares::ask_user::{AskUserBatchRequest, AskUserQuestionData};
-use rust_agent_middlewares::prelude::{BatchItem, HitlDecision, TodoItem, TodoStatus};
+use rust_agent_middlewares::prelude::{BatchItem, HitlDecision, TodoItem, TodoStatus, SkillMetadata};
 use rust_create_agent::messages::BaseMessage;
 use tokio::sync::mpsc;
 
@@ -315,6 +315,10 @@ pub struct App {
     pub model_panel: Option<ModelPanel>,
     /// 命令注册表
     pub command_registry: CommandRegistry,
+    /// 可用 skills 列表（启动时加载）
+    pub skills: Vec<SkillMetadata>,
+    /// 提示浮层（命令/Skills）当前光标位置
+    pub hint_cursor: Option<usize>,
 }
 
 impl App {
@@ -360,6 +364,19 @@ impl App {
             zen_config,
             model_panel: None,
             command_registry: crate::command::default_registry(),
+            hint_cursor: None,
+            skills: {
+                let mut dirs = Vec::new();
+                // 项目级 skills
+                if let Ok(cwd) = std::env::current_dir() {
+                    dirs.push(cwd.join(".claude").join("skills"));
+                }
+                // 用户级 skills
+                if let Some(home) = dirs_next::home_dir() {
+                    dirs.push(home.join(".claude").join("code").join("skills"));
+                }
+                rust_agent_middlewares::skills::list_skills(&dirs)
+            },
         };
 
         app.messages.push(ChatMessage::system(format!(
@@ -378,6 +395,48 @@ impl App {
     pub fn scroll_down(&mut self) {
         self.scroll_offset = self.scroll_offset.saturating_add(3);
         self.scroll_follow = false;
+    }
+
+    /// 获取当前提示浮层的候选数量和类型
+    /// 返回 (候选总数, 选中的文本) — 用于 Tab 补全
+    pub fn hint_candidates_count(&self) -> usize {
+        let first_line = self.textarea.lines().first().map(|s| s.as_str()).unwrap_or("");
+        if first_line.starts_with('/') {
+            let prefix = first_line.trim_start_matches('/');
+            self.command_registry.match_prefix(prefix).len()
+        } else if first_line.starts_with('#') {
+            let prefix = first_line.trim_start_matches('#');
+            self.skills.iter().filter(|s| prefix.is_empty() || s.name.contains(prefix)).take(8).count()
+        } else {
+            0
+        }
+    }
+
+    /// Tab 补全：选中当前光标处的候选项，替换输入框内容
+    pub fn hint_complete(&mut self) {
+        let first_line = self.textarea.lines().first().map(|s| s.as_str()).unwrap_or("").to_string();
+        let cursor = self.hint_cursor.unwrap_or(0);
+
+        if first_line.starts_with('/') {
+            let prefix = first_line.trim_start_matches('/');
+            let candidates = self.command_registry.match_prefix(prefix);
+            if let Some((name, _)) = candidates.get(cursor) {
+                self.textarea = build_textarea(false);
+                self.textarea.insert_str(&format!("/{} ", name));
+                self.hint_cursor = None;
+            }
+        } else if first_line.starts_with('#') {
+            let prefix = first_line.trim_start_matches('#').to_string();
+            let candidates: Vec<_> = self.skills.iter()
+                .filter(|s| prefix.is_empty() || s.name.contains(&prefix))
+                .take(8)
+                .collect();
+            if let Some(skill) = candidates.get(cursor) {
+                self.textarea = build_textarea(false);
+                self.textarea.insert_str(&format!("#{} ", skill.name));
+                self.hint_cursor = None;
+            }
+        }
     }
 
     pub fn set_loading(&mut self, loading: bool) {

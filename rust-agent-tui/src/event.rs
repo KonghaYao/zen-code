@@ -87,6 +87,31 @@ pub async fn next_event(app: &mut App) -> Result<Option<Action>> {
                 Input { key: Key::Char('c'), ctrl: true, .. } => return Ok(Some(Action::Quit)),
                 Input { key: Key::Esc, .. } if !app.loading => return Ok(Some(Action::Quit)),
 
+                // Tab：提示浮层候选导航与补全
+                Input { key: Key::Tab, shift: false, .. } if !app.loading => {
+                    let count = app.hint_candidates_count();
+                    if count > 0 {
+                        match app.hint_cursor {
+                            Some(cur) if cur + 1 < count => {
+                                app.hint_cursor = Some(cur + 1);
+                            }
+                            Some(_) => {
+                                // 已在最后一个，循环到第一个
+                                app.hint_cursor = Some(0);
+                            }
+                            None => {
+                                // 首次按 Tab，选中第一个
+                                app.hint_cursor = Some(0);
+                            }
+                        }
+                    }
+                }
+
+                // Enter 在提示浮层激活时：确认选中
+                Input { key: Key::Enter, .. } if !app.loading && app.hint_cursor.is_some() => {
+                    app.hint_complete();
+                }
+
                 // Alt+Enter：插入换行
                 Input { key: Key::Enter, alt: true, .. } if !app.loading => {
                     app.textarea.input(Input { key: Key::Enter, ctrl: false, alt: false, shift: false });
@@ -118,7 +143,11 @@ pub async fn next_event(app: &mut App) -> Result<Option<Action>> {
                 Input { key: Key::PageDown, .. } => { for _ in 0..10 { app.scroll_down(); } }
 
                 // 拦截普通 Enter，避免 textarea 默认换行
-                input if !app.loading && input.key != Key::Enter => { app.textarea.input(input); }
+                input if !app.loading && input.key != Key::Enter => {
+                    app.textarea.input(input);
+                    // 输入内容变化时重置提示光标
+                    app.hint_cursor = None;
+                }
 
                 _ => {}
             }
