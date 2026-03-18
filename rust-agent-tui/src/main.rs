@@ -21,6 +21,12 @@ async fn main() -> Result<()> {
     // 加载 .env 文件（仅开发环境，文件不存在时静默忽略）
     let _ = dotenvy::dotenv();
 
+    // 解析命令行参数：--yolo / -y 启用 YOLO 模式（禁用 HITL 审批）
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--yolo" || a == "-y") {
+        std::env::set_var("YOLO_MODE", "true");
+    }
+
     // 初始化终端
     enable_raw_mode()?;
     let mut stdout = io::stdout();
