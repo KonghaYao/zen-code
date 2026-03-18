@@ -63,10 +63,6 @@ impl ChatMessage {
         }
     }
 
-    pub fn is_todo_status(&self) -> bool {
-        self.tool_name.as_deref() == Some("__todo_status__")
-    }
-
     pub fn content(&self) -> String {
         self.inner.content()
     }

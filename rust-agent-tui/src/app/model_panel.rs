@@ -255,13 +255,4 @@ impl ModelPanel {
         self.mode = ModelPanelMode::Browse;
     }
 
-    /// 当前光标 provider 的 model_id（从 cfg 读取）
-    pub fn current_model_id<'a>(&'a self, cfg: &'a ZenConfig) -> &'a str {
-        let active = self.providers.get(self.cursor).map(|p| p.id.as_str()).unwrap_or("");
-        if cfg.config.provider_id == active {
-            &cfg.config.model_id
-        } else {
-            ""
-        }
-    }
 }
