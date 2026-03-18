@@ -292,14 +292,17 @@ impl BaseModel for ChatAnthropic {
     async fn invoke(&self, request: LlmRequest) -> AgentResult<LlmResponse> {
         let chat_url = match &self.base_url {
             Some(base) => {
-                // 若 base_url 已包含 /v1/messages 则直接用，否则拼接
                 let base = base.trim_end_matches('/');
                 if base.ends_with("/messages") {
+                    // 已包含完整路径，直接用
                     base.to_string()
                 } else if base.ends_with("/v1") {
+                    // 已包含版本号，拼 /messages
                     format!("{}/messages", base)
                 } else {
-                    format!("{}/v1/messages", base)
+                    // 代理 base（如 https://proxy.com/anthropic），直接拼 /messages
+                    // 代理通常自己处理版本，不需要加 /v1
+                    format!("{}/messages", base)
                 }
             }
             None => "https://api.anthropic.com/v1/messages".to_string(),
@@ -378,10 +381,12 @@ impl BaseModel for ChatAnthropic {
             .map_err(|e| AgentError::LlmError(e.to_string()))?;
 
         let status = resp.status();
-        let resp_json: Value = resp
-            .json()
+        let resp_text = resp
+            .text()
             .await
-            .map_err(|e| AgentError::LlmError(format!("解析响应失败: {e}")))?;
+            .map_err(|e| AgentError::LlmError(format!("读取响应体失败: {e}")))?;
+        let resp_json: Value = serde_json::from_str(&resp_text)
+            .map_err(|e| AgentError::LlmError(format!("解析响应失败: {e}\n原始响应({status}): {resp_text}")))?;
 
         if !status.is_success() {
             let msg = resp_json["error"]["message"]
