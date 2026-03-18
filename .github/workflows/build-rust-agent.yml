@@ -21,10 +21,6 @@ jobs:
                       label: macos-arm64
                       target: aarch64-apple-darwin
                       exe_suffix: ''
-                    - os: macos-13
-                      label: macos-x64
-                      target: x86_64-apple-darwin
-                      exe_suffix: ''
                     - os: windows-latest
                       label: windows-x64
                       target: x86_64-pc-windows-msvc
