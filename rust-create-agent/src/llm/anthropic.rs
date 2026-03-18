@@ -14,6 +14,8 @@ pub struct ChatAnthropic {
     pub thinking_budget: u32,
     /// 是否开启 Prompt Caching（anthropic-beta: prompt-caching-2024-07-31），默认开启
     pub enable_cache: bool,
+    /// 自定义 base URL（代理场景），不含末尾 /
+    pub base_url: Option<String>,
     client: reqwest::Client,
 }
 
@@ -25,8 +27,16 @@ impl ChatAnthropic {
             extended_thinking: false,
             thinking_budget: 10000,
             enable_cache: true,
+            base_url: None,
             client: reqwest::Client::new(),
         }
+    }
+
+    /// 设置自定义 base URL（用于代理或兼容 API）
+    pub fn with_base_url(mut self, base_url: impl Into<String>) -> Self {
+        let url = base_url.into();
+        self.base_url = if url.is_empty() { None } else { Some(url) };
+        self
     }
 
     /// 开启 Extended Thinking（claude-3-7-sonnet 及以上）
@@ -46,7 +56,11 @@ impl ChatAnthropic {
         let api_key = std::env::var("ANTHROPIC_API_KEY").ok()?;
         let model = std::env::var("ANTHROPIC_MODEL")
             .unwrap_or_else(|_| "claude-sonnet-4-6".to_string());
-        Some(Self::new(api_key, model))
+        let mut s = Self::new(api_key, model);
+        if let Ok(url) = std::env::var("ANTHROPIC_BASE_URL") {
+            s = s.with_base_url(url);
+        }
+        Some(s)
     }
 
     // ─── ContentBlock → Anthropic content part ────────────────────────────────
@@ -276,7 +290,20 @@ impl ChatAnthropic {
 #[async_trait]
 impl BaseModel for ChatAnthropic {
     async fn invoke(&self, request: LlmRequest) -> AgentResult<LlmResponse> {
-        let chat_url = "https://api.anthropic.com/v1/messages";
+        let chat_url = match &self.base_url {
+            Some(base) => {
+                // 若 base_url 已包含 /v1/messages 则直接用，否则拼接
+                let base = base.trim_end_matches('/');
+                if base.ends_with("/messages") {
+                    base.to_string()
+                } else if base.ends_with("/v1") {
+                    format!("{}/messages", base)
+                } else {
+                    format!("{}/v1/messages", base)
+                }
+            }
+            None => "https://api.anthropic.com/v1/messages".to_string(),
+        };
 
         let tools_json: Vec<Value> = request
             .tools

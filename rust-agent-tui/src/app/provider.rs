@@ -11,6 +11,7 @@ pub enum LlmProvider {
     Anthropic {
         api_key: String,
         model: String,
+        base_url: Option<String>,
     },
 }
 
@@ -23,14 +24,16 @@ impl LlmProvider {
                 let api_key = std::env::var("ANTHROPIC_API_KEY").ok()?;
                 let model = std::env::var("ANTHROPIC_MODEL")
                     .unwrap_or_else(|_| "claude-sonnet-4-6".to_string());
-                Some(Self::Anthropic { api_key, model })
+                let base_url = std::env::var("ANTHROPIC_BASE_URL").ok();
+                Some(Self::Anthropic { api_key, model, base_url })
             }
             "openai" | "" => {
                 if provider_hint.is_empty() {
                     if let Ok(api_key) = std::env::var("ANTHROPIC_API_KEY") {
                         let model = std::env::var("ANTHROPIC_MODEL")
                             .unwrap_or_else(|_| "claude-sonnet-4-6".to_string());
-                        return Some(Self::Anthropic { api_key, model });
+                        let base_url = std::env::var("ANTHROPIC_BASE_URL").ok();
+                        return Some(Self::Anthropic { api_key, model, base_url });
                     }
                 }
                 let api_key = std::env::var("OPENAI_API_KEY").ok()?;
@@ -76,6 +79,7 @@ impl LlmProvider {
             "anthropic" => Some(Self::Anthropic {
                 api_key: provider.api_key.clone(),
                 model,
+                base_url: if provider.base_url.is_empty() { None } else { Some(provider.base_url.clone()) },
             }),
             _ => Some(Self::OpenAi {
                 api_key: provider.api_key.clone(),
@@ -108,8 +112,12 @@ impl LlmProvider {
             Self::OpenAi { api_key, base_url, model } => {
                 Box::new(ChatOpenAI::new(api_key, model).with_base_url(base_url))
             }
-            Self::Anthropic { api_key, model } => {
-                Box::new(ChatAnthropic::new(api_key, model))
+            Self::Anthropic { api_key, model, base_url } => {
+                let mut m = ChatAnthropic::new(api_key, model);
+                if let Some(url) = base_url {
+                    m = m.with_base_url(url);
+                }
+                Box::new(m)
             }
         }
     }
