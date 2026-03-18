@@ -42,7 +42,8 @@ impl CommandRegistry {
 
     /// 解析并执行命令。
     /// 输入格式："/name args..."
-    /// 返回 true 表示找到命令并执行，false 表示未知命令。
+    /// 匹配优先级：精确匹配 > 前缀唯一匹配（支持 /m → /model）
+    /// 返回 true 表示找到命令并执行，false 表示未知命令或有歧义。
     pub fn dispatch(&self, app: &mut App, input: &str) -> bool {
         let input = input.trim_start_matches('/');
         let (name, args) = match input.split_once(' ') {
@@ -50,10 +51,19 @@ impl CommandRegistry {
             None => (input.trim(), ""),
         };
 
+        // 1. 精确匹配
         if let Some(cmd) = self.commands.iter().find(|c| c.name() == name) {
             cmd.execute(app, args);
             return true;
         }
+
+        // 2. 前缀唯一匹配（快捷命令）
+        let matches: Vec<_> = self.commands.iter().filter(|c| c.name().starts_with(name)).collect();
+        if matches.len() == 1 {
+            matches[0].execute(app, args);
+            return true;
+        }
+
         false
     }
 
