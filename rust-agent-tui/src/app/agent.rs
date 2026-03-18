@@ -74,8 +74,21 @@ pub async fn run_universal_agent(
                 name,
                 is_error: false,
             },
-            ExecutorEvent::ToolEnd { name, output: _, is_error } if is_error => {
-                AgentEvent::ToolCall { name, display: String::new(), is_error: true }
+            // ask_user 成功：显示用户的回答
+            ExecutorEvent::ToolEnd { name, output, is_error: false } if name == "ask_user" => {
+                AgentEvent::ToolCall {
+                    display: format!("? → {}", truncate(&output, 60)),
+                    name,
+                    is_error: false,
+                }
+            }
+            // 工具执行出错
+            ExecutorEvent::ToolEnd { name, output, is_error: true } => {
+                AgentEvent::ToolCall {
+                    display: format!("✗ {}", truncate(&output, 60)),
+                    name,
+                    is_error: true,
+                }
             }
             ExecutorEvent::ToolEnd { .. } | ExecutorEvent::StepDone { .. } => return,
         };

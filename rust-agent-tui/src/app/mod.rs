@@ -545,7 +545,16 @@ impl App {
     }
 
     /// Enter：确认当前问题。若全部问题均已确认则提交并关闭弹窗。
+    /// 若当前问题没有选中任何选项（且不在自定义输入模式），自动选中光标所在选项。
     pub fn ask_user_confirm(&mut self) {
+        if let Some(p) = self.ask_user_prompt.as_mut() {
+            let q = &mut p.questions[p.active_tab];
+            // 没有选中任何选项且不在自定义输入模式：自动选中当前光标行
+            if !q.in_custom_input && !q.selected.iter().any(|&v| v) && q.custom_input.trim().is_empty() {
+                q.toggle_current();
+            }
+        }
+
         let all_done = if let Some(p) = self.ask_user_prompt.as_mut() {
             p.confirm_current()
         } else {
