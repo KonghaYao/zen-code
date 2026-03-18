@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use crate::agent::state::State;
 use crate::agent::react::{AgentOutput, ToolCall, ToolResult};
 use crate::error::{AgentError, AgentResult};
+use crate::tools::BaseTool;
 
 /// 中间件 trait - 与 TypeScript AgentMiddleware 对齐
 /// 
@@ -16,6 +17,14 @@ use crate::error::{AgentError, AgentResult};
 pub trait Middleware<S: State>: Send + Sync {
     /// 中间件名称（用于日志和调试）
     fn name(&self) -> &str;
+
+    /// 声明此中间件提供的工具列表（根据工作目录动态生成）
+    ///
+    /// 默认返回空列表（无工具的中间件无需实现）。
+    /// `AgentExecutor` 在 `execute` 开始时自动收集所有中间件的工具并合并到工具表。
+    fn collect_tools(&self, _cwd: &str) -> Vec<Box<dyn BaseTool>> {
+        vec![]
+    }
 
     /// Agent 执行前调用
     /// 可用于初始化状态、注入上下文等

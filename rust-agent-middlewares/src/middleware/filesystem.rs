@@ -47,6 +47,10 @@ impl Default for FilesystemMiddleware {
 
 #[async_trait]
 impl<S: State> Middleware<S> for FilesystemMiddleware {
+    fn collect_tools(&self, cwd: &str) -> Vec<Box<dyn BaseTool>> {
+        Self::build_tools(cwd)
+    }
+
     fn name(&self) -> &str {
         "FilesystemMiddleware"
     }

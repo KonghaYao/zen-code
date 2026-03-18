@@ -4,11 +4,9 @@ mod provider;
 
 use ratatui_textarea::TextArea;
 use ratatui::style::{Color, Style};
-use rust_agent_middlewares::prelude::*;
-use rust_create_agent::messages::BaseMessage;
 use rust_agent_middlewares::ask_user::{AskUserBatchRequest, AskUserQuestionData};
 use rust_agent_middlewares::prelude::{BatchItem, HitlDecision};
-use std::sync::Arc;
+use rust_create_agent::messages::BaseMessage;
 use tokio::sync::mpsc;
 
 use agent::LlmProvider;
@@ -407,14 +405,7 @@ impl App {
         let system_prompt = crate::prompt::default_system_prompt(&cwd);
 
         tokio::spawn(async move {
-            let tools: Vec<Arc<dyn rust_create_agent::tools::BaseTool>> =
-                FilesystemMiddleware::build_tools(&cwd)
-                    .into_iter()
-                    .chain(TerminalMiddleware::build_tools(&cwd))
-                    .map(|t| Arc::from(t) as Arc<dyn rust_create_agent::tools::BaseTool>)
-                    .collect();
-
-            agent::run_universal_agent(provider, tools, input, cwd, system_prompt, approval_tx, tx).await;
+            agent::run_universal_agent(provider, input, cwd, system_prompt, approval_tx, tx).await;
         });
     }
 

@@ -3,6 +3,33 @@ use rust_create_agent::prelude::*;
 
 // ── 辅助工具（实现 BaseTool trait） ────────────────────────────────────────────
 
+/// 提供 echo 工具的中间件（用于测试 collect_tools 自动注册流程）
+struct EchoMiddleware;
+
+#[async_trait]
+impl<S: rust_create_agent::agent::state::State> rust_create_agent::middleware::r#trait::Middleware<S> for EchoMiddleware {
+    fn name(&self) -> &str { "EchoMiddleware" }
+
+    fn collect_tools(&self, _cwd: &str) -> Vec<Box<dyn BaseTool>> {
+        vec![Box::new(EchoTool)]
+    }
+}
+
+/// 覆盖 echo 工具的中间件（返回不同输出，用于测试优先级）
+struct OverrideEchoTool;
+
+#[async_trait]
+impl BaseTool for OverrideEchoTool {
+    fn name(&self) -> &str { "echo" }
+    fn description(&self) -> &str { "Override echo" }
+    fn parameters(&self) -> serde_json::Value {
+        serde_json::json!({ "type": "object", "properties": { "text": { "type": "string" } } })
+    }
+    async fn invoke(&self, input: serde_json::Value) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(format!("override: {}", input["text"].as_str().unwrap_or("")))
+    }
+}
+
 struct EchoTool;
 
 #[async_trait]
@@ -105,6 +132,52 @@ async fn test_agent_max_iterations() {
 
     let result = agent.execute(AgentInput::text("loop forever"), &mut state).await;
     assert!(matches!(result, Err(AgentError::MaxIterationsExceeded(3))));
+}
+
+// ── 中间件工具自注册测试 ──────────────────────────────────────────────────────
+
+/// 验证通过 add_middleware 自动注册工具（无需手动 register_tool）
+#[tokio::test]
+async fn test_middleware_auto_registers_tools() {
+    let llm = MockLLM::tool_then_answer(
+        "echo",
+        serde_json::json!({ "text": "from middleware" }),
+        "got: echo: from middleware",
+    );
+
+    // 只通过 add_middleware 注册中间件，不手动调用 register_tool
+    let agent = AgentExecutor::new(llm)
+        .add_middleware(Box::new(EchoMiddleware));
+    let mut state = AgentState::new("/test");
+
+    let output = agent.execute(AgentInput::text("use echo"), &mut state).await.unwrap();
+
+    assert_eq!(output.text, "got: echo: from middleware");
+    assert_eq!(output.tool_calls.len(), 1);
+    assert_eq!(output.tool_calls[0].1.output, "echo: from middleware");
+    assert!(!output.tool_calls[0].1.is_error);
+}
+
+/// 验证手动 register_tool 的同名工具优先于中间件提供的工具
+#[tokio::test]
+async fn test_manual_tool_overrides_middleware_tool() {
+    let llm = MockLLM::tool_then_answer(
+        "echo",
+        serde_json::json!({ "text": "priority test" }),
+        "done",
+    );
+
+    // EchoMiddleware 提供 echo 工具，但 register_tool(OverrideEchoTool) 应优先
+    let agent = AgentExecutor::new(llm)
+        .add_middleware(Box::new(EchoMiddleware))
+        .register_tool(Box::new(OverrideEchoTool));
+    let mut state = AgentState::new("/test");
+
+    let output = agent.execute(AgentInput::text("echo with override"), &mut state).await.unwrap();
+
+    assert_eq!(output.tool_calls.len(), 1);
+    // 应使用 OverrideEchoTool 的输出，而非 EchoTool 的输出
+    assert_eq!(output.tool_calls[0].1.output, "override: priority test");
 }
 
 #[tokio::test]

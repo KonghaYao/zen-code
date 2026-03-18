@@ -2,6 +2,7 @@ use crate::agent::react::{AgentOutput, ToolCall, ToolResult};
 use crate::agent::state::State;
 use crate::error::AgentResult;
 use crate::middleware::r#trait::Middleware;
+use crate::tools::BaseTool;
 
 /// 中间件链 - 按顺序执行所有中间件
 pub struct MiddlewareChain<S: State> {
@@ -32,6 +33,11 @@ impl<S: State> MiddlewareChain<S> {
     /// 获取所有中间件名称
     pub fn names(&self) -> Vec<&str> {
         self.middlewares.iter().map(|m| m.name()).collect()
+    }
+
+    /// 收集所有中间件提供的工具（按注册顺序，后注册的同名工具被忽略）
+    pub fn collect_tools(&self, cwd: &str) -> Vec<Box<dyn BaseTool>> {
+        self.middlewares.iter().flat_map(|m| m.collect_tools(cwd)).collect()
     }
 
     /// 顺序执行 before_agent 钩子

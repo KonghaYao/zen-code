@@ -76,7 +76,17 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
         let human_msg = BaseMessage::human(input.content);
         state.add_message(human_msg);
 
-        let tool_refs: Vec<&dyn BaseTool> = self.tools.values().map(|t| t.as_ref()).collect();
+        // 从中间件收集工具，与手动注册的工具合并（手动注册的同名工具优先）
+        let middleware_tools = self.chain.collect_tools(state.cwd());
+        let mut all_tools: HashMap<String, &dyn BaseTool> = middleware_tools
+            .iter()
+            .map(|t| (t.name().to_string(), t.as_ref()))
+            .collect();
+        for (name, tool) in &self.tools {
+            all_tools.insert(name.clone(), tool.as_ref());
+        }
+
+        let tool_refs: Vec<&dyn BaseTool> = all_tools.values().copied().collect();
 
         self.chain.run_before_agent(state).await?;
 
@@ -130,7 +140,16 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
                         input: modified_call.input.clone(),
                     });
 
-                    let tool_result = self.call_tool(&modified_call).await;
+                    let tool_result = match all_tools.get(&modified_call.name) {
+                        Some(tool) => tool
+                            .invoke(modified_call.input.clone())
+                            .await
+                            .map_err(|e| AgentError::ToolExecutionFailed {
+                                tool: modified_call.name.clone(),
+                                reason: e.to_string(),
+                            }),
+                        None => Err(AgentError::ToolNotFound(modified_call.name.clone())),
+                    };
 
                     let result = match tool_result {
                         Ok(output) => {
@@ -208,17 +227,4 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
         Err(AgentError::MaxIterationsExceeded(self.max_iterations))
     }
 
-    async fn call_tool(&self, tool_call: &ToolCall) -> AgentResult<String> {
-        let tool = self
-            .tools
-            .get(&tool_call.name)
-            .ok_or_else(|| AgentError::ToolNotFound(tool_call.name.clone()))?;
-
-        tool.invoke(tool_call.input.clone())
-            .await
-            .map_err(|e| AgentError::ToolExecutionFailed {
-                tool: tool_call.name.clone(),
-                reason: e.to_string(),
-            })
-    }
 }

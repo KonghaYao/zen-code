@@ -6,49 +6,16 @@ use rust_create_agent::agent::state::AgentState;
 use rust_create_agent::agent::AgentExecutor;
 use rust_create_agent::llm::BaseModelReactLLM;
 use rust_create_agent::agent::react::AgentInput;
-use rust_create_agent::tools::{BaseTool, ToolDefinition};
 use rust_agent_middlewares::prelude::*;
 use rust_agent_middlewares::tools::{AskUserInvoker, AskUserTool};
 pub(crate) use super::provider::LlmProvider;
 use super::hitl::{ApprovalEvent, TuiAskUserHandler, TuiHitlHandler};
 use super::AgentEvent;
 
-// ─── ArcToolWrapper ───────────────────────────────────────────────────────────
-
-/// 将 Arc<dyn BaseTool> 包装为 Box<dyn BaseTool>，供 AgentExecutor 注册
-struct ArcToolWrapper(Arc<dyn BaseTool>);
-
-#[async_trait::async_trait]
-impl BaseTool for ArcToolWrapper {
-    fn name(&self) -> &str {
-        self.0.name()
-    }
-
-    fn description(&self) -> &str {
-        self.0.description()
-    }
-
-    fn parameters(&self) -> serde_json::Value {
-        self.0.parameters()
-    }
-
-    fn definition(&self) -> ToolDefinition {
-        self.0.definition()
-    }
-
-    async fn invoke(
-        &self,
-        input: serde_json::Value,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        self.0.invoke(input).await
-    }
-}
-
 // ─── 主入口 ───────────────────────────────────────────────────────────────────
 
 pub async fn run_universal_agent(
     provider: LlmProvider,
-    tools: Vec<Arc<dyn BaseTool>>,
     input: String,
     cwd: String,
     system_prompt: String,
@@ -96,17 +63,16 @@ pub async fn run_universal_agent(
     });
 
     // 构建 AgentExecutor
-    let mut executor = AgentExecutor::new(model)
+    // FilesystemMiddleware 和 TerminalMiddleware 通过 collect_tools 自动提供工具
+    let executor = AgentExecutor::new(model)
         .max_iterations(50)
         .add_middleware(Box::new(AgentsMdMiddleware::new()))
         .add_middleware(Box::new(SkillsMiddleware::new()))
+        .add_middleware(Box::new(FilesystemMiddleware::new()))
+        .add_middleware(Box::new(TerminalMiddleware::new()))
         .add_middleware(Box::new(hitl))
         .with_event_handler(Arc::new(handler))
         .register_tool(Box::new(ask_user_tool));
-
-    for tool in tools {
-        executor = executor.register_tool(Box::new(ArcToolWrapper(tool)));
-    }
 
     let mut state = AgentState::new(cwd);
     let agent_input = AgentInput::text(input);

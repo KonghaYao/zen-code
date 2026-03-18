@@ -125,6 +125,10 @@ impl Default for TerminalMiddleware {
 
 #[async_trait]
 impl<S: State> Middleware<S> for TerminalMiddleware {
+    fn collect_tools(&self, cwd: &str) -> Vec<Box<dyn BaseTool>> {
+        Self::build_tools(cwd)
+    }
+
     fn name(&self) -> &str {
         "TerminalMiddleware"
     }
