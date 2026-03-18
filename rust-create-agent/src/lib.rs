@@ -4,7 +4,9 @@
 //! Aligned with `@langgraph-js/standard-agent` (TypeScript).
 
 pub mod agent;
+pub mod ask_user;
 pub mod error;
+pub mod hitl;
 pub mod llm;
 pub mod messages;
 pub mod middleware;
@@ -19,6 +21,8 @@ pub mod prelude {
         AgentExecutor,
     };
     pub use crate::error::{AgentError, AgentResult};
+    pub use crate::ask_user::{AskUserBatchRequest, AskUserInvoker, AskUserOption, AskUserQuestionData};
+    pub use crate::hitl::{BatchItem, HitlDecision, HitlHandler};
     pub use crate::llm::{BaseModel, BaseModelReactLLM, ChatAnthropic, ChatOpenAI, MockLLM};
     pub use crate::messages::{
         BaseMessage, ContentBlock, DocumentSource, ImageSource, MessageContent, ToolCallRequest,
@@ -27,5 +31,5 @@ pub mod prelude {
         r#trait::Middleware,
         LoggingMiddleware, MetricsMiddleware, MiddlewareChain, NoopMiddleware,
     };
-    pub use crate::tools::{BaseTool, ToolDefinition};
+    pub use crate::tools::{BaseTool, ToolDefinition, ToolProvider};
 }

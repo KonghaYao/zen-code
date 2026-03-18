@@ -1,45 +1,15 @@
-use async_trait::async_trait;
-use tokio::sync::oneshot;
-
 use rust_create_agent::agent::react::ToolCall;
 use rust_create_agent::error::AgentError;
 
-// ─── 公开数据类型 ──────────────────────────────────────────────────────────────
+// 从核心库导入 trait 和数据类型
+pub use rust_create_agent::ask_user::{
+    AskUserBatchRequest, AskUserInvoker, AskUserOption, AskUserQuestionData,
+};
 
-/// 问题选项
-#[derive(Debug, Clone)]
-pub struct AskUserOption {
-    pub label: String,
-}
+// ─── AskUserHandler trait（TUI 批量请求接口）─────────────────────────────────
 
-/// 单个问题的纯数据（无 channel，供 agent 层解析并批量聚合）
-#[derive(Debug, Clone)]
-pub struct AskUserQuestionData {
-    pub tool_call_id: String,
-    pub description: String,
-    pub multi_select: bool,
-    pub options: Vec<AskUserOption>,
-    pub allow_custom_input: bool,
-    pub placeholder: Option<String>,
-}
-
-/// 批量问题请求（所有问题打包，带统一回复 channel）
-///
-/// 通过 [`AskUserBatchRequest::new`] 构建，自动创建 oneshot channel，
-/// 返回 `(request, receiver)` 二元组。调用方持有 `receiver` 以 await 答案，
-/// 将 `request` 发送给 UI 层处理。
-pub struct AskUserBatchRequest {
-    pub questions: Vec<AskUserQuestionData>,
-    /// UI 层按问题顺序填写答案后通过此 sender 回复
-    pub response_tx: oneshot::Sender<Vec<String>>,
-}
-
-impl AskUserBatchRequest {
-    pub fn new(questions: Vec<AskUserQuestionData>) -> (Self, oneshot::Receiver<Vec<String>>) {
-        let (response_tx, response_rx) = oneshot::channel();
-        (Self { questions, response_tx }, response_rx)
-    }
-}
+/// UI 层实现此 trait，决定如何展示问题并收集答案
+pub use rust_create_agent::ask_user::AskUserInvoker as AskUserHandler;
 
 // ─── 解析辅助 ──────────────────────────────────────────────────────────────────
 
@@ -86,14 +56,6 @@ pub fn parse_ask_user(tool_call: &ToolCall) -> Result<Option<AskUserQuestionData
         allow_custom_input: input.allow_custom_input,
         placeholder: input.placeholder,
     }))
-}
-
-// ─── AskUserHandler trait（单问题，供非 TUI 使用）────────────────────────────
-
-/// UI 层实现此 trait，决定如何展示问题并收集答案
-#[async_trait]
-pub trait AskUserHandler: Send + Sync {
-    async fn ask_batch(&self, req: AskUserBatchRequest);
 }
 
 // ─── `ask_user` 工具定义 ───────────────────────────────────────────────────────

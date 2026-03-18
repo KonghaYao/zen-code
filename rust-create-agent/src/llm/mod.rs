@@ -1,8 +1,9 @@
-pub mod adapter;
 pub mod anthropic;
 pub mod openai;
-pub mod react_adapter;
 pub mod types;
+
+mod adapter;
+mod react_adapter;
 
 use async_trait::async_trait;
 use crate::error::AgentResult;
@@ -19,4 +20,5 @@ pub trait BaseModel: Send + Sync {
 pub use adapter::MockLLM;
 pub use anthropic::ChatAnthropic;
 pub use openai::ChatOpenAI;
+// BaseModelReactLLM 保留用于向后兼容，但不再是推荐用法
 pub use react_adapter::BaseModelReactLLM;

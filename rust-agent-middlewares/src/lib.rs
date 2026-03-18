@@ -20,15 +20,18 @@ pub mod tools;
 
 pub use agents_md::AgentsMdMiddleware;
 pub use ask_user::{
-    ask_user_tool_definition, parse_ask_user, AskUserBatchRequest, AskUserHandler, AskUserOption,
+    ask_user_tool_definition, parse_ask_user, AskUserBatchRequest, AskUserOption,
     AskUserQuestionData,
 };
 pub use hitl::{
     default_requires_approval, is_yolo_mode, BatchItem, HitlDecision, HitlHandler,
     HumanInTheLoopMiddleware,
 };
+// AskUserInvoker 从核心库直通，AskUserHandler 是其别名
+pub use rust_create_agent::ask_user::AskUserInvoker;
+pub use rust_create_agent::ask_user::AskUserInvoker as AskUserHandler;
 pub use skills::SkillsMiddleware;
-pub use tools::{AskUserInvoker, AskUserTool};
+pub use tools::{AskUserTool};
 
 /// Prelude - 常用类型一次性导入
 pub mod prelude {
@@ -42,6 +45,7 @@ pub mod prelude {
         HumanInTheLoopMiddleware,
     };
     pub use crate::middleware::{FilesystemMiddleware, TerminalMiddleware, TodoMiddleware};
+    pub use rust_create_agent::tools::ToolProvider;
     pub use crate::skills::{SkillMetadata, SkillsMiddleware};
     pub use crate::tools::{
         AskUserInvoker, AskUserTool, EditFileTool, FolderOperationsTool, GlobFilesTool,

@@ -6,55 +6,8 @@ use rust_create_agent::agent::state::State;
 use rust_create_agent::error::{AgentError, AgentResult};
 use rust_create_agent::middleware::r#trait::Middleware;
 
-// ─── HitlDecision ──────────────────────────────────────────────────────────────
-
-/// 用户对工具调用的审批决策
-#[derive(Debug, Clone)]
-pub enum HitlDecision {
-    /// 批准执行（原始参数）
-    Approve,
-    /// 编辑后执行（修改工具调用参数）
-    Edit(serde_json::Value),
-    /// 拒绝执行
-    Reject,
-    /// 拒绝并向 LLM 回复原因
-    Respond(String),
-}
-
-// ─── HitlHandler ──────────────────────────────────────────────────────────────
-
-/// 批量审批请求的单项
-#[derive(Debug, Clone)]
-pub struct BatchItem {
-    pub tool_name: String,
-    pub input: serde_json::Value,
-}
-
-/// HITL 审批回调 trait — 应用层实现（TUI 弹窗、CLI 提示等）
-#[async_trait]
-pub trait HitlHandler: Send + Sync {
-    /// 判断此工具调用是否需要用户审批
-    fn requires_approval(&self, tool_name: &str, input: &serde_json::Value) -> bool;
-
-    /// 请求用户审批单个工具调用，挂起直到用户做出决策
-    async fn request_approval(
-        &self,
-        tool_name: &str,
-        input: &serde_json::Value,
-    ) -> HitlDecision;
-
-    /// 批量审批：一次展示多个待审批工具，返回与 items 等长的决策列表
-    ///
-    /// 默认实现：逐个串行调用 `request_approval`（退化为单次弹窗）。
-    /// 应用层可覆盖为一次性弹窗展示所有项。
-    async fn request_approval_batch(&self, items: &[BatchItem]) -> Vec<HitlDecision> {
-        let mut results = Vec::with_capacity(items.len());
-        for item in items {
-            results.push(self.request_approval(&item.tool_name, &item.input).await);
-        }
-        results
-    }
-}
+// 从核心库导入 trait 定义
+pub use rust_create_agent::hitl::{BatchItem, HitlDecision, HitlHandler};
 
 // ─── YOLO 模式检测 ─────────────────────────────────────────────────────────────
 
@@ -124,11 +77,7 @@ impl HumanInTheLoopMiddleware {
 
 impl HumanInTheLoopMiddleware {
     /// 批量处理一批工具调用：收集所有需要审批的项，一次性弹窗，返回每个 call 的处理结果
-    ///
-    /// - 不需要审批的 call：直接 `Ok(call.clone())`
-    /// - 需要审批的 call：整批发给 handler，按决策处理
     pub async fn process_batch(&self, calls: &[ToolCall]) -> Vec<AgentResult<ToolCall>> {
-        // YOLO 模式：全部放行
         let Some(handler) = &self.handler else {
             return calls.iter().map(|c| Ok(c.clone())).collect();
         };
@@ -136,19 +85,16 @@ impl HumanInTheLoopMiddleware {
             return calls.iter().map(|c| Ok(c.clone())).collect();
         }
 
-        // 分类：哪些需要审批，哪些直接放行
         let needs_approval: Vec<(usize, &ToolCall)> = calls
             .iter()
             .enumerate()
             .filter(|(_, c)| handler.requires_approval(&c.name, &c.input))
             .collect();
 
-        // 没有需要审批的：全部放行
         if needs_approval.is_empty() {
             return calls.iter().map(|c| Ok(c.clone())).collect();
         }
 
-        // 批量请求审批
         let batch_items: Vec<BatchItem> = needs_approval
             .iter()
             .map(|(_, c)| BatchItem {
@@ -159,7 +105,6 @@ impl HumanInTheLoopMiddleware {
 
         let decisions = handler.request_approval_batch(&batch_items).await;
 
-        // 将决策映射回完整列表
         let mut approval_iter = decisions.into_iter();
         let mut results: Vec<AgentResult<ToolCall>> = calls.iter().map(|c| Ok(c.clone())).collect();
 
@@ -194,7 +139,6 @@ impl<S: State> Middleware<S> for HumanInTheLoopMiddleware {
     }
 
     async fn before_tool(&self, _state: &mut S, tool_call: &ToolCall) -> AgentResult<ToolCall> {
-        // YOLO 模式或未配置 handler：直接放行
         let Some(handler) = &self.handler else {
             return Ok(tool_call.clone());
         };
@@ -202,12 +146,10 @@ impl<S: State> Middleware<S> for HumanInTheLoopMiddleware {
             return Ok(tool_call.clone());
         }
 
-        // 不需要审批：直接放行
         if !handler.requires_approval(&tool_call.name, &tool_call.input) {
             return Ok(tool_call.clone());
         }
 
-        // 请求审批
         match handler.request_approval(&tool_call.name, &tool_call.input).await {
             HitlDecision::Approve => Ok(tool_call.clone()),
             HitlDecision::Edit(new_input) => {
@@ -306,7 +248,6 @@ mod tests {
         let mw = HumanInTheLoopMiddleware::new(Arc::new(AutoApproveHandler));
         let mut state = AgentState::new("/tmp");
         let tc = make_tool_call("read_file");
-        // read_file 不在默认敏感列表，AutoApproveHandler 按 default_requires_approval 判断
         let result = mw.before_tool(&mut state, &tc).await.unwrap();
         assert_eq!(result.name, "read_file");
     }

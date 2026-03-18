@@ -1,9 +1,11 @@
 use async_trait::async_trait;
 use serde_json::{json, Value};
 
+use crate::agent::react::{ReactLLM, Reasoning, ToolCall};
 use crate::error::{AgentError, AgentResult};
 use crate::messages::{BaseMessage, ContentBlock, ImageSource, MessageContent, ToolCallRequest};
 use crate::llm::types::{LlmRequest, LlmResponse, StopReason};
+use crate::tools::BaseTool;
 use super::BaseModel;
 
 /// ChatAnthropic - Anthropic Messages API 实现
@@ -421,5 +423,56 @@ impl BaseModel for ChatAnthropic {
 
     fn model_id(&self) -> &str {
         &self.model
+    }
+}
+
+#[async_trait]
+impl ReactLLM for ChatAnthropic {
+    async fn generate_reasoning(
+        &self,
+        messages: &[BaseMessage],
+        tools: &[&dyn BaseTool],
+    ) -> AgentResult<Reasoning> {
+        let tool_defs = tools.iter().map(|t| t.definition()).collect();
+        let request = LlmRequest::new(messages.to_vec()).with_tools(tool_defs);
+
+        // system 消息由 messages_to_anthropic 从消息列表提取，无需单独处理
+
+        let response = self.invoke(request).await?;
+
+        if response.stop_reason == StopReason::ToolUse {
+            let blocks = response.message.content_blocks();
+            let thought = blocks
+                .iter()
+                .filter_map(|b| b.as_text())
+                .collect::<Vec<_>>()
+                .join("");
+
+            let calls: Vec<ToolCall> = blocks
+                .iter()
+                .filter_map(|b| {
+                    if let ContentBlock::ToolUse { id, name, input } = b {
+                        Some(ToolCall::new(id.clone(), name.clone(), input.clone()))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            if !calls.is_empty() {
+                return Ok(Reasoning::with_tools(thought, calls));
+            }
+
+            let calls: Vec<ToolCall> = response
+                .message
+                .tool_calls()
+                .iter()
+                .map(|tc| ToolCall::new(tc.id.clone(), tc.name.clone(), tc.arguments.clone()))
+                .collect();
+            Ok(Reasoning::with_tools(thought, calls))
+        } else {
+            let text = response.message.content();
+            Ok(Reasoning::with_answer("", text))
+        }
     }
 }

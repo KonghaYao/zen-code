@@ -7,7 +7,7 @@ use crate::error::{AgentError, AgentResult};
 use crate::messages::{BaseMessage, ToolCallRequest};
 use crate::middleware::chain::MiddlewareChain;
 use crate::middleware::r#trait::Middleware;
-use crate::tools::BaseTool;
+use crate::tools::{BaseTool, ToolProvider};
 use std::collections::HashMap;
 
 /// Agent 执行器 - 管理 ReAct 循环
@@ -18,6 +18,7 @@ where
 {
     llm: L,
     tools: HashMap<String, Box<dyn BaseTool>>,
+    tool_providers: Vec<Box<dyn ToolProvider>>,
     chain: MiddlewareChain<S>,
     max_iterations: usize,
     /// 可选事件回调：在工具调用、答案生成等关键节点触发
@@ -29,6 +30,7 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
         Self {
             llm,
             tools: HashMap::new(),
+            tool_providers: Vec::new(),
             chain: MiddlewareChain::new(),
             max_iterations: 10,
             event_handler: None,
@@ -47,6 +49,12 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
 
     pub fn add_middleware(mut self, middleware: Box<dyn Middleware<S>>) -> Self {
         self.chain.add(middleware);
+        self
+    }
+
+    /// 注册工具提供者（独立于中间件，专注于工具供给）
+    pub fn add_tool_provider(mut self, provider: Box<dyn ToolProvider>) -> Self {
+        self.tool_providers.push(provider);
         self
     }
 
@@ -76,10 +84,15 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
         let human_msg = BaseMessage::human(input.content);
         state.add_message(human_msg);
 
-        // 从中间件收集工具，与手动注册的工具合并（手动注册的同名工具优先）
-        let middleware_tools = self.chain.collect_tools(state.cwd());
-        let mut all_tools: HashMap<String, &dyn BaseTool> = middleware_tools
+        // 从 ToolProvider 和中间件各收集工具，手动注册的同名工具优先级最高
+        let provider_tools: Vec<Box<dyn BaseTool>> = self.tool_providers
             .iter()
+            .flat_map(|p| p.tools(state.cwd()))
+            .collect();
+        let middleware_tools = self.chain.collect_tools(state.cwd());
+        let mut all_tools: HashMap<String, &dyn BaseTool> = provider_tools
+            .iter()
+            .chain(middleware_tools.iter())
             .map(|t| (t.name().to_string(), t.as_ref()))
             .collect();
         for (name, tool) in &self.tools {

@@ -4,22 +4,11 @@ use async_trait::async_trait;
 use rust_create_agent::tools::BaseTool;
 use serde_json::Value;
 
-use crate::ask_user::{ask_user_tool_definition, parse_ask_user, AskUserQuestionData};
+use crate::ask_user::{ask_user_tool_definition, parse_ask_user};
 use rust_create_agent::agent::react::ToolCall;
 
-// ─── AskUserInvoker trait ─────────────────────────────────────────────────────
-
-/// 批量 ask_user 调用接口 —— 由应用层（TUI / CLI）实现
-///
-/// 解耦 `AskUserTool` 与具体 UI 实现：
-/// - TUI 实现：将问题发送到 TUI 弹窗，挂起等待用户输入
-/// - CLI 实现：在终端打印问题，读取用户输入
-/// - 测试实现：预设答案自动回复
-#[async_trait]
-pub trait AskUserInvoker: Send + Sync {
-    /// 批量提问，返回与 questions 等长的答案列表
-    async fn ask_batch(&self, questions: Vec<AskUserQuestionData>) -> Vec<String>;
-}
+// AskUserInvoker 从核心库导入并重导出
+pub use rust_create_agent::ask_user::AskUserInvoker;
 
 // ─── AskUserTool ──────────────────────────────────────────────────────────────
 
