@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use tracing::instrument;
+
 use crate::agent::events::{AgentEvent, AgentEventHandler};
 use crate::agent::react::{AgentInput, AgentOutput, ReactLLM, ToolCall, ToolResult};
 use crate::agent::state::State;
@@ -80,6 +82,8 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
     }
 
     /// 执行 Agent（ReAct 循环主入口）
+    #[instrument(name = "agent.execute", skip(self, input, state),
+        fields(max_iterations = self.max_iterations))]
     pub async fn execute(&self, input: AgentInput, state: &mut S) -> AgentResult<AgentOutput> {
         let human_msg = BaseMessage::human(input.content);
         state.add_message(human_msg);
@@ -153,15 +157,23 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
                         input: modified_call.input.clone(),
                     });
 
-                    let tool_result = match all_tools.get(&modified_call.name) {
-                        Some(tool) => tool
-                            .invoke(modified_call.input.clone())
-                            .await
-                            .map_err(|e| AgentError::ToolExecutionFailed {
-                                tool: modified_call.name.clone(),
-                                reason: e.to_string(),
-                            }),
-                        None => Err(AgentError::ToolNotFound(modified_call.name.clone())),
+                    let tool_span = tracing::info_span!(
+                        "agent.tool_call",
+                        tool.name = %modified_call.name,
+                        tool.call_id = %modified_call.id,
+                    );
+                    let tool_result = {
+                        let _enter = tool_span.enter();
+                        match all_tools.get(&modified_call.name) {
+                            Some(tool) => tool
+                                .invoke(modified_call.input.clone())
+                                .await
+                                .map_err(|e| AgentError::ToolExecutionFailed {
+                                    tool: modified_call.name.clone(),
+                                    reason: e.to_string(),
+                                }),
+                            None => Err(AgentError::ToolNotFound(modified_call.name.clone())),
+                        }
                     };
 
                     let result = match tool_result {
@@ -184,6 +196,11 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
                     };
 
                     // 工具调用结束事件
+                    tracing::debug!(
+                        tool.name = %result.tool_name,
+                        tool.is_error = result.is_error,
+                        "tool call completed"
+                    );
                     self.emit(AgentEvent::ToolEnd {
                         name: modified_call.name.clone(),
                         output: result.output.clone(),
@@ -210,6 +227,7 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
                 }
 
                 // 步骤完成事件
+                tracing::debug!(step, "react step done");
                 self.emit(AgentEvent::StepDone { step });
             } else {
                 let answer = reasoning
@@ -226,6 +244,12 @@ impl<L: ReactLLM, S: State> AgentExecutor<L, S> {
                     steps: step + 1,
                     tool_calls: all_tool_calls,
                 };
+
+                tracing::info!(
+                    steps = output.steps,
+                    tool_calls = output.tool_calls.len(),
+                    "agent finished"
+                );
 
                 return match self.chain.run_after_agent(state, output).await {
                     Ok(o) => Ok(o),
