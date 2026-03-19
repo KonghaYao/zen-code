@@ -1,0 +1,11 @@
+services:
+    jaeger:
+        image: jaegertracing/all-in-one:latest
+        container_name: jaeger
+        ports:
+            - '16686:16686' # Jaeger UI
+            - '4317:4317' # OTLP gRPC
+            - '4318:4318' # OTLP HTTP  ← OTEL_EXPORTER_OTLP_ENDPOINT 指向这里
+        environment:
+            - COLLECTOR_OTLP_ENABLED=true
+        restart: unless-stopped

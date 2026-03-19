@@ -30,7 +30,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"]
 # OpenTelemetry（可选，启用 `otel` feature 后激活）
 opentelemetry = { version = "0.31", optional = true }
 opentelemetry_sdk = { version = "0.31", features = ["rt-tokio"], optional = true }
-opentelemetry-otlp = { version = "0.31", features = ["http-proto", "reqwest-client", "reqwest-rustls"], optional = true }
+opentelemetry-otlp = { version = "0.31", features = ["http-proto", "reqwest-blocking-client", "reqwest-rustls"], optional = true }
 tracing-opentelemetry = { version = "0.32", optional = true }
 
 [dev-dependencies]

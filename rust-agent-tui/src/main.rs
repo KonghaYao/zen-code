@@ -17,8 +17,7 @@ use ratatui::{
 };
 use std::io;
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     // 加载 .env 文件（仅开发环境，文件不存在时静默忽略）
     let _ = dotenvy::dotenv();
 
@@ -28,20 +27,37 @@ async fn main() -> Result<()> {
         std::env::set_var("YOLO_MODE", "true");
     }
 
-    // 初始化终端
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
+    // 在创建 tokio runtime 之前初始化 tracing，确保 reqwest::blocking::Client
+    // 的内部 runtime 与应用 runtime 完全隔离，避免嵌套 runtime drop panic。
+    let _telemetry = rust_create_agent::telemetry::init_tracing("agent-tui");
 
-    // 运行应用
-    let result = run_app(&mut terminal).await;
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?;
 
-    // 恢复终端
-    disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;
-    terminal.show_cursor()?;
+    let result = rt.block_on(async {
+        // 初始化终端
+        enable_raw_mode()?;
+        let mut stdout = io::stdout();
+        execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+        let backend = CrosstermBackend::new(stdout);
+        let mut terminal = Terminal::new(backend)?;
+
+        // 运行应用
+        let result = run_app(&mut terminal).await;
+
+        // 恢复终端
+        disable_raw_mode()?;
+        execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;
+        terminal.show_cursor()?;
+
+        result
+    });
+
+    // 先 drop rt（关闭所有 tokio 任务），再 drop _telemetry（flush + 关闭 OTel provider）
+    // 此时已无任何 tokio 上下文，reqwest::blocking 的内部 runtime 可以安全 drop。
+    drop(rt);
+    drop(_telemetry);
 
     if let Err(e) = result {
         eprintln!("Error: {e}");
