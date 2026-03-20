@@ -19,6 +19,7 @@ pub async fn run_universal_agent(
     input: String,
     cwd: String,
     system_prompt: String,
+    _thread_id: String,
     approval_tx: mpsc::Sender<ApprovalEvent>,
     tx: mpsc::Sender<AgentEvent>,
 ) {

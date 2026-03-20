@@ -1,11 +1,37 @@
 services:
-    jaeger:
-        image: jaegertracing/all-in-one:latest
-        container_name: jaeger
+    tempo:
+        image: grafana/tempo:2.6.1
+        container_name: tempo
+        command: ['-config.file=/etc/tempo.yaml']
+        volumes:
+            - ./docker/tempo.yaml:/etc/tempo.yaml
+            - tempo-data:/var/tempo
         ports:
-            - '16686:16686' # Jaeger UI
             - '4317:4317' # OTLP gRPC
             - '4318:4318' # OTLP HTTP  ← OTEL_EXPORTER_OTLP_ENDPOINT 指向这里
-        environment:
-            - COLLECTOR_OTLP_ENABLED=true
+        networks:
+            - otel
         restart: unless-stopped
+
+    grafana:
+        image: grafana/grafana:latest
+        container_name: grafana
+        environment:
+            - GF_AUTH_ANONYMOUS_ENABLED=true
+            - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+        volumes:
+            - ./docker/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+        ports:
+            - '3000:3000' # Grafana UI
+        networks:
+            - otel
+        depends_on:
+            - tempo
+        restart: unless-stopped
+
+networks:
+    otel:
+        driver: bridge
+
+volumes:
+    tempo-data:

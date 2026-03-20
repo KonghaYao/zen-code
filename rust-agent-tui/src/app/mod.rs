@@ -3,20 +3,23 @@ pub mod hitl;
 pub mod model_panel;
 mod provider;
 
-use ratatui_textarea::TextArea;
 use ratatui::style::{Color, Style};
+use ratatui_textarea::TextArea;
 use rust_agent_middlewares::ask_user::{AskUserBatchRequest, AskUserQuestionData};
-use rust_agent_middlewares::prelude::{BatchItem, HitlDecision, TodoItem, TodoStatus, SkillMetadata};
+use rust_agent_middlewares::prelude::{
+    BatchItem, HitlDecision, SkillMetadata, TodoItem, TodoStatus,
+};
 use rust_create_agent::messages::BaseMessage;
 use tokio::sync::mpsc;
 
+use crate::command::CommandRegistry;
+use crate::config::ZenConfig;
+use crate::thread::{FilesystemThreadStore, ThreadBrowser, ThreadId, ThreadMeta, ThreadStore};
 use agent::LlmProvider;
 pub use hitl::{ApprovalEvent, BatchApprovalRequest};
 pub use model_panel::ModelPanel;
 use std::sync::Arc;
-use crate::command::CommandRegistry;
-use crate::config::ZenConfig;
-use crate::thread::{FilesystemThreadStore, ThreadBrowser, ThreadId, ThreadMeta, ThreadStore};
+use tracing::Instrument;
 
 // ─── ChatMessage ──────────────────────────────────────────────────────────────
 
@@ -29,11 +32,19 @@ pub struct ChatMessage {
 
 impl ChatMessage {
     pub fn user(content: impl Into<String>) -> Self {
-        Self { inner: BaseMessage::human(content.into()), display_name: None, tool_name: None }
+        Self {
+            inner: BaseMessage::human(content.into()),
+            display_name: None,
+            tool_name: None,
+        }
     }
 
     pub fn assistant(content: impl Into<String>) -> Self {
-        Self { inner: BaseMessage::ai(content.into()), display_name: None, tool_name: None }
+        Self {
+            inner: BaseMessage::ai(content.into()),
+            display_name: None,
+            tool_name: None,
+        }
     }
 
     pub fn tool(
@@ -50,11 +61,19 @@ impl ChatMessage {
         } else {
             BaseMessage::tool_result(&raw_name, content.as_str())
         };
-        Self { inner: msg, display_name: Some(display), tool_name: Some(raw_name) }
+        Self {
+            inner: msg,
+            display_name: Some(display),
+            tool_name: Some(raw_name),
+        }
     }
 
     pub fn system(content: impl Into<String>) -> Self {
-        Self { inner: BaseMessage::system(content.into()), display_name: None, tool_name: None }
+        Self {
+            inner: BaseMessage::system(content.into()),
+            display_name: None,
+            tool_name: None,
+        }
     }
 
     pub fn todo_status(content: impl Into<String>) -> Self {
@@ -90,7 +109,11 @@ impl ChatMessage {
 // ─── AgentEvent ───────────────────────────────────────────────────────────────
 
 pub enum AgentEvent {
-    ToolCall { name: String, display: String, is_error: bool },
+    ToolCall {
+        name: String,
+        display: String,
+        is_error: bool,
+    },
     AssistantChunk(String),
     Done,
     Error(String),
@@ -117,7 +140,10 @@ pub struct HitlBatchPrompt {
 }
 
 impl HitlBatchPrompt {
-    pub fn new(items: Vec<BatchItem>, response_tx: tokio::sync::oneshot::Sender<Vec<HitlDecision>>) -> Self {
+    pub fn new(
+        items: Vec<BatchItem>,
+        response_tx: tokio::sync::oneshot::Sender<Vec<HitlDecision>>,
+    ) -> Self {
         let len = items.len();
         Self {
             items,
@@ -129,7 +155,9 @@ impl HitlBatchPrompt {
 
     pub fn move_cursor(&mut self, delta: isize) {
         let len = self.items.len();
-        if len == 0 { return; }
+        if len == 0 {
+            return;
+        }
         self.cursor = ((self.cursor as isize + delta).rem_euclid(len as isize)) as usize;
     }
 
@@ -152,9 +180,16 @@ impl HitlBatchPrompt {
 
     /// 确认并发送决策
     pub fn confirm(self) {
-        let decisions: Vec<HitlDecision> = self.approved
+        let decisions: Vec<HitlDecision> = self
+            .approved
             .iter()
-            .map(|&ok| if ok { HitlDecision::Approve } else { HitlDecision::Reject })
+            .map(|&ok| {
+                if ok {
+                    HitlDecision::Approve
+                } else {
+                    HitlDecision::Reject
+                }
+            })
             .collect();
         let _ = self.response_tx.send(decisions);
     }
@@ -165,7 +200,7 @@ impl HitlBatchPrompt {
 /// 单个问题的交互状态
 pub struct QuestionState {
     pub data: AskUserQuestionData,
-    pub option_cursor: isize,   // 当前光标在第几个选项（最后一项 = 自定义输入行）
+    pub option_cursor: isize, // 当前光标在第几个选项（最后一项 = 自定义输入行）
     pub selected: Vec<bool>,
     pub custom_input: String,
     pub in_custom_input: bool,
@@ -189,14 +224,18 @@ impl QuestionState {
 
     pub fn move_option_cursor(&mut self, delta: isize) {
         let total = self.total_rows();
-        if total == 0 { return; }
+        if total == 0 {
+            return;
+        }
         self.option_cursor = (self.option_cursor + delta).rem_euclid(total);
         self.in_custom_input =
             self.data.allow_custom_input && self.option_cursor == self.data.options.len() as isize;
     }
 
     pub fn toggle_current(&mut self) {
-        if self.in_custom_input { return; }
+        if self.in_custom_input {
+            return;
+        }
         let i = self.option_cursor as usize;
         if i < self.selected.len() {
             if self.data.multi_select {
@@ -209,22 +248,35 @@ impl QuestionState {
     }
 
     pub fn push_char(&mut self, c: char) {
-        if self.in_custom_input { self.custom_input.push(c); }
+        if self.in_custom_input {
+            self.custom_input.push(c);
+        }
     }
 
     pub fn pop_char(&mut self) {
-        if self.in_custom_input { self.custom_input.pop(); }
+        if self.in_custom_input {
+            self.custom_input.pop();
+        }
     }
 
     /// 收集当前问题的答案文本
     pub fn answer(&self) -> String {
-        let mut parts: Vec<String> = self.selected.iter().enumerate()
+        let mut parts: Vec<String> = self
+            .selected
+            .iter()
+            .enumerate()
             .filter(|(_, &v)| v)
             .map(|(i, _)| self.data.options[i].label.clone())
             .collect();
         let custom = self.custom_input.trim().to_string();
-        if !custom.is_empty() { parts.push(custom); }
-        if parts.is_empty() { self.custom_input.trim().to_string() } else { parts.join(", ") }
+        if !custom.is_empty() {
+            parts.push(custom);
+        }
+        if parts.is_empty() {
+            self.custom_input.trim().to_string()
+        } else {
+            parts.join(", ")
+        }
     }
 }
 
@@ -258,7 +310,10 @@ impl AskUserBatchPrompt {
 
     pub fn prev_tab(&mut self) {
         if !self.questions.is_empty() {
-            self.active_tab = self.active_tab.checked_sub(1).unwrap_or(self.questions.len() - 1);
+            self.active_tab = self
+                .active_tab
+                .checked_sub(1)
+                .unwrap_or(self.questions.len() - 1);
         }
     }
 
@@ -344,25 +399,26 @@ impl App {
         let zen_config = crate::config::load().ok();
 
         let provider_from_config = zen_config.as_ref().and_then(LlmProvider::from_config);
-        let (provider_name, model_name, status_msg) = match provider_from_config.or_else(LlmProvider::from_env) {
-            Some(p) => {
-                let name = p.display_name().to_string();
-                let model = p.model_name().to_string();
-                let msg = format!("{} ({}) 已就绪", name, model);
-                (name, model, msg)
-            }
-            None => (
-                "未配置".to_string(),
-                "无".to_string(),
-                "警告: 未设置任何 API Key（ANTHROPIC_API_KEY 或 OPENAI_API_KEY）".to_string(),
-            ),
-        };
+        let (provider_name, model_name, status_msg) =
+            match provider_from_config.or_else(LlmProvider::from_env) {
+                Some(p) => {
+                    let name = p.display_name().to_string();
+                    let model = p.model_name().to_string();
+                    let msg = format!("{} ({}) 已就绪", name, model);
+                    (name, model, msg)
+                }
+                None => (
+                    "未配置".to_string(),
+                    "无".to_string(),
+                    "警告: 未设置任何 API Key（ANTHROPIC_API_KEY 或 OPENAI_API_KEY）".to_string(),
+                ),
+            };
 
         // 初始化 thread 存储（失败时 fallback 到临时目录）
-        let thread_store: Arc<dyn ThreadStore> = Arc::new(
-            FilesystemThreadStore::default_path()
-                .unwrap_or_else(|_| FilesystemThreadStore::new(std::env::temp_dir().join("zen-threads"))),
-        );
+        let thread_store: Arc<dyn ThreadStore> =
+            Arc::new(FilesystemThreadStore::default_path().unwrap_or_else(|_| {
+                FilesystemThreadStore::new(std::env::temp_dir().join("zen-threads"))
+            }));
 
         let mut app = Self {
             messages: Vec::new(),
@@ -409,7 +465,9 @@ impl App {
 
     /// 把自上次持久化之后的新消息追加到 thread
     fn persist_pending_messages(&mut self) {
-        let Some(id) = self.current_thread_id.clone() else { return };
+        let Some(id) = self.current_thread_id.clone() else {
+            return;
+        };
         let new_msgs: Vec<BaseMessage> = self.messages[self.persisted_count..]
             .iter()
             // 跳过纯 UI 用途的 todo_status 和 system 消息
@@ -458,13 +516,22 @@ impl App {
     /// 获取当前提示浮层的候选数量和类型
     /// 返回 (候选总数, 选中的文本) — 用于 Tab 补全
     pub fn hint_candidates_count(&self) -> usize {
-        let first_line = self.textarea.lines().first().map(|s| s.as_str()).unwrap_or("");
+        let first_line = self
+            .textarea
+            .lines()
+            .first()
+            .map(|s| s.as_str())
+            .unwrap_or("");
         if first_line.starts_with('/') {
             let prefix = first_line.trim_start_matches('/');
             self.command_registry.match_prefix(prefix).len()
         } else if first_line.starts_with('#') {
             let prefix = first_line.trim_start_matches('#');
-            self.skills.iter().filter(|s| prefix.is_empty() || s.name.contains(prefix)).take(8).count()
+            self.skills
+                .iter()
+                .filter(|s| prefix.is_empty() || s.name.contains(prefix))
+                .take(8)
+                .count()
         } else {
             0
         }
@@ -472,7 +539,13 @@ impl App {
 
     /// Tab 补全：选中当前光标处的候选项，替换输入框内容
     pub fn hint_complete(&mut self) {
-        let first_line = self.textarea.lines().first().map(|s| s.as_str()).unwrap_or("").to_string();
+        let first_line = self
+            .textarea
+            .lines()
+            .first()
+            .map(|s| s.as_str())
+            .unwrap_or("")
+            .to_string();
         let cursor = self.hint_cursor.unwrap_or(0);
 
         if first_line.starts_with('/') {
@@ -485,7 +558,9 @@ impl App {
             }
         } else if first_line.starts_with('#') {
             let prefix = first_line.trim_start_matches('#').to_string();
-            let candidates: Vec<_> = self.skills.iter()
+            let candidates: Vec<_> = self
+                .skills
+                .iter()
                 .filter(|s| prefix.is_empty() || s.name.contains(&prefix))
                 .take(8)
                 .collect();
@@ -503,7 +578,9 @@ impl App {
     }
 
     pub fn submit_message(&mut self, input: String) {
-        if input.trim().is_empty() { return; }
+        if input.trim().is_empty() {
+            return;
+        }
 
         self.messages.push(ChatMessage::user(input.clone()));
         self.set_loading(true);
@@ -511,7 +588,10 @@ impl App {
         self.scroll_follow = true;
         self.todo_message_index = None;
 
-        let provider = match self.zen_config.as_ref().and_then(LlmProvider::from_config)
+        let provider = match self
+            .zen_config
+            .as_ref()
+            .and_then(LlmProvider::from_config)
             .or_else(LlmProvider::from_env)
         {
             Some(p) => p,
@@ -565,21 +645,45 @@ impl App {
         // 用户消息已追加到 self.messages，更新已持久化计数
         self.persisted_count = self.messages.len();
 
-        tokio::spawn(async move {
-            agent::run_universal_agent(provider, input, cwd, system_prompt, approval_tx, tx).await;
-        });
+        let span = tracing::info_span!(
+            "thread.run",
+            thread.id = %thread_id,
+            thread.cwd = %cwd,
+        );
+        tokio::spawn(
+            async move {
+                agent::run_universal_agent(
+                    provider,
+                    input,
+                    cwd,
+                    system_prompt,
+                    thread_id,
+                    approval_tx,
+                    tx,
+                )
+                .await;
+            }
+            .instrument(span),
+        );
     }
 
     /// 每帧调用：消费 channel 事件，返回是否有 UI 更新
     pub fn poll_agent(&mut self) -> bool {
-        let Some(rx) = self.agent_rx.as_mut() else { return false; };
+        let Some(rx) = self.agent_rx.as_mut() else {
+            return false;
+        };
 
         let mut updated = false;
 
         loop {
             match rx.try_recv() {
-                Ok(AgentEvent::ToolCall { name, display, is_error }) => {
-                    self.messages.push(ChatMessage::tool(name, display, "", is_error));
+                Ok(AgentEvent::ToolCall {
+                    name,
+                    display,
+                    is_error,
+                }) => {
+                    self.messages
+                        .push(ChatMessage::tool(name, display, "", is_error));
                     updated = true;
                 }
                 Ok(AgentEvent::AssistantChunk(chunk)) => {
@@ -597,7 +701,8 @@ impl App {
                     return true;
                 }
                 Ok(AgentEvent::Error(e)) => {
-                    self.messages.push(ChatMessage::tool("error", "agent-error", e, true));
+                    self.messages
+                        .push(ChatMessage::tool("error", "agent-error", e, true));
                     self.set_loading(false);
                     self.agent_rx = None;
                     self.persist_pending_messages();
@@ -628,7 +733,12 @@ impl App {
                 }
                 Err(mpsc::error::TryRecvError::Empty) => break,
                 Err(mpsc::error::TryRecvError::Disconnected) => {
-                    self.messages.push(ChatMessage::tool("error", "agent-error", "Agent 任务意外终止", true));
+                    self.messages.push(ChatMessage::tool(
+                        "error",
+                        "agent-error",
+                        "Agent 任务意外终止",
+                        true,
+                    ));
                     self.set_loading(false);
                     self.agent_rx = None;
                     return true;
@@ -681,11 +791,15 @@ impl App {
     // ─── AskUser 操作 ─────────────────────────────────────────────────────────
 
     pub fn ask_user_next_tab(&mut self) {
-        if let Some(p) = self.ask_user_prompt.as_mut() { p.next_tab(); }
+        if let Some(p) = self.ask_user_prompt.as_mut() {
+            p.next_tab();
+        }
     }
 
     pub fn ask_user_prev_tab(&mut self) {
-        if let Some(p) = self.ask_user_prompt.as_mut() { p.prev_tab(); }
+        if let Some(p) = self.ask_user_prompt.as_mut() {
+            p.prev_tab();
+        }
     }
 
     pub fn ask_user_move(&mut self, delta: isize) {
@@ -718,7 +832,10 @@ impl App {
         if let Some(p) = self.ask_user_prompt.as_mut() {
             let q = &mut p.questions[p.active_tab];
             // 没有选中任何选项且不在自定义输入模式：自动选中当前光标行
-            if !q.in_custom_input && !q.selected.iter().any(|&v| v) && q.custom_input.trim().is_empty() {
+            if !q.in_custom_input
+                && !q.selected.iter().any(|&v| v)
+                && q.custom_input.trim().is_empty()
+            {
                 q.toggle_current();
             }
         }
@@ -793,8 +910,12 @@ impl App {
 
     /// 在面板中确认选择当前 provider，保存配置，更新 provider_name/model_name
     pub fn model_panel_confirm_select(&mut self) {
-        let Some(panel) = self.model_panel.as_mut() else { return };
-        let Some(cfg) = self.zen_config.as_mut() else { return };
+        let Some(panel) = self.model_panel.as_mut() else {
+            return;
+        };
+        let Some(cfg) = self.zen_config.as_mut() else {
+            return;
+        };
         panel.confirm_select(cfg);
         let _ = crate::config::save(cfg);
         if let Some(p) = LlmProvider::from_config(cfg) {
@@ -806,16 +927,24 @@ impl App {
 
     /// 在面板中保存编辑/新建，写回配置
     pub fn model_panel_apply_edit(&mut self) {
-        let Some(panel) = self.model_panel.as_mut() else { return };
-        let Some(cfg) = self.zen_config.as_mut() else { return };
+        let Some(panel) = self.model_panel.as_mut() else {
+            return;
+        };
+        let Some(cfg) = self.zen_config.as_mut() else {
+            return;
+        };
         panel.apply_edit(cfg);
         let _ = crate::config::save(cfg);
     }
 
     /// 删除光标处的 provider
     pub fn model_panel_confirm_delete(&mut self) {
-        let Some(panel) = self.model_panel.as_mut() else { return };
-        let Some(cfg) = self.zen_config.as_mut() else { return };
+        let Some(panel) = self.model_panel.as_mut() else {
+            return;
+        };
+        let Some(cfg) = self.zen_config.as_mut() else {
+            return;
+        };
         panel.confirm_delete(cfg);
         let _ = crate::config::save(cfg);
         if let Some(p) = LlmProvider::from_config(cfg) {
@@ -841,8 +970,16 @@ pub fn render_todos(todos: &[TodoItem]) -> String {
 
 pub fn build_textarea(disabled: bool) -> TextArea<'static> {
     let mut ta = TextArea::default();
-    let border_color = if disabled { Color::DarkGray } else { Color::Cyan };
-    let text_color = if disabled { Color::DarkGray } else { Color::White };
+    let border_color = if disabled {
+        Color::DarkGray
+    } else {
+        Color::Cyan
+    };
+    let text_color = if disabled {
+        Color::DarkGray
+    } else {
+        Color::White
+    };
     ta.set_cursor_line_style(Style::default());
     ta.set_style(Style::default().fg(text_color));
     ta.set_block(
@@ -851,7 +988,9 @@ pub fn build_textarea(disabled: bool) -> TextArea<'static> {
             .border_style(Style::default().fg(border_color))
             .title(ratatui::text::Span::styled(
                 " 输入 ",
-                Style::default().fg(Color::Cyan).add_modifier(ratatui::style::Modifier::BOLD),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(ratatui::style::Modifier::BOLD),
             )),
     );
     ta
